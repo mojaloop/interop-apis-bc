@@ -1,0 +1,48 @@
+{
+  "name": "@mojaloop/interop-apis-bc-fspiop-api-svc",
+  "version": "0.0.1",
+  "description": "Mojaloop vNext FSPIOP API Service",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/mojaloop/interop-apis-bc/tree/main/modules/fspiop-api-svc",
+  "private": true,
+  "bugs": {
+    "url": "https://github.com/mojaloop/interop-apis-bc/issues#readme"
+  },
+  "contributors": [
+    "Pedro Sousa Barreto <pedrosousabarreto@gmail.com>"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "/dist"
+  ],
+  "scripts": {
+    "start": "npm run service",
+    "service": "tsc && node dist/application/index.js",
+    "build": "tsc",
+    "watch": "tsc -w",
+    "clean": "rm -Rf dist",
+    "clean:npm": "rm -Rf node_modules",
+    "pretest": "npm run build",
+    "standard": "npm run lint",
+    "lint": "eslint ./src",
+    "lint:fix": "eslint ./src --fix",
+    "test:unit": "jest --passWithNoTests --testMatch '**/test/unit/**/*.test.ts'",
+    "test:coverage": "jest --passWithNoTests --coverage --coverageThreshold='{}' --testMatch '**/test/unit/**/*.test.ts'",
+    "test:coverage-check": "jest --coverage --testMatch '**/test/unit/**/*.test.ts'",
+    "audit:resolve": "SHELL=sh resolve-audit",
+    "audit:check": "SHELL=sh check-audit",
+    "dep:check": "ncu -e 2",
+    "dep:update": "ncu -e 2 -u"
+  },
+  "dependencies": {
+    "@mojaloop/auditing-bc-client-lib": "~0.0.6",
+    "@mojaloop/auditing-bc-public-types-lib": "~0.0.7",
+    "@mojaloop/logging-bc-client-lib": "~0.1.14",
+    "express": "~4.18.1"
+  },
+  "devDependencies": {
+    "@types/express": "~4.17.14"
+
+  }
+}
