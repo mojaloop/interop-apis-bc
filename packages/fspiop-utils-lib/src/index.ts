@@ -28,6 +28,6 @@
  --------------
  ******/
 
-"use strict"
+"use strict";
 
 export * as Constants from "./constants";
