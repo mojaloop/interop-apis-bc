@@ -14,11 +14,12 @@
   "scripts": {
     "prepare": "husky install",
     "start": "npm -ws --parallel -v run start",
+    "start:fspiop-api-svc": "npm -w @mojaloop/interop-apis-bc-fspiop-api-svc run start",
     "build": "npm -ws run build",
     "watch": "npm -ws --parallel  run watch",
     "clean": "npm run clean:dist",
     "clean:npm": "rm -Rf node_modules && npm -ws --parallel  run clean:npm",
-    "clean:dist": "npm -ws --parallel  run clean:dist",
+    "clean:dist": "npm -ws --parallel --if-present run clean:dist",
     "pretest": "echo 'FIX ME'",
     "standard": "npm run --no-progress --stream lint'",
     "lint": "npm -ws run lint",
@@ -45,6 +46,10 @@
     "typescript": "^4.8.3"
   },
   "workspaces": [
+    "packages/fspiop-utils-lib",
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "bignumber.js": "^9.1.0"
+  }
 }
