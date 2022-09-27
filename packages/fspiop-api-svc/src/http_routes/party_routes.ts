@@ -53,18 +53,64 @@ export class PartyRoutes {
 
         // bind routes
 
-        // GET Participant by Type & ID
-        this._router.get("/:type/:id/", this.getPartiesByTypeAndID.bind(this));
-        // GET Participants by Type, ID & SubId
-        this._router.get("/:type/:id/:subid", this.getPartiesByTypeAndID.bind(this));
+        // GET Party by Type & ID
+        this._router.get("/:type/:id/", this.getPartyByTypeAndId.bind(this));
+        // GET Parties by Type, ID & SubId
+        this._router.get("/:type/:id/:subid", this.getPartyByTypeAndIdAndSubId.bind(this));
+        // POST Associate Party Party by Type & ID
+        this._router.post("/:type/:id/", this.associatePartyByTypeAndId.bind(this));
+        // POST Associate Party Party by Type, ID & SubId
+        this._router.post("/:type/:id/:subid", this.associatePartyByTypeAndIdAndSubId.bind(this));
+        // DELETE Disassociate Party Party by Type & ID
+        this._router.delete("/:type/:id/", this.disassociatePartyByTypeAndId.bind(this));
+        // DELETE Disassociate Party Party by Type, ID & SubId
+        this._router.delete("/:type/:id/:subid", this.disassociatePartyByTypeAndIdAndSubId.bind(this));
     }
 
     get Router(): express.Router {
         return this._router;
     }
 
-    private async getPartiesByTypeAndID(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
-        this._logger.debug("Got getPartiesByTypeAndID request");
+    private async getPartyByTypeAndId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
+        this._logger.debug("Got getPartyByTypeAndId request");
+
+        const type = req.params["type"] as string || null;
+        const id = req.params["id"] as string || null;
+        const requesterName = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+
+        const currency = req.query["currency"] as string || null;
+
+        if(!type || !id || !requesterName){
+            // TODO find correct error response
+            res.status(400).json({
+                status: "not ok"
+            });
+            return;
+        }
+
+        const msgPayload: PartyQueryReceivedEvtPayload = {
+            requesterFspId: requesterName,
+            partyType: type,
+            partyId: id,
+            partySubType: null,
+            currency: currency
+        }
+
+        const msg =  new PartyQueryReceivedEvt(msgPayload);
+
+        await this._kafkaProducer.send(msg);
+
+        this._logger.debug("getPartyByTypeAndId sent message");
+
+        res.status(202).json({
+            status: "ok"
+        });
+
+        this._logger.debug("getPartyByTypeAndId responded");
+    }
+
+    private async getPartyByTypeAndIdAndSubId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
+        this._logger.debug("Got getPartyByTypeAndIdAndSubId request");
 
         const type = req.params["type"] as string || null;
         const id = req.params["id"] as string || null;
@@ -93,13 +139,167 @@ export class PartyRoutes {
 
         await this._kafkaProducer.send(msg);
 
-        this._logger.debug("getPartiesByTypeAndID sent message");
+        this._logger.debug("getPartyByTypeAndIdAndSubId sent message");
 
         res.status(202).json({
             status: "ok"
         });
 
-        this._logger.debug("getPartiesByTypeAndID responded");
+        this._logger.debug("getPartyByTypeAndIdAndSubId responded");
+    }
+
+    private async associatePartyByTypeAndId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
+        this._logger.debug("Got associatePartyByTypeAndId request");
+
+        const type = req.params["type"] as string || null;
+        const id = req.params["id"] as string || null;
+        const requesterName = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+
+        const currency = req.query["currency"] as string || null;
+
+        if(!type || !id || !requesterName){
+            // TODO find correct error response
+            res.status(400).json({
+                status: "not ok"
+            });
+            return;
+        }
+
+        const msgPayload: PartyQueryReceivedEvtPayload = {
+            requesterFspId: requesterName,
+            partyType: type,
+            partyId: id,
+            partySubType: null,
+            currency: currency
+        }
+
+        const msg =  new PartyQueryReceivedEvt(msgPayload);
+
+        await this._kafkaProducer.send(msg);
+
+        this._logger.debug("associatePartyByTypeAndId sent message");
+
+        res.status(202).json({
+            status: "ok"
+        });
+
+        this._logger.debug("associatePartyByTypeAndId responded");
+    }
+
+    private async associatePartyByTypeAndIdAndSubId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
+        this._logger.debug("Got associatePartyByTypeAndId request");
+
+        const type = req.params["type"] as string || null;
+        const id = req.params["id"] as string || null;
+        const partySubIdOrType = req.params["subid"] as string || null;
+        const requesterName = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+
+        const currency = req.query["currency"] as string || null;
+
+        if(!type || !id || !requesterName){
+            // TODO find correct error response
+            res.status(400).json({
+                status: "not ok"
+            });
+            return;
+        }
+
+        const msgPayload: PartyQueryReceivedEvtPayload = {
+            requesterFspId: requesterName,
+            partyType: type,
+            partyId: id,
+            partySubType: partySubIdOrType,
+            currency: currency
+        }
+
+        const msg =  new PartyQueryReceivedEvt(msgPayload);
+
+        await this._kafkaProducer.send(msg);
+
+        this._logger.debug("associatePartyByTypeAndId sent message");
+
+        res.status(202).json({
+            status: "ok"
+        });
+
+        this._logger.debug("associatePartyByTypeAndId responded");
+    }
+
+    private async disassociatePartyByTypeAndId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
+        this._logger.debug("Got disassociatePartyByTypeAndId request");
+
+        const type = req.params["type"] as string || null;
+        const id = req.params["id"] as string || null;
+        const requesterName = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+
+        const currency = req.query["currency"] as string || null;
+
+        if(!type || !id || !requesterName){
+            // TODO find correct error response
+            res.status(400).json({
+                status: "not ok"
+            });
+            return;
+        }
+
+        const msgPayload: PartyQueryReceivedEvtPayload = {
+            requesterFspId: requesterName,
+            partyType: type,
+            partyId: id,
+            partySubType: null,
+            currency: currency
+        }
+
+        const msg =  new PartyQueryReceivedEvt(msgPayload);
+
+        await this._kafkaProducer.send(msg);
+
+        this._logger.debug("disassociatePartyByTypeAndId sent message");
+
+        res.status(202).json({
+            status: "ok"
+        });
+
+        this._logger.debug("disassociatePartyByTypeAndId responded");
+    }
+
+    private async disassociatePartyByTypeAndIdAndSubId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
+        this._logger.debug("Got disassociatePartyByTypeAndIdAndSubId request");
+
+        const type = req.params["type"] as string || null;
+        const id = req.params["id"] as string || null;
+        const partySubIdOrType = req.params["subid"] as string || null;
+        const requesterName = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+
+        const currency = req.query["currency"] as string || null;
+
+        if(!type || !id || !requesterName){
+            // TODO find correct error response
+            res.status(400).json({
+                status: "not ok"
+            });
+            return;
+        }
+
+        const msgPayload: PartyQueryReceivedEvtPayload = {
+            requesterFspId: requesterName,
+            partyType: type,
+            partyId: id,
+            partySubType: partySubIdOrType,
+            currency: currency
+        }
+
+        const msg =  new PartyQueryReceivedEvt(msgPayload);
+
+        await this._kafkaProducer.send(msg);
+
+        this._logger.debug("disassociatePartyByTypeAndIdAndSubId sent message");
+
+        res.status(202).json({
+            status: "ok"
+        });
+
+        this._logger.debug("disassociatePartyByTypeAndIdAndSubId responded");
     }
 
     async init(): Promise<void>{

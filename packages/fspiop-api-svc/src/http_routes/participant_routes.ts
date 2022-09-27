@@ -55,7 +55,7 @@ export class ParticipantRoutes {
         // GET Participant by Type & ID
         this._router.get("/:type/:id/", this.getParticipantsByTypeAndID.bind(this));
         // GET Participants by Type, ID & SubId
-        this._router.get("/:type/:id/:subid", this.getParticipantsByTypeAndID.bind(this));
+        this._router.get("/:type/:id/:subid", this.getParticipantsByTypeAndIDAndSubId.bind(this));
     }
 
     get Router(): express.Router {
@@ -67,12 +67,50 @@ export class ParticipantRoutes {
 
         const type = req.params["type"] as string || null;
         const id = req.params["id"] as string || null;
-        const partySubIdOrType = req.params["subid"] as string || null;
         const requesterName = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
 
         const currency = req.query["currency"] as string || null;
 
         if(!type || !id || !requesterName){
+            // TODO find correct error response
+            res.status(400).json({
+                status: "not ok"
+            });
+            return;
+        }
+
+        const msgPayload: ParticipantQueryReceivedEvtPayload = {
+            requesterFspId: requesterName,
+            partyType: type,
+            partyId: id,
+            partySubType: null,
+            currency: currency
+        }
+
+        const msg =  new ParticipantQueryReceivedEvt(msgPayload);
+
+        await this._kafkaProducer.send(msg);
+
+        this._logger.debug("getParticipantsByTypeAndID sent message");
+
+        res.status(202).json({
+            status: "ok"
+        });
+
+        this._logger.debug("getParticipantsByTypeAndID responded");
+    }
+
+    private async getParticipantsByTypeAndIDAndSubId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
+        this._logger.debug("Got getParticipantsByTypeAndIDAndSubId request");
+
+        const type = req.params["type"] as string || null;
+        const id = req.params["id"] as string || null;
+        const partySubIdOrType = req.params["subid"] as string || null;
+        const requesterName = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+
+        const currency = req.query["currency"] as string || null;
+
+        if(!type || !id || !requesterName || !partySubIdOrType){
             // TODO find correct error response
             res.status(400).json({
                 status: "not ok"
@@ -92,13 +130,13 @@ export class ParticipantRoutes {
 
         await this._kafkaProducer.send(msg);
 
-        this._logger.debug("getParticipantsByTypeAndID sent message");
+        this._logger.debug("getParticipantsByTypeAndIDAndSubId sent message");
 
         res.status(202).json({
             status: "ok"
         });
 
-        this._logger.debug("getParticipantsByTypeAndID responded");
+        this._logger.debug("getParticipantsByTypeAndIDAndSubId responded");
     }
 
     async init(): Promise<void>{
