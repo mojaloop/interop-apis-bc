@@ -36,7 +36,7 @@ export const FSPIOP_HEADERS_SWITCH = "switch";
 export const FSPIOP_HEADERS_SWITCH_REGEX = /^switch$/i;
 
 export const FSPIOP_HEADERS_SOURCE = "fspiop-source";
-export const FSPIOP_HEADERS_DESTINATION = "fspiop-source";
+export const FSPIOP_HEADERS_DESTINATION = "fspiop-destination";
 export const FSPIOP_HEADERS_HTTP_METHOD = "fspiop-http-method";
 export const FSPIOP_HEADERS_SIGNATURE = "fspiop-signature";
 export const FSPIOP_HEADERS_URI = "fspiop-uri";
@@ -48,3 +48,16 @@ export const FSPIOP_HEADERS_CONTENT_TYPE_DEFAULT = "application/json";
 // these are http defaults, not sure if we need them
 export const FSPIOP_HEADERS_DATE = "date";
 export const FSPIOP_HEADERS_CONTENT_LENGTH = "content-length";
+
+export enum FspEndpointTypesEnum {
+    FSPIOP_CALLBACK_URL_PARTICIPANT_PUT = 'FSPIOP_CALLBACK_URL_PARTICIPANT_PUT',
+    FSPIOP_CALLBACK_URL_PARTICIPANT_PUT_ERROR = 'FSPIOP_CALLBACK_URL_PARTICIPANT_PUT_ERROR',
+    FSPIOP_CALLBACK_URL_PARTICIPANT_SUB_ID_PUT = 'FSPIOP_CALLBACK_URL_PARTICIPANT_SUB_ID_PUT',
+    FSPIOP_CALLBACK_URL_PARTICIPANT_SUB_ID_PUT_ERROR = 'FSPIOP_CALLBACK_URL_PARTICIPANT_SUB_ID_PUT_ERROR'
+}
+
+export const RestMethods = {
+    GET: 'GET',
+    POST: 'POST',
+    PUT: 'PUT',
+}

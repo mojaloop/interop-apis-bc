@@ -81,7 +81,6 @@ export class PartyRoutes {
         const currency = req.query["currency"] as string || null;
 
         if(!type || !id || !requesterName){
-            // TODO find correct error response
             res.status(400).json({
                 status: "not ok"
             });
@@ -120,7 +119,6 @@ export class PartyRoutes {
         const currency = req.query["currency"] as string || null;
 
         if(!type || !id || !requesterName){
-            // TODO find correct error response
             res.status(400).json({
                 status: "not ok"
             });
@@ -158,7 +156,6 @@ export class PartyRoutes {
         const currency = req.query["currency"] as string || null;
 
         if(!type || !id || !requesterName){
-            // TODO find correct error response
             res.status(400).json({
                 status: "not ok"
             });
@@ -197,7 +194,6 @@ export class PartyRoutes {
         const currency = req.query["currency"] as string || null;
 
         if(!type || !id || !requesterName){
-            // TODO find correct error response
             res.status(400).json({
                 status: "not ok"
             });
@@ -235,7 +231,6 @@ export class PartyRoutes {
         const currency = req.query["currency"] as string || null;
 
         if(!type || !id || !requesterName){
-            // TODO find correct error response
             res.status(400).json({
                 status: "not ok"
             });
@@ -274,7 +269,6 @@ export class PartyRoutes {
         const currency = req.query["currency"] as string || null;
 
         if(!type || !id || !requesterName){
-            // TODO find correct error response
             res.status(400).json({
                 status: "not ok"
             });
