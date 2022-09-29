@@ -31,33 +31,14 @@
 
  'use strict'
 
- const ENUM = require('../../enums').Http
- const ErrorHandler = require('@mojaloop/central-services-error-handling')
- 
+import { FSPIOP_HEADERS_CONTENT_LENGTH, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_HOST, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_ACCEPT, RestMethods, FSPIOP_HEADERS_SWITCH_REGEX, FSPIOP_HEADERS_CONTENT_TYPE_CONTENT, FSPIOP_HEADERS_DATE } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants"
+
  const resourceVersions = require('../helpers').resourceVersions
- 
- /**
-  * @module src/headers/transformer
-  */
- 
+
  const regexForContentAndAcceptHeaders = /(application\/vnd\.interoperability\.)(\w*)+(\+json\s{0,1};\s{0,1}version=)(.*)/
- 
- /**
- * @function getResourceInfoFromHeader
- *
- * @description This will parse either a FSPIOP Content-Type or Accept header and return an object containing the resourceType and applicable version
- *
- * @typedef ResourceInfo
- * @type {object}
- * @property {string} resourceType - resource parsed from the headerValue.
- * @property {string} version - version parsed from the headerValue.
- *
- * @param {string} headerValue - the http header from the request, thus must be either an FSPIOP Content-Type or Accept header.
- *
- * @returns {ResourceInfo} Returns resourceInfo object. If the headerValue was not parsed correctly, an empty object {} will be returned.
- */
- const getResourceInfoFromHeader = (headerValue) => {
-   const result = {}
+
+ const getResourceInfoFromHeader = (headerValue: string) => {
+   const result:{ resourceType?: any, version?: any } = {}
    const regex = regexForContentAndAcceptHeaders.exec(headerValue)
    if (regex) {
      if (regex[2]) result.resourceType = regex[2]
@@ -66,45 +47,8 @@
    return result
  }
  
- /**
- * @function transformHeaders
- *
- * @description This will transform the headers before sending to kafka
- * NOTE: Assumes incoming headers keys are lowercase. This is a safe
- * assumption only if the headers parameter comes from node default http framework.
- *
- * see https://nodejs.org/dist/latest-v10.x/docs/api/http.html#http_message_headers
- *
- * @typedef TransformProtocolVersions
- * @type {object}
- * @property {string} content - protocol version to be used in the ContentType HTTP Header.
- * @property {string} accept - protocol version to be used in the Accept HTTP Header.
- *
- * @typedef TransformHeadersConfig
- * @type {object}
- * @property {string} contentType - HTTP method such as "POST", "PUT", etc.
- * @property {string} accept - Source FSP Identifier.
- * @property {string} destinationFsp - Destination FSP Identifier.
- * @property {TransformProtocolVersions} protocolVersions - Config for Protocol versions to be used.
- *
- * Config supports the following parameters:
- *  config: {
- *    httpMethod: string,
- *    sourceFsp: string,
- *    destinationFsp: string,
- *    protocolVersions: {
- *      content: string,
- *      accept: string
- *    }
- *  }
- *
- * @param {object} headers - the http header from the request
- * @param {TransformHeadersConfig} headers - the http header from the request
- *
- * @returns {object} Returns the normalized headers
- */
  
- export const transformHeaders = (headers, config) => {
+ export const transformHeaders = (headers: { [x: string]: any }, config: { protocolVersions: { accept: any; content: any }; httpMethod: string; sourceFsp: any; destinationFsp: any }) => {
    // Normalized keys
    const normalizedKeys = Object.keys(headers).reduce(
      function (keys, k) {
@@ -113,7 +57,7 @@
      }, {})
  
    // Normalized headers
-   const normalizedHeaders = {}
+   const normalizedHeaders: any = {}
  
    // resource type for content-type and accept headers
    let resourceType
@@ -127,22 +71,22 @@
    if (config && config.protocolVersions && config.protocolVersions.content) contentVersion = config.protocolVersions.content
  
    // check to see if FSPIOP-Destination header has been left out of the initial request. If so then add it.
-   if (!normalizedKeys[ENUM.Headers.FSPIOP.DESTINATION]) {
-     headers[ENUM.Headers.FSPIOP.DESTINATION] = ''
+   if (!normalizedKeys[FSPIOP_HEADERS_DESTINATION]) {
+     headers[FSPIOP_HEADERS_DESTINATION] = ''
    }
  
    for (const headerKey in headers) {
      const headerValue = headers[headerKey]
      let tempDate
      switch (headerKey.toLowerCase()) {
-       case (ENUM.Headers.GENERAL.DATE):
+       case (FSPIOP_HEADERS_DATE):
          if (typeof headerValue === 'object' && headerValue instanceof Date) {
            tempDate = headerValue.toUTCString()
          } else {
            try {
              tempDate = (new Date(headerValue)).toUTCString()
              if (tempDate === 'Invalid Date') {
-               throw ErrorHandler.Factory.createInternalServerFSPIOPError('Invalid Date')
+               throw Error('Invalid Date')
              }
            } catch (err) {
              tempDate = headerValue
@@ -150,16 +94,16 @@
          }
          normalizedHeaders[headerKey] = tempDate
          break
-       case (ENUM.Headers.GENERAL.CONTENT_LENGTH):
+       case (FSPIOP_HEADERS_CONTENT_LENGTH):
          // Do nothing here, do not map. This will be inserted correctly by the Axios library
          break
-       case (ENUM.Headers.GENERAL.HOST):
+       case (FSPIOP_HEADERS_HOST):
          // Do nothing here, do not map. This will be inserted correctly by the Axios library
          break
-       case (ENUM.Headers.FSPIOP.HTTP_METHOD):
+       case (FSPIOP_HEADERS_HTTP_METHOD):
          // Check to see if we find a regex match the source header containing the switch name.
          // If so we include the signature otherwise we remove it.
-         if (headers[normalizedKeys[ENUM.Headers.FSPIOP.SOURCE]].match(ENUM.Headers.FSPIOP.SWITCH.regex) === null) {
+         if (headers[normalizedKeys[FSPIOP_HEADERS_SOURCE]].match(FSPIOP_HEADERS_SWITCH_REGEX) === null) {
            if (config.httpMethod.toLowerCase() === headerValue.toLowerCase()) {
              // HTTP Methods match, and thus no change is required
              normalizedHeaders[headerKey] = headerValue
@@ -177,14 +121,14 @@
            }
          }
          break
-       case (ENUM.Headers.FSPIOP.SOURCE):
+       case (FSPIOP_HEADERS_SOURCE):
          normalizedHeaders[headerKey] = config.sourceFsp
          break
-       case (ENUM.Headers.FSPIOP.DESTINATION):
+       case (FSPIOP_HEADERS_DESTINATION):
          normalizedHeaders[headerKey] = config.destinationFsp
          break
-       case (ENUM.Headers.GENERAL.ACCEPT.value):
-         if (!ENUM.Headers.FSPIOP.SWITCH.regex.test(config.sourceFsp)) {
+       case (FSPIOP_HEADERS_ACCEPT):
+         if (!FSPIOP_HEADERS_SWITCH_REGEX.test(config.sourceFsp)) {
            normalizedHeaders[headerKey] = headerValue
            break
          }
@@ -193,8 +137,8 @@
          if (resourceType && !acceptVersion) acceptVersion = resourceVersions[resourceType].acceptVersion
          normalizedHeaders[headerKey] = `application/vnd.interoperability.${resourceType}+json;version=${acceptVersion}`
          break
-       case (ENUM.Headers.GENERAL.CONTENT_TYPE.value):
-         if (!ENUM.Headers.FSPIOP.SWITCH.regex.test(config.sourceFsp)) {
+       case (FSPIOP_HEADERS_CONTENT_TYPE_CONTENT):
+         if (!FSPIOP_HEADERS_SWITCH_REGEX.test(config.sourceFsp)) {
            normalizedHeaders[headerKey] = headerValue
            break
          }
@@ -208,16 +152,25 @@
      }
    }
  
-   if (normalizedHeaders[normalizedKeys[ENUM.Headers.FSPIOP.SOURCE]].match(ENUM.Headers.FSPIOP.SWITCH.regex) !== null) {
+   if (normalizedHeaders[normalizedKeys[FSPIOP_HEADERS_SOURCE]].match(FSPIOP_HEADERS_SWITCH_REGEX) !== null) {
      // Check to see if we find a regex match the source header containing the switch name.
      // If so we remove the signature added by default.
-     delete normalizedHeaders[normalizedKeys[ENUM.Headers.FSPIOP.SIGNATURE]]
+     delete normalizedHeaders[normalizedKeys[FSPIOP_HEADERS_SIGNATURE]]
    }
  
    // Per the FSPIOP API spec, remove the Accept header on all PUT requests
-   if (config && config.httpMethod === ENUM.RestMethods.PUT) {
-     delete normalizedHeaders[ENUM.Headers.GENERAL.ACCEPT.value]
+   if (config && config.httpMethod === RestMethods.PUT) {
+     delete normalizedHeaders[FSPIOP_HEADERS_ACCEPT]
    }
    return normalizedHeaders
  }
  
+export const decodePayload = (input: string | object, { asParsed = true } = {}) => {
+  if(typeof input === 'string'){
+    return asParsed ? JSON.parse(input) : { mimeType: 'text/plain', body: input }
+  } else if (typeof input === 'object') {
+    return asParsed ? input : { mimeType: 'application/json', body: JSON.stringify(input) }
+  } else {
+    throw new Error('input should be Buffer or String')
+  }
+}

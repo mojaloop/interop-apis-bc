@@ -41,9 +41,12 @@ export const FSPIOP_HEADERS_HTTP_METHOD = "fspiop-http-method";
 export const FSPIOP_HEADERS_SIGNATURE = "fspiop-signature";
 export const FSPIOP_HEADERS_URI = "fspiop-uri";
 
+export const FSPIOP_HEADERS_ACCEPT = "value";
 export const FSPIOP_HEADERS_ACCEPT_REGEX = /application\/vnd.interoperability[.]/;
 export const FSPIOP_HEADERS_CONTENT_TYPE_REGEX = /application\/vnd.interoperability[.]/;
 export const FSPIOP_HEADERS_CONTENT_TYPE_DEFAULT = "application/json";
+export const FSPIOP_HEADERS_CONTENT_TYPE_CONTENT = "content-length";
+export const FSPIOP_HEADERS_HOST = "host";
 
 // these are http defaults, not sure if we need them
 export const FSPIOP_HEADERS_DATE = "date";

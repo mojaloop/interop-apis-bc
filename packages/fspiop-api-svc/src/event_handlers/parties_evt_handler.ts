@@ -38,7 +38,15 @@ import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumer, MLKafkaJsonConsumerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {ParticipantAssociationRequestReceivedEvt, ParticipantDisassociateRequestReceivedEvt, PartyInfoRequestedEvt} from "@mojaloop/platform-shared-lib-public-messages-lib/dist/index";
+import { FSPIOP_HEADERS_SOURCE, FspEndpointTypes, FSPIOP_HEADERS_SWITCH, FSPIOP_HEADERS_DESTINATION, RestMethods } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants";
+import { sendRequest } from "../request";
+import { decodePayload } from "../request/transformer";
 
+export type PutParty = {
+    partyIdType: string;
+    partyIdentifier: string;
+    partySubType: string | null;
+}
 export class ParticipantsEventHandler{
     private _kafkaConsumer: MLKafkaJsonConsumer;
     private _logger:ILogger;
@@ -97,6 +105,28 @@ export class ParticipantsEventHandler{
     }
 
     private async _handlePartyInfoRequestedEvt(msg: PartyInfoRequestedEvt):Promise<void>{
+        const { aggregateId, payload} = msg;
+        const { partyType, partySubType } = payload;
+        this._logger.info('putPartiesByTypeAndID -> start')
+        const callbackEndpointType = partySubType ? FspEndpointTypes.FSPIOP_CALLBACK_URL_PARTIES_SUB_ID_PUT : FspEndpointTypes.FSPIOP_CALLBACK_URL_PARTIES_PUT
+      
+        try {  
+            let options: PutParty = {
+                partyIdType: partyType,
+                partyIdentifier: aggregateId,
+                partySubType: partySubType
+            }
+
+            const decodedPayload = decodePayload(dataUri, { asParsed: false })
+            await sendRequest(headers, destinationParticipant.data.name, callbackEndpointType, Enums.Http.RestMethods.PUT, decodedPayload.body.toString(), options)
+            this._logger.info('putPartiesByTypeAndID -> end')
+        } catch (err) {
+            this._logger.error(err)
+            // const errorCallbackEndpointType = partySubType ? FspEndpointTypes.FSPIOP_CALLBACK_URL_PARTIES_SUB_ID_PUT_ERROR : FspEndpointTypes.FSPIOP_CALLBACK_URL_PARTIES_PUT_ERROR
+            // await participant.sendErrorToParticipant
+            // In our case, we send an error event
+            
+        }
         return;
     }
 

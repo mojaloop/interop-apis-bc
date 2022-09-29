@@ -38,59 +38,40 @@ import { transformHeaders } from './transformer';
  
  const MISSING_FUNCTION_PARAMETERS = 'Missing parameters for function'
  
- // Delete the default headers that the `axios` module inserts as they can brake our conventions.
+ // Keep the following description since it's hard to detect
+ // Delete the default headers that the `axios` module inserts as they can break our conventions.
  // By default it would insert `"Accept":"application/json, text/plain, */*"`.
  delete request.defaults.headers.common.Accept
  
- export const sendRequest = async (url: any, headers: any, source: any, destination: any, method = RestMethods.GET, payload = undefined, responseType = 'json', span = undefined, jwsSigner = undefined, protocolVersions = undefined) => {
+export const sendRequest = async (url: any, headers: any, source: any, destination: any, method = RestMethods.GET, payload = undefined, responseType = 'json', span = undefined, jwsSigner = undefined, protocolVersions = undefined) => {
+  let requestOptions
+  if (!url || !method || !headers || (method !== RestMethods.GET && method !== RestMethods.DELETE && !payload) || !source || !destination) {
+    throw Error(MISSING_FUNCTION_PARAMETERS)
+  }
+  try {
+    const transformedHeaders = transformHeaders(headers, {
+      httpMethod: method,
+      sourceFsp: source,
+      destinationFsp: destination,
+      protocolVersions
+    })
+    requestOptions = {
+      url,
+      method,
+      headers: transformedHeaders,
+      data: payload,
+      responseType
+    }
 
-   let requestOptions
-   if (!url || !method || !headers || (method !== RestMethods.GET && method !== RestMethods.DELETE && !payload) || !source || !destination) {
-     throw ErrorHandler.Factory.createInternalServerFSPIOPError(MISSING_FUNCTION_PARAMETERS)
-   }
-   try {
-     const transformedHeaders = transformHeaders(headers, {
-       httpMethod: method,
-       sourceFsp: source,
-       destinationFsp: destination,
-       protocolVersions
-     })
-     requestOptions = {
-       url,
-       method,
-       headers: transformedHeaders,
-       data: payload,
-       responseType
-     }
-     // if jwsSigner is passed then sign the request
-    //  if (jwsSigner != null && typeof (jwsSigner) === 'object') {
-    //    requestOptions.headers['fspiop-signature'] = jwsSigner.getSignature(requestOptions)
-    //  }
- 
-     const response = await request(requestOptions)
+    const response = await request(requestOptions)
 
-     return response
-   } catch (error) {
-    const extensionArray = [
-       { key: 'url', value: url },
-       { key: 'sourceFsp', value: source },
-       { key: 'destinationFsp', value: destination },
-       { key: 'method', value: method },
-       { key: 'request', value: JSON.stringify(requestOptions) },
-       { key: 'errorMessage', value: error.message }
-     ]
-     const extensions = []
-     if (error.response) {
-       extensionArray.push({ key: 'status', value: error.response && error.response.status })
-       extensionArray.push({ key: 'response', value: error.response && error.response.data })
-       extensions.push({ key: 'status', value: error.response && error.response.status })
-     }
-     const cause = JSON.stringify(extensionArray)
-     extensions.push({ key: 'cause', value: cause })
-     const fspiopError = ErrorHandler.Factory.createFSPIOPError(ErrorHandler.Enums.FSPIOPErrorCodes.DESTINATION_COMMUNICATION_ERROR, 'Failed to send HTTP request to host', error, source, extensions)
+    return response
+  } catch (error) {
+    // In production, a list of errors is added
 
-     throw fspiopError
-   }
- }
+
+    throw Error('Failed to send HTTP request to host')
+  }
+}
  
  
