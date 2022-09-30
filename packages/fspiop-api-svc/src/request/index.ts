@@ -31,22 +31,45 @@
 
  "use strict"
 
- import request from 'axios'
- import { RestMethods } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants";
+import request from 'axios'
+import { FSPIOP_REQUEST_METHODS, FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants";
 import { transformHeaders } from './transformer';
 
  
- const MISSING_FUNCTION_PARAMETERS = 'Missing parameters for function'
- 
- // Keep the following description since it's hard to detect
- // Delete the default headers that the `axios` module inserts as they can break our conventions.
- // By default it would insert `"Accept":"application/json, text/plain, */*"`.
- delete request.defaults.headers.common.Accept
- 
-export const sendRequest = async (url: any, headers: any, source: any, destination: any, method = RestMethods.GET, payload = undefined, responseType = 'json', span = undefined, jwsSigner = undefined, protocolVersions = undefined) => {
+
+// Keep the following description since it's hard to detect
+// Delete the default headers that the `axios` module inserts as they can break our conventions.
+// By default it would insert `"Accept":"application/json, text/plain, */*"`.
+delete request.defaults.headers.common.Accept
+type RequestOptions = {
+  url: string, 
+  headers: any, 
+  source: any, 
+  destination: any, 
+  method: FSPIOP_REQUEST_METHODS, 
+  payload: any, 
+  responseType?: 'json', 
+  protocolVersions?: { 
+    accept: any; 
+    content: any; 
+  }
+}
+export const sendRequest = async ({
+  url, 
+  headers, 
+  source, 
+  destination, 
+  method = FSPIOP_REQUEST_METHODS.GET, 
+  payload = undefined, 
+  responseType = 'json', 
+  protocolVersions = {
+    content: FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION,
+    accept: FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION
+  }
+}:RequestOptions):Promise<void> => {
   let requestOptions
-  if (!url || !method || !headers || (method !== RestMethods.GET && method !== RestMethods.DELETE && !payload) || !source || !destination) {
-    throw Error(MISSING_FUNCTION_PARAMETERS)
+  if (!url || !method || !headers || (method !== FSPIOP_REQUEST_METHODS.GET && method !== FSPIOP_REQUEST_METHODS.DELETE && !payload) || !source || !destination) {
+    throw Error('Missing parameters for function')
   }
   try {
     const transformedHeaders = transformHeaders(headers, {
@@ -63,13 +86,11 @@ export const sendRequest = async (url: any, headers: any, source: any, destinati
       responseType
     }
 
-    const response = await request(requestOptions)
+    await request(requestOptions)
 
-    return response
+    return;
   } catch (error) {
     // In production, a list of errors is added
-
-
     throw Error('Failed to send HTTP request to host')
   }
 }

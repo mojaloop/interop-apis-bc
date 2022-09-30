@@ -31,15 +31,14 @@
 
  'use strict'
 
-import { FSPIOP_HEADERS_CONTENT_LENGTH, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_HOST, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_ACCEPT, RestMethods, FSPIOP_HEADERS_SWITCH_REGEX, FSPIOP_HEADERS_CONTENT_TYPE_CONTENT, FSPIOP_HEADERS_DATE } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants"
+import { FSPIOP_HEADERS_CONTENT_LENGTH, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_HOST, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_ACCEPT, FSPIOP_REQUEST_METHODS, FSPIOP_HEADERS_SWITCH_REGEX, FSPIOP_HEADERS_CONTENT_TYPE_CONTENT, FSPIOP_HEADERS_DATE, FSPIOP_HEADERS_CONTENT_AND_ACCEPT_REGEX, FSPIOP_HEADERS_SIGNATURE } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants"
 
  const resourceVersions = require('../helpers').resourceVersions
 
- const regexForContentAndAcceptHeaders = /(application\/vnd\.interoperability\.)(\w*)+(\+json\s{0,1};\s{0,1}version=)(.*)/
 
  const getResourceInfoFromHeader = (headerValue: string) => {
    const result:{ resourceType?: any, version?: any } = {}
-   const regex = regexForContentAndAcceptHeaders.exec(headerValue)
+   const regex = FSPIOP_HEADERS_CONTENT_AND_ACCEPT_REGEX.exec(headerValue)
    if (regex) {
      if (regex[2]) result.resourceType = regex[2]
      if (regex[4]) result.version = regex[4]
@@ -50,8 +49,8 @@ import { FSPIOP_HEADERS_CONTENT_LENGTH, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_HO
  
  export const transformHeaders = (headers: { [x: string]: any }, config: { protocolVersions: { accept: any; content: any }; httpMethod: string; sourceFsp: any; destinationFsp: any }) => {
    // Normalized keys
-   const normalizedKeys = Object.keys(headers).reduce(
-     function (keys, k) {
+   const normalizedKeys:{ [x: string]: any } = Object.keys(headers).reduce(
+     function (keys:{ [x: string]: any }, k: string) {
        keys[k.toLowerCase()] = k
        return keys
      }, {})
@@ -159,7 +158,7 @@ import { FSPIOP_HEADERS_CONTENT_LENGTH, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_HO
    }
  
    // Per the FSPIOP API spec, remove the Accept header on all PUT requests
-   if (config && config.httpMethod === RestMethods.PUT) {
+   if (config && config.httpMethod === FSPIOP_REQUEST_METHODS.PUT) {
      delete normalizedHeaders[FSPIOP_HEADERS_ACCEPT]
    }
    return normalizedHeaders

@@ -38,16 +38,17 @@ import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumer, MLKafkaJsonConsumerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {ParticipantAssociationRequestReceivedEvt, ParticipantDisassociateRequestReceivedEvt, PartyInfoRequestedEvt} from "@mojaloop/platform-shared-lib-public-messages-lib/dist/index";
-import { FSPIOP_HEADERS_SOURCE, FspEndpointTypes, FSPIOP_HEADERS_SWITCH, FSPIOP_HEADERS_DESTINATION, RestMethods } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants";
+import { FSPIOP_HEADERS_SOURCE, FSPIOP_ENDPOINT_TYPES, FSPIOP_HEADERS_SWITCH, FSPIOP_HEADERS_DESTINATION, FSPIOP_REQUEST_METHODS, FSPIOP_PARTY_ACCOUNT_TYPES } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants";
 import { sendRequest } from "../request";
 import { decodePayload } from "../request/transformer";
+import { PartyQueryResponseEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 
 export type PutParty = {
     partyIdType: string;
     partyIdentifier: string;
     partySubType: string | null;
 }
-export class ParticipantsEventHandler{
+export class PartiesEventHandler{
     private _kafkaConsumer: MLKafkaJsonConsumer;
     private _logger:ILogger;
     private _consumerOpts: MLKafkaJsonConsumerOptions;
@@ -58,7 +59,7 @@ export class ParticipantsEventHandler{
             consumerOpts: MLKafkaJsonConsumerOptions,
             kafkaTopics : string[]
     ) {
-        this._logger = logger.createChild("ParticipantsEventHandler");
+        this._logger = logger.createChild("PartiesEventHandler");
         this._consumerOpts = consumerOpts;
         this._kafkaTopics = kafkaTopics;
     }
@@ -79,13 +80,13 @@ export class ParticipantsEventHandler{
                 await this._handleParticipantAssociationRequestReceivedEvt(message as ParticipantAssociationRequestReceivedEvt);
                 break;
             case ParticipantDisassociateRequestReceivedEvt.name:
-                await this._handleParticipantDisassociateRequestReceivedEvt(message as ParticipantDisassociateRequestReceivedEvt);
+                await this._handleParticipantDisassociateRequestReceivedEvt(message as PartyQueryResponseEvt);
                 break;
             case PartyInfoRequestedEvt.name:
                 await this._handlePartyInfoRequestedEvt(message as PartyInfoRequestedEvt);
                 break;
             default:
-                this._logger.warn(`Cannot handl message of type: ${message.msgName}, ignoring`);
+                this._logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
                 break;
         }
 
@@ -96,20 +97,20 @@ export class ParticipantsEventHandler{
         return;
     }
 
-    private async _handleParticipantAssociationRequestReceivedEvt(msg: ParticipantAssociationRequestReceivedEvt):Promise<void>{
-        return;
-    }
+    private async _handleParticipantAssociationRequestReceivedEvt(msg: ParticipantAssociationRequestReceivedEvt & { headers?: any }):Promise<void>{
+        const { validatePayload, payload, headers } = msg;
+  
+        // Always first validate the payload received
+        validatePayload();
+  
+        const type = payload.partyType;
+        const partySubType = payload.partySubType || undefined
+        const requesterName = headers[FSPIOP_HEADERS_SOURCE]
+  
+        // These variables are required to get the endpoint of the FSP we want to send the request to
+        const callbackEndpointType = partySubIdOrType ? Enums.EndPoints.FspEndpointTypes.FSPIOP_CALLBACK_URL_PARTIES_SUB_ID_PUT : Enums.EndPoints.FspEndpointTypes.FSPIOP_CALLBACK_URL_PARTIES_PUT
+        const errorCallbackEndpointType = partySubIdOrType ? Enums.EndPoints.FspEndpointTypes.FSPIOP_CALLBACK_URL_PARTIES_SUB_ID_PUT_ERROR : Enums.EndPoints.FspEndpointTypes.FSPIOP_CALLBACK_URL_PARTIES_PUT_ERROR
     
-    private async _handleParticipantDisassociateRequestReceivedEvt(msg: ParticipantDisassociateRequestReceivedEvt):Promise<void>{
-        return;
-    }
-
-    private async _handlePartyInfoRequestedEvt(msg: PartyInfoRequestedEvt):Promise<void>{
-        const { aggregateId, payload} = msg;
-        const { partyType, partySubType } = payload;
-        this._logger.info('putPartiesByTypeAndID -> start')
-        const callbackEndpointType = partySubType ? FspEndpointTypes.FSPIOP_CALLBACK_URL_PARTIES_SUB_ID_PUT : FspEndpointTypes.FSPIOP_CALLBACK_URL_PARTIES_PUT
-      
         try {  
             let options: PutParty = {
                 partyIdType: partyType,
@@ -118,15 +119,138 @@ export class ParticipantsEventHandler{
             }
 
             const decodedPayload = decodePayload(dataUri, { asParsed: false })
-            await sendRequest(headers, destinationParticipant.data.name, callbackEndpointType, Enums.Http.RestMethods.PUT, decodedPayload.body.toString(), options)
+            await sendRequest(headers, destinationParticipant.data.name, callbackEndpointType, RestMethods.PUT, decodedPayload.body.toString(), options)
             this._logger.info('putPartiesByTypeAndID -> end')
         } catch (err) {
             this._logger.error(err)
-            // const errorCallbackEndpointType = partySubType ? FspEndpointTypes.FSPIOP_CALLBACK_URL_PARTIES_SUB_ID_PUT_ERROR : FspEndpointTypes.FSPIOP_CALLBACK_URL_PARTIES_PUT_ERROR
+            // const errorCallbackEndpointType = partySubType ? FspEndpointTypesEnum.FSPIOP_CALLBACK_URL_PARTIES_SUB_ID_PUT_ERROR : FspEndpointTypesEnum.FSPIOP_CALLBACK_URL_PARTIES_PUT_ERROR
             // await participant.sendErrorToParticipant
             // In our case, we send an error event
             
         }
+
+        try {
+            this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> start')
+
+            if (Object.values(FSPIOP_PARTY_ACCOUNT_TYPES).includes(type)) {
+                const clonedHeaders = { ...headers }
+
+                // let options: PutParty = {
+                //     partyIdType: partyType,
+                //     partyIdentifier: aggregateId,
+                //     partySubType: partySubType
+                // }
+    
+                // const requestedEndpoint = await Util.Endpoints.getEndpoint(Config.SWITCH_ENDPOINT, requestedParticipant, endpointType, options || undefined)
+
+                const decodedPayload = decodePayload('requestedEndpoint', { asParsed: false })
+
+                await sendRequest({
+                    url: 'requestedEndpoint', 
+                    headers: clonedHeaders, 
+                    source: requesterName, 
+                    destination: clonedHeaders[FSPIOP_HEADERS_DESTINATION], 
+                    method: FSPIOP_REQUEST_METHODS.PUT,
+                    payload: decodedPayload,
+                })
+
+                this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> end')
+            } else {
+                throw Error('No valid party type')
+            }
+        } catch (err: any) {
+            this._logger.error(err)
+        }
+
+        return;
+
+    //     Logger.info('parties::putPartiesByTypeAndID::begin')
+    //     const requesterParticipant = await participant.validateParticipant(headers[Enums.Http.Headers.FSPIOP.SOURCE])
+    //     const type = params.Type
+    //     const partySubIdOrType = params.SubId || undefined
+    //     const callbackEndpointType = partySubIdOrType ? Enums.EndPoints.FspEndpointTypes.FSPIOP_CALLBACK_URL_PARTIES_SUB_ID_PUT : Enums.EndPoints.FspEndpointTypes.FSPIOP_CALLBACK_URL_PARTIES_PUT
+    //     const errorCallbackEndpointType = partySubIdOrType ? Enums.EndPoints.FspEndpointTypes.FSPIOP_CALLBACK_URL_PARTIES_SUB_ID_PUT_ERROR : Enums.EndPoints.FspEndpointTypes.FSPIOP_CALLBACK_URL_PARTIES_PUT_ERROR
+    //     if (requesterParticipant) {
+    //       const destinationParticipant = await participant.validateParticipant(headers[Enums.Http.Headers.FSPIOP.DESTINATION])
+    //       if (destinationParticipant) {
+    //         let options = {
+    //           partyIdType: type,
+    //           partyIdentifier: params.ID
+    //         }
+    //         options = partySubIdOrType ? { ...options, partySubIdOrType } : options
+    //         const decodedPayload = decodePayload(dataUri, { asParsed: false })
+    //         await participant.sendRequest(headers, destinationParticipant.data.name, callbackEndpointType, Enums.Http.RestMethods.PUT, decodedPayload.body.toString(), options)
+    //         Logger.info('parties::putPartiesByTypeAndID::end')
+    //       } else {
+    //         await participant.sendErrorToParticipant(headers[Enums.Http.Headers.FSPIOP.SOURCE], errorCallbackEndpointType,
+    //           ErrorHandler.Factory.createFSPIOPError(ErrorHandler.Enums.FSPIOPErrorCodes.DESTINATION_FSP_ERROR).toApiErrorObject(Config.ERROR_HANDLING), headers, params)
+    //       }
+    //     } else {
+    //       Logger.error('Requester FSP not found')
+    //       throw ErrorHandler.Factory.createFSPIOPError(ErrorHandler.Enums.FSPIOPErrorCodes.ID_NOT_FOUND, 'Requester FSP not found')
+    //     }
+    //   } catch (err) {
+    //     Logger.error(err)
+    //     try {
+    //       const errorCallbackEndpointType = params.SubId ? Enums.EndPoints.FspEndpointTypes.FSPIOP_CALLBACK_URL_PARTIES_SUB_ID_PUT_ERROR : Enums.EndPoints.FspEndpointTypes.FSPIOP_CALLBACK_URL_PARTIES_PUT_ERROR
+    //       await participant.sendErrorToParticipant(headers[Enums.Http.Headers.FSPIOP.SOURCE], errorCallbackEndpointType,
+    //         ErrorHandler.Factory.reformatFSPIOPError(err).toApiErrorObject(Config.ERROR_HANDLING), headers, params)
+    //     } catch (exc) {
+    //       // We can't do anything else here- we _must_ handle all errors _within_ this function because
+    //       // we've already sent a sync response- we cannot throw.
+    //       Logger.error(exc)
+    //     }
+        // return;
+    }
+    
+    private async _handleParticipantDisassociateRequestReceivedEvt(msg: ParticipantDisassociateRequestReceivedEvt & { headers?: any }):Promise<void>{
+        return;
+    }
+
+    private async _handlePartyInfoRequestedEvt(msg: PartyInfoRequestedEvt & { headers?: any }):Promise<void>{
+        const { validatePayload, payload, headers } = msg;
+  
+        // Always first validate the payload received
+        validatePayload();
+  
+        const type = payload.partyType;
+        const partySubType = payload.partySubType || undefined
+        const requesterName = headers[FSPIOP_HEADERS_SOURCE]
+  
+        // These variables are required to get the endpoint of the FSP we want to send the request to
+        const callbackEndpointType = partySubType ? FSPIOP_ENDPOINT_TYPES.FSPIOP_CALLBACK_URL_PARTICIPANT_SUB_ID_PUT : FSPIOP_ENDPOINT_TYPES.FSPIOP_CALLBACK_URL_PARTICIPANT_PUT
+        const errorCallbackEndpointType = partySubType ? FSPIOP_ENDPOINT_TYPES.FSPIOP_CALLBACK_URL_PARTICIPANT_SUB_ID_PUT_ERROR : FSPIOP_ENDPOINT_TYPES.FSPIOP_CALLBACK_URL_PARTICIPANT_PUT_ERROR
+  
+        try {
+            this._logger.info('_handlePartyInfoRequestedEvt -> start')
+
+            if (Object.values(FSPIOP_PARTY_ACCOUNT_TYPES).includes(type)) {
+                const clonedHeaders = { ...headers }
+
+                if (!clonedHeaders[FSPIOP_HEADERS_DESTINATION] || clonedHeaders[FSPIOP_HEADERS_DESTINATION] === '') {
+                clonedHeaders[FSPIOP_HEADERS_DESTINATION] = clonedHeaders[FSPIOP_HEADERS_SOURCE]
+                }
+                clonedHeaders[FSPIOP_HEADERS_SOURCE] = FSPIOP_HEADERS_SWITCH
+
+                // const requestedEndpoint = await Util.Endpoints.getEndpoint(Config.SWITCH_ENDPOINT, requestedParticipant, endpointType, options || undefined)
+
+                await sendRequest({
+                    url: 'requestedEndpoint', 
+                    headers: clonedHeaders, 
+                    source: requesterName, 
+                    destination: clonedHeaders[FSPIOP_HEADERS_DESTINATION], 
+                    method: FSPIOP_REQUEST_METHODS.PUT,
+                    payload: payload,
+                })
+
+                this._logger.info('_handlePartyInfoRequestedEvt -> end')
+            } else {
+                throw Error('No valid party type')
+            }
+        } catch (err: any) {
+            this._logger.error(err)
+        }
+
         return;
     }
 

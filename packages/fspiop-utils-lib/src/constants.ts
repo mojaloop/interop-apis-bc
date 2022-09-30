@@ -25,6 +25,10 @@
  * Crosslake
  - Pedro Sousa Barreto <pedrob@crosslaketech.com>
 
+ * Arg Software
+ - José Antunes <jose.antunes@arg.software>
+ - Rui Rocha <rui.rocha@arg.software>
+ 
  --------------
  ******/
 
@@ -44,6 +48,7 @@ export const FSPIOP_HEADERS_URI = "fspiop-uri";
 export const FSPIOP_HEADERS_ACCEPT = "value";
 export const FSPIOP_HEADERS_ACCEPT_REGEX = /application\/vnd.interoperability[.]/;
 export const FSPIOP_HEADERS_CONTENT_TYPE_REGEX = /application\/vnd.interoperability[.]/;
+export const FSPIOP_HEADERS_CONTENT_AND_ACCEPT_REGEX = /(application\/vnd\.interoperability\.)(\w*)+(\+json\s{0,1};\s{0,1}version=)(.*)/
 export const FSPIOP_HEADERS_CONTENT_TYPE_DEFAULT = "application/json";
 export const FSPIOP_HEADERS_CONTENT_TYPE_CONTENT = "content-length";
 export const FSPIOP_HEADERS_HOST = "host";
@@ -51,16 +56,31 @@ export const FSPIOP_HEADERS_HOST = "host";
 // these are http defaults, not sure if we need them
 export const FSPIOP_HEADERS_DATE = "date";
 export const FSPIOP_HEADERS_CONTENT_LENGTH = "content-length";
+export const FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION = "1.1";
+export const FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION = "1";
 
-export enum FspEndpointTypesEnum {
-    FSPIOP_CALLBACK_URL_PARTICIPANT_PUT = 'FSPIOP_CALLBACK_URL_PARTICIPANT_PUT',
-    FSPIOP_CALLBACK_URL_PARTICIPANT_PUT_ERROR = 'FSPIOP_CALLBACK_URL_PARTICIPANT_PUT_ERROR',
-    FSPIOP_CALLBACK_URL_PARTICIPANT_SUB_ID_PUT = 'FSPIOP_CALLBACK_URL_PARTICIPANT_SUB_ID_PUT',
-    FSPIOP_CALLBACK_URL_PARTICIPANT_SUB_ID_PUT_ERROR = 'FSPIOP_CALLBACK_URL_PARTICIPANT_SUB_ID_PUT_ERROR'
+export const FSPIOP_ENDPOINT_TYPES = {
+    FSPIOP_CALLBACK_URL_PARTICIPANT_PUT: 'FSPIOP_CALLBACK_URL_PARTICIPANT_PUT',
+    FSPIOP_CALLBACK_URL_PARTICIPANT_PUT_ERROR: 'FSPIOP_CALLBACK_URL_PARTICIPANT_PUT_ERROR',
+    FSPIOP_CALLBACK_URL_PARTICIPANT_SUB_ID_PUT: 'FSPIOP_CALLBACK_URL_PARTICIPANT_SUB_ID_PUT',
+    FSPIOP_CALLBACK_URL_PARTICIPANT_SUB_ID_PUT_ERROR: 'FSPIOP_CALLBACK_URL_PARTICIPANT_SUB_ID_PUT_ERROR'
 }
 
-export const RestMethods = {
+export const FSPIOP_REQUEST_METHODS = {
     GET: 'GET',
     POST: 'POST',
     PUT: 'PUT',
+}
+
+export const FSPIOP_PARTY_ACCOUNT_TYPES = {
+    MSISDN: 'MSISDN',
+    EMAIL: 'EMAIL',
+    PERSONAL_ID: 'PERSONAL_ID',
+    BUSINESS: 'BUSINESS',
+    DEVICE: 'DEVICE',
+    ACCOUNT_ID: 'ACCOUNT_ID',
+    IBAN: 'IBAN',
+    ALIAS: 'ALIAS',
+    CONSENT: 'CONSENT',
+    THIRD_PARTY_LINK: 'THIRD_PARTY_LINK'
 }

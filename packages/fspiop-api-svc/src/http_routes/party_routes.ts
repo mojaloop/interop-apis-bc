@@ -35,6 +35,10 @@ import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {Constants} from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {PartyQueryReceivedEvtPayload, PartyQueryReceivedEvt} from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { ParticipantDisassociateRequestReceivedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { ParticipantDisassociateRequestReceivedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { ParticipantAssociationRequestReceivedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { ParticipantAssociationRequestReceivedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 
 export class PartyRoutes {
     private _logger: ILogger;
@@ -153,8 +157,6 @@ export class PartyRoutes {
         const id = req.params["id"] as string || null;
         const requesterName = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
 
-        const currency = req.query["currency"] as string || null;
-
         if(!type || !id || !requesterName){
             res.status(400).json({
                 status: "not ok"
@@ -162,15 +164,14 @@ export class PartyRoutes {
             return;
         }
 
-        const msgPayload: PartyQueryReceivedEvtPayload = {
-            requesterFspId: requesterName,
-            partyType: type,
+        const msgPayload: ParticipantAssociationRequestReceivedEvtPayload = {
+            ownerFspId: requesterName,
             partyId: id,
-            partySubType: null,
-            currency: currency
+            partyType: type,
+            partySubType: null
         }
 
-        const msg =  new PartyQueryReceivedEvt(msgPayload);
+        const msg = new ParticipantAssociationRequestReceivedEvt(msgPayload);
 
         await this._kafkaProducer.send(msg);
 
@@ -191,8 +192,6 @@ export class PartyRoutes {
         const partySubIdOrType = req.params["subid"] as string || null;
         const requesterName = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
 
-        const currency = req.query["currency"] as string || null;
-
         if(!type || !id || !requesterName){
             res.status(400).json({
                 status: "not ok"
@@ -200,15 +199,14 @@ export class PartyRoutes {
             return;
         }
 
-        const msgPayload: PartyQueryReceivedEvtPayload = {
-            requesterFspId: requesterName,
-            partyType: type,
+        const msgPayload: ParticipantAssociationRequestReceivedEvtPayload = {
+            ownerFspId: requesterName,
             partyId: id,
-            partySubType: partySubIdOrType,
-            currency: currency
+            partyType: type,
+            partySubType: partySubIdOrType
         }
 
-        const msg =  new PartyQueryReceivedEvt(msgPayload);
+        const msg = new ParticipantAssociationRequestReceivedEvt(msgPayload);
 
         await this._kafkaProducer.send(msg);
 
@@ -228,8 +226,6 @@ export class PartyRoutes {
         const id = req.params["id"] as string || null;
         const requesterName = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
 
-        const currency = req.query["currency"] as string || null;
-
         if(!type || !id || !requesterName){
             res.status(400).json({
                 status: "not ok"
@@ -237,15 +233,14 @@ export class PartyRoutes {
             return;
         }
 
-        const msgPayload: PartyQueryReceivedEvtPayload = {
-            requesterFspId: requesterName,
-            partyType: type,
+        const msgPayload: ParticipantDisassociateRequestReceivedEvtPayload = {
+            ownerFspId: requesterName,
             partyId: id,
-            partySubType: null,
-            currency: currency
+            partyType: type,
+            partySubType: null
         }
 
-        const msg =  new PartyQueryReceivedEvt(msgPayload);
+        const msg = new ParticipantDisassociateRequestReceivedEvt(msgPayload);
 
         await this._kafkaProducer.send(msg);
 
@@ -266,8 +261,6 @@ export class PartyRoutes {
         const partySubIdOrType = req.params["subid"] as string || null;
         const requesterName = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
 
-        const currency = req.query["currency"] as string || null;
-
         if(!type || !id || !requesterName){
             res.status(400).json({
                 status: "not ok"
@@ -275,15 +268,14 @@ export class PartyRoutes {
             return;
         }
 
-        const msgPayload: PartyQueryReceivedEvtPayload = {
-            requesterFspId: requesterName,
-            partyType: type,
+        const msgPayload: ParticipantDisassociateRequestReceivedEvtPayload = {
+            ownerFspId: requesterName,
             partyId: id,
-            partySubType: partySubIdOrType,
-            currency: currency
+            partyType: type,
+            partySubType: partySubIdOrType
         }
 
-        const msg =  new PartyQueryReceivedEvt(msgPayload);
+        const msg = new ParticipantDisassociateRequestReceivedEvt(msgPayload);
 
         await this._kafkaProducer.send(msg);
 
