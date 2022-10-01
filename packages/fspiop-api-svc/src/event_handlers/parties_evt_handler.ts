@@ -42,6 +42,8 @@ import { FSPIOP_HEADERS_SOURCE, FSPIOP_ENDPOINT_TYPES, FSPIOP_HEADERS_SWITCH, FS
 import { sendRequest } from "../request";
 import { decodePayload } from "../request/transformer";
 import { PartyQueryResponseEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { IParticipantService } from "../interfaces/infrastructure";
+import { Util } from '@mojaloop/central-services-shared';
 
 export type PutParty = {
     partyIdType: string;
@@ -53,15 +55,18 @@ export class PartiesEventHandler{
     private _logger:ILogger;
     private _consumerOpts: MLKafkaJsonConsumerOptions;
     private _kafkaTopics: string[];
+	private _participantService: IParticipantService;
 
     constructor(
             logger: ILogger,
             consumerOpts: MLKafkaJsonConsumerOptions,
-            kafkaTopics : string[]
+            kafkaTopics : string[],
+            participantService: IParticipantService
     ) {
         this._logger = logger.createChild("PartiesEventHandler");
         this._consumerOpts = consumerOpts;
         this._kafkaTopics = kafkaTopics;
+        this._participantService = participantService;
     }
 
     async init () : Promise<void> {
@@ -97,52 +102,25 @@ export class PartiesEventHandler{
         return;
     }
 
-    private async _handleParticipantAssociationRequestReceivedEvt(msg: ParticipantAssociationRequestReceivedEvt & { headers?: any }):Promise<void>{
-        const { validatePayload, payload, headers } = msg;
+    private async _handleParticipantAssociationRequestReceivedEvt(msg: ParticipantAssociationRequestReceivedEvt):Promise<void>{
+        const { validatePayload, payload, fspiopOpaqueState } = msg;
   
         // Always first validate the payload received
         validatePayload();
   
         const type = payload.partyType;
         const partySubType = payload.partySubType || undefined
-        const requesterName = headers[FSPIOP_HEADERS_SOURCE]
-  
-        // These variables are required to get the endpoint of the FSP we want to send the request to
-        const callbackEndpointType = partySubIdOrType ? Enums.EndPoints.FspEndpointTypes.FSPIOP_CALLBACK_URL_PARTIES_SUB_ID_PUT : Enums.EndPoints.FspEndpointTypes.FSPIOP_CALLBACK_URL_PARTIES_PUT
-        const errorCallbackEndpointType = partySubIdOrType ? Enums.EndPoints.FspEndpointTypes.FSPIOP_CALLBACK_URL_PARTIES_SUB_ID_PUT_ERROR : Enums.EndPoints.FspEndpointTypes.FSPIOP_CALLBACK_URL_PARTIES_PUT_ERROR
-    
-        try {  
-            let options: PutParty = {
-                partyIdType: partyType,
-                partyIdentifier: aggregateId,
-                partySubType: partySubType
-            }
+        const requesterName = payload.ownerFspId;
+        const clonedHeaders = { ...fspiopOpaqueState as any };
 
-            const decodedPayload = decodePayload(dataUri, { asParsed: false })
-            await sendRequest(headers, destinationParticipant.data.name, callbackEndpointType, RestMethods.PUT, decodedPayload.body.toString(), options)
-            this._logger.info('putPartiesByTypeAndID -> end')
-        } catch (err) {
-            this._logger.error(err)
-            // const errorCallbackEndpointType = partySubType ? FspEndpointTypesEnum.FSPIOP_CALLBACK_URL_PARTIES_SUB_ID_PUT_ERROR : FspEndpointTypesEnum.FSPIOP_CALLBACK_URL_PARTIES_PUT_ERROR
-            // await participant.sendErrorToParticipant
-            // In our case, we send an error event
-            
-        }
+        // These variables are required to get the endpoint of the FSP we want to send the request to
+        const callbackEndpointType = partySubType ? FSPIOP_ENDPOINT_TYPES.FSPIOP_CALLBACK_URL_PARTICIPANT_SUB_ID_PUT : FSPIOP_ENDPOINT_TYPES.FSPIOP_CALLBACK_URL_PARTICIPANT_PUT
+        const errorCallbackEndpointType = partySubType ? FSPIOP_ENDPOINT_TYPES.FSPIOP_CALLBACK_URL_PARTICIPANT_SUB_ID_PUT_ERROR : FSPIOP_ENDPOINT_TYPES.FSPIOP_CALLBACK_URL_PARTICIPANT_PUT_ERROR
 
         try {
             this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> start')
 
             if (Object.values(FSPIOP_PARTY_ACCOUNT_TYPES).includes(type)) {
-                const clonedHeaders = { ...headers }
-
-                // let options: PutParty = {
-                //     partyIdType: partyType,
-                //     partyIdentifier: aggregateId,
-                //     partySubType: partySubType
-                // }
-    
-                // const requestedEndpoint = await Util.Endpoints.getEndpoint(Config.SWITCH_ENDPOINT, requestedParticipant, endpointType, options || undefined)
-
                 const decodedPayload = decodePayload('requestedEndpoint', { asParsed: false })
 
                 await sendRequest({
@@ -163,82 +141,54 @@ export class PartiesEventHandler{
         }
 
         return;
-
-    //     Logger.info('parties::putPartiesByTypeAndID::begin')
-    //     const requesterParticipant = await participant.validateParticipant(headers[Enums.Http.Headers.FSPIOP.SOURCE])
-    //     const type = params.Type
-    //     const partySubIdOrType = params.SubId || undefined
-    //     const callbackEndpointType = partySubIdOrType ? Enums.EndPoints.FspEndpointTypes.FSPIOP_CALLBACK_URL_PARTIES_SUB_ID_PUT : Enums.EndPoints.FspEndpointTypes.FSPIOP_CALLBACK_URL_PARTIES_PUT
-    //     const errorCallbackEndpointType = partySubIdOrType ? Enums.EndPoints.FspEndpointTypes.FSPIOP_CALLBACK_URL_PARTIES_SUB_ID_PUT_ERROR : Enums.EndPoints.FspEndpointTypes.FSPIOP_CALLBACK_URL_PARTIES_PUT_ERROR
-    //     if (requesterParticipant) {
-    //       const destinationParticipant = await participant.validateParticipant(headers[Enums.Http.Headers.FSPIOP.DESTINATION])
-    //       if (destinationParticipant) {
-    //         let options = {
-    //           partyIdType: type,
-    //           partyIdentifier: params.ID
-    //         }
-    //         options = partySubIdOrType ? { ...options, partySubIdOrType } : options
-    //         const decodedPayload = decodePayload(dataUri, { asParsed: false })
-    //         await participant.sendRequest(headers, destinationParticipant.data.name, callbackEndpointType, Enums.Http.RestMethods.PUT, decodedPayload.body.toString(), options)
-    //         Logger.info('parties::putPartiesByTypeAndID::end')
-    //       } else {
-    //         await participant.sendErrorToParticipant(headers[Enums.Http.Headers.FSPIOP.SOURCE], errorCallbackEndpointType,
-    //           ErrorHandler.Factory.createFSPIOPError(ErrorHandler.Enums.FSPIOPErrorCodes.DESTINATION_FSP_ERROR).toApiErrorObject(Config.ERROR_HANDLING), headers, params)
-    //       }
-    //     } else {
-    //       Logger.error('Requester FSP not found')
-    //       throw ErrorHandler.Factory.createFSPIOPError(ErrorHandler.Enums.FSPIOPErrorCodes.ID_NOT_FOUND, 'Requester FSP not found')
-    //     }
-    //   } catch (err) {
-    //     Logger.error(err)
-    //     try {
-    //       const errorCallbackEndpointType = params.SubId ? Enums.EndPoints.FspEndpointTypes.FSPIOP_CALLBACK_URL_PARTIES_SUB_ID_PUT_ERROR : Enums.EndPoints.FspEndpointTypes.FSPIOP_CALLBACK_URL_PARTIES_PUT_ERROR
-    //       await participant.sendErrorToParticipant(headers[Enums.Http.Headers.FSPIOP.SOURCE], errorCallbackEndpointType,
-    //         ErrorHandler.Factory.reformatFSPIOPError(err).toApiErrorObject(Config.ERROR_HANDLING), headers, params)
-    //     } catch (exc) {
-    //       // We can't do anything else here- we _must_ handle all errors _within_ this function because
-    //       // we've already sent a sync response- we cannot throw.
-    //       Logger.error(exc)
-    //     }
-        // return;
     }
     
-    private async _handleParticipantDisassociateRequestReceivedEvt(msg: ParticipantDisassociateRequestReceivedEvt & { headers?: any }):Promise<void>{
+    private async _handleParticipantDisassociateRequestReceivedEvt(msg: ParticipantDisassociateRequestReceivedEvt):Promise<void>{
         return;
     }
 
-    private async _handlePartyInfoRequestedEvt(msg: PartyInfoRequestedEvt & { headers?: any }):Promise<void>{
-        const { validatePayload, payload, headers } = msg;
+    private async _handlePartyInfoRequestedEvt(msg: PartyInfoRequestedEvt):Promise<void>{
+        const { validatePayload, payload, fspiopOpaqueState } = msg;
   
         // Always first validate the payload received
         validatePayload();
   
         const type = payload.partyType;
         const partySubType = payload.partySubType || undefined
-        const requesterName = headers[FSPIOP_HEADERS_SOURCE]
-  
+        const requesterName = payload.requesterFspId;
+        const destinationName = payload.destinationFspId;
+        const clonedHeaders = { ...fspiopOpaqueState as any };
+
         // These variables are required to get the endpoint of the FSP we want to send the request to
         const callbackEndpointType = partySubType ? FSPIOP_ENDPOINT_TYPES.FSPIOP_CALLBACK_URL_PARTICIPANT_SUB_ID_PUT : FSPIOP_ENDPOINT_TYPES.FSPIOP_CALLBACK_URL_PARTICIPANT_PUT
         const errorCallbackEndpointType = partySubType ? FSPIOP_ENDPOINT_TYPES.FSPIOP_CALLBACK_URL_PARTICIPANT_SUB_ID_PUT_ERROR : FSPIOP_ENDPOINT_TYPES.FSPIOP_CALLBACK_URL_PARTICIPANT_PUT_ERROR
-  
+
+        
         try {
             this._logger.info('_handlePartyInfoRequestedEvt -> start')
+            
+            const requestedParticipant = await this._participantService.getParticipantInfo(requesterName);
+    
+            if(!requestedParticipant) {
+                throw Error('Requesting Participant doesnt exist')
+            }
 
             if (Object.values(FSPIOP_PARTY_ACCOUNT_TYPES).includes(type)) {
-                const clonedHeaders = { ...headers }
+                if(fspiopOpaqueState) {
+                    if (!clonedHeaders[FSPIOP_HEADERS_DESTINATION] || clonedHeaders[FSPIOP_HEADERS_DESTINATION] === '') {
+                        clonedHeaders[FSPIOP_HEADERS_DESTINATION] = clonedHeaders[FSPIOP_HEADERS_SOURCE]
+                    }
 
-                if (!clonedHeaders[FSPIOP_HEADERS_DESTINATION] || clonedHeaders[FSPIOP_HEADERS_DESTINATION] === '') {
-                clonedHeaders[FSPIOP_HEADERS_DESTINATION] = clonedHeaders[FSPIOP_HEADERS_SOURCE]
+                    clonedHeaders[FSPIOP_HEADERS_SOURCE] = FSPIOP_HEADERS_SWITCH
                 }
-                clonedHeaders[FSPIOP_HEADERS_SOURCE] = FSPIOP_HEADERS_SWITCH
 
-                // const requestedEndpoint = await Util.Endpoints.getEndpoint(Config.SWITCH_ENDPOINT, requestedParticipant, endpointType, options || undefined)
+                const requestedEndpoint = await Util.Endpoints.getEndpoint(Config.SWITCH_ENDPOINT, requestedParticipant, endpointType, options || undefined)
 
                 await sendRequest({
-                    url: 'requestedEndpoint', 
+                    url: requestedEndpoint, 
                     headers: clonedHeaders, 
                     source: requesterName, 
-                    destination: clonedHeaders[FSPIOP_HEADERS_DESTINATION], 
+                    destination: destinationName, 
                     method: FSPIOP_REQUEST_METHODS.PUT,
                     payload: payload,
                 })

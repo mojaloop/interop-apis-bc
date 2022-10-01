@@ -38,9 +38,10 @@ import { FSPIOP_HEADERS_SOURCE, FSPIOP_ENDPOINT_TYPES, FSPIOP_HEADERS_SWITCH, FS
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumer, MLKafkaJsonConsumerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import {ParticipantAssociationRequestReceivedEvt, ParticipantDisassociateRequestReceivedEvt, ParticipantQueryReceivedEvtPayload, ParticipantQueryResponseEvt, PartyInfoRequestedEvt} from "@mojaloop/platform-shared-lib-public-messages-lib/dist/index";
-import axios from "axios";
+import {ParticipantQueryResponseEvt} from "@mojaloop/platform-shared-lib-public-messages-lib/dist/index";
+import { IParticipantService } from "../interfaces/infrastructure";
 import { sendRequest } from "../request";
+import { Util } from '@mojaloop/central-services-shared';
 
 export enum AccountLookUpEventsType  {
     GetParticipant = "[Account Lookup] Get Participant",
@@ -54,6 +55,7 @@ export class ParticipantsEventHandler{
     private _logger:ILogger;
     private _consumerOpts: MLKafkaJsonConsumerOptions;
     private _kafkaTopics: string[];
+	private _participantService: IParticipantService;
 
     constructor(
             logger: ILogger,
@@ -81,7 +83,7 @@ export class ParticipantsEventHandler{
                 await this._handleParticipantQueryResponseEvt(message as ParticipantQueryResponseEvt);
                 break;
             default:
-                this._logger.warn(`Cannot handl message of type: ${message.msgName}, ignoring`);
+                this._logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
                 break;
         }
 
@@ -92,16 +94,17 @@ export class ParticipantsEventHandler{
         return;
     }
 
-    private async _handleParticipantQueryResponseEvt(msg: ParticipantQueryResponseEvt & { headers?: any }):Promise<void>{
-        const { validatePayload, payload, headers } = msg;
+    private async _handleParticipantQueryResponseEvt(msg: ParticipantQueryResponseEvt):Promise<void>{
+        const { validatePayload, payload, fspiopOpaqueState } = msg;
   
         // Always first validate the payload received
         validatePayload();
   
         const type = payload.partyType;
         const partySubType = payload.partySubType || undefined
-        const requesterName = headers[FSPIOP_HEADERS_SOURCE]
-  
+        const requesterName = payload.requesterFspId;
+        const clonedHeaders = { ...fspiopOpaqueState as any };
+
         // These variables are required to get the endpoint of the FSP we want to send the request to
         const callbackEndpointType = partySubType ? FSPIOP_ENDPOINT_TYPES.FSPIOP_CALLBACK_URL_PARTICIPANT_SUB_ID_PUT : FSPIOP_ENDPOINT_TYPES.FSPIOP_CALLBACK_URL_PARTICIPANT_PUT
         const errorCallbackEndpointType = partySubType ? FSPIOP_ENDPOINT_TYPES.FSPIOP_CALLBACK_URL_PARTICIPANT_SUB_ID_PUT_ERROR : FSPIOP_ENDPOINT_TYPES.FSPIOP_CALLBACK_URL_PARTICIPANT_PUT_ERROR
@@ -110,17 +113,22 @@ export class ParticipantsEventHandler{
             this._logger.info('_handleParticipantQueryResponseEvt -> start')
 
             if (Object.values(FSPIOP_PARTY_ACCOUNT_TYPES).includes(type)) {
-                const clonedHeaders = { ...headers }
-
                 if (!clonedHeaders[FSPIOP_HEADERS_DESTINATION] || clonedHeaders[FSPIOP_HEADERS_DESTINATION] === '') {
-                clonedHeaders[FSPIOP_HEADERS_DESTINATION] = clonedHeaders[FSPIOP_HEADERS_SOURCE]
+                    clonedHeaders[FSPIOP_HEADERS_DESTINATION] = clonedHeaders[FSPIOP_HEADERS_SOURCE]
                 }
                 clonedHeaders[FSPIOP_HEADERS_SOURCE] = FSPIOP_HEADERS_SWITCH
 
-                // const requestedEndpoint = await Util.Endpoints.getEndpoint(Config.SWITCH_ENDPOINT, requestedParticipant, endpointType, options || undefined)
+            
+                const requestedParticipant = await this._participantService.getParticipantInfo(requesterName);
+    
+                if(!requestedParticipant) {
+                    throw Error('Requesting Participant doesnt exist')
+                }
+               
+                const requestedEndpoint = await Util.Endpoints.getEndpoint(Config.SWITCH_ENDPOINT, requestedParticipant.id, callbackEndpointType)
 
                 await sendRequest({
-                    url: 'requestedEndpoint', 
+                    url: requestedEndpoint, 
                     headers: clonedHeaders, 
                     source: requesterName, 
                     destination: clonedHeaders[FSPIOP_HEADERS_DESTINATION], 

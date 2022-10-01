@@ -32,7 +32,7 @@
  "use strict"
 
 import request from 'axios'
-import { FSPIOP_REQUEST_METHODS, FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants";
+import { FSPIOP_REQUEST_METHODS, FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION,FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants";
 import { transformHeaders } from './transformer';
 
  
