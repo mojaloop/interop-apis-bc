@@ -32,7 +32,7 @@
  --------------
  ******/
 
-"use strict"
+"use strict";
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
@@ -113,18 +113,18 @@ export class PartiesEventHandler{
         validatePayload();
   
         const type = payload.partyType;
-        const partySubType = payload.partySubType || undefined
+        const partySubType = payload.partySubType || undefined;
         const requesterName = payload.ownerFspId;
         const clonedHeaders = { ...fspiopOpaqueState as any };
 
         try {
-            this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> start')
+            this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> start');
 
             if (Object.values(FSPIOP_PARTY_ACCOUNT_TYPES).includes(type)) {
                 const requestedParticipant = await this._participantService.getParticipantInfo(requesterName);
     
                 if(!requestedParticipant) {
-                    throw Error('Requesting Participant doesnt exist')
+                    throw Error('Requesting Participant doesnt exist');
                 }
                
                 await sendRequest({
@@ -134,19 +134,19 @@ export class PartiesEventHandler{
                     destination: clonedHeaders[FSPIOP_HEADERS_DESTINATION], 
                     method: FSPIOP_REQUEST_METHODS.PUT,
                     payload: payload,
-                })
+                });
 
-                this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> end')
+                this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> end');
             } else {
-                throw Error('No valid party type')
+                throw Error('No valid party type');
             }
         } catch (err: any) {
-            this._logger.error(err)
+            this._logger.error(err);
             
             const errorMsgPayload: AccountLookUperrorEvtPayload = {
                 partyId: payload.partyId,
                 errorMsg: err as string
-            }
+            };
     
             const msg =  new AccountLookUperrorEvt(errorMsgPayload);
     
@@ -163,18 +163,18 @@ export class PartiesEventHandler{
         validatePayload();
   
         const type = payload.partyType;
-        const partySubType = payload.partySubType || undefined
+        const partySubType = payload.partySubType || undefined;
         const requesterName = payload.ownerFspId;
         const clonedHeaders = { ...fspiopOpaqueState as any };
 
         try {
-            this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> start')
+            this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> start');
 
             if (Object.values(FSPIOP_PARTY_ACCOUNT_TYPES).includes(type)) {
                 const requestedParticipant = await this._participantService.getParticipantInfo(requesterName);
     
                 if(!requestedParticipant) {
-                    throw Error('Requesting Participant doesnt exist')
+                    throw Error('Requesting Participant doesnt exist');
                 }
                
                 await sendRequest({
@@ -184,19 +184,19 @@ export class PartiesEventHandler{
                     destination: clonedHeaders[FSPIOP_HEADERS_DESTINATION], 
                     method: FSPIOP_REQUEST_METHODS.PUT,
                     payload: payload,
-                })
+                });
 
-                this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> end')
+                this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> end');
             } else {
-                throw Error('No valid party type')
+                throw Error('No valid party type');
             }
         } catch (err: any) {
-            this._logger.error(err)
+            this._logger.error(err);
             
             const errorMsgPayload: AccountLookUperrorEvtPayload = {
                 partyId: payload.partyId,
                 errorMsg: err as string
-            }
+            };
     
             const msg =  new AccountLookUperrorEvt(errorMsgPayload);
     
@@ -213,33 +213,33 @@ export class PartiesEventHandler{
         validatePayload();
   
         const type = payload.partyType;
-        const partySubType = payload.partySubType || undefined
+        const partySubType = payload.partySubType || undefined;
         const requesterName = payload.requesterFspId;
         const destinationName = payload.destinationFspId;
         const clonedHeaders = { ...fspiopOpaqueState as any };
         
         try {
-            this._logger.info('_handlePartyInfoRequestedEvt -> start')
+            this._logger.info('_handlePartyInfoRequestedEvt -> start');
             
             const requestedParticipant = await this._participantService.getParticipantInfo(requesterName);
     
             if(!requestedParticipant) {
-                throw Error('Requesting Participant doesnt exist')
+                throw Error('Requesting Participant doesnt exist');
             }
 
             if (Object.values(FSPIOP_PARTY_ACCOUNT_TYPES).includes(type)) {
                 if(fspiopOpaqueState) {
                     if (!clonedHeaders[FSPIOP_HEADERS_DESTINATION] || clonedHeaders[FSPIOP_HEADERS_DESTINATION] === '') {
-                        clonedHeaders[FSPIOP_HEADERS_DESTINATION] = clonedHeaders[FSPIOP_HEADERS_SOURCE]
+                        clonedHeaders[FSPIOP_HEADERS_DESTINATION] = clonedHeaders[FSPIOP_HEADERS_SOURCE];
                     }
 
-                    clonedHeaders[FSPIOP_HEADERS_SOURCE] = FSPIOP_HEADERS_SWITCH
+                    clonedHeaders[FSPIOP_HEADERS_SOURCE] = FSPIOP_HEADERS_SWITCH;
                 }
 
                 const requestedParticipant = await this._participantService.getParticipantInfo(requesterName);
     
                 if(!requestedParticipant) {
-                    throw Error('Requesting Participant doesnt exist')
+                    throw Error('Requesting Participant doesnt exist');
                 }
                
                 await sendRequest({
@@ -249,14 +249,14 @@ export class PartiesEventHandler{
                     destination: destinationName, 
                     method: FSPIOP_REQUEST_METHODS.GET,
                     payload: payload,
-                })
+                });
 
-                this._logger.info('_handlePartyInfoRequestedEvt -> end')
+                this._logger.info('_handlePartyInfoRequestedEvt -> end');
             } else {
-                throw Error('No valid party type')
+                throw Error('No valid party type');
             }
         } catch (err: any) {
-            this._logger.error(err)
+            this._logger.error(err);
         }
 
         return;
@@ -272,32 +272,28 @@ export class PartiesEventHandler{
         const requesterName = payload.requesterFspId;
         const clonedHeaders = { ...fspiopOpaqueState as any };
         
-        // These variables are required to get the endpoint of the FSP we want to send the request to
-        // const callbackEndpointType = partySubType ? FSPIOP_ENDPOINT_TYPES.FSPIOP_CALLBACK_URL_PARTICIPANT_SUB_ID_PUT : FSPIOP_ENDPOINT_TYPES.FSPIOP_CALLBACK_URL_PARTICIPANT_PUT
-        // const errorCallbackEndpointType = partySubType ? FSPIOP_ENDPOINT_TYPES.FSPIOP_CALLBACK_URL_PARTICIPANT_SUB_ID_PUT_ERROR : FSPIOP_ENDPOINT_TYPES.FSPIOP_CALLBACK_URL_PARTICIPANT_PUT_ERROR
-
         try {
-            this._logger.info('_handlePartyQueryResponseEvtEvt -> start')
+            this._logger.info('_handlePartyQueryResponseEvtEvt -> start');
             
             const requestedParticipant = await this._participantService.getParticipantInfo(requesterName);
     
             if(!requestedParticipant) {
-                throw Error('Requesting Participant doesnt exist')
+                throw Error('Requesting Participant doesnt exist');
             }
 
             if (Object.values(FSPIOP_PARTY_ACCOUNT_TYPES).includes(type)) {
                 if(fspiopOpaqueState) {
                     if (!clonedHeaders[FSPIOP_HEADERS_DESTINATION] || clonedHeaders[FSPIOP_HEADERS_DESTINATION] === '') {
-                        clonedHeaders[FSPIOP_HEADERS_DESTINATION] = clonedHeaders[FSPIOP_HEADERS_SOURCE]
+                        clonedHeaders[FSPIOP_HEADERS_DESTINATION] = clonedHeaders[FSPIOP_HEADERS_SOURCE];
                     }
 
-                    clonedHeaders[FSPIOP_HEADERS_SOURCE] = FSPIOP_HEADERS_SWITCH
+                    clonedHeaders[FSPIOP_HEADERS_SOURCE] = FSPIOP_HEADERS_SWITCH;
                 }
 
                 const requestedParticipant = await this._participantService.getParticipantInfo(requesterName);
     
                 if(!requestedParticipant) {
-                    throw Error('Requesting Participant doesnt exist')
+                    throw Error('Requesting Participant doesnt exist');
                 }
                
                 await sendRequest({
@@ -306,20 +302,20 @@ export class PartiesEventHandler{
                     source: requesterName, 
                     method: FSPIOP_REQUEST_METHODS.PUT,
                     payload: payload,
-                })
+                });
 
-                this._logger.info('_handlePartyQueryResponseEvtEvt -> end')
+                this._logger.info('_handlePartyQueryResponseEvtEvt -> end');
             } else {
-                throw Error('No valid party type')
+                throw Error('No valid party type');
             }
         } catch (err: any) {
-            this._logger.error(err)
+            this._logger.error(err);
         }
 
         return;
     }
 
     async destroy () : Promise<void> {
-        return this._kafkaConsumer.destroy(true)
+        return this._kafkaConsumer.destroy(true);
     }
 }

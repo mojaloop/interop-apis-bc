@@ -29,9 +29,9 @@
  --------------
  ******/
 
- "use strict"
+ "use strict";
 
-import request from 'axios'
+import request from 'axios';
 import { FSPIOP_REQUEST_METHODS, FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION,FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants";
 import { transformHeaders } from './transformer';
 
@@ -40,7 +40,7 @@ import { transformHeaders } from './transformer';
 // Keep the following description since it's hard to detect
 // Delete the default headers that the `axios` module inserts as they can break our conventions.
 // By default it would insert `"Accept":"application/json, text/plain, */*"`.
-delete request.defaults.headers.common.Accept
+delete request.defaults.headers.common.Accept;
 
 type RequestOptions = {
   url: string, 
@@ -69,9 +69,9 @@ export const sendRequest = async ({
     accept: FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION
   }
 }:RequestOptions):Promise<void> => {
-  let requestOptions
+  let requestOptions;
   if (!url || !method || !headers || (method !== FSPIOP_REQUEST_METHODS.GET && method !== FSPIOP_REQUEST_METHODS.DELETE && !payload) || !source || !destination) {
-    throw Error('Missing parameters for function')
+    throw Error('Missing parameters for function');
   }
 
   try {
@@ -80,9 +80,9 @@ export const sendRequest = async ({
       sourceFsp: source,
       destinationFsp: destination,
       protocolVersions
-    }
+    };
 
-    const transformedHeaders = transformHeaders({ headers, config })
+    const transformedHeaders = transformHeaders({ headers, config });
   
     requestOptions = {
       url,
@@ -90,15 +90,15 @@ export const sendRequest = async ({
       headers: transformedHeaders,
       data: payload,
       responseType
-    }
+    };
 
-    await request(requestOptions)
+    await request(requestOptions);
 
     return;
   } catch (error) {
     // In production, a list of errors is added
-    throw Error('Failed to send HTTP request to host')
+    throw Error('Failed to send HTTP request to host');
   }
-}
+};
  
  

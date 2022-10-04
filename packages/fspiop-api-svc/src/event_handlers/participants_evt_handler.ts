@@ -32,7 +32,7 @@
  --------------
  ******/
 
-"use strict"
+"use strict";
 
 import { sendRequest, FSPIOP_HEADERS_SOURCE, FSPIOP_ENDPOINT_TYPES, FSPIOP_HEADERS_SWITCH, FSPIOP_HEADERS_DESTINATION, FSPIOP_REQUEST_METHODS, FSPIOP_PARTY_ACCOUNT_TYPES } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
@@ -106,27 +106,28 @@ export class ParticipantsEventHandler{
         validatePayload();
   
         const type = payload.partyType;
-        const partySubType = payload.partySubType || undefined
+        const partySubType = payload.partySubType || undefined;
         const requesterName = payload.requesterFspId;
         const clonedHeaders = { ...fspiopOpaqueState as any };
 
+        // Still not sure we need this due to the way we get the endpoints:
         // These variables are required to get the endpoint of the FSP we want to send the request to
-        const callbackEndpointType = partySubType ? FSPIOP_ENDPOINT_TYPES.FSPIOP_CALLBACK_URL_PARTICIPANT_SUB_ID_PUT : FSPIOP_ENDPOINT_TYPES.FSPIOP_CALLBACK_URL_PARTICIPANT_PUT
-        const errorCallbackEndpointType = partySubType ? FSPIOP_ENDPOINT_TYPES.FSPIOP_CALLBACK_URL_PARTICIPANT_SUB_ID_PUT_ERROR : FSPIOP_ENDPOINT_TYPES.FSPIOP_CALLBACK_URL_PARTICIPANT_PUT_ERROR
+        // const callbackEndpointType = partySubType ? FSPIOP_ENDPOINT_TYPES.FSPIOP_CALLBACK_URL_PARTICIPANT_SUB_ID_PUT : FSPIOP_ENDPOINT_TYPES.FSPIOP_CALLBACK_URL_PARTICIPANT_PUT;
+        // const errorCallbackEndpointType = partySubType ? FSPIOP_ENDPOINT_TYPES.FSPIOP_CALLBACK_URL_PARTICIPANT_SUB_ID_PUT_ERROR : FSPIOP_ENDPOINT_TYPES.FSPIOP_CALLBACK_URL_PARTICIPANT_PUT_ERROR;
   
         try {
-            this._logger.info('_handleParticipantQueryResponseEvt -> start')
+            this._logger.info('_handleParticipantQueryResponseEvt -> start');
 
             if (Object.values(FSPIOP_PARTY_ACCOUNT_TYPES).includes(type)) {
                 if (!clonedHeaders[FSPIOP_HEADERS_DESTINATION] || clonedHeaders[FSPIOP_HEADERS_DESTINATION] === '') {
-                    clonedHeaders[FSPIOP_HEADERS_DESTINATION] = clonedHeaders[FSPIOP_HEADERS_SOURCE]
+                    clonedHeaders[FSPIOP_HEADERS_DESTINATION] = clonedHeaders[FSPIOP_HEADERS_SOURCE];
                 }
-                clonedHeaders[FSPIOP_HEADERS_SOURCE] = FSPIOP_HEADERS_SWITCH
+                clonedHeaders[FSPIOP_HEADERS_SOURCE] = FSPIOP_HEADERS_SWITCH;
 
                 const requestedParticipant = await this._participantService.getParticipantInfo(requesterName);
     
                 if(!requestedParticipant) {
-                    throw Error('Requesting Participant doesnt exist')
+                    throw Error('Requesting Participant doesnt exist');
                 }
                
                 await sendRequest({
@@ -136,11 +137,11 @@ export class ParticipantsEventHandler{
                     destination: clonedHeaders[FSPIOP_HEADERS_DESTINATION], 
                     method: FSPIOP_REQUEST_METHODS.PUT,
                     payload: payload,
-                })
+                });
 
-                this._logger.info('_handleParticipantQueryResponseEvt -> end')
+                this._logger.info('_handleParticipantQueryResponseEvt -> end');
             } else {
-                throw Error('No valid party type')
+                throw Error('No valid party type');
             }
         } catch (err: any) {
             this._logger.error(err);
@@ -148,7 +149,7 @@ export class ParticipantsEventHandler{
             const errorMsgPayload: AccountLookUperrorEvtPayload = {
                 partyId: payload.partyId,
                 errorMsg: err as string
-            }
+            };
     
             const msg =  new AccountLookUperrorEvt(errorMsgPayload);
     
@@ -159,6 +160,6 @@ export class ParticipantsEventHandler{
     }
 
     async destroy () : Promise<void> {
-        return this._kafkaConsumer.destroy(true)
+        return this._kafkaConsumer.destroy(true);
     }
 }

@@ -29,7 +29,7 @@
  --------------
  ******/
 
-"use strict"
+"use strict";
 import express from "express";
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {Constants} from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
@@ -88,7 +88,7 @@ export class PartyRoutes {
             res.status(400).json({
                 status: "not ok"
             });
-            return;
+            return next();
         }
 
         const msgPayload: PartyQueryReceivedEvtPayload = {
@@ -97,7 +97,7 @@ export class PartyRoutes {
             partyId: id,
             partySubType: null,
             currency: currency
-        }
+        };
 
         const msg =  new PartyQueryReceivedEvt(msgPayload);
 
@@ -126,7 +126,7 @@ export class PartyRoutes {
             res.status(400).json({
                 status: "not ok"
             });
-            return;
+            return next();
         }
 
         const msgPayload: PartyQueryReceivedEvtPayload = {
@@ -135,7 +135,7 @@ export class PartyRoutes {
             partyId: id,
             partySubType: partySubIdOrType,
             currency: currency
-        }
+        };
 
         const msg =  new PartyQueryReceivedEvt(msgPayload);
 
@@ -161,7 +161,7 @@ export class PartyRoutes {
             res.status(400).json({
                 status: "not ok"
             });
-            return;
+            return next();
         }
 
         const msgPayload: ParticipantAssociationRequestReceivedEvtPayload = {
@@ -169,7 +169,7 @@ export class PartyRoutes {
             partyId: id,
             partyType: type,
             partySubType: null
-        }
+        };
 
         const msg = new ParticipantAssociationRequestReceivedEvt(msgPayload);
 
@@ -196,7 +196,7 @@ export class PartyRoutes {
             res.status(400).json({
                 status: "not ok"
             });
-            return;
+            return next();
         }
 
         const msgPayload: ParticipantAssociationRequestReceivedEvtPayload = {
@@ -204,7 +204,7 @@ export class PartyRoutes {
             partyId: id,
             partyType: type,
             partySubType: partySubIdOrType
-        }
+        };
 
         const msg = new ParticipantAssociationRequestReceivedEvt(msgPayload);
 
@@ -230,7 +230,7 @@ export class PartyRoutes {
             res.status(400).json({
                 status: "not ok"
             });
-            return;
+            return next();
         }
 
         const msgPayload: ParticipantDisassociateRequestReceivedEvtPayload = {
@@ -238,7 +238,7 @@ export class PartyRoutes {
             partyId: id,
             partyType: type,
             partySubType: null
-        }
+        };
 
         const msg = new ParticipantDisassociateRequestReceivedEvt(msgPayload);
 
@@ -265,7 +265,7 @@ export class PartyRoutes {
             res.status(400).json({
                 status: "not ok"
             });
-            return;
+            return next();
         }
 
         const msgPayload: ParticipantDisassociateRequestReceivedEvtPayload = {
@@ -273,7 +273,7 @@ export class PartyRoutes {
             partyId: id,
             partyType: type,
             partySubType: partySubIdOrType
-        }
+        };
 
         const msg = new ParticipantDisassociateRequestReceivedEvt(msgPayload);
 

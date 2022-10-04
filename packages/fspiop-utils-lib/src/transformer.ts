@@ -29,10 +29,10 @@
  --------------
  ******/
 
- 'use strict'
+ 'use strict';
 
-import { FSPIOP_HEADERS_CONTENT_LENGTH, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_HOST, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_ACCEPT, FSPIOP_REQUEST_METHODS, FSPIOP_HEADERS_SWITCH_REGEX, FSPIOP_HEADERS_CONTENT_TYPE_CONTENT, FSPIOP_HEADERS_DATE, FSPIOP_HEADERS_CONTENT_AND_ACCEPT_REGEX, FSPIOP_HEADERS_SIGNATURE } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants"
-import { FSPIOP_HEADERS_CONTENT_AND_ACCEPT_REGEX_VALUE } from "./constants"
+import { FSPIOP_HEADERS_CONTENT_LENGTH, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_HOST, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_ACCEPT, FSPIOP_REQUEST_METHODS, FSPIOP_HEADERS_SWITCH_REGEX, FSPIOP_HEADERS_CONTENT_TYPE_CONTENT, FSPIOP_HEADERS_DATE, FSPIOP_HEADERS_CONTENT_AND_ACCEPT_REGEX, FSPIOP_HEADERS_SIGNATURE } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants";
+import { FSPIOP_HEADERS_CONTENT_AND_ACCEPT_REGEX_VALUE } from "./constants";
 
 type TransformHeadersOptions = {
     headers: { 
@@ -50,31 +50,31 @@ type TransformHeadersOptions = {
 }
 
  const getResourceInfoFromHeader = (headerValue: string) => {
-   const result:{ resourceType?: any, version?: any } = {}
-   const regex = FSPIOP_HEADERS_CONTENT_AND_ACCEPT_REGEX.exec(headerValue)
+   const result:{ resourceType?: any, version?: any } = {};
+   const regex = FSPIOP_HEADERS_CONTENT_AND_ACCEPT_REGEX.exec(headerValue);
    if (regex) {
-     if (regex[2]) result.resourceType = regex[2]
-     if (regex[4]) result.version = regex[4]
+     if (regex[2]) result.resourceType = regex[2];
+     if (regex[4]) result.version = regex[4];
    }
-   return result
- }
+   return result;
+ };
  
  
  export const transformHeaders = ({ headers, config }: TransformHeadersOptions) => {
    // Normalized keys
    const normalizedKeys:{ [x: string]: any } = Object.keys(headers).reduce(
      function (keys:{ [x: string]: any }, k: string) {
-       keys[k.toLowerCase()] = k
-       return keys
-     }, {})
+       keys[k.toLowerCase()] = k;
+       return keys;
+     }, {});
  
    // Normalized headers
-   const normalizedHeaders: any = {}
+   const normalizedHeaders: any = {};
  
    // resource type for content-type and accept headers
-   let resourceType
-   let acceptVersion
-   let contentVersion
+   let resourceType;
+   let acceptVersion;
+   let contentVersion;
  
    // Determine the acceptVersion using the injected config
    if (config && config.protocolVersions && config.protocolVersions.accept) {
@@ -82,11 +82,11 @@ type TransformHeadersOptions = {
    }
  
    // Determine the contentVersion using the injected config
-   if (config && config.protocolVersions && config.protocolVersions.content) contentVersion = config.protocolVersions.content
+   if (config && config.protocolVersions && config.protocolVersions.content) contentVersion = config.protocolVersions.content;
  
    // check to see if FSPIOP-Destination header has been left out of the initial request. If so then add it.
    if (!normalizedKeys[FSPIOP_HEADERS_DESTINATION]) {
-     headers[FSPIOP_HEADERS_DESTINATION] = ''
+     headers[FSPIOP_HEADERS_DESTINATION] = '';
    }
  
    for (const headerKey in headers) {
@@ -96,10 +96,10 @@ type TransformHeadersOptions = {
      switch (headerKey.toLowerCase()) {
        case (FSPIOP_HEADERS_DATE):
          if (typeof headerValue === 'object' && headerValue instanceof Date) {
-           tempDate = headerValue.toUTCString()
+           tempDate = headerValue.toUTCString();
          } else {
            try {
-             tempDate = (new Date(headerValue)).toUTCString()
+             tempDate = (new Date(headerValue)).toUTCString();
              if (tempDate === 'Invalid Date') {
                throw Error('Invalid Date');
              }
@@ -108,47 +108,47 @@ type TransformHeadersOptions = {
            }
          }
          normalizedHeaders[headerKey] = tempDate;
-         break
+         break;
        case (FSPIOP_HEADERS_CONTENT_LENGTH):
          // Do nothing here, do not map. This will be inserted correctly by the Axios library
-         break
+         break;
        case (FSPIOP_HEADERS_HOST):
          // Do nothing here, do not map. This will be inserted correctly by the Axios library
-         break
+         break;
        case (FSPIOP_HEADERS_HTTP_METHOD):
          // Check to see if we find a regex match the source header containing the switch name.
          // If so we include the signature otherwise we remove it.
          if (headers[normalizedKeys[FSPIOP_HEADERS_SOURCE]].match(FSPIOP_HEADERS_SWITCH_REGEX) === null) {
            if (config.httpMethod.toLowerCase() === headerValue.toLowerCase()) {
              // HTTP Methods match, and thus no change is required
-             normalizedHeaders[headerKey] = headerValue
+             normalizedHeaders[headerKey] = headerValue;
            } else {
              // HTTP Methods DO NOT match, and thus a change is required for target HTTP Method
-             normalizedHeaders[headerKey] = config.httpMethod
+             normalizedHeaders[headerKey] = config.httpMethod;
            }
          } else {
            if (config.httpMethod.toLowerCase() === headerValue.toLowerCase()) {
              // HTTP Methods match, and thus no change is required
-             normalizedHeaders[headerKey] = headerValue.toUpperCase()
+             normalizedHeaders[headerKey] = headerValue.toUpperCase();
            } else {
              // HTTP Methods DO NOT match, and thus a change is required for target HTTP Method
-             normalizedHeaders[headerKey] = config.httpMethod.toUpperCase()
+             normalizedHeaders[headerKey] = config.httpMethod.toUpperCase();
            }
          }
-         break
+         break;
        case (FSPIOP_HEADERS_SOURCE):
          normalizedHeaders[headerKey] = config.sourceFsp;
-         break
+         break;
        case (FSPIOP_HEADERS_DESTINATION):
          normalizedHeaders[headerKey] = config.destinationFsp;
-         break
+         break;
        case (FSPIOP_HEADERS_ACCEPT):
          if (!FSPIOP_HEADERS_SWITCH_REGEX.test(config.sourceFsp)) {
-           normalizedHeaders[headerKey] = headerValue
-           break
+           normalizedHeaders[headerKey] = headerValue;
+           break;
          }
          if (!resourceType) {   
-          resourceType = getResourceInfoFromHeader(headers[headerKey]).resourceType
+          resourceType = getResourceInfoFromHeader(headers[headerKey]).resourceType;
         }
 
          // Fall back to using the legacy approach to determine the resourceVersion
@@ -156,41 +156,41 @@ type TransformHeadersOptions = {
         //     acceptVersion = resourceVersions[resourceType].acceptVersion;
         //  }
          normalizedHeaders[headerKey] = FSPIOP_HEADERS_CONTENT_AND_ACCEPT_REGEX_VALUE(resourceType, acceptVersion);
-         break
+         break;
        case (FSPIOP_HEADERS_CONTENT_TYPE_CONTENT):
          if (!FSPIOP_HEADERS_SWITCH_REGEX.test(config.sourceFsp)) {
-           normalizedHeaders[headerKey] = headerValue
-           break
+           normalizedHeaders[headerKey] = headerValue;
+           break;
          }
-         if (!resourceType) resourceType = getResourceInfoFromHeader(headers[headerKey]).resourceType
+         if (!resourceType) resourceType = getResourceInfoFromHeader(headers[headerKey]).resourceType;
          // Fall back to using the legacy approach to determine the resourceVersion
         //  if (resourceType && !contentVersion) contentVersion = resourceVersions[resourceType].contentVersion
          normalizedHeaders[headerKey] = FSPIOP_HEADERS_CONTENT_AND_ACCEPT_REGEX_VALUE(resourceType, contentVersion);
-         break
+         break;
        default:
-         normalizedHeaders[headerKey] = headerValue
+         normalizedHeaders[headerKey] = headerValue;
      }
    }
  
    if (normalizedHeaders[normalizedKeys[FSPIOP_HEADERS_SOURCE]].match(FSPIOP_HEADERS_SWITCH_REGEX) !== null) {
      // Check to see if we find a regex match the source header containing the switch name.
      // If so we remove the signature added by default.
-     delete normalizedHeaders[normalizedKeys[FSPIOP_HEADERS_SIGNATURE]]
+     delete normalizedHeaders[normalizedKeys[FSPIOP_HEADERS_SIGNATURE]];
    }
  
    // Per the FSPIOP API spec, remove the Accept header on all PUT requests
    if (config && config.httpMethod === FSPIOP_REQUEST_METHODS.PUT) {
-     delete normalizedHeaders[FSPIOP_HEADERS_ACCEPT]
+     delete normalizedHeaders[FSPIOP_HEADERS_ACCEPT];
    }
-   return normalizedHeaders
- }
+   return normalizedHeaders;
+ };
  
 export const decodePayload = (input: string | object, { asParsed = true } = {}) => {
   if(typeof input === 'string'){
-    return asParsed ? JSON.parse(input) : { mimeType: 'text/plain', body: input }
+    return asParsed ? JSON.parse(input) : { mimeType: 'text/plain', body: input };
   } else if (typeof input === 'object') {
-    return asParsed ? input : { mimeType: 'application/json', body: JSON.stringify(input) }
+    return asParsed ? input : { mimeType: 'application/json', body: JSON.stringify(input) };
   } else {
-    throw new Error('input should be Buffer or String')
+    throw new Error('input should be Buffer or String');
   }
-}
+};

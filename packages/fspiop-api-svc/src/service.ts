@@ -28,9 +28,9 @@
  --------------
  ******/
 
-"use strict"
-import {existsSync} from "fs"
-import {Server} from "http";
+"use strict";
+import {existsSync} from "fs";
+import {createServer, Server} from "http";
 import express from "express";
 import {ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
 import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
@@ -68,7 +68,7 @@ const KAFKA_ACCOUNTS_LOOKUP_PARTIES_TOPIC = process.env["KAFKA_ACCOUNTS_LOOKUP_P
 
 const kafkaProducerOptions = {
     kafkaBrokerList: KAFKA_URL
-}
+};
 
 // only the vars required outside the start fn
 let logger:ILogger;
@@ -76,7 +76,7 @@ let expressServer: Server;
 let participantRoutes:ParticipantRoutes;
 let participantService: IParticipantService;
 
-async function setupExpress(loggerParam:ILogger): Promise<express.Express> {
+async function setupExpress(loggerParam:ILogger): Promise<Server> {
     const app = express();
     app.use(express.json()); // for parsing application/json
     app.use(express.urlencoded({extended: true})); // for parsing application/x-www-form-urlencoded
@@ -93,7 +93,7 @@ async function setupExpress(loggerParam:ILogger): Promise<express.Express> {
         res.sendStatus(404);
     });
 
-    return app;
+    return createServer(app);
 }
 
 let participantsEvtHandler:ParticipantsEventHandler;
@@ -103,12 +103,12 @@ async function setupEventHandlers():Promise<void>{
     const kafkaJsonConsumerOptions = {
         kafkaBrokerList: KAFKA_URL,
         kafkaGroupId: `${BC_NAME}_${APP_NAME}`,
-    }
+    };
 
     const kafkaJsonProducerOptions = {
         kafkaBrokerList: KAFKA_URL,
         kafkaGroupId: `${BC_NAME}_${APP_NAME}`,
-    }
+    };
 
     participantsEvtHandler = new ParticipantsEventHandler(logger, kafkaJsonConsumerOptions, kafkaJsonProducerOptions, [KAFKA_ACCOUNTS_LOOKUP_PARTICIPANTS_TOPIC], participantService);
     
@@ -159,12 +159,12 @@ export async function start(
 
     let portNum = SVC_DEFAULT_HTTP_PORT;
     if(process.env["SVC_HTTP_PORT"] && !isNaN(parseInt(process.env["SVC_HTTP_PORT"]))) {
-        portNum = parseInt(process.env["SVC_HTTP_PORT"])
+        portNum = parseInt(process.env["SVC_HTTP_PORT"]);
     }
 
     expressServer = app.listen(portNum, () => {
         console.log(`🚀 Server ready at: http://localhost:${portNum}`);
-        logger!.info("Platform configuration service started");
+        logger.info("Platform configuration service started");
     });
 }
 
