@@ -42,6 +42,8 @@ import {
 import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 import {ParticipantRoutes} from "./http_routes/participant_routes";
 import {ParticipantsEventHandler} from "./event_handlers/participants_evt_handler";
+import { PartiesEventHandler } from "./event_handlers/parties_evt_handler";
+import { IParticipantService } from "./interfaces/types";
 
 
 
@@ -62,6 +64,7 @@ const PARTICIPANTS_URL_RESOURCE_NAME = "participants";
 
 
 const KAFKA_ACCOUNTS_LOOKUP_PARTICIPANTS_TOPIC = process.env["KAFKA_ACCOUNTS_LOOKUP_PARTICIPANTS_TOPIC"] || "account_lookup_bc_participants";
+const KAFKA_ACCOUNTS_LOOKUP_PARTIES_TOPIC = process.env["KAFKA_ACCOUNTS_LOOKUP_PARTIES_TOPIC"] || "account_lookup_bc_parties";
 
 const kafkaProducerOptions = {
     kafkaBrokerList: KAFKA_URL
@@ -71,6 +74,7 @@ const kafkaProducerOptions = {
 let logger:ILogger;
 let expressServer: Server;
 let participantRoutes:ParticipantRoutes;
+let participantService: IParticipantService;
 
 async function setupExpress(loggerParam:ILogger): Promise<express.Express> {
     const app = express();
@@ -93,6 +97,7 @@ async function setupExpress(loggerParam:ILogger): Promise<express.Express> {
 }
 
 let participantsEvtHandler:ParticipantsEventHandler;
+let partiesEvtHandler:PartiesEventHandler;
 
 async function setupEventHandlers():Promise<void>{
     const kafkaJsonConsumerOptions = {
@@ -100,8 +105,17 @@ async function setupEventHandlers():Promise<void>{
         kafkaGroupId: `${BC_NAME}_${APP_NAME}`,
     }
 
-    participantsEvtHandler = new ParticipantsEventHandler(logger, kafkaJsonConsumerOptions, [KAFKA_ACCOUNTS_LOOKUP_PARTICIPANTS_TOPIC]);
+    const kafkaJsonProducerOptions = {
+        kafkaBrokerList: KAFKA_URL,
+        kafkaGroupId: `${BC_NAME}_${APP_NAME}`,
+    }
+
+    participantsEvtHandler = new ParticipantsEventHandler(logger, kafkaJsonConsumerOptions, kafkaJsonProducerOptions, [KAFKA_ACCOUNTS_LOOKUP_PARTICIPANTS_TOPIC], participantService);
+    
     await participantsEvtHandler.init();
+    
+    partiesEvtHandler = new PartiesEventHandler(logger, kafkaJsonConsumerOptions, kafkaJsonProducerOptions, [KAFKA_ACCOUNTS_LOOKUP_PARTIES_TOPIC], participantService);
+    await partiesEvtHandler.init();
 }
 
 

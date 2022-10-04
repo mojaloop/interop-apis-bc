@@ -41,6 +41,7 @@ import { transformHeaders } from './transformer';
 // Delete the default headers that the `axios` module inserts as they can break our conventions.
 // By default it would insert `"Accept":"application/json, text/plain, */*"`.
 delete request.defaults.headers.common.Accept
+
 type RequestOptions = {
   url: string, 
   headers: any, 
@@ -54,6 +55,7 @@ type RequestOptions = {
     content: any; 
   }
 }
+
 export const sendRequest = async ({
   url, 
   headers, 
@@ -71,13 +73,17 @@ export const sendRequest = async ({
   if (!url || !method || !headers || (method !== FSPIOP_REQUEST_METHODS.GET && method !== FSPIOP_REQUEST_METHODS.DELETE && !payload) || !source || !destination) {
     throw Error('Missing parameters for function')
   }
+
   try {
-    const transformedHeaders = transformHeaders(headers, {
+    const config =  {
       httpMethod: method,
       sourceFsp: source,
       destinationFsp: destination,
       protocolVersions
-    })
+    }
+
+    const transformedHeaders = transformHeaders({ headers, config })
+  
     requestOptions = {
       url,
       method,

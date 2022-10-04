@@ -72,7 +72,6 @@ export class ParticipantRoutes {
         const currency = req.query["currency"] as string || null;
 
         if(!type || !id || !requesterName){
-            // TODO find correct error response
             res.status(400).json({
                 status: "not ok"
             });
@@ -111,7 +110,6 @@ export class ParticipantRoutes {
         const currency = req.query["currency"] as string || null;
 
         if(!type || !id || !requesterName || !partySubIdOrType){
-            // TODO find correct error response
             res.status(400).json({
                 status: "not ok"
             });

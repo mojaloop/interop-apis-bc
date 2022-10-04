@@ -32,9 +32,22 @@
  'use strict'
 
 import { FSPIOP_HEADERS_CONTENT_LENGTH, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_HOST, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_ACCEPT, FSPIOP_REQUEST_METHODS, FSPIOP_HEADERS_SWITCH_REGEX, FSPIOP_HEADERS_CONTENT_TYPE_CONTENT, FSPIOP_HEADERS_DATE, FSPIOP_HEADERS_CONTENT_AND_ACCEPT_REGEX, FSPIOP_HEADERS_SIGNATURE } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants"
+import { FSPIOP_HEADERS_CONTENT_AND_ACCEPT_REGEX_VALUE } from "./constants"
 
- const resourceVersions = require('../helpers').resourceVersions
-
+type TransformHeadersOptions = {
+    headers: { 
+        [x: string]: any 
+    }, 
+    config: { 
+        protocolVersions: { 
+            accept: any; 
+            content: any 
+        }; 
+        httpMethod: string; 
+        sourceFsp: any; 
+        destinationFsp: any;
+    }
+}
 
  const getResourceInfoFromHeader = (headerValue: string) => {
    const result:{ resourceType?: any, version?: any } = {}
@@ -47,7 +60,7 @@ import { FSPIOP_HEADERS_CONTENT_LENGTH, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_HO
  }
  
  
- export const transformHeaders = (headers: { [x: string]: any }, config: { protocolVersions: { accept: any; content: any }; httpMethod: string; sourceFsp: any; destinationFsp: any }) => {
+ export const transformHeaders = ({ headers, config }: TransformHeadersOptions) => {
    // Normalized keys
    const normalizedKeys:{ [x: string]: any } = Object.keys(headers).reduce(
      function (keys:{ [x: string]: any }, k: string) {
@@ -64,7 +77,9 @@ import { FSPIOP_HEADERS_CONTENT_LENGTH, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_HO
    let contentVersion
  
    // Determine the acceptVersion using the injected config
-   if (config && config.protocolVersions && config.protocolVersions.accept) acceptVersion = config.protocolVersions.accept
+   if (config && config.protocolVersions && config.protocolVersions.accept) {
+    acceptVersion = config.protocolVersions.accept;
+   }
  
    // Determine the contentVersion using the injected config
    if (config && config.protocolVersions && config.protocolVersions.content) contentVersion = config.protocolVersions.content
@@ -75,8 +90,9 @@ import { FSPIOP_HEADERS_CONTENT_LENGTH, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_HO
    }
  
    for (const headerKey in headers) {
-     const headerValue = headers[headerKey]
-     let tempDate
+     const headerValue = headers[headerKey];
+     let tempDate: Date | string | null = null;
+     
      switch (headerKey.toLowerCase()) {
        case (FSPIOP_HEADERS_DATE):
          if (typeof headerValue === 'object' && headerValue instanceof Date) {
@@ -85,13 +101,13 @@ import { FSPIOP_HEADERS_CONTENT_LENGTH, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_HO
            try {
              tempDate = (new Date(headerValue)).toUTCString()
              if (tempDate === 'Invalid Date') {
-               throw Error('Invalid Date')
+               throw Error('Invalid Date');
              }
            } catch (err) {
-             tempDate = headerValue
+             tempDate = headerValue;
            }
          }
-         normalizedHeaders[headerKey] = tempDate
+         normalizedHeaders[headerKey] = tempDate;
          break
        case (FSPIOP_HEADERS_CONTENT_LENGTH):
          // Do nothing here, do not map. This will be inserted correctly by the Axios library
@@ -121,20 +137,25 @@ import { FSPIOP_HEADERS_CONTENT_LENGTH, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_HO
          }
          break
        case (FSPIOP_HEADERS_SOURCE):
-         normalizedHeaders[headerKey] = config.sourceFsp
+         normalizedHeaders[headerKey] = config.sourceFsp;
          break
        case (FSPIOP_HEADERS_DESTINATION):
-         normalizedHeaders[headerKey] = config.destinationFsp
+         normalizedHeaders[headerKey] = config.destinationFsp;
          break
        case (FSPIOP_HEADERS_ACCEPT):
          if (!FSPIOP_HEADERS_SWITCH_REGEX.test(config.sourceFsp)) {
            normalizedHeaders[headerKey] = headerValue
            break
          }
-         if (!resourceType) resourceType = getResourceInfoFromHeader(headers[headerKey]).resourceType
+         if (!resourceType) {   
+          resourceType = getResourceInfoFromHeader(headers[headerKey]).resourceType
+        }
+
          // Fall back to using the legacy approach to determine the resourceVersion
-         if (resourceType && !acceptVersion) acceptVersion = resourceVersions[resourceType].acceptVersion
-         normalizedHeaders[headerKey] = `application/vnd.interoperability.${resourceType}+json;version=${acceptVersion}`
+        //  if (resourceType && !acceptVersion) {
+        //     acceptVersion = resourceVersions[resourceType].acceptVersion;
+        //  }
+         normalizedHeaders[headerKey] = FSPIOP_HEADERS_CONTENT_AND_ACCEPT_REGEX_VALUE(resourceType, acceptVersion);
          break
        case (FSPIOP_HEADERS_CONTENT_TYPE_CONTENT):
          if (!FSPIOP_HEADERS_SWITCH_REGEX.test(config.sourceFsp)) {
@@ -143,8 +164,8 @@ import { FSPIOP_HEADERS_CONTENT_LENGTH, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_HO
          }
          if (!resourceType) resourceType = getResourceInfoFromHeader(headers[headerKey]).resourceType
          // Fall back to using the legacy approach to determine the resourceVersion
-         if (resourceType && !contentVersion) contentVersion = resourceVersions[resourceType].contentVersion
-         normalizedHeaders[headerKey] = `application/vnd.interoperability.${resourceType}+json;version=${contentVersion}`
+        //  if (resourceType && !contentVersion) contentVersion = resourceVersions[resourceType].contentVersion
+         normalizedHeaders[headerKey] = FSPIOP_HEADERS_CONTENT_AND_ACCEPT_REGEX_VALUE(resourceType, contentVersion);
          break
        default:
          normalizedHeaders[headerKey] = headerValue

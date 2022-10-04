@@ -31,3 +31,5 @@
 "use strict";
 
 export * as Constants from "./constants";
+export * as Transformer from "./transformer";
+export * as Request from "./request";

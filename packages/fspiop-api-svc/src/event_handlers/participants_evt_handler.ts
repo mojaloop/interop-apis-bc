@@ -34,14 +34,12 @@
 
 "use strict"
 
-import { FSPIOP_HEADERS_SOURCE, FSPIOP_ENDPOINT_TYPES, FSPIOP_HEADERS_SWITCH, FSPIOP_HEADERS_DESTINATION, FSPIOP_REQUEST_METHODS, FSPIOP_PARTY_ACCOUNT_TYPES } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants";
+import { sendRequest, FSPIOP_HEADERS_SOURCE, FSPIOP_ENDPOINT_TYPES, FSPIOP_HEADERS_SWITCH, FSPIOP_HEADERS_DESTINATION, FSPIOP_REQUEST_METHODS, FSPIOP_PARTY_ACCOUNT_TYPES } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import {MLKafkaJsonConsumer, MLKafkaJsonConsumerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import {ParticipantQueryResponseEvt} from "@mojaloop/platform-shared-lib-public-messages-lib/dist/index";
-import { IParticipantService } from "../interfaces/infrastructure";
-import { sendRequest } from "../request";
-import { Util } from '@mojaloop/central-services-shared';
+import {MLKafkaJsonConsumer, MLKafkaJsonConsumerOptions, MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import {ParticipantQueryResponseEvt, AccountLookUperrorEvtPayload, AccountLookUperrorEvt} from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { IParticipantService } from "../interfaces/types";
 
 export enum AccountLookUpEventsType  {
     GetParticipant = "[Account Lookup] Get Participant",
@@ -55,22 +53,29 @@ export class ParticipantsEventHandler{
     private _logger:ILogger;
     private _consumerOpts: MLKafkaJsonConsumerOptions;
     private _kafkaTopics: string[];
+    private _producerOptions: MLKafkaJsonProducerOptions;
+    private _kafkaProducer: MLKafkaJsonProducer;
 	private _participantService: IParticipantService;
 
     constructor(
             logger: ILogger,
             consumerOpts: MLKafkaJsonConsumerOptions,
-            kafkaTopics : string[]
+            producerOptions: MLKafkaJsonProducerOptions,
+            kafkaTopics : string[],
+            participantService: IParticipantService
     ) {
         this._logger = logger.createChild("ParticipantsEventHandler");
         this._consumerOpts = consumerOpts;
         this._kafkaTopics = kafkaTopics;
+        this._producerOptions = producerOptions;
+        this._participantService = participantService;
     }
 
     async init () : Promise<void> {
         this._kafkaConsumer = new MLKafkaJsonConsumer(this._consumerOpts, this._logger);
         this._kafkaConsumer.setTopics(this._kafkaTopics);
         this._kafkaConsumer.setCallbackFn(this.processMessage.bind(this));
+        this._kafkaProducer = new MLKafkaJsonProducer(this._producerOptions);
         await this._kafkaConsumer.connect();
         await this._kafkaConsumer.start();
     }
@@ -118,17 +123,14 @@ export class ParticipantsEventHandler{
                 }
                 clonedHeaders[FSPIOP_HEADERS_SOURCE] = FSPIOP_HEADERS_SWITCH
 
-            
                 const requestedParticipant = await this._participantService.getParticipantInfo(requesterName);
     
                 if(!requestedParticipant) {
                     throw Error('Requesting Participant doesnt exist')
                 }
                
-                const requestedEndpoint = await Util.Endpoints.getEndpoint(Config.SWITCH_ENDPOINT, requestedParticipant.id, callbackEndpointType)
-
                 await sendRequest({
-                    url: requestedEndpoint, 
+                    url: requestedParticipant.participantEndpoints, 
                     headers: clonedHeaders, 
                     source: requesterName, 
                     destination: clonedHeaders[FSPIOP_HEADERS_DESTINATION], 
@@ -141,7 +143,16 @@ export class ParticipantsEventHandler{
                 throw Error('No valid party type')
             }
         } catch (err: any) {
-            this._logger.error(err)
+            this._logger.error(err);
+
+            const errorMsgPayload: AccountLookUperrorEvtPayload = {
+                partyId: payload.partyId,
+                errorMsg: err as string
+            }
+    
+            const msg =  new AccountLookUperrorEvt(errorMsgPayload);
+    
+            await this._kafkaProducer.send(msg);
         }
 
         return;
