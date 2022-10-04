@@ -37,8 +37,8 @@
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumer, MLKafkaJsonConsumerOptions, MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import {PartyInfoRequestedEvt, PartyQueryResponseEvt, AccountLookUperrorEvtPayload, AccountLookUperrorEvt} from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { sendRequest, decodePayload, FSPIOP_HEADERS_SOURCE, FSPIOP_ENDPOINT_TYPES, FSPIOP_HEADERS_SWITCH, FSPIOP_HEADERS_DESTINATION, FSPIOP_REQUEST_METHODS, FSPIOP_PARTY_ACCOUNT_TYPES } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants";
+import {PartyInfoRequestedEvt, PartyQueryResponseEvt, AccountLookUperrorEvtPayload, AccountLookUperrorEvt, ParticipantAssociationCreatedEvt, ParticipantAssociationRemovedEvt} from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { sendRequest, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_SWITCH, FSPIOP_HEADERS_DESTINATION, FSPIOP_REQUEST_METHODS, FSPIOP_PARTY_ACCOUNT_TYPES } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { IParticipantService } from "../interfaces/types";
 
 export type PutParty = {
@@ -92,7 +92,7 @@ export class PartiesEventHandler{
                 await this._handlePartyInfoRequestedEvt(message as PartyInfoRequestedEvt);
                 break;
             case PartyQueryResponseEvt.name:
-                await this._handlePartyQueryResponseEvtEvt(message as PartyQueryResponseEvt);
+                await this._handlePartyQueryResponseEvt(message as PartyQueryResponseEvt);
                 break;
             default:
                 this._logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
@@ -113,34 +113,30 @@ export class PartiesEventHandler{
         validatePayload();
   
         const type = payload.partyType;
-        const partySubType = payload.partySubType || undefined;
         const requesterName = payload.ownerFspId;
         const clonedHeaders = { ...fspiopOpaqueState as any };
 
         try {
             this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> start');
 
-            if (Object.values(FSPIOP_PARTY_ACCOUNT_TYPES).includes(type)) {
-                const requestedParticipant = await this._participantService.getParticipantInfo(requesterName);
-    
-                if(!requestedParticipant) {
-                    throw Error('Requesting Participant doesnt exist');
-                }
-               
-                await sendRequest({
-                    url: requestedParticipant.participantEndpoints, 
-                    headers: clonedHeaders, 
-                    source: requesterName, 
-                    destination: clonedHeaders[FSPIOP_HEADERS_DESTINATION], 
-                    method: FSPIOP_REQUEST_METHODS.PUT,
-                    payload: payload,
-                });
+            const requestedParticipant = await this._participantService.getParticipantInfo(requesterName);
 
-                this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> end');
-            } else {
-                throw Error('No valid party type');
+            if(!requestedParticipant) {
+                throw Error('Requesting Participant doesnt exist');
             }
-        } catch (err: any) {
+            
+            await sendRequest({
+                url: requestedParticipant.participantEndpoints, 
+                headers: clonedHeaders, 
+                source: requesterName, 
+                destination: clonedHeaders[FSPIOP_HEADERS_DESTINATION], 
+                method: FSPIOP_REQUEST_METHODS.PUT,
+                payload: payload,
+            });
+
+            this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> end');
+
+        } catch (err: unknown) {
             this._logger.error(err);
             
             const errorMsgPayload: AccountLookUperrorEvtPayload = {
@@ -163,34 +159,30 @@ export class PartiesEventHandler{
         validatePayload();
   
         const type = payload.partyType;
-        const partySubType = payload.partySubType || undefined;
         const requesterName = payload.ownerFspId;
         const clonedHeaders = { ...fspiopOpaqueState as any };
 
         try {
-            this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> start');
+            this._logger.info('_handleParticipantDisassociateRequestReceivedEvt -> start');
 
-            if (Object.values(FSPIOP_PARTY_ACCOUNT_TYPES).includes(type)) {
-                const requestedParticipant = await this._participantService.getParticipantInfo(requesterName);
-    
-                if(!requestedParticipant) {
-                    throw Error('Requesting Participant doesnt exist');
-                }
-               
-                await sendRequest({
-                    url: requestedParticipant.participantEndpoints, 
-                    headers: clonedHeaders, 
-                    source: requesterName, 
-                    destination: clonedHeaders[FSPIOP_HEADERS_DESTINATION], 
-                    method: FSPIOP_REQUEST_METHODS.PUT,
-                    payload: payload,
-                });
+            const requestedParticipant = await this._participantService.getParticipantInfo(requesterName);
 
-                this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> end');
-            } else {
-                throw Error('No valid party type');
+            if(!requestedParticipant) {
+                throw Error('Requesting Participant doesnt exist');
             }
-        } catch (err: any) {
+            
+            await sendRequest({
+                url: requestedParticipant.participantEndpoints, 
+                headers: clonedHeaders, 
+                source: requesterName, 
+                destination: clonedHeaders[FSPIOP_HEADERS_DESTINATION], 
+                method: FSPIOP_REQUEST_METHODS.PUT,
+                payload: payload,
+            });
+
+            this._logger.info('_handleParticipantDisassociateRequestReceivedEvt -> end');
+
+        } catch (err: unknown) {
             this._logger.error(err);
             
             const errorMsgPayload: AccountLookUperrorEvtPayload = {
@@ -213,7 +205,6 @@ export class PartiesEventHandler{
         validatePayload();
   
         const type = payload.partyType;
-        const partySubType = payload.partySubType || undefined;
         const requesterName = payload.requesterFspId;
         const destinationName = payload.destinationFspId;
         const clonedHeaders = { ...fspiopOpaqueState as any };
@@ -255,14 +246,14 @@ export class PartiesEventHandler{
             } else {
                 throw Error('No valid party type');
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             this._logger.error(err);
         }
 
         return;
     }
 
-    private async _handlePartyQueryResponseEvtEvt(msg: PartyQueryResponseEvt):Promise<void>{
+    private async _handlePartyQueryResponseEvt(msg: PartyQueryResponseEvt):Promise<void>{
         const { validatePayload, payload, fspiopOpaqueState } = msg;
   
         // Always first validate the payload received
@@ -273,7 +264,7 @@ export class PartiesEventHandler{
         const clonedHeaders = { ...fspiopOpaqueState as any };
         
         try {
-            this._logger.info('_handlePartyQueryResponseEvtEvt -> start');
+            this._logger.info('_handlePartyQueryResponseEvt -> start');
             
             const requestedParticipant = await this._participantService.getParticipantInfo(requesterName);
     
@@ -304,11 +295,11 @@ export class PartiesEventHandler{
                     payload: payload,
                 });
 
-                this._logger.info('_handlePartyQueryResponseEvtEvt -> end');
+                this._logger.info('_handlePartyQueryResponseEvt -> end');
             } else {
                 throw Error('No valid party type');
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             this._logger.error(err);
         }
 

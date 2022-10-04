@@ -50,6 +50,7 @@
     "packages/*"
   ],
   "dependencies": {
-    "bignumber.js": "^9.1.0"
+    "bignumber.js": "^9.1.0",
+    "@mojaloop/platform-shared-lib-public-messages-lib": "~0.1.8"
   }
 }

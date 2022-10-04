@@ -32,29 +32,40 @@
  "use strict";
 
 import request from 'axios';
-import { FSPIOP_REQUEST_METHODS, FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION,FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants";
+import { FSPIOP_REQUEST_METHODS, FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION,FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_CONTENT_TYPE } from './constants';
 import { transformHeaders } from './transformer';
+import {ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload, ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvt} from "@mojaloop/platform-shared-lib-public-messages-lib";
 
- 
+interface FspiopHttpHeaders {
+  [FSPIOP_HEADERS_SOURCE]?: string;
+  [FSPIOP_HEADERS_DESTINATION]?: string;
+  [FSPIOP_HEADERS_HTTP_METHOD]?: string;
+  [FSPIOP_HEADERS_SIGNATURE]?: string;
+  [FSPIOP_HEADERS_CONTENT_TYPE]?: string;
+
+}
+
+type EventPayload = ParticipantQueryResponseEvtPayload | PartyInfoRequestedEvtPayload | PartyQueryResponseEvtPayload  | ParticipantAssociationCreatedEvtPayload | ParticipantAssociationRemovedEvt;
+
+type RequestOptions = {
+  url: string, 
+  headers: FspiopHttpHeaders, 
+  source: string, 
+  destination: string, 
+  method: FSPIOP_REQUEST_METHODS, 
+  payload: EventPayload, 
+  responseType: 'json', 
+  protocolVersions: { 
+    content: typeof FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION; 
+    accept: typeof FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION; 
+  }
+}
 
 // Keep the following description since it's hard to detect
 // Delete the default headers that the `axios` module inserts as they can break our conventions.
 // By default it would insert `"Accept":"application/json, text/plain, */*"`.
 delete request.defaults.headers.common.Accept;
 
-type RequestOptions = {
-  url: string, 
-  headers: any, 
-  source: any, 
-  destination: any, 
-  method: FSPIOP_REQUEST_METHODS, 
-  payload: any, 
-  responseType?: 'json', 
-  protocolVersions?: { 
-    accept: any; 
-    content: any; 
-  }
-}
 
 export const sendRequest = async ({
   url, 
@@ -62,11 +73,11 @@ export const sendRequest = async ({
   source, 
   destination, 
   method = FSPIOP_REQUEST_METHODS.GET, 
-  payload = undefined, 
+  payload, 
   responseType = 'json', 
   protocolVersions = {
-    content: FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION,
-    accept: FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION
+    content: FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION,
+    accept: FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION
   }
 }:RequestOptions):Promise<void> => {
   let requestOptions;

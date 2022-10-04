@@ -34,7 +34,7 @@
 
 "use strict";
 
-import { sendRequest, FSPIOP_HEADERS_SOURCE, FSPIOP_ENDPOINT_TYPES, FSPIOP_HEADERS_SWITCH, FSPIOP_HEADERS_DESTINATION, FSPIOP_REQUEST_METHODS, FSPIOP_PARTY_ACCOUNT_TYPES } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { sendRequest, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_SWITCH, FSPIOP_HEADERS_DESTINATION, FSPIOP_REQUEST_METHODS, FSPIOP_PARTY_ACCOUNT_TYPES } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumer, MLKafkaJsonConsumerOptions, MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
@@ -106,7 +106,7 @@ export class ParticipantsEventHandler{
         validatePayload();
   
         const type = payload.partyType;
-        const partySubType = payload.partySubType || undefined;
+        // const partySubType = payload.partySubType || undefined;
         const requesterName = payload.requesterFspId;
         const clonedHeaders = { ...fspiopOpaqueState as any };
 
@@ -143,7 +143,7 @@ export class ParticipantsEventHandler{
             } else {
                 throw Error('No valid party type');
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             this._logger.error(err);
 
             const errorMsgPayload: AccountLookUperrorEvtPayload = {
