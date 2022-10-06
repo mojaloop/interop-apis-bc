@@ -32,11 +32,12 @@
  "use strict";
 
 import request from 'axios';
-import { FSPIOP_REQUEST_METHODS, FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION,FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_CONTENT_TYPE } from './constants';
+import { FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION,FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_CONTENT_TYPE } from './constants';
 import { transformHeaders } from './transformer';
 import {ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload, ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvt} from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { FspiopRequestMethodsEnum, ResponseTypeEnum } from './enums';
 
-interface FspiopHttpHeaders {
+export interface FspiopHttpHeaders {
   [FSPIOP_HEADERS_SOURCE]?: string;
   [FSPIOP_HEADERS_DESTINATION]?: string;
   [FSPIOP_HEADERS_HTTP_METHOD]?: string;
@@ -51,11 +52,11 @@ type RequestOptions = {
   url: string, 
   headers: FspiopHttpHeaders, 
   source: string, 
-  destination: string, 
-  method: FSPIOP_REQUEST_METHODS, 
+  destination: string | null, 
+  method: FspiopRequestMethodsEnum, 
   payload: EventPayload, 
-  responseType: 'json', 
-  protocolVersions: { 
+  responseType?: ResponseTypeEnum, 
+  protocolVersions?: { 
     content: typeof FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION; 
     accept: typeof FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION; 
   }
@@ -72,16 +73,16 @@ export const sendRequest = async ({
   headers, 
   source, 
   destination, 
-  method = FSPIOP_REQUEST_METHODS.GET, 
+  method = FspiopRequestMethodsEnum.GET, 
   payload, 
-  responseType = 'json', 
+  responseType = ResponseTypeEnum.JSON, 
   protocolVersions = {
     content: FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION,
     accept: FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION
   }
 }:RequestOptions):Promise<void> => {
   let requestOptions;
-  if (!url || !method || !headers || (method !== FSPIOP_REQUEST_METHODS.GET && method !== FSPIOP_REQUEST_METHODS.DELETE && !payload) || !source || !destination) {
+  if (!url || !method || !headers || (method !== FspiopRequestMethodsEnum.GET && method !== FspiopRequestMethodsEnum.DELETE && !payload) || !source || !destination) {
     throw Error('Missing parameters for function');
   }
 
@@ -111,5 +112,19 @@ export const sendRequest = async ({
     throw Error('Failed to send HTTP request to host');
   }
 };
- 
- 
+
+export const PARTIES_GET = (partyType: string, partyId: string) => `/parties/${partyType}/${partyId}`;
+export const PARTIES_PUT = (partyType: string, partyId: string) => `/parties/${partyType}/${partyId}`;
+export const PARTIES_PUT_SUB_ID = (partyType: string, partyId: string, partySubId: string) => `/parties/${partyType}/${partyId}/${partySubId}`;
+export const PARTIES_PUT_ERROR = (partyType: string, partyId: string) => `/parties/${partyType}/${partyId}/error`;
+export const PARTIES_PUT_SUB_ID_ERROR = (partyType: string, partyId: string, partySubId: string) => `/parties/${partyType}/${partyId}/${partySubId}/error`;
+
+export const PARTICIPANTS_GET = (partyType: string, partyId: string) => `/participants/${partyType}/${partyId}`;
+export const PARTICIPANTS_PUT = (partyType: string, partyId: string) => `/participants/${partyType}/${partyId}`;
+export const PARTICIPANTS_PUT_SUB_ID = (partyType: string, partyId: string, partySubId: string) => `/participants/${partyType}/${partyId}/${partySubId}`;
+export const PARTICIPANTS_PUT_ERROR = (partyType: string, partyId: string) => `/participants/${partyType}/${partyId}/error`;
+export const PARTICIPANTS_PUT_SUB_ID_ERROR = (partyType: string, partyId: string, partySubId: string) => `/participants/${partyType}/${partyId}/${partySubId}/error`;
+
+export const buildEndpoint = (baseUrl: string, templateUrl: string) => {
+  return `${baseUrl}${templateUrl}`;
+};

@@ -47,7 +47,6 @@ export class ParticipantRoutes {
         this._logger = logger.createChild("ParticipantRoutes");
         this._producerOptions = producerOptions;
         this._kafkaTopic = kafkaTopic;
-
         this._kafkaProducer = new MLKafkaJsonProducer(this._producerOptions);
 
         // bind routes
@@ -67,11 +66,11 @@ export class ParticipantRoutes {
 
         const type = req.params["type"] as string || null;
         const id = req.params["id"] as string || null;
-        const requesterName = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
 
         const currency = req.query["currency"] as string || null;
 
-        if(!type || !id || !requesterName){
+        if(!type || !id || !requesterFspId){
             res.status(400).json({
                 status: "not ok"
             });
@@ -79,7 +78,7 @@ export class ParticipantRoutes {
         }
 
         const msgPayload: ParticipantQueryReceivedEvtPayload = {
-            requesterFspId: requesterName,
+            requesterFspId: requesterFspId,
             partyType: type,
             partyId: id,
             partySubType: null,
@@ -105,11 +104,11 @@ export class ParticipantRoutes {
         const type = req.params["type"] as string || null;
         const id = req.params["id"] as string || null;
         const partySubIdOrType = req.params["subid"] as string || null;
-        const requesterName = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
 
         const currency = req.query["currency"] as string || null;
 
-        if(!type || !id || !requesterName || !partySubIdOrType){
+        if(!type || !id || !requesterFspId || !partySubIdOrType){
             res.status(400).json({
                 status: "not ok"
             });
@@ -117,7 +116,7 @@ export class ParticipantRoutes {
         }
 
         const msgPayload: ParticipantQueryReceivedEvtPayload = {
-            requesterFspId: requesterName,
+            requesterFspId: requesterFspId,
             partyType: type,
             partyId: id,
             partySubType: partySubIdOrType,

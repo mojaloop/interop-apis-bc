@@ -91,6 +91,7 @@ async function setupExpress(loggerParam:ILogger): Promise<Server> {
         // catch all
         loggerParam.warn(`Received unhandled request to url: ${req.url}`);
         res.sendStatus(404);
+        next();
     });
 
     return createServer(app);

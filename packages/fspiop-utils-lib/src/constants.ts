@@ -50,7 +50,7 @@ export const FSPIOP_HEADERS_ACCEPT = "value";
 export const FSPIOP_HEADERS_ACCEPT_REGEX = /application\/vnd.interoperability[.]/;
 export const FSPIOP_HEADERS_CONTENT_TYPE_REGEX = /application\/vnd.interoperability[.]/;
 export const FSPIOP_HEADERS_CONTENT_AND_ACCEPT_REGEX = /(application\/vnd\.interoperability\.)(\w*)+(\+json\s{0,1};\s{0,1}version=)(.*)/;
-export const FSPIOP_HEADERS_CONTENT_AND_ACCEPT_REGEX_VALUE = (resourceType: string, version: string,) => `application/vnd.interoperability.${resourceType}+json;version=${version}`;
+export const FSPIOP_HEADERS_CONTENT_AND_ACCEPT_REGEX_VALUE = (resourceType?: string, version?: string,) => `application/vnd.interoperability.${resourceType}+json;version=${version}`;
 export const FSPIOP_HEADERS_CONTENT_TYPE = "content-type";
 export const FSPIOP_HEADERS_CONTENT_TYPE_DEFAULT = "application/json";
 export const FSPIOP_HEADERS_CONTENT_TYPE_CONTENT = "content-length";
@@ -68,13 +68,6 @@ export const FSPIOP_ENDPOINT_TYPES = {
     FSPIOP_CALLBACK_URL_PARTICIPANT_SUB_ID_PUT: "FSPIOP_CALLBACK_URL_PARTICIPANT_SUB_ID_PUT",
     FSPIOP_CALLBACK_URL_PARTICIPANT_SUB_ID_PUT_ERROR: "FSPIOP_CALLBACK_URL_PARTICIPANT_SUB_ID_PUT_ERROR"
 };
-
-export enum FSPIOP_REQUEST_METHODS {
-    GET = "GET",
-    POST = "POST",
-    PUT = "PUT",
-    DELETE = "DELETE"
-}
 
 export const FSPIOP_PARTY_ACCOUNT_TYPES = {
     MSISDN: "MSISDN",

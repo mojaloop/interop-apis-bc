@@ -25,18 +25,29 @@
  * Crosslake
  - Pedro Sousa Barreto <pedrob@crosslaketech.com>
 
+ * Arg Software
+ - José Antunes <jose.antunes@arg.software>
+ - Rui Rocha <rui.rocha@arg.software>
+ 
  --------------
  ******/
 
  "use strict";
 
-import { Constants } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+export const validateHeaders = (arr: string[], obj: object) => {
+    const missingKeysList:string[] = [];
 
-// Required
-export const ParticipantsPutId = [Constants.FSPIOP_HEADERS_CONTENT_TYPE, Constants.FSPIOP_HEADERS_DATE, Constants.FSPIOP_HEADERS_SOURCE];
-export const ParticipantsPutTypeAndId = [Constants.FSPIOP_HEADERS_CONTENT_TYPE, Constants.FSPIOP_HEADERS_DATE, Constants.FSPIOP_HEADERS_SOURCE];
-export const ParticipantsPutTypeAndIdAndSubId = [Constants.FSPIOP_HEADERS_CONTENT_TYPE, Constants.FSPIOP_HEADERS_DATE, Constants.FSPIOP_HEADERS_SOURCE];
+    const hasAllKeys = arr.every(property => {
+        const hasKey = Object.prototype.hasOwnProperty.call(obj, property);
 
-export const PartiesPutId = [Constants.FSPIOP_HEADERS_CONTENT_TYPE, Constants.FSPIOP_HEADERS_DATE, Constants.FSPIOP_HEADERS_SOURCE];
-export const PartiesPutTypeAndId = [Constants.FSPIOP_HEADERS_CONTENT_TYPE, Constants.FSPIOP_HEADERS_DATE, Constants.FSPIOP_HEADERS_SOURCE];
-export const PartiesPutTypeAndIdAndSubId = [Constants.FSPIOP_HEADERS_CONTENT_TYPE, Constants.FSPIOP_HEADERS_DATE, Constants.FSPIOP_HEADERS_SOURCE];
+        if(!hasKey) {
+            missingKeysList.push(property);
+        }
+    });
+
+    if(!hasAllKeys) {
+        throw Error(`Headers are missing the following keys: ${missingKeysList.toString()}`);
+    }
+
+    return hasAllKeys;
+};

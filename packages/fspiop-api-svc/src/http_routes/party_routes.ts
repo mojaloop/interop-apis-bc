@@ -80,11 +80,12 @@ export class PartyRoutes {
 
         const type = req.params["type"] as string || null;
         const id = req.params["id"] as string || null;
-        const requesterName = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const destinationFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
 
         const currency = req.query["currency"] as string || null;
 
-        if(!type || !id || !requesterName){
+        if(!type || !id || !requesterFspId){
             res.status(400).json({
                 status: "not ok"
             });
@@ -92,7 +93,8 @@ export class PartyRoutes {
         }
 
         const msgPayload: PartyQueryReceivedEvtPayload = {
-            requesterFspId: requesterName,
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId,
             partyType: type,
             partyId: id,
             partySubType: null,
@@ -118,11 +120,12 @@ export class PartyRoutes {
         const type = req.params["type"] as string || null;
         const id = req.params["id"] as string || null;
         const partySubIdOrType = req.params["subid"] as string || null;
-        const requesterName = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const destinationFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
 
         const currency = req.query["currency"] as string || null;
 
-        if(!type || !id || !requesterName){
+        if(!type || !id || !requesterFspId){
             res.status(400).json({
                 status: "not ok"
             });
@@ -130,7 +133,8 @@ export class PartyRoutes {
         }
 
         const msgPayload: PartyQueryReceivedEvtPayload = {
-            requesterFspId: requesterName,
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId,
             partyType: type,
             partyId: id,
             partySubType: partySubIdOrType,
@@ -155,9 +159,9 @@ export class PartyRoutes {
 
         const type = req.params["type"] as string || null;
         const id = req.params["id"] as string || null;
-        const requesterName = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
 
-        if(!type || !id || !requesterName){
+        if(!type || !id || !requesterFspId){
             res.status(400).json({
                 status: "not ok"
             });
@@ -165,7 +169,7 @@ export class PartyRoutes {
         }
 
         const msgPayload: ParticipantAssociationRequestReceivedEvtPayload = {
-            ownerFspId: requesterName,
+            ownerFspId: requesterFspId,
             partyId: id,
             partyType: type,
             partySubType: null
@@ -190,9 +194,9 @@ export class PartyRoutes {
         const type = req.params["type"] as string || null;
         const id = req.params["id"] as string || null;
         const partySubIdOrType = req.params["subid"] as string || null;
-        const requesterName = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
 
-        if(!type || !id || !requesterName){
+        if(!type || !id || !requesterFspId){
             res.status(400).json({
                 status: "not ok"
             });
@@ -200,7 +204,7 @@ export class PartyRoutes {
         }
 
         const msgPayload: ParticipantAssociationRequestReceivedEvtPayload = {
-            ownerFspId: requesterName,
+            ownerFspId: requesterFspId,
             partyId: id,
             partyType: type,
             partySubType: partySubIdOrType
@@ -224,9 +228,9 @@ export class PartyRoutes {
 
         const type = req.params["type"] as string || null;
         const id = req.params["id"] as string || null;
-        const requesterName = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
 
-        if(!type || !id || !requesterName){
+        if(!type || !id || !requesterFspId){
             res.status(400).json({
                 status: "not ok"
             });
@@ -234,7 +238,7 @@ export class PartyRoutes {
         }
 
         const msgPayload: ParticipantDisassociateRequestReceivedEvtPayload = {
-            ownerFspId: requesterName,
+            ownerFspId: requesterFspId,
             partyId: id,
             partyType: type,
             partySubType: null
@@ -259,9 +263,9 @@ export class PartyRoutes {
         const type = req.params["type"] as string || null;
         const id = req.params["id"] as string || null;
         const partySubIdOrType = req.params["subid"] as string || null;
-        const requesterName = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
 
-        if(!type || !id || !requesterName){
+        if(!type || !id || !requesterFspId){
             res.status(400).json({
                 status: "not ok"
             });
@@ -269,7 +273,7 @@ export class PartyRoutes {
         }
 
         const msgPayload: ParticipantDisassociateRequestReceivedEvtPayload = {
-            ownerFspId: requesterName,
+            ownerFspId: requesterFspId,
             partyId: id,
             partyType: type,
             partySubType: partySubIdOrType

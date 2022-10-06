@@ -31,25 +31,26 @@
 
  'use strict';
 
-import { FSPIOP_HEADERS_CONTENT_LENGTH, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_HOST, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_ACCEPT, FSPIOP_REQUEST_METHODS, FSPIOP_HEADERS_SWITCH_REGEX, FSPIOP_HEADERS_CONTENT_TYPE_CONTENT, FSPIOP_HEADERS_DATE, FSPIOP_HEADERS_CONTENT_AND_ACCEPT_REGEX, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_CONTENT_AND_ACCEPT_REGEX_VALUE, FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION, FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION } from "./constants";
+import { FSPIOP_HEADERS_CONTENT_LENGTH, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_HOST, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_ACCEPT, FSPIOP_HEADERS_SWITCH_REGEX, FSPIOP_HEADERS_CONTENT_TYPE_CONTENT, FSPIOP_HEADERS_DATE, FSPIOP_HEADERS_CONTENT_AND_ACCEPT_REGEX, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_CONTENT_AND_ACCEPT_REGEX_VALUE } from "./constants";
+import { FspiopRequestMethodsEnum } from "./enums";
 
 type TransformHeadersOptions = {
 	headers: {
-		[x: string]: any;
+		[x: string]: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 	};
 	config: {
 		protocolVersions: {
-			content: any;
-			accept: any;
+			content: string;
+			accept: string;
 		};
-		httpMethod: FSPIOP_REQUEST_METHODS;
+		httpMethod: FspiopRequestMethodsEnum;
 		sourceFsp: string;
 		destinationFsp: string;
 	};
 };
 
 const getResourceInfoFromHeader = (headerValue: string) => {
-	const result: { resourceType?: any; version?: any } = {};
+	const result: { resourceType?: string; version?: string } = {};
 	const regex = FSPIOP_HEADERS_CONTENT_AND_ACCEPT_REGEX.exec(headerValue);
 	if (regex) {
 		if (regex[2]) result.resourceType = regex[2];
@@ -63,8 +64,8 @@ export const transformHeaders = ({
 	config
 }: TransformHeadersOptions) => {
 	// Normalized keys
-	const normalizedKeys: { [x: string]: any } = Object.keys(headers).reduce(
-		function(keys: { [x: string]: any }, k: string) {
+	const normalizedKeys: { [x: string]: string } = Object.keys(headers).reduce(
+		function(keys: { [x: string]: string }, k: string) {
 			keys[k.toLowerCase()] = k;
 			return keys;
 		},
@@ -72,21 +73,17 @@ export const transformHeaders = ({
 	);
 
 	// Normalized headers
-	const normalizedHeaders: any = {};
+	const normalizedHeaders: any = {}; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 	// resource type for content-type and accept headers
 	let resourceType;
-	let acceptVersion;
-	let contentVersion;
 
 	// Determine the acceptVersion using the injected config
-	if (config && config.protocolVersions && config.protocolVersions.accept) {
-		acceptVersion = config.protocolVersions.accept;
-	}
+	const acceptVersion = config.protocolVersions.accept;
+	
 
 	// Determine the contentVersion using the injected config
-	if (config && config.protocolVersions && config.protocolVersions.content)
-		contentVersion = config.protocolVersions.content;
+	const contentVersion = config.protocolVersions.content;
 
 	// check to see if FSPIOP-Destination header has been left out of the initial request. If so then add it.
 	if (!normalizedKeys[FSPIOP_HEADERS_DESTINATION]) {
@@ -218,7 +215,7 @@ export const transformHeaders = ({
 	}
 
 	// Per the FSPIOP API spec, remove the Accept header on all PUT requests
-	if (config && config.httpMethod === FSPIOP_REQUEST_METHODS.PUT) {
+	if (config && config.httpMethod === FspiopRequestMethodsEnum.PUT) {
 		delete normalizedHeaders[FSPIOP_HEADERS_ACCEPT];
 	}
 	return normalizedHeaders;

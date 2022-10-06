@@ -30,13 +30,13 @@
 
  "use strict";
 
-import { Constants } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+export enum ResponseTypeEnum {
+    JSON = "json"
+}
 
-// Required
-export const ParticipantsPutId = [Constants.FSPIOP_HEADERS_CONTENT_TYPE, Constants.FSPIOP_HEADERS_DATE, Constants.FSPIOP_HEADERS_SOURCE];
-export const ParticipantsPutTypeAndId = [Constants.FSPIOP_HEADERS_CONTENT_TYPE, Constants.FSPIOP_HEADERS_DATE, Constants.FSPIOP_HEADERS_SOURCE];
-export const ParticipantsPutTypeAndIdAndSubId = [Constants.FSPIOP_HEADERS_CONTENT_TYPE, Constants.FSPIOP_HEADERS_DATE, Constants.FSPIOP_HEADERS_SOURCE];
-
-export const PartiesPutId = [Constants.FSPIOP_HEADERS_CONTENT_TYPE, Constants.FSPIOP_HEADERS_DATE, Constants.FSPIOP_HEADERS_SOURCE];
-export const PartiesPutTypeAndId = [Constants.FSPIOP_HEADERS_CONTENT_TYPE, Constants.FSPIOP_HEADERS_DATE, Constants.FSPIOP_HEADERS_SOURCE];
-export const PartiesPutTypeAndIdAndSubId = [Constants.FSPIOP_HEADERS_CONTENT_TYPE, Constants.FSPIOP_HEADERS_DATE, Constants.FSPIOP_HEADERS_SOURCE];
+export enum FspiopRequestMethodsEnum {
+    GET = "GET",
+    POST = "POST",
+    PUT = "PUT",
+    DELETE = "DELETE"
+}

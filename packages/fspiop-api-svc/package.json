@@ -9,7 +9,9 @@
     "url": "https://github.com/mojaloop/interop-apis-bc/issues#readme"
   },
   "contributors": [
-    "Pedro Sousa Barreto <pedrosousabarreto@gmail.com>"
+    "Pedro Sousa Barreto <pedrosousabarreto@gmail.com>",
+    "Jose Antunes <jose.antunes@arg.software>",
+    "Rui Rocha <rui.rocha@arg.software>"
   ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -36,13 +38,14 @@
     "dep:update": "ncu -e 2 -u"
   },
   "dependencies": {
-    "@mojaloop/auditing-bc-client-lib": "~0.0.7",
-    "@mojaloop/auditing-bc-public-types-lib": "~0.0.8",
-    "@mojaloop/interop-apis-bc-fspiop-utils-lib": "*",
+    "@mojaloop/auditing-bc-client-lib": "~0.0.9",
+    "@mojaloop/auditing-bc-public-types-lib": "~0.0.10",
+    "@mojaloop/interop-apis-bc-fspiop-utils-lib": "0.1.0",
     "@mojaloop/logging-bc-client-lib": "~0.1.15",
-    "@mojaloop/platform-shared-lib-messaging-types-lib": "~0.2.8",
-    "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "~0.2.5",
-    "axios": "^0.27.2",
+    "@mojaloop/logging-bc-public-types-lib": "^0.1.12",
+    "@mojaloop/platform-shared-lib-messaging-types-lib": "~0.2.9",
+    "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "~0.2.6",
+    "axios": "^1.0.0",
     "express": "~4.18.1"
   },
   "devDependencies": {

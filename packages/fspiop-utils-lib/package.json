@@ -9,7 +9,9 @@
     "url": "https://github.com/mojaloop/interop-apis-bc/issues#readme"
   },
   "contributors": [
-    "Pedro Sousa Barreto <pedrosousabarreto@gmail.com>"
+    "Pedro Sousa Barreto <pedrosousabarreto@gmail.com>",
+    "Jose Antunes <jose.antunes@arg.software>",
+    "Rui Rocha <rui.rocha@arg.software>"
   ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -36,9 +38,6 @@
     "dep:update": "ncu -e 2 -u"
   },
   "dependencies": {
-
-  },
-  "devDependencies": {
-
+    "axios": "^1.0.0"
   }
 }

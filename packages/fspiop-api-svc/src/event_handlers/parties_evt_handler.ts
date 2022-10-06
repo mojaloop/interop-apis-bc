@@ -37,9 +37,10 @@
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumer, MLKafkaJsonConsumerOptions, MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import {PartyInfoRequestedEvt, PartyQueryResponseEvt, AccountLookUperrorEvtPayload, AccountLookUperrorEvt, ParticipantAssociationCreatedEvt, ParticipantAssociationRemovedEvt} from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { sendRequest, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_SWITCH, FSPIOP_HEADERS_DESTINATION, FSPIOP_REQUEST_METHODS, FSPIOP_PARTY_ACCOUNT_TYPES } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import {PartyInfoRequestedEvt, PartyQueryResponseEvt, ParticipantAssociationCreatedEvt, ParticipantAssociationRemovedEvt} from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { Constants, Request, Enums, Validate } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { IParticipantService } from "../interfaces/types";
+import { PartiesPutTypeAndId, PartiesPutTypeAndIdAndSubId } from "../errors";
 
 export type PutParty = {
     partyIdType: string;
@@ -109,28 +110,44 @@ export class PartiesEventHandler{
     private async _handleParticipantAssociationRequestReceivedEvt(msg: ParticipantAssociationCreatedEvt):Promise<void>{
         const { validatePayload, payload, fspiopOpaqueState } = msg;
   
-        // Always first validate the payload received
-        validatePayload();
-  
-        const type = payload.partyType;
-        const requesterName = payload.ownerFspId;
-        const clonedHeaders = { ...fspiopOpaqueState as any };
+        const requesterFspId = payload.requesterFspId;
+        const partyType = payload.partyType;
+        const partyId = payload.partyId;
+        const partySubType = payload.partySubType as string;
+        const clonedHeaders = { ...fspiopOpaqueState as unknown as Request.FspiopHttpHeaders };
+
+
+        const requestedParticipant = await this._participantService.getParticipantInfo(requesterFspId);
+
+        if(!requestedParticipant) {
+            throw Error('Requesting Participant doesnt exist');
+        }
+        
+        const requestedEndpoint = requestedParticipant.participantEndpoints.find(endpoint => endpoint.type === "FSPIOP");
+            
+        if(!requestedEndpoint) {
+            throw Error('Requesting Participant Endpoint doesnt exist');
+        }
 
         try {
             this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> start');
 
-            const requestedParticipant = await this._participantService.getParticipantInfo(requesterName);
+            // Always validate the payload and headers received
+            validatePayload();
+            Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
 
-            if(!requestedParticipant) {
-                throw Error('Requesting Participant doesnt exist');
+            if(!requesterFspId) {
+                throw Error('requesterFspId doesnt exist');
             }
             
-            await sendRequest({
-                url: requestedParticipant.participantEndpoints, 
+            const template = partySubType ? Request.PARTIES_PUT_SUB_ID(partyType, partyId, partySubType) : Request.PARTIES_PUT(partyType, partyId);
+
+            await Request.sendRequest({
+                url: Request.buildEndpoint(requestedEndpoint.value, template), 
                 headers: clonedHeaders, 
-                source: requesterName, 
-                destination: clonedHeaders[FSPIOP_HEADERS_DESTINATION], 
-                method: FSPIOP_REQUEST_METHODS.PUT,
+                source: requesterFspId, 
+                destination: requesterFspId, 
+                method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: payload,
             });
 
@@ -139,14 +156,16 @@ export class PartiesEventHandler{
         } catch (err: unknown) {
             this._logger.error(err);
             
-            const errorMsgPayload: AccountLookUperrorEvtPayload = {
-                partyId: payload.partyId,
-                errorMsg: err as string
-            };
-    
-            const msg =  new AccountLookUperrorEvt(errorMsgPayload);
-    
-            await this._kafkaProducer.send(msg);
+            const template = partySubType ? Request.PARTIES_PUT_SUB_ID_ERROR(partyType, partyId, partySubType) : Request.PARTIES_PUT_ERROR(partyType, partyId);
+           
+            await Request.sendRequest({
+                url: Request.buildEndpoint(requestedEndpoint.value, template), 
+                headers: clonedHeaders, 
+                source: requesterFspId, 
+                destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
+                method: Enums.FspiopRequestMethodsEnum.PUT,
+                payload: payload,
+            });
         }
 
         return;
@@ -155,28 +174,40 @@ export class PartiesEventHandler{
     private async _handleParticipantDisassociateRequestReceivedEvt(msg: ParticipantAssociationRemovedEvt):Promise<void>{
         const { validatePayload, payload, fspiopOpaqueState } = msg;
   
-        // Always first validate the payload received
-        validatePayload();
-  
-        const type = payload.partyType;
-        const requesterName = payload.ownerFspId;
-        const clonedHeaders = { ...fspiopOpaqueState as any };
+        const requesterFspId = payload.requesterFspId;
+        const partyType = payload.partyType;
+        const partyId = payload.partyId;
+        const partySubType = payload.partySubType as string;
+        const clonedHeaders = { ...fspiopOpaqueState as unknown as Request.FspiopHttpHeaders };
+
+
+        const requestedParticipant = await this._participantService.getParticipantInfo(requesterFspId);
+
+        if(!requestedParticipant) {
+            throw Error('Requesting Participant doesnt exist');
+        }
+        
+        const requestedEndpoint = requestedParticipant.participantEndpoints.find(endpoint => endpoint.type === "FSPIOP");
+            
+        if(!requestedEndpoint) {
+            throw Error('Requesting Participant Endpoint doesnt exist');
+        }
 
         try {
             this._logger.info('_handleParticipantDisassociateRequestReceivedEvt -> start');
 
-            const requestedParticipant = await this._participantService.getParticipantInfo(requesterName);
+            // Always validate the payload and headers received
+            validatePayload();
+            Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
 
-            if(!requestedParticipant) {
-                throw Error('Requesting Participant doesnt exist');
-            }
-            
-            await sendRequest({
-                url: requestedParticipant.participantEndpoints, 
+            const template = partySubType ? Request.PARTIES_PUT_SUB_ID(partyType, partyId, partySubType) : Request.PARTIES_PUT(partyType, partyId);
+
+            await Request.sendRequest({
+                url: Request.buildEndpoint(requestedEndpoint.value, template), 
                 headers: clonedHeaders, 
-                source: requesterName, 
-                destination: clonedHeaders[FSPIOP_HEADERS_DESTINATION], 
-                method: FSPIOP_REQUEST_METHODS.PUT,
+                source: requesterFspId, 
+                destination: requesterFspId, 
+                method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: payload,
             });
 
@@ -185,14 +216,16 @@ export class PartiesEventHandler{
         } catch (err: unknown) {
             this._logger.error(err);
             
-            const errorMsgPayload: AccountLookUperrorEvtPayload = {
-                partyId: payload.partyId,
-                errorMsg: err as string
-            };
-    
-            const msg =  new AccountLookUperrorEvt(errorMsgPayload);
-    
-            await this._kafkaProducer.send(msg);
+            const template = partySubType ? Request.PARTIES_PUT_SUB_ID_ERROR(partyType, partyId, partySubType) : Request.PARTIES_PUT_ERROR(partyType, partyId);
+           
+            await Request.sendRequest({
+                url: Request.buildEndpoint(requestedEndpoint.value, template), 
+                headers: clonedHeaders, 
+                source: requesterFspId, 
+                destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
+                method: Enums.FspiopRequestMethodsEnum.PUT,
+                payload: payload,
+            });
         }
 
         return;
@@ -201,44 +234,55 @@ export class PartiesEventHandler{
     private async _handlePartyInfoRequestedEvt(msg: PartyInfoRequestedEvt):Promise<void>{
         const { validatePayload, payload, fspiopOpaqueState } = msg;
   
-        // Always first validate the payload received
-        validatePayload();
-  
-        const type = payload.partyType;
-        const requesterName = payload.requesterFspId;
+        const requesterFspId = payload.requesterFspId;
         const destinationName = payload.destinationFspId;
-        const clonedHeaders = { ...fspiopOpaqueState as any };
+        const partyType = payload.partyType;
+        const partyId = payload.partyId;
+        const partySubType = payload.partySubType as string;
+        const clonedHeaders = { ...fspiopOpaqueState as unknown as Request.FspiopHttpHeaders };
+        
+        const requestedParticipant = await this._participantService.getParticipantInfo(requesterFspId);
+    
+        if(!requestedParticipant) {
+            throw Error('Requesting Participant doesnt exist');
+        }
+
+        const requestedEndpoint = requestedParticipant.participantEndpoints.find(endpoint => endpoint.type === "FSPIOP");
+                
+        if(!requestedEndpoint) {
+            throw Error('Requesting Participant Endpoint doesnt exist');
+        }
         
         try {
             this._logger.info('_handlePartyInfoRequestedEvt -> start');
             
-            const requestedParticipant = await this._participantService.getParticipantInfo(requesterName);
+            // Always validate the payload and headers received
+            validatePayload();
+            Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
+            
+            const requestedParticipant = await this._participantService.getParticipantInfo(requesterFspId);
     
             if(!requestedParticipant) {
                 throw Error('Requesting Participant doesnt exist');
             }
 
-            if (Object.values(FSPIOP_PARTY_ACCOUNT_TYPES).includes(type)) {
+            if (Object.values(Constants.FSPIOP_PARTY_ACCOUNT_TYPES).includes(partyType)) {
                 if(fspiopOpaqueState) {
-                    if (!clonedHeaders[FSPIOP_HEADERS_DESTINATION] || clonedHeaders[FSPIOP_HEADERS_DESTINATION] === '') {
-                        clonedHeaders[FSPIOP_HEADERS_DESTINATION] = clonedHeaders[FSPIOP_HEADERS_SOURCE];
+                    if (!clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === '') {
+                        clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
                     }
 
-                    clonedHeaders[FSPIOP_HEADERS_SOURCE] = FSPIOP_HEADERS_SWITCH;
+                    clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
                 }
 
-                const requestedParticipant = await this._participantService.getParticipantInfo(requesterName);
-    
-                if(!requestedParticipant) {
-                    throw Error('Requesting Participant doesnt exist');
-                }
-               
-                await sendRequest({
-                    url: requestedParticipant.participantEndpoints, 
+                const template = partySubType ? Request.PARTIES_PUT_SUB_ID(partyType, partyId, partySubType) : Request.PARTIES_PUT(partyType, partyId);
+
+                await Request.sendRequest({
+                    url: Request.buildEndpoint(requestedEndpoint.value, template), 
                     headers: clonedHeaders, 
-                    source: requesterName, 
+                    source: requesterFspId, 
                     destination: destinationName, 
-                    method: FSPIOP_REQUEST_METHODS.GET,
+                    method: Enums.FspiopRequestMethodsEnum.GET,
                     payload: payload,
                 });
 
@@ -248,6 +292,17 @@ export class PartiesEventHandler{
             }
         } catch (err: unknown) {
             this._logger.error(err);
+
+            const template = partySubType ? Request.PARTIES_PUT_SUB_ID_ERROR(partyType, partyId, partySubType) : Request.PARTIES_PUT_ERROR(partyType, partyId);
+           
+            await Request.sendRequest({
+                url: Request.buildEndpoint(requestedEndpoint.value, template), 
+                headers: clonedHeaders, 
+                source: requesterFspId, 
+                destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
+                method: Enums.FspiopRequestMethodsEnum.PUT,
+                payload: payload,
+            });
         }
 
         return;
@@ -256,48 +311,70 @@ export class PartiesEventHandler{
     private async _handlePartyQueryResponseEvt(msg: PartyQueryResponseEvt):Promise<void>{
         const { validatePayload, payload, fspiopOpaqueState } = msg;
   
-        // Always first validate the payload received
-        validatePayload();
-  
-        const type = payload.partyType;
-        const requesterName = payload.requesterFspId;
-        const clonedHeaders = { ...fspiopOpaqueState as any };
+        const requesterFspId = payload.requesterFspId;
+        const destinationName = payload.ownerFspId;
+        const partyType = payload.partyType ;
+        const partyId = payload.partyId;
+        const partySubType = payload.partySubType as string;
+        const clonedHeaders = { ...fspiopOpaqueState as unknown as Request.FspiopHttpHeaders };
         
+        const requestedParticipant = await this._participantService.getParticipantInfo(requesterFspId);
+    
+        if(!requestedParticipant) {
+            throw Error('Requesting Participant doesnt exist');
+        }
+
+        const requestedEndpoint = requestedParticipant.participantEndpoints.find(endpoint => endpoint.type === "FSPIOP");
+                
+        if(!requestedEndpoint) {
+            throw Error('Requesting Participant Endpoint doesnt exist');
+        }
+
         try {
             this._logger.info('_handlePartyQueryResponseEvt -> start');
             
-            const requestedParticipant = await this._participantService.getParticipantInfo(requesterName);
+            // Always validate the payload and headers received
+            validatePayload();
+            Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
+
+            const requestedParticipant = await this._participantService.getParticipantInfo(requesterFspId);
     
             if(!requestedParticipant) {
                 throw Error('Requesting Participant doesnt exist');
             }
 
-            if (Object.values(FSPIOP_PARTY_ACCOUNT_TYPES).includes(type)) {
+            if (Object.values(Constants.FSPIOP_PARTY_ACCOUNT_TYPES).includes(partyType)) {
                 if(fspiopOpaqueState) {
-                    if (!clonedHeaders[FSPIOP_HEADERS_DESTINATION] || clonedHeaders[FSPIOP_HEADERS_DESTINATION] === '') {
-                        clonedHeaders[FSPIOP_HEADERS_DESTINATION] = clonedHeaders[FSPIOP_HEADERS_SOURCE];
+                    if (!clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === '') {
+                        clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
                     }
 
-                    clonedHeaders[FSPIOP_HEADERS_SOURCE] = FSPIOP_HEADERS_SWITCH;
+                    clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
                 }
+                
+                const template = partySubType ? Request.PARTIES_PUT_SUB_ID(partyType, partyId, partySubType) : Request.PARTIES_PUT(partyType, partyId);
 
-                const requestedParticipant = await this._participantService.getParticipantInfo(requesterName);
-    
-                if(!requestedParticipant) {
-                    throw Error('Requesting Participant doesnt exist');
-                }
-               
-                await sendRequest({
-                    url: requestedParticipant.participantEndpoints, 
+                await Request.sendRequest({
+                    url: Request.buildEndpoint(requestedEndpoint.value, template), 
                     headers: clonedHeaders, 
-                    source: requesterName, 
-                    method: FSPIOP_REQUEST_METHODS.PUT,
+                    source: requesterFspId, 
+                    destination: destinationName, 
+                    method: Enums.FspiopRequestMethodsEnum.PUT,
                     payload: payload,
                 });
 
                 this._logger.info('_handlePartyQueryResponseEvt -> end');
             } else {
-                throw Error('No valid party type');
+                const template = partySubType ? Request.PARTIES_PUT_SUB_ID_ERROR(partyType, partyId, partySubType) : Request.PARTIES_PUT_ERROR(partyType, partyId);
+           
+                await Request.sendRequest({
+                    url: Request.buildEndpoint(requestedEndpoint.value, template), 
+                    headers: clonedHeaders, 
+                    source: requesterFspId, 
+                    destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
+                    method: Enums.FspiopRequestMethodsEnum.PUT,
+                    payload: payload,
+                });
             }
         } catch (err: unknown) {
             this._logger.error(err);
