@@ -51,7 +51,7 @@ export class ParticipantsEventHandler extends AccountLookupEventHandler {
             kafkaTopics : string[],
             participantService: IParticipantService
     ) {
-        super(logger, consumerOpts, producerOptions, kafkaTopics, participantService)
+        super(logger, consumerOpts, producerOptions, kafkaTopics, participantService);
     }
 
     async init () : Promise<void> {
@@ -90,7 +90,7 @@ export class ParticipantsEventHandler extends AccountLookupEventHandler {
         const requesterFspId = payload.requesterFspId;
         const clonedHeaders = { ...fspiopOpaqueState as unknown as Request.FspiopHttpHeaders };
 
-        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId) 
+        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId); 
 
         try {
             this._logger.info('_handleParticipantQueryResponseEvt -> start');

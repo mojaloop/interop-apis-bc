@@ -51,7 +51,7 @@ export class PartiesEventHandler extends AccountLookupEventHandler {
             kafkaTopics : string[],
             participantService: IParticipantService
     ) {
-        super(logger, consumerOpts, producerOptions, kafkaTopics, participantService)
+        super(logger, consumerOpts, producerOptions, kafkaTopics, participantService);
     }
 
     async init () : Promise<void> {
@@ -94,13 +94,13 @@ export class PartiesEventHandler extends AccountLookupEventHandler {
     private async _handleParticipantAssociationRequestReceivedEvt(msg: ParticipantAssociationCreatedEvt):Promise<void>{
         const { validatePayload, payload, fspiopOpaqueState } = msg;
   
-        const requesterFspId = payload.requesterFspId;
+        const requesterFspId = payload.ownerFspId;
         const partyType = payload.partyType;
         const partyId = payload.partyId;
         const partySubType = payload.partySubType as string;
         const clonedHeaders = { ...fspiopOpaqueState as unknown as Request.FspiopHttpHeaders };
 
-        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId) 
+        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId); 
 
         try {
             this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> start');
@@ -147,13 +147,13 @@ export class PartiesEventHandler extends AccountLookupEventHandler {
     private async _handleParticipantDisassociateRequestReceivedEvt(msg: ParticipantAssociationRemovedEvt):Promise<void>{
         const { validatePayload, payload, fspiopOpaqueState } = msg;
   
-        const requesterFspId = payload.requesterFspId;
+        const requesterFspId = payload.ownerFspId;
         const partyType = payload.partyType;
         const partyId = payload.partyId;
         const partySubType = payload.partySubType as string;
         const clonedHeaders = { ...fspiopOpaqueState as unknown as Request.FspiopHttpHeaders };
 
-        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId) 
+        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId); 
 
         try {
             this._logger.info('_handleParticipantDisassociateRequestReceivedEvt -> start');
@@ -203,7 +203,7 @@ export class PartiesEventHandler extends AccountLookupEventHandler {
         const partySubType = payload.partySubType as string;
         const clonedHeaders = { ...fspiopOpaqueState as unknown as Request.FspiopHttpHeaders };
         
-        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId) 
+        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId); 
         
         try {
             this._logger.info('_handlePartyInfoRequestedEvt -> start');
@@ -270,7 +270,7 @@ export class PartiesEventHandler extends AccountLookupEventHandler {
         const partySubType = payload.partySubType as string;
         const clonedHeaders = { ...fspiopOpaqueState as unknown as Request.FspiopHttpHeaders };
         
-        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId) 
+        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId); 
 
         try {
             this._logger.info('_handlePartyQueryResponseEvt -> start');

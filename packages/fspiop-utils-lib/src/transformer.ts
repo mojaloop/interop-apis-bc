@@ -271,7 +271,7 @@ export const transformPayload = (obj: any, schema: any) => {
 			}
 		],
 		"currency": "AED"
-	}
+	};
 	
 	const newObject = Object.entries(data).reduce((accumulator: any, currentValue) => {
 	  accumulator[currentValue[0]] = Object.values(currentValue[1])[0];
@@ -280,4 +280,4 @@ export const transformPayload = (obj: any, schema: any) => {
 	}, {});
 
 	return newObject;
-}
+};
