@@ -237,3 +237,47 @@ export const decodePayload = (
 		throw new Error("input should be Buffer or String");
 	}
 };
+
+export const transformPayload = (obj: any, schema: any) => {
+	const data = {
+		"partyList": [
+			{
+			"partyId": {
+				"partyIdType": "MSISDN",
+				"partyIdentifier": "string",
+				"partySubIdOrType": "string",
+				"fspId": "string",
+				"extensionList": {
+				"extension": [
+					{
+					"key": "string",
+					"value": "string"
+					}
+				]
+				}
+			},
+			"errorInformation": {
+				"errorCode": "3296",
+				"errorDescription": "string",
+				"extensionList": {
+				"extension": [
+					{
+					"key": "string",
+					"value": "string"
+					}
+				]
+				}
+			}
+			}
+		],
+		"currency": "AED"
+	}
+	
+	const newObject = Object.entries(data).reduce((accumulator: any, currentValue) => {
+	  accumulator[currentValue[0]] = Object.values(currentValue[1])[0];
+	
+	  return accumulator;
+	}, {});
+
+	return newObject;
+}
