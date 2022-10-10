@@ -34,7 +34,7 @@
 
 "use strict";
 
-import { Constants, Request, Validate, Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Request, Validate, Enums, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumer, MLKafkaJsonConsumerOptions, MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
@@ -113,7 +113,7 @@ export class ParticipantsEventHandler extends AccountLookupEventHandler {
                     source: requesterFspId, 
                     destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
                     method: Enums.FspiopRequestMethodsEnum.PUT,
-                    payload: payload,
+                    payload: Transformer.transformPayloadParticipantPut(payload),
                 });
 
                 this._logger.info('_handleParticipantQueryResponseEvt -> end');
@@ -131,7 +131,10 @@ export class ParticipantsEventHandler extends AccountLookupEventHandler {
                 source: requesterFspId, 
                 destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: payload,
+                payload: Transformer.transformPayloadError({
+                    errorCode: Enums.ErrorCode.BAD_REQUEST,
+                    errorDescription: 'ds',
+                }),            
             });
         }
 

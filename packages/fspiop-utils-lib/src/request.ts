@@ -33,8 +33,8 @@
 
 import request from 'axios';
 import { FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION,FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_CONTENT_TYPE } from './constants';
-import { transformHeaders } from './transformer';
-import {ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload, ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvt, AccountLookUperrorEvtPayload} from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { FspiopError, PutParticipant, PutParty, transformHeaders } from './transformer';
+import {ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload, ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvt, AccountLookUperrorEvtPayload, AccountLookUperrorEvt} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { FspiopRequestMethodsEnum, ResponseTypeEnum } from './enums';
 
 export interface FspiopHttpHeaders {
@@ -46,7 +46,7 @@ export interface FspiopHttpHeaders {
 
 }
 
-type EventPayload = ParticipantQueryResponseEvtPayload | PartyInfoRequestedEvtPayload | PartyQueryResponseEvtPayload  | ParticipantAssociationCreatedEvtPayload | ParticipantAssociationRemovedEvt | AccountLookUperrorEvtPayload;
+type EventPayload = AccountLookUperrorEvt | FspiopError | PutParticipant | ParticipantQueryResponseEvtPayload | PartyInfoRequestedEvtPayload | PartyQueryResponseEvtPayload  | ParticipantAssociationCreatedEvtPayload | ParticipantAssociationRemovedEvt | AccountLookUperrorEvtPayload | PutParty | Pick<PutParty, "party">;
 
 type RequestOptions = {
   url: string, 

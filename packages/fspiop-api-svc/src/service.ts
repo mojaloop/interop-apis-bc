@@ -41,6 +41,7 @@ import {
 } from "@mojaloop/auditing-bc-client-lib";
 import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 import {ParticipantRoutes} from "./http_routes/participant_routes";
+import {PartyRoutes} from "./http_routes/party_routes";
 import {ParticipantsEventHandler} from "./event_handlers/participants_evt_handler";
 import { PartiesEventHandler } from "./event_handlers/parties_evt_handler";
 import { IParticipantService } from "./interfaces/types";
@@ -61,6 +62,7 @@ const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
 const AUDIT_CERT_FILE_PATH = process.env["AUDIT_CERT_FILE_PATH"] || "./dist/tmp_key_file";
 const PARTICIPANTS_URL_RESOURCE_NAME = "participants";
+const PARTIES_URL_RESOURCE_NAME = "parties";
 
 
 const KAFKA_ACCOUNTS_LOOKUP_PARTICIPANTS_TOPIC = process.env["KAFKA_ACCOUNTS_LOOKUP_PARTICIPANTS_TOPIC"] || "account_lookup_bc_participants";
@@ -74,6 +76,7 @@ const kafkaProducerOptions = {
 let logger:ILogger;
 let expressServer: Server;
 let participantRoutes:ParticipantRoutes;
+let partyRoutes:PartyRoutes;
 let participantService: IParticipantService;
 
 async function setupExpress(loggerParam:ILogger): Promise<Server> {
@@ -82,10 +85,12 @@ async function setupExpress(loggerParam:ILogger): Promise<Server> {
     app.use(express.urlencoded({extended: true})); // for parsing application/x-www-form-urlencoded
 
     participantRoutes = new ParticipantRoutes(kafkaProducerOptions, KAFKA_ACCOUNTS_LOOKUP_PARTICIPANTS_TOPIC, loggerParam);
+    partyRoutes = new PartyRoutes(kafkaProducerOptions, KAFKA_ACCOUNTS_LOOKUP_PARTIES_TOPIC, loggerParam);
 
     await participantRoutes.init();
 
     app.use(`/${PARTICIPANTS_URL_RESOURCE_NAME}`, participantRoutes.Router);
+    app.use(`/${PARTIES_URL_RESOURCE_NAME}`, partyRoutes.Router);
 
     app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
         // catch all

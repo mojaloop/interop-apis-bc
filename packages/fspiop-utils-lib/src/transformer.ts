@@ -31,8 +31,9 @@
 
  'use strict';
 
+import { ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvtPayload, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { FSPIOP_HEADERS_CONTENT_LENGTH, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_HOST, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_ACCEPT, FSPIOP_HEADERS_SWITCH_REGEX, FSPIOP_HEADERS_CONTENT_TYPE_CONTENT, FSPIOP_HEADERS_DATE, FSPIOP_HEADERS_CONTENT_AND_ACCEPT_REGEX, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_CONTENT_AND_ACCEPT_REGEX_VALUE } from "./constants";
-import { FspiopRequestMethodsEnum } from "./enums";
+import { Currency, ErrorCode, FspiopRequestMethodsEnum, PartyIdentifier } from "./enums";
 
 type TransformHeadersOptions = {
 	headers: {
@@ -48,6 +49,60 @@ type TransformHeadersOptions = {
 		destinationFsp: string;
 	};
 };
+
+
+export interface ExtensionList {
+	extension: [
+		{
+			key: string,
+			value: string
+		}
+	]
+}
+export interface FspiopError {
+	errorInformation: {
+		errorCode: ErrorCode,
+		errorDescription: string,
+		extensionList?: ExtensionList
+	}
+}
+
+export interface PutParticipant {
+	partyList: [
+		{
+			partyId: {
+				partyIdType: PartyIdentifier,
+				partyIdentifier: string,
+				partySubIdOrType: string | null,
+				fspId: string,
+				extensionList?: ExtensionList
+			},
+			errorInformation?: FspiopError
+		}
+	],
+	currency: Currency
+}
+export interface PutParty {
+	party: {
+		partyIdInfo: {
+			partyIdType: PartyIdentifier,
+			partyIdentifier: string,
+			partySubIdOrType: string | null,
+			fspId: string,
+			extensionList?: ExtensionList
+		}
+	},
+	merchantClassificationCode?: string,
+	name: string,
+	personalInfo: {
+		complexName: {
+			firstName: string,
+			middleName: string,
+			lastName: string
+		},
+		dateOfBirth: Date | null
+	}
+}
 
 const getResourceInfoFromHeader = (headerValue: string) => {
 	const result: { resourceType?: string; version?: string } = {};
@@ -238,46 +293,89 @@ export const decodePayload = (
 	}
 };
 
-export const transformPayload = (obj: any, schema: any) => {
-	const data = {
-		"partyList": [
+
+export const transformPayloadParticipantPut = (payload: ParticipantQueryResponseEvtPayload):PutParticipant => {
+	return {
+		partyList: [
 			{
-			"partyId": {
-				"partyIdType": "MSISDN",
-				"partyIdentifier": "string",
-				"partySubIdOrType": "string",
-				"fspId": "string",
-				"extensionList": {
-				"extension": [
-					{
-					"key": "string",
-					"value": "string"
-					}
-				]
-				}
-			},
-			"errorInformation": {
-				"errorCode": "3296",
-				"errorDescription": "string",
-				"extensionList": {
-				"extension": [
-					{
-					"key": "string",
-					"value": "string"
-					}
-				]
-				}
-			}
+				partyId: {
+					partyIdType: PartyIdentifier.MSISDN,
+					partyIdentifier: payload.partyId,
+					partySubIdOrType: payload.partySubType,
+					fspId: payload.requesterFspId,
+				},
 			}
 		],
-		"currency": "AED"
+		currency: Currency.EUR
 	};
-	
-	const newObject = Object.entries(data).reduce((accumulator: any, currentValue) => {
-	  accumulator[currentValue[0]] = Object.values(currentValue[1])[0];
-	
-	  return accumulator;
-	}, {});
+};
 
-	return newObject;
+export const transformPayloadPartyAssociationPut = (payload: ParticipantAssociationCreatedEvtPayload):Pick<PutParty, 'party'> => {
+	return {
+		party: {
+			partyIdInfo: {
+				partyIdType: PartyIdentifier.ACCOUNT_ID,
+				partyIdentifier: payload.partyId,
+				partySubIdOrType: payload.partySubType,
+				fspId: payload.ownerFspId,
+			}
+		},
+	};
+};
+
+export const transformPayloadPartyDisassociationPut = (payload: ParticipantAssociationRemovedEvtPayload):Pick<PutParty, 'party'> => {
+	return {
+		party: {
+			partyIdInfo: {
+				partyIdType: PartyIdentifier.ACCOUNT_ID,
+				partyIdentifier: payload.partyId,
+				partySubIdOrType: payload.partySubType,
+				fspId: payload.ownerFspId,
+			}
+		},
+	};
+};
+
+export const transformPayloadPartyInfoRequestedPut = (payload: PartyInfoRequestedEvtPayload):Pick<PutParty, 'party'> => {
+	return {
+		party: {
+			partyIdInfo: {
+				partyIdType: PartyIdentifier.ACCOUNT_ID,
+				partyIdentifier: payload.partyId,
+				partySubIdOrType: payload.partySubType,
+				fspId: payload.requesterFspId,
+			}
+		},
+	};
+};
+
+export const transformPayloadPartyInfoReceivedPut = (payload: PartyQueryResponseEvtPayload):PutParty => {
+	return {
+		party: {
+			partyIdInfo: {
+				partyIdType: PartyIdentifier.ACCOUNT_ID,
+				partyIdentifier: payload.partyId,
+				partySubIdOrType: payload.partySubType,
+				fspId: payload.requesterFspId,
+			}
+		},
+		name: payload.partyName,
+		personalInfo: {
+			complexName: {
+				firstName: payload.partyName,
+				middleName: payload.partyName,
+				lastName: payload.partyName
+			},
+			dateOfBirth: payload.partyDoB
+		}
+	};
+};
+
+export const transformPayloadError = ({errorCode, errorDescription }:{ errorCode: ErrorCode, errorDescription: string}):FspiopError => {
+	return {
+		errorInformation: {
+			errorCode: errorCode,
+			errorDescription: errorDescription,
+		}
+	};
 };

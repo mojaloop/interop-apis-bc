@@ -40,3 +40,41 @@ export enum FspiopRequestMethodsEnum {
     PUT = "PUT",
     DELETE = "DELETE"
 }
+
+export enum PartyIdType {
+    MSISDN = "MSISDN",
+    EMAIL = "EMAIL",
+    PERSONAL_ID = "PERSONAL_ID",
+    BUSINESS = "BUSINESS",
+    DEVICE = "DEVICE",
+    ACCOUNT_ID = "ACCOUNT_ID",
+    IBAN = "IBAN",
+    ALIAS = "ALIAS",
+}
+
+export enum ErrorCode {
+	BAD_REQUEST = "9882",
+    UNAUTHORIZED = "4565",
+    FORBIDDEN = "4244",
+    NOT_FOUND = "8377",
+    METHOD_NOT_ALLOWED = "5868",
+    NOT_ACCEPTABLE = "9221",
+    NOT_IMPLEMENTED = "5261",
+    SERVICE_UNAVAILABLE = "6991"
+} 
+
+export enum PartyIdentifier {
+    MSISDN = "MSISDN", 
+    EMAIL = "EMAIL", 
+    PERSONAL_ID = "PERSONAL_ID", 
+    BUSINESS = "BUSINESS", 
+    DEVICE = "DEVICE", 
+    ACCOUNT_ID = "ACCOUNT_ID", 
+    IBAN = "IBAN", 
+    ALIAS = "ALIAS"
+}
+
+export enum Currency {
+    EUR = "EUR",
+    USD = "USD",
+}

@@ -38,7 +38,7 @@ import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumer, MLKafkaJsonConsumerOptions, MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {PartyInfoRequestedEvt, PartyQueryResponseEvt, ParticipantAssociationCreatedEvt, ParticipantAssociationRemovedEvt} from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { Constants, Request, Enums, Validate } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { IParticipantService } from "../interfaces/types";
 import { PartiesPutTypeAndId, PartiesPutTypeAndIdAndSubId } from "../errors";
 import { AccountLookupEventHandler } from "./account_lookup_evt_handler";
@@ -121,7 +121,7 @@ export class PartiesEventHandler extends AccountLookupEventHandler {
                 source: requesterFspId, 
                 destination: requesterFspId, 
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: payload,
+                payload: Transformer.transformPayloadPartyAssociationPut(payload),
             });
 
             this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> end');
@@ -137,7 +137,10 @@ export class PartiesEventHandler extends AccountLookupEventHandler {
                 source: requesterFspId, 
                 destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: payload,
+                payload: Transformer.transformPayloadError({
+                    errorCode: Enums.ErrorCode.BAD_REQUEST,
+                    errorDescription: err as string,
+                })
             });
         }
 
@@ -170,7 +173,7 @@ export class PartiesEventHandler extends AccountLookupEventHandler {
                 source: requesterFspId, 
                 destination: requesterFspId, 
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: payload,
+                payload: Transformer.transformPayloadPartyDisassociationPut(payload),
             });
 
             this._logger.info('_handleParticipantDisassociateRequestReceivedEvt -> end');
@@ -186,7 +189,10 @@ export class PartiesEventHandler extends AccountLookupEventHandler {
                 source: requesterFspId, 
                 destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: payload,
+                payload: Transformer.transformPayloadError({
+                    errorCode: Enums.ErrorCode.BAD_REQUEST,
+                    errorDescription: err as string,
+                }),
             });
         }
 
@@ -235,7 +241,7 @@ export class PartiesEventHandler extends AccountLookupEventHandler {
                     source: requesterFspId, 
                     destination: destinationName, 
                     method: Enums.FspiopRequestMethodsEnum.GET,
-                    payload: payload,
+                    payload: Transformer.transformPayloadPartyInfoRequestedPut(payload),
                 });
 
                 this._logger.info('_handlePartyInfoRequestedEvt -> end');
@@ -253,7 +259,10 @@ export class PartiesEventHandler extends AccountLookupEventHandler {
                 source: requesterFspId, 
                 destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: payload,
+                payload: Transformer.transformPayloadError({
+                    errorCode: Enums.ErrorCode.BAD_REQUEST,
+                    errorDescription: err as string,
+                }),
             });
         }
 
@@ -302,24 +311,29 @@ export class PartiesEventHandler extends AccountLookupEventHandler {
                     source: requesterFspId, 
                     destination: destinationName, 
                     method: Enums.FspiopRequestMethodsEnum.PUT,
-                    payload: payload,
+                    payload: Transformer.transformPayloadPartyInfoReceivedPut(payload),
                 });
 
                 this._logger.info('_handlePartyQueryResponseEvt -> end');
             } else {
-                const template = partySubType ? Request.PARTIES_PUT_SUB_ID_ERROR(partyType, partyId, partySubType) : Request.PARTIES_PUT_ERROR(partyType, partyId);
-           
-                await Request.sendRequest({
-                    url: Request.buildEndpoint(requestedEndpoint.value, template), 
-                    headers: clonedHeaders, 
-                    source: requesterFspId, 
-                    destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
-                    method: Enums.FspiopRequestMethodsEnum.PUT,
-                    payload: payload,
-                });
+                throw Error('Party type is incorrect');
             }
         } catch (err: unknown) {
             this._logger.error(err);
+
+            const template = partySubType ? Request.PARTIES_PUT_SUB_ID_ERROR(partyType, partyId, partySubType) : Request.PARTIES_PUT_ERROR(partyType, partyId);
+           
+            await Request.sendRequest({
+                url: Request.buildEndpoint(requestedEndpoint.value, template), 
+                headers: clonedHeaders, 
+                source: requesterFspId, 
+                destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
+                method: Enums.FspiopRequestMethodsEnum.PUT,
+                payload: Transformer.transformPayloadError({
+                    errorCode: Enums.ErrorCode.BAD_REQUEST,
+                    errorDescription: err as string,
+                }),
+            });
         }
 
         return;
