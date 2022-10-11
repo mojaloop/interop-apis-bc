@@ -34,7 +34,7 @@ import express from "express";
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {Constants} from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import {PartyQueryReceivedEvtPayload, PartyQueryReceivedEvt} from "@mojaloop/platform-shared-lib-public-messages-lib";
+import {PartyQueryReceivedEvtPayload, PartyQueryReceivedEvt, PartyInfoAvailableEvt, PartyInfoAvailableEvtPayload} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ParticipantDisassociateRequestReceivedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ParticipantDisassociateRequestReceivedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ParticipantAssociationRequestReceivedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
@@ -54,7 +54,7 @@ export class PartyRoutes {
         this._kafkaTopic = kafkaTopic;
         
         this._kafkaProducer = new MLKafkaJsonProducer(this._producerOptions);
-
+        this._kafkaProducer.connect();
         // bind routes
 
         // GET Party by Type & ID

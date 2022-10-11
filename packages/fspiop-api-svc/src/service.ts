@@ -42,9 +42,10 @@ import {
 import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 import {ParticipantRoutes} from "./http_routes/participant_routes";
 import {PartyRoutes} from "./http_routes/party_routes";
-import {ParticipantsEventHandler} from "./event_handlers/participants_evt_handler";
-import { PartiesEventHandler } from "./event_handlers/parties_evt_handler";
 import { IParticipantService } from "./interfaces/types";
+import { MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import { AccountLookupEventHandler } from "./event_handlers/account_lookup_evt_handler";
+import { AccountLookupBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 
 
 
@@ -64,9 +65,7 @@ const AUDIT_CERT_FILE_PATH = process.env["AUDIT_CERT_FILE_PATH"] || "./dist/tmp_
 const PARTICIPANTS_URL_RESOURCE_NAME = "participants";
 const PARTIES_URL_RESOURCE_NAME = "parties";
 
-
-const KAFKA_ACCOUNTS_LOOKUP_PARTICIPANTS_TOPIC = process.env["KAFKA_ACCOUNTS_LOOKUP_PARTICIPANTS_TOPIC"] || "account_lookup_bc_participants";
-const KAFKA_ACCOUNTS_LOOKUP_PARTIES_TOPIC = process.env["KAFKA_ACCOUNTS_LOOKUP_PARTIES_TOPIC"] || "account_lookup_bc_parties";
+const KAFKA_ACCOUNTS_LOOKUP_TOPIC = process.env["KAFKA_ACCOUNTS_LOOKUP_TOPIC"] || AccountLookupBCTopics.DomainEvents;
 
 const kafkaProducerOptions = {
     kafkaBrokerList: KAFKA_URL
@@ -84,8 +83,8 @@ async function setupExpress(loggerParam:ILogger): Promise<Server> {
     app.use(express.json()); // for parsing application/json
     app.use(express.urlencoded({extended: true})); // for parsing application/x-www-form-urlencoded
 
-    participantRoutes = new ParticipantRoutes(kafkaProducerOptions, KAFKA_ACCOUNTS_LOOKUP_PARTICIPANTS_TOPIC, loggerParam);
-    partyRoutes = new PartyRoutes(kafkaProducerOptions, KAFKA_ACCOUNTS_LOOKUP_PARTIES_TOPIC, loggerParam);
+    participantRoutes = new ParticipantRoutes(kafkaProducerOptions, KAFKA_ACCOUNTS_LOOKUP_TOPIC, loggerParam);
+    partyRoutes = new PartyRoutes(kafkaProducerOptions, KAFKA_ACCOUNTS_LOOKUP_TOPIC, loggerParam);
 
     await participantRoutes.init();
 
@@ -102,26 +101,23 @@ async function setupExpress(loggerParam:ILogger): Promise<Server> {
     return createServer(app);
 }
 
-let participantsEvtHandler:ParticipantsEventHandler;
-let partiesEvtHandler:PartiesEventHandler;
+let accountEvtHandler:AccountLookupEventHandler;
 
 async function setupEventHandlers():Promise<void>{
-    const kafkaJsonConsumerOptions = {
+    const kafkaJsonConsumerOptions: MLKafkaJsonConsumerOptions = {
         kafkaBrokerList: KAFKA_URL,
         kafkaGroupId: `${BC_NAME}_${APP_NAME}`,
     };
 
-    const kafkaJsonProducerOptions = {
+    const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
         kafkaBrokerList: KAFKA_URL,
-        kafkaGroupId: `${BC_NAME}_${APP_NAME}`,
+        producerClientId: `${BC_NAME}_${APP_NAME}`,
+        skipAcknowledgements: true,
     };
 
-    participantsEvtHandler = new ParticipantsEventHandler(logger, kafkaJsonConsumerOptions, kafkaJsonProducerOptions, [KAFKA_ACCOUNTS_LOOKUP_PARTICIPANTS_TOPIC], participantService);
-    
-    await participantsEvtHandler.init();
-    
-    partiesEvtHandler = new PartiesEventHandler(logger, kafkaJsonConsumerOptions, kafkaJsonProducerOptions, [KAFKA_ACCOUNTS_LOOKUP_PARTIES_TOPIC], participantService);
-    await partiesEvtHandler.init();
+    accountEvtHandler = new AccountLookupEventHandler(logger, kafkaJsonConsumerOptions, kafkaJsonProducerOptions, [KAFKA_ACCOUNTS_LOOKUP_TOPIC], participantService);
+    await accountEvtHandler.init();
+
 }
 
 
@@ -180,8 +176,7 @@ export function stop(){
 
 async function _handle_int_and_term_signals(signal: NodeJS.Signals): Promise<void> {
     logger.info(`Service - ${signal} received - cleaning up...`);
-    await participantsEvtHandler.destroy();
-    await participantRoutes.destroy();
+    await accountEvtHandler.destroy();
     process.exit();
 }
 
