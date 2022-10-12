@@ -272,16 +272,11 @@ export class AccountLookupEventHandler {
             this._logger.info('_handlePartyInfoRequestedEvt -> start');
             
             // Always validate the payload and headers received
-            validatePayload();
-            Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
+            // validatePayload();
+            // Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
             
-            const requestedParticipant = await this._participantService.getParticipantInfo(requesterFspId);
-    
-            if(!requestedParticipant) {
-                throw Error('Requesting Participant doesnt exist');
-            }
 
-            if (Object.values(Constants.FSPIOP_PARTY_ACCOUNT_TYPES).includes(partyType)) {
+            // if (Object.values(Constants.FSPIOP_PARTY_ACCOUNT_TYPES).includes(partyType)) {
                 if(fspiopOpaqueState) {
                     if (!clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === '') {
                         clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
@@ -302,9 +297,9 @@ export class AccountLookupEventHandler {
                 });
 
                 this._logger.info('_handlePartyInfoRequestedEvt -> end');
-            } else {
-                throw Error('No valid party type');
-            }
+            // } else {
+            //     throw Error('No valid party type');
+            // }
         } catch (err: unknown) {
             this._logger.error(err);
 
@@ -342,16 +337,10 @@ export class AccountLookupEventHandler {
             this._logger.info('_handlePartyQueryResponseEvt -> start');
             
             // Always validate the payload and headers received
-            validatePayload();
-            Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
+            // validatePayload();
+            // Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
 
-            const requestedParticipant = await this._participantService.getParticipantInfo(requesterFspId);
-    
-            if(!requestedParticipant) {
-                throw Error('Requesting Participant doesnt exist');
-            }
-
-            if (Object.values(Constants.FSPIOP_PARTY_ACCOUNT_TYPES).includes(partyType)) {
+            // if (Object.values(Constants.FSPIOP_PARTY_ACCOUNT_TYPES).includes(partyType)) {
                 if(fspiopOpaqueState) {
                     if (!clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === '') {
                         clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
@@ -372,9 +361,9 @@ export class AccountLookupEventHandler {
                 });
 
                 this._logger.info('_handlePartyQueryResponseEvt -> end');
-            } else {
-                throw Error('Party type is incorrect');
-            }
+            // } else {
+            //     throw Error('Party type is incorrect');
+            // }
         } catch (err: unknown) {
             this._logger.error(err);
 
@@ -461,7 +450,7 @@ export class AccountLookupEventHandler {
         return {
             type: "FSPIOP",
             value: "http://localhost:4040"
-        }
+        };
         // const requestedParticipant = await this._participantService.getParticipantInfo(requesterFspId);
     
         // if(!requestedParticipant) {

@@ -293,6 +293,13 @@ export const decodePayload = (
 	}
 };
 
+const removeEmpty = (obj: any) => {
+	Object.entries(obj).forEach(([key, val])  =>
+	  (val && typeof val === 'object') && removeEmpty(val) ||
+	  (val === null || val === "") && delete obj[key]
+	);
+	return obj;
+  };
 
 export const transformPayloadParticipantPut = (payload: ParticipantQueryResponseEvtPayload):PutParticipant => {
 	return {
@@ -350,7 +357,7 @@ export const transformPayloadPartyInfoRequestedPut = (payload: PartyInfoRequeste
 };
 
 export const transformPayloadPartyInfoReceivedPut = (payload: PartyQueryResponseEvtPayload):PutParty => {
-	return {
+	const correctPayload = {
 		party: {
 			partyIdInfo: {
 				partyIdType: PartyIdentifier.ACCOUNT_ID,
@@ -369,6 +376,8 @@ export const transformPayloadPartyInfoReceivedPut = (payload: PartyQueryResponse
 			dateOfBirth: payload.partyDoB
 		}
 	};
+
+	return removeEmpty(correctPayload)
 };
 
 export const transformPayloadError = ({errorCode, errorDescription }:{ errorCode: ErrorCode, errorDescription: string}):FspiopError => {

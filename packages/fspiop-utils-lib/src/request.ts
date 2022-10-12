@@ -82,9 +82,9 @@ export const sendRequest = async ({
   }
 }:RequestOptions):Promise<void> => {
   let requestOptions;
-  if (!url || !method || !headers || (method !== FspiopRequestMethodsEnum.GET && method !== FspiopRequestMethodsEnum.DELETE && !payload) || !source || !destination) {
-    throw Error('Missing parameters for function');
-  }
+  // if (!url || !method || !headers || (method !== FspiopRequestMethodsEnum.GET && method !== FspiopRequestMethodsEnum.DELETE && !payload) || !source || !destination) {
+  //   throw Error('Missing parameters for function');
+  // }
 
   try {
     const config =  {
@@ -94,12 +94,17 @@ export const sendRequest = async ({
       protocolVersions
     };
 
-    const transformedHeaders = transformHeaders({ headers, config });
+    // const transformedHeaders = transformHeaders({ headers, config });
   
     requestOptions = {
       url,
       method,
-      headers: transformedHeaders,
+      headers: {
+        'accept': 'application/vnd.interoperability.parties+json;version=1.0',
+        'Content-Type': 'application/vnd.interoperability.parties+json;version=1.0',
+        date: Date.now().toString(),
+        'fspiop-source': source
+      },
       data: payload,
       responseType
     };

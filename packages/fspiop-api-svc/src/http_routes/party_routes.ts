@@ -58,9 +58,13 @@ export class PartyRoutes {
         // bind routes
 
         // GET Party by Type & ID
-        this._router.get("/:type/:id/", this.getPartyByTypeAndId.bind(this));
+        this._router.get("/:type/:id/", this.getPartyQueryReceivedByTypeAndId.bind(this));
         // GET Parties by Type, ID & SubId
-        this._router.get("/:type/:id/:subid", this.getPartyByTypeAndIdAndSubId.bind(this));
+        this._router.get("/:type/:id/:subid", this.getPartyQueryReceivedByTypeAndIdSubId.bind(this));
+        // PUT Party by Type & ID
+        this._router.put("/:type/:id/", this.getPartyInfoAvailableByTypeAndId.bind(this));
+        // PUT Parties by Type, ID & SubId
+        this._router.put("/:type/:id/:subid", this.getPartyInfoAvailableByTypeAndIdAndSubId.bind(this));
         // POST Associate Party Party by Type & ID
         this._router.post("/:type/:id/", this.associatePartyByTypeAndId.bind(this));
         // POST Associate Party Party by Type, ID & SubId
@@ -75,13 +79,14 @@ export class PartyRoutes {
         return this._router;
     }
 
-    private async getPartyByTypeAndId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
-        this._logger.debug("Got getPartyByTypeAndId request");
+    private async getPartyQueryReceivedByTypeAndId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
+        this._logger.debug("Got getPartyQueryReceivedByTypeAndId request");
 
+        const clonedHeaders = { ...req.headers };
         const type = req.params["type"] as string || null;
         const id = req.params["id"] as string || null;
-        const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-        const destinationFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
 
         const currency = req.query["currency"] as string || null;
 
@@ -105,18 +110,19 @@ export class PartyRoutes {
 
         await this._kafkaProducer.send(msg);
 
-        this._logger.debug("getPartyByTypeAndId sent message");
+        this._logger.debug("getPartyQueryReceivedByTypeAndId sent message");
 
         res.status(202).json({
             status: "ok"
         });
 
-        this._logger.debug("getPartyByTypeAndId responded");
+        this._logger.debug("getPartyQueryReceivedByTypeAndId responded");
     }
 
-    private async getPartyByTypeAndIdAndSubId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
-        this._logger.debug("Got getPartyByTypeAndIdAndSubId request");
+    private async getPartyQueryReceivedByTypeAndIdSubId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
+        this._logger.debug("Got getPartyQueryReceivedByTypeAndIdSubId request");
 
+        const clonedHeaders = { ...req.headers };
         const type = req.params["type"] as string || null;
         const id = req.params["id"] as string || null;
         const partySubIdOrType = req.params["subid"] as string || null;
@@ -145,13 +151,103 @@ export class PartyRoutes {
 
         await this._kafkaProducer.send(msg);
 
-        this._logger.debug("getPartyByTypeAndIdAndSubId sent message");
+        this._logger.debug("getPartyQueryReceivedByTypeAndIdSubId sent message");
 
         res.status(202).json({
             status: "ok"
         });
 
-        this._logger.debug("getPartyByTypeAndIdAndSubId responded");
+        this._logger.debug("getPartyQueryReceivedByTypeAndIdSubId responded");
+    }
+
+    private async getPartyInfoAvailableByTypeAndId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
+        this._logger.debug("Got getPartyInfoAvailableByTypeAndId request");
+        console.log(JSON.stringify(req.headers));
+
+        const clonedHeaders = { ...req.headers };
+        const type = req.params["type"] as string || null;
+        const id = req.params["id"] as string || null;
+        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+        const ownerFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+
+        const currency = req.query["currency"] as string || null;
+
+        if(!type || !id || !requesterFspId || !ownerFspId){
+            res.status(400).json({
+                status: "not ok"
+            });
+            return next();
+        }
+
+        const msgPayload: PartyInfoAvailableEvtPayload = {
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId,
+            ownerFspId: ownerFspId,
+            partyType: type,
+            partyId: id,
+            partySubType: null,
+            currency: currency,
+            partyName: 'partynmame',
+            partyDoB: new Date(),
+        };
+
+        const msg =  new PartyInfoAvailableEvt(msgPayload);
+
+        await this._kafkaProducer.send(msg);
+
+        this._logger.debug("getPartyInfoAvailableByTypeAndId sent message");
+
+        res.status(202).json({
+            status: "ok"
+        });
+
+        this._logger.debug("getPartyInfoAvailableByTypeAndId responded");
+    }
+
+    private async getPartyInfoAvailableByTypeAndIdAndSubId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
+        this._logger.debug("Got getPartyInfoAvailableByTypeAndIdAndSubId request");
+
+        const clonedHeaders = { ...req.headers };
+        const type = req.params["type"] as string || null;
+        const id = req.params["id"] as string || null;
+        const partySubIdOrType = req.params["subid"] as string || null;
+        const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+        const ownerFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+
+        const currency = req.query["currency"] as string || null;
+
+        if(!type || !id || !requesterFspId || !ownerFspId){
+            res.status(400).json({
+                status: "not ok"
+            });
+            return next();
+        }
+
+        const msgPayload: PartyInfoAvailableEvtPayload = {
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId,
+            ownerFspId: ownerFspId,
+            partyType: type,
+            partyId: id,
+            partySubType: partySubIdOrType,
+            currency: currency,
+            partyName: 'partynmame',
+            partyDoB: new Date(),
+        };
+
+        const msg =  new PartyInfoAvailableEvt(msgPayload);
+
+        await this._kafkaProducer.send(msg);
+
+        this._logger.debug("getPartyInfoAvailableByTypeAndIdAndSubId sent message");
+
+        res.status(202).json({
+            status: "ok"
+        });
+
+        this._logger.debug("getPartyInfoAvailableByTypeAndIdAndSubId responded");
     }
 
     private async associatePartyByTypeAndId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
