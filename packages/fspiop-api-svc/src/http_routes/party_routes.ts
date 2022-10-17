@@ -177,7 +177,7 @@ export class PartyRoutes {
             res.status(400).json({
                 status: "not ok"
             });
-            return next();
+            return;
         }
 
         const msgPayload: PartyInfoAvailableEvtPayload = {

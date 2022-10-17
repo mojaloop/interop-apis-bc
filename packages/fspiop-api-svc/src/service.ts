@@ -124,6 +124,7 @@ async function setupEventHandlers():Promise<void>{
 export async function start(
         loggerParam?:ILogger,
         auditClient?:IAuditClient):Promise<void> {
+    console.log(`Fspiop-api-svc - service starting with PID: ${process.pid}`);
 
     if(!loggerParam) {
         logger = new KafkaLogger(
@@ -170,23 +171,38 @@ export async function start(
     });
 }
 
-export function stop(){
+export async function stop(){
     expressServer.close();
+    await accountEvtHandler.destroy();
 }
 
+/**
+ * process termination and cleanup
+ */
+
 async function _handle_int_and_term_signals(signal: NodeJS.Signals): Promise<void> {
-    logger.info(`Service - ${signal} received - cleaning up...`);
-    await accountEvtHandler.destroy();
+    console.info(`Service - ${signal} received - cleaning up...`);
+    let clean_exit = false;
+    setTimeout(args => { clean_exit || process.abort();}, 5000);
+
+    // call graceful stop routine
+    await stop();
+
+    clean_exit = true;
     process.exit();
 }
 
 //catches ctrl+c event
 process.on("SIGINT", _handle_int_and_term_signals.bind(this));
-
 //catches program termination event
 process.on("SIGTERM", _handle_int_and_term_signals.bind(this));
 
 //do something when app is closing
-process.on('exit', () => {
+process.on("exit", async () => {
     logger.info("Microservice - exiting...");
+});
+process.on("uncaughtException", (err: Error) => {
+    logger.error(err);
+    console.log("UncaughtException - EXITING...");
+    process.exit(999);
 });

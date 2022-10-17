@@ -58,7 +58,7 @@ export class AccountLookupEventHandler {
             kafkaTopics : string[],
             participantService: IParticipantService
     ) {
-        this._logger = logger;
+        this._logger = logger.createChild(this.constructor.name);
         this._consumerOpts = consumerOpts;
         this._kafkaTopics = kafkaTopics;
         this._producerOptions = producerOptions;
@@ -79,22 +79,22 @@ export class AccountLookupEventHandler {
 
         switch(message.msgName){
             case AccountLookUperrorEvt.name:
-                await this._handleAccountLookUpErrorReceivedEvt(message as AccountLookUperrorEvt);
+                await this._handleAccountLookUpErrorReceivedEvt(new AccountLookUperrorEvt(message.payload));
                 break;
             case ParticipantAssociationCreatedEvt.name:
-                await this._handleParticipantAssociationRequestReceivedEvt(message as ParticipantAssociationCreatedEvt);
+                await this._handleParticipantAssociationRequestReceivedEvt(new ParticipantAssociationCreatedEvt(message.payload));
                 break;
             case ParticipantAssociationRemovedEvt.name:
-                await this._handleParticipantDisassociateRequestReceivedEvt(message as ParticipantAssociationRemovedEvt);
+                await this._handleParticipantDisassociateRequestReceivedEvt(new ParticipantAssociationRemovedEvt(message.payload));
                 break;
             case PartyInfoRequestedEvt.name:
-                await this._handlePartyInfoRequestedEvt(message as PartyInfoRequestedEvt);
+                await this._handlePartyInfoRequestedEvt(new PartyInfoRequestedEvt(message.payload));
                 break;
             case PartyQueryResponseEvt.name:
-                await this._handlePartyQueryResponseEvt(message as PartyQueryResponseEvt);
+                await this._handlePartyQueryResponseEvt(new PartyQueryResponseEvt(message.payload));
                 break;
             case ParticipantQueryResponseEvt.name:
-                await this._handleParticipantQueryResponseEvt(message as ParticipantQueryResponseEvt);
+                await this._handleParticipantQueryResponseEvt(new ParticipantQueryResponseEvt(message.payload));
                 break;
             default:
                 this._logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
@@ -449,7 +449,7 @@ export class AccountLookupEventHandler {
     protected async _validateParticipantAndGetEndpoint(requesterFspId: string):Promise<ParticipantEndpoint>{
         return {
             type: "FSPIOP",
-            value: "http://localhost:4040"
+            value: "http://127.0.0.1:4040"
         };
         // const requestedParticipant = await this._participantService.getParticipantInfo(requesterFspId);
     
