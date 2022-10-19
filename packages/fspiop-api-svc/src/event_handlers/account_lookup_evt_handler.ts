@@ -163,12 +163,8 @@ export class AccountLookupEventHandler {
             this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> start');
 
             // Always validate the payload and headers received
-            validatePayload();
-            Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
-
-            if(!requesterFspId) {
-                throw Error('requesterFspId doesnt exist');
-            }
+            // validatePayload();
+            // Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
             
             const template = partySubType ? Request.PARTIES_PUT_SUB_ID(partyType, partyId, partySubType) : Request.PARTIES_PUT(partyType, partyId);
 
@@ -219,10 +215,12 @@ export class AccountLookupEventHandler {
             this._logger.info('_handleParticipantDisassociateRequestReceivedEvt -> start');
 
             // Always validate the payload and headers received
-            validatePayload();
-            Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
+            // validatePayload();
+            // Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
 
             const template = partySubType ? Request.PARTIES_PUT_SUB_ID(partyType, partyId, partySubType) : Request.PARTIES_PUT(partyType, partyId);
+
+            const test = Transformer.transformPayloadPartyDisassociationPut(payload);
 
             await Request.sendRequest({
                 url: Request.buildEndpoint(requestedEndpoint.value, template), 
@@ -438,7 +436,7 @@ export class AccountLookupEventHandler {
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: Transformer.transformPayloadError({
                     errorCode: Enums.ErrorCode.BAD_REQUEST,
-                    errorDescription: 'ds',
+                    errorDescription: err as string,
                 }),            
             });
         }
@@ -450,6 +448,26 @@ export class AccountLookupEventHandler {
         return {
             type: "FSPIOP",
             value: "http://127.0.0.1:4040"
+        };
+        // const requestedParticipant = await this._participantService.getParticipantInfo(requesterFspId);
+    
+        // if(!requestedParticipant) {
+        //     throw Error('Requesting Participant doesnt exist');
+        // }
+
+        // const requestedEndpoint = requestedParticipant.participantEndpoints.find(endpoint => endpoint.type === "FSPIOP");
+                
+        // if(!requestedEndpoint) {
+        //     throw Error('Requesting Participant Endpoint doesnt exist');
+        // }
+
+        // return requestedEndpoint;
+    }
+
+    protected async _validateParticipantAndGetEndpointPartyQueryResponse(requesterFspId: string):Promise<ParticipantEndpoint>{
+        return {
+            type: "FSPIOP",
+            value: "http://127.0.0.1:4041"
         };
         // const requestedParticipant = await this._participantService.getParticipantInfo(requesterFspId);
     

@@ -71,7 +71,7 @@ export interface PutParticipant {
 	partyList: [
 		{
 			partyId: {
-				partyIdType: PartyIdentifier,
+				partyIdType: string,
 				partyIdentifier: string,
 				partySubIdOrType: string | null,
 				fspId: string,
@@ -85,7 +85,7 @@ export interface PutParticipant {
 export interface PutParty {
 	party: {
 		partyIdInfo: {
-			partyIdType: PartyIdentifier,
+			partyIdType: string,
 			partyIdentifier: string,
 			partySubIdOrType: string | null,
 			fspId: string,
@@ -306,7 +306,7 @@ export const transformPayloadParticipantPut = (payload: ParticipantQueryResponse
 		partyList: [
 			{
 				partyId: {
-					partyIdType: PartyIdentifier.MSISDN,
+					partyIdType: payload.partyType,
 					partyIdentifier: payload.partyId,
 					partySubIdOrType: payload.partySubType,
 					fspId: payload.requesterFspId,
@@ -318,29 +318,33 @@ export const transformPayloadParticipantPut = (payload: ParticipantQueryResponse
 };
 
 export const transformPayloadPartyAssociationPut = (payload: ParticipantAssociationCreatedEvtPayload):Pick<PutParty, 'party'> => {
-	return {
+	const info = {
 		party: {
 			partyIdInfo: {
-				partyIdType: PartyIdentifier.ACCOUNT_ID,
+				partyIdType: payload.partyType,
 				partyIdentifier: payload.partyId,
 				partySubIdOrType: payload.partySubType,
 				fspId: payload.ownerFspId,
 			}
 		},
 	};
+		
+	return removeEmpty(info);
 };
 
 export const transformPayloadPartyDisassociationPut = (payload: ParticipantAssociationRemovedEvtPayload):Pick<PutParty, 'party'> => {
-	return {
+	const info = {
 		party: {
 			partyIdInfo: {
-				partyIdType: PartyIdentifier.ACCOUNT_ID,
+				partyIdType: payload.partyType,
 				partyIdentifier: payload.partyId,
 				partySubIdOrType: payload.partySubType,
 				fspId: payload.ownerFspId,
 			}
 		},
 	};
+	
+	return removeEmpty(info);
 };
 
 export const transformPayloadPartyInfoRequestedPut = (payload: PartyInfoRequestedEvtPayload):Pick<PutParty, 'party'> => {
