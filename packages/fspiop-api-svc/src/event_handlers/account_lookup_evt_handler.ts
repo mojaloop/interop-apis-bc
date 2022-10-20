@@ -37,7 +37,18 @@
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumer, MLKafkaJsonConsumerOptions, MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import {AccountLookUperrorEvt, PartyInfoRequestedEvt, PartyQueryResponseEvt, ParticipantAssociationCreatedEvt, ParticipantAssociationRemovedEvt, ParticipantQueryResponseEvt} from "@mojaloop/platform-shared-lib-public-messages-lib";
+import {
+    AccountLookUperrorEvt,
+    PartyInfoRequestedEvt,
+    PartyQueryResponseEvt,
+    ParticipantAssociationCreatedEvt,
+    ParticipantAssociationRemovedEvt,
+    ParticipantQueryResponseEvt,
+    ParticipantQueryReceivedEvt,
+    ParticipantDisassociateRequestReceivedEvt,
+    ParticipantAssociationRequestReceivedEvt,
+    PartyInfoAvailableEvt, PartyQueryReceivedEvt
+} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { IParticipantService, ParticipantEndpoint } from "../interfaces/types";
 import { PartiesPutTypeAndId, PartiesPutTypeAndIdAndSubId } from "../errors";
@@ -127,8 +138,22 @@ export class AccountLookupEventHandler {
             // validatePayload();
             // Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
 
-            
-            const template = partySubType ? Request.PARTIES_PUT_SUB_ID(partyType, partyId, partySubType) : Request.PARTIES_PUT(partyType, partyId);
+            let template;
+            switch(msg.payload.sourceEvent){
+                case PartyQueryReceivedEvt.name:
+                case PartyInfoAvailableEvt.name:
+                case PartyInfoRequestedEvt.name:
+                    template = partySubType ? Request.PARTIES_PUT_SUB_ID_ERROR(partyType, partyId, partySubType) : Request.PARTIES_PUT_ERROR(partyType, partyId);
+                    break;
+                case ParticipantAssociationRequestReceivedEvt.name:
+                case ParticipantDisassociateRequestReceivedEvt.name:
+                case ParticipantQueryReceivedEvt.name:
+                    template = partySubType ? Request.PARTICIPANTS_PUT_SUB_ID_ERROR(partyType, partyId, partySubType) : Request.PARTICIPANTS_PUT_ERROR(partyType, partyId);
+                    break;
+                default:
+                    throw new Error("Unhandled message source event on AccountLookupEventHandler_handleAccountLookUpErrorReceivedEvt()")
+            }
+
            
             await Request.sendRequest({
                 url: Request.buildEndpoint(requestedEndpoint.value, template), 

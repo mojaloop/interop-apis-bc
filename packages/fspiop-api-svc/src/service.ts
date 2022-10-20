@@ -167,7 +167,7 @@ export async function start(
 
     expressServer = app.listen(portNum, () => {
         console.log(`🚀 Server ready at: http://localhost:${portNum}`);
-        logger.info("Platform configuration service started");
+        logger.info("Fspiop-api service started");
     });
 }
 
