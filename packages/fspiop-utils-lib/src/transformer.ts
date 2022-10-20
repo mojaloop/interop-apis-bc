@@ -68,20 +68,9 @@ export interface FspiopError {
 }
 
 export interface PutParticipant {
-	partyList: [
-		{
-			partyId: {
-				partyIdType: string,
-				partyIdentifier: string,
-				partySubIdOrType: string | null,
-				fspId: string,
-				extensionList?: ExtensionList
-			},
-			errorInformation?: FspiopError
-		}
-	],
-	currency: Currency
+	fspId: string,
 }
+
 export interface PutParty {
 	party: {
 		partyIdInfo: {
@@ -303,17 +292,7 @@ const removeEmpty = (obj: any) => {
 
 export const transformPayloadParticipantPut = (payload: ParticipantQueryResponseEvtPayload):PutParticipant => {
 	return {
-		partyList: [
-			{
-				partyId: {
-					partyIdType: payload.partyType,
-					partyIdentifier: payload.partyId,
-					partySubIdOrType: payload.partySubType,
-					fspId: payload.requesterFspId,
-				},
-			}
-		],
-		currency: Currency.EUR
+		fspId: payload.requesterFspId
 	};
 };
 
