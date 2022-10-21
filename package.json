@@ -21,7 +21,7 @@
     "watch": "npm -ws --parallel  run watch",
     "clean": "npm run clean:dist",
     "clean:npm": "rm -Rf node_modules && npm -ws --parallel  run clean:npm",
-    "clean:dist": "rm -Rf dist; npm -ws --parallel --if-present run clean:dist",
+    "clean:dist": "rm -Rf dist && npm -ws --parallel --if-present run clean:dist",
     "pretest": "echo 'FIX ME'",
     "standard": "npm run --no-progress --stream lint'",
     "lint": "npm -ws run lint",
@@ -52,7 +52,7 @@
     "packages/fspiop-api-svc"
   ],
   "dependencies": {
-    "@mojaloop/platform-shared-lib-public-messages-lib": "~0.1.14",
+    "@mojaloop/platform-shared-lib-public-messages-lib": "~0.1.15",
     "bignumber.js": "^9.1.0"
   }
 }

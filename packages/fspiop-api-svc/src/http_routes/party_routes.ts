@@ -256,6 +256,7 @@ export class PartyRoutes {
         const type = req.params["type"] as string || null;
         const id = req.params["id"] as string || null;
         const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const currency = req.query["currency"] as string || null;
 
         if(!type || !id || !requesterFspId){
             res.status(400).json({
@@ -268,7 +269,8 @@ export class PartyRoutes {
             ownerFspId: requesterFspId,
             partyId: id,
             partyType: type,
-            partySubType: null
+            partySubType: null,
+            currency: currency
         };
 
         const msg = new ParticipantAssociationRequestReceivedEvt(msgPayload);
@@ -291,6 +293,7 @@ export class PartyRoutes {
         const id = req.params["id"] as string || null;
         const partySubIdOrType = req.params["subid"] as string || null;
         const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const currency = req.query["currency"] as string || null;
 
         if(!type || !id || !requesterFspId){
             res.status(400).json({
@@ -303,7 +306,8 @@ export class PartyRoutes {
             ownerFspId: requesterFspId,
             partyId: id,
             partyType: type,
-            partySubType: partySubIdOrType
+            partySubType: partySubIdOrType,
+            currency: currency
         };
 
         const msg = new ParticipantAssociationRequestReceivedEvt(msgPayload);
@@ -325,6 +329,7 @@ export class PartyRoutes {
         const type = req.params["type"] as string || null;
         const id = req.params["id"] as string || null;
         const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const currency = req.query["currency"] as string || null;
 
         if(!type || !id || !requesterFspId){
             res.status(400).json({
@@ -337,7 +342,8 @@ export class PartyRoutes {
             ownerFspId: requesterFspId,
             partyId: id,
             partyType: type,
-            partySubType: null
+            partySubType: null,
+            currency: currency
         };
 
         const msg = new ParticipantDisassociateRequestReceivedEvt(msgPayload);
@@ -360,6 +366,7 @@ export class PartyRoutes {
         const id = req.params["id"] as string || null;
         const partySubIdOrType = req.params["subid"] as string || null;
         const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const currency = req.query["currency"] as string || null;
 
         if(!type || !id || !requesterFspId){
             res.status(400).json({
@@ -372,7 +379,8 @@ export class PartyRoutes {
             ownerFspId: requesterFspId,
             partyId: id,
             partyType: type,
-            partySubType: partySubIdOrType
+            partySubType: partySubIdOrType,
+            currency: currency
         };
 
         const msg = new ParticipantDisassociateRequestReceivedEvt(msgPayload);

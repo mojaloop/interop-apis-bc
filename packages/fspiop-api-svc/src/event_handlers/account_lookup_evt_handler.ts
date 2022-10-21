@@ -354,7 +354,7 @@ export class AccountLookupEventHandler {
         const partySubType = payload.partySubType as string;
         const clonedHeaders = { ...fspiopOpaqueState as unknown as Request.FspiopHttpHeaders };
         
-        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId); 
+        const requestedEndpoint = await this._validateParticipantAndGetEndpointPartyQueryResponse(requesterFspId); 
 
         try {
             this._logger.info('_handlePartyQueryResponseEvt -> start');
