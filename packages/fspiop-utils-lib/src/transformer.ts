@@ -284,15 +284,15 @@ export const decodePayload = (
 
 const removeEmpty = (obj: any) => {
 	Object.entries(obj).forEach(([key, val])  =>
-	  (val && typeof val === 'object') && removeEmpty(val) ||
-	  (val === null || val === "") && delete obj[key]
+		(val && typeof val === 'object') && removeEmpty(val) ||
+		(val === null || val === "") && delete obj[key]
 	);
 	return obj;
   };
 
 export const transformPayloadParticipantPut = (payload: ParticipantQueryResponseEvtPayload):PutParticipant => {
 	return {
-		fspId: payload.requesterFspId
+		fspId: payload.ownerFspId
 	};
 };
 
@@ -330,7 +330,7 @@ export const transformPayloadPartyInfoRequestedPut = (payload: PartyInfoRequeste
 	return {
 		party: {
 			partyIdInfo: {
-				partyIdType: PartyIdentifier.ACCOUNT_ID,
+				partyIdType: payload.partyType,
 				partyIdentifier: payload.partyId,
 				partySubIdOrType: payload.partySubType,
 				fspId: payload.requesterFspId,
@@ -343,7 +343,7 @@ export const transformPayloadPartyInfoReceivedPut = (payload: PartyQueryResponse
 	const correctPayload = {
 		party: {
 			partyIdInfo: {
-				partyIdType: PartyIdentifier.ACCOUNT_ID,
+				partyIdType: payload.partyType,
 				partyIdentifier: payload.partyId,
 				partySubIdOrType: payload.partySubType,
 				fspId: payload.requesterFspId,

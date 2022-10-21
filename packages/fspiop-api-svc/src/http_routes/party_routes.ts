@@ -39,6 +39,7 @@ import { ParticipantDisassociateRequestReceivedEvt } from "@mojaloop/platform-sh
 import { ParticipantDisassociateRequestReceivedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ParticipantAssociationRequestReceivedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ParticipantAssociationRequestReceivedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import {PutParty} from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/transformer";
 
 export class PartyRoutes {
     private _logger: ILogger;
@@ -108,6 +109,12 @@ export class PartyRoutes {
 
         const msg =  new PartyQueryReceivedEvt(msgPayload);
 
+        // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
+        msg.fspiopOpaqueState = {
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId,
+        };
+
         await this._kafkaProducer.send(msg);
 
         this._logger.debug("getPartyQueryReceivedByTypeAndId sent message");
@@ -149,6 +156,12 @@ export class PartyRoutes {
 
         const msg =  new PartyQueryReceivedEvt(msgPayload);
 
+        // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState for the next event from the request
+        msg.fspiopOpaqueState = {
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId,
+        };
+
         await this._kafkaProducer.send(msg);
 
         this._logger.debug("getPartyQueryReceivedByTypeAndIdSubId sent message");
@@ -163,6 +176,9 @@ export class PartyRoutes {
     private async getPartyInfoAvailableByTypeAndId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
         this._logger.debug("Got getPartyInfoAvailableByTypeAndId request");
         console.log(JSON.stringify(req.headers));
+
+        const putPartyBody: PutParty = req.body?.party;
+        // TODO validate putPartyBody
 
         const clonedHeaders = { ...req.headers };
         const type = req.params["type"] as string || null;
@@ -188,11 +204,35 @@ export class PartyRoutes {
             partyId: id,
             partySubType: null,
             currency: currency,
-            partyName: 'partynmame',
-            partyDoB: new Date(),
+            partyName: `${putPartyBody?.personalInfo?.complexName?.firstName} ${putPartyBody?.personalInfo?.complexName?.lastName}`,
+            partyDoB: putPartyBody?.personalInfo?.dateOfBirth
         };
 
+        const party = {
+            "partyIdInfo": {
+                "partyIdType": "MSISDN",
+                "partyIdentifier": "93123",
+                "fspId": "blue_id"
+            },
+            "merchantClassificationCode": "3",
+            "name": "quis magna sit",
+            "personalInfo": {
+                "complexName": {
+                    "firstName": "Maria",
+                    "lastName": "Gonzalez",
+                    "middleName": "N"
+                },
+                "dateOfBirth": "1927-04-05"
+            }
+        }
+
         const msg =  new PartyInfoAvailableEvt(msgPayload);
+
+        // this is a response from the original destination, so we swap requester and destination
+        msg.fspiopOpaqueState = {
+            originalRequesterFspId: destinationFspId,
+            originalDestination: requesterFspId,
+        };
 
         await this._kafkaProducer.send(msg);
 
@@ -239,6 +279,12 @@ export class PartyRoutes {
 
         const msg =  new PartyInfoAvailableEvt(msgPayload);
 
+        // this is a response from the original destination, so we swap requester and destination
+        msg.fspiopOpaqueState = {
+            originalRequesterFspId: destinationFspId,
+            originalDestination: requesterFspId,
+        };
+
         await this._kafkaProducer.send(msg);
 
         this._logger.debug("getPartyInfoAvailableByTypeAndIdAndSubId sent message");
@@ -274,6 +320,12 @@ export class PartyRoutes {
         };
 
         const msg = new ParticipantAssociationRequestReceivedEvt(msgPayload);
+
+        // this is an entry request (1st in the sequence), so carry over the fspiopOpaqueState to the next event
+        msg.fspiopOpaqueState = {
+            requesterFspId: requesterFspId,
+            destinationFspId: null,
+        };
 
         await this._kafkaProducer.send(msg);
 
@@ -312,6 +364,12 @@ export class PartyRoutes {
 
         const msg = new ParticipantAssociationRequestReceivedEvt(msgPayload);
 
+        // this is an entry request (1st in the sequence), so carry over the fspiopOpaqueState to the next event
+        msg.fspiopOpaqueState = {
+            requesterFspId: requesterFspId,
+            destinationFspId: null,
+        };
+
         await this._kafkaProducer.send(msg);
 
         this._logger.debug("associatePartyByTypeAndId sent message");
@@ -347,6 +405,12 @@ export class PartyRoutes {
         };
 
         const msg = new ParticipantDisassociateRequestReceivedEvt(msgPayload);
+
+        // this is an entry request (1st in the sequence), so carry over the fspiopOpaqueState to the next event
+        msg.fspiopOpaqueState = {
+            requesterFspId: requesterFspId,
+            destinationFspId: null,
+        };
 
         await this._kafkaProducer.send(msg);
 
@@ -384,6 +448,12 @@ export class PartyRoutes {
         };
 
         const msg = new ParticipantDisassociateRequestReceivedEvt(msgPayload);
+
+        // this is an entry request (1st in the sequence), so carry over the fspiopOpaqueState to the next event
+        msg.fspiopOpaqueState = {
+            requesterFspId: requesterFspId,
+            destinationFspId: null,
+        };
 
         await this._kafkaProducer.send(msg);
 

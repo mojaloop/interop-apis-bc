@@ -87,6 +87,12 @@ export class ParticipantRoutes {
 
         const msg =  new ParticipantQueryReceivedEvt(msgPayload);
 
+        // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState for the next event from the request
+        msg.fspiopOpaqueState = {
+            requesterFspId: requesterFspId,
+            destinationFspId: null,
+        };
+
         await this._kafkaProducer.send(msg);
 
         this._logger.debug("getParticipantsByTypeAndID sent message");
@@ -124,6 +130,12 @@ export class ParticipantRoutes {
         };
 
         const msg =  new ParticipantQueryReceivedEvt(msgPayload);
+
+        // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState for the next event from the request
+        msg.fspiopOpaqueState = {
+            requesterFspId: requesterFspId,
+            destinationFspId: null,
+        };
 
         await this._kafkaProducer.send(msg);
 

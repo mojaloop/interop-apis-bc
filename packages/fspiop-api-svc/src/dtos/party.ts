@@ -34,36 +34,41 @@
 
  "use strict";
  
-export type ParticipantDto = {
-    party: {
-        partyIdInfo: {
-            partyIdType: "MSISDN" | "EMAIL" | "PERSONAL_ID" | "BUSINESS" | "DEVICE" | "ACCOUNT_ID" | "IBAN" | "ALIAS",
-            partyIdentifier: string;
-            partySubIdOrType: string;
-            fspId: string;
-            extensionList: {
-                extension: [
-                    {
-                        key: string;
-                        value: string;
-                    }
-                ]
+export type PartyDto = {
+  partyList: [
+    {
+      partyId: {
+        partyIdType: "MSISDN" | "EMAIL" | "PERSONAL_ID" | "BUSINESS" | "DEVICE" | "ACCOUNT_ID" | "IBAN" | "ALIAS",
+        partyIdentifier: string,
+        partySubIdOrType: string,
+        fspId: string,
+        extensionList: {
+          extension: [
+            {
+              key: string,
+              value: string
             }
+          ]
         }
-        merchantClassificationCode: number;
-        name: string;
-        personalInfo: {
-            complexName: {
-                firstName: string;
-                middleName: string;
-                lastName: string
+      },
+      errorInformation: {
+        errorCode: number,
+        errorDescription: string,
+        extensionList: {
+          extension: [
+            {
+              key: string,
+              value: string
             }
-            dateOfBirth: Date
+          ]
         }
+      }
     }
+  ],
+  currency: string
 }
 
-export type ParticipantDtoError = {
+export type PartyDtoError = {
     errorInformation: {
         errorCode: "8373" | "5411" | "1462" | "6815" | "2566" | "2772" | "3518" | "2462",
         errorDescription: string,

@@ -114,7 +114,9 @@ export const sendRequest = async ({
     return;
   } catch (error) {
     // In production, a list of errors is added
-    throw Error('Failed to send HTTP request to host');
+    console.error(error);
+    //throw Error('Failed to send HTTP request to host');
+    throw error;
   }
 };
 

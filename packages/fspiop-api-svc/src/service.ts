@@ -42,10 +42,11 @@ import {
 import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 import {ParticipantRoutes} from "./http_routes/participant_routes";
 import {PartyRoutes} from "./http_routes/party_routes";
-import { IParticipantService } from "./interfaces/types";
 import { MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { AccountLookupEventHandler } from "./event_handlers/account_lookup_evt_handler";
 import { AccountLookupBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import {ParticipantsHttpClient} from "@mojaloop/participants-bc-client-lib";
+import {AuthorizationClient, LoginHelper} from "@mojaloop/security-bc-client-lib";
 
 
 
@@ -67,6 +68,10 @@ const PARTIES_URL_RESOURCE_NAME = "parties";
 
 const KAFKA_ACCOUNTS_LOOKUP_TOPIC = process.env["KAFKA_ACCOUNTS_LOOKUP_TOPIC"] || AccountLookupBCTopics.DomainEvents;
 
+const PARTICIPANT_SVC_BASEURL = process.env["PARTICIPANT_SVC_BASEURL"] || "http://localhost:3010";
+const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
+
+
 const kafkaProducerOptions = {
     kafkaBrokerList: KAFKA_URL
 };
@@ -76,11 +81,17 @@ let logger:ILogger;
 let expressServer: Server;
 let participantRoutes:ParticipantRoutes;
 let partyRoutes:PartyRoutes;
-let participantService: IParticipantService;
+let participantServiceClient: ParticipantsHttpClient;
+let loginHelper:LoginHelper;
+
 
 async function setupExpress(loggerParam:ILogger): Promise<Server> {
     const app = express();
-    app.use(express.json()); // for parsing application/json
+    app.use(express.json({
+        type: (req)=>{
+            return req.headers["content-type"]?.startsWith("application/vnd.interoperability.") || false;
+        }
+    })); // for parsing application/json
     app.use(express.urlencoded({extended: true})); // for parsing application/x-www-form-urlencoded
 
     participantRoutes = new ParticipantRoutes(kafkaProducerOptions, KAFKA_ACCOUNTS_LOOKUP_TOPIC, loggerParam);
@@ -115,7 +126,13 @@ async function setupEventHandlers():Promise<void>{
         skipAcknowledgements: true,
     };
 
-    accountEvtHandler = new AccountLookupEventHandler(logger, kafkaJsonConsumerOptions, kafkaJsonProducerOptions, [KAFKA_ACCOUNTS_LOOKUP_TOPIC], participantService);
+    accountEvtHandler = new AccountLookupEventHandler(
+            logger,
+            kafkaJsonConsumerOptions,
+            kafkaJsonProducerOptions,
+            [KAFKA_ACCOUNTS_LOOKUP_TOPIC],
+            participantServiceClient
+    );
     await accountEvtHandler.init();
 
 }
@@ -156,6 +173,15 @@ export async function start(
         await auditClient.init();
     }
 
+    // TODO setup login helper
+    //loginHelper = new LoginHelper(AUTH_N_SVC_BASEURL, logger);
+    //loginHelper.init()
+
+    const fixedToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik94cUxMbDlRdUVuaUNGTlpLblVpSkdTWHV6MGhRc0gyUHBiWXdsQW4xUEUifQ.eyJ0eXAiOiJCZWFyZXIiLCJhenAiOiJzZWN1cml0eS1iYy11aSIsInJvbGVzIjpbIjNmMmVkOWJlLTc4MTMtNGYxYi1iYjEyLWE2NWExODViMTY5YiJdLCJpYXQiOjE2NjYzNjgzNjgsImV4cCI6MTY2NjM3MTk2OCwiYXVkIjoibW9qYWxvb3Audm5leHQuZGVmYXVsdF9hdWRpZW5jZSIsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3Q6MzIwMS8iLCJzdWIiOiJ1c2VyOjp1c2VyIiwianRpIjoiZDY0ZDgyODUtOWMxNy00OWViLWEyNmMtYjUxMzZhZjRkZWEyIn0.x-ePFp-BuRP7CxRrqVi1elEXhtlKdgENxAjCuk1d2VxOTCEffPSTbgKWEzw_DQPN-FDiGqOwJ2DCR1s0DhpbPb03KBQ1qPLHl11fSu_sQtwY-npdhHzV0zuLZMjXoXvJV-A4xdoOcEs7X_T2mu_WBKS4JzAmuB1g6C14uY2chLjYFzfxKxADVs6OxVH3NClAqaZnpTqRZJmb1ez1lEAtNAoZWvB48vZYKLuBj9fE-QENVVElN8_7Pq7BTqoUzfGc8Bk61JaPsrd96VISDFIOa9qrLpL-aurp2fHe5NK6ahoI8txGZTPphpicYBXtT8U9yp5M3iIcAAcNA7Zc54jYqQ";
+
+    participantServiceClient = new ParticipantsHttpClient(logger, PARTICIPANT_SVC_BASEURL, fixedToken, 5000);
+
+
     await setupEventHandlers();
 
     const app = await setupExpress(logger);
@@ -172,8 +198,8 @@ export async function start(
 }
 
 export async function stop(){
-    expressServer.close();
     await accountEvtHandler.destroy();
+    expressServer.close();
 }
 
 /**

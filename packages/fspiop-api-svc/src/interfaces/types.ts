@@ -32,54 +32,54 @@
 
  "use strict";
 
+//
+//  export interface IParticipant {
+//     id: string;
+//     type: string;
+//     subId: string | null;
+//     isActive: boolean;
+// }
 
- export interface IParticipant {
-    id: string;
-    type: string;
-    subId: string | null;
-    isActive: boolean;
-}
-
-export interface IParticipantService {
-    getParticipantInfo(fspId: string):Promise<Participant|null>;
-    getParticipantsInfo(fspIds: string[]):Promise<Participant[]>;
-}
-
-/** Participants **/
-export declare type Participant = {
-    id: string;
-    name: string;
-    isActive: boolean;
-    description: string;
-    createdDate: number;
-    createdBy: string;
-    lastUpdated: number;
-    participantEndpoints: ParticipantEndpoint[];
-    participantAccounts: ParticipantAccount[];
-  }
-  
-  export declare type ParticipantEndpoint = {
-    type: string;
-    value: string;
-  }
-  
-  export declare type ParticipantAccount = {
-    id: string;
-    type: number;       //TODO move
-    //isActive: boolean //TODO do we need this?
-    currencyCode: string;   //TODO move
-    debitBalance?: string;
-    creditBalance?: string;
-  }
-  
-  export declare type ParticipantApproval = {
-    participantId: string;
-    lastUpdated: number;
-    maker: string;
-    makerLastUpdated: number;
-    checker: string;
-    checkerLastUpdated: number;
-    checkerApproved: boolean;
-    feedback: string;
-  }
-  
+// // maybe for later, when we have a proper domain
+// export interface IParticipantService {
+//     getParticipantInfo(fspId: string):Promise<Participant|null>;
+//     getParticipantsInfo(fspIds: string[]):Promise<Participant[]>;
+// }
+//
+// /** Participants **/
+// export declare type Participant = {
+//     id: string;
+//     name: string;
+//     isActive: boolean;
+//     description: string;
+//     createdDate: number;
+//     createdBy: string;
+//     lastUpdated: number;
+//     participantEndpoints: ParticipantEndpoint[];
+//     participantAccounts: ParticipantAccount[];
+//   }
+//
+//   export declare type ParticipantEndpoint = {
+//     type: string;
+//     value: string;
+//   }
+//
+//   export declare type ParticipantAccount = {
+//     id: string;
+//     type: number;       //TODO move
+//     //isActive: boolean //TODO do we need this?
+//     currencyCode: string;   //TODO move
+//     debitBalance?: string;
+//     creditBalance?: string;
+//   }
+//
+//   export declare type ParticipantApproval = {
+//     participantId: string;
+//     lastUpdated: number;
+//     maker: string;
+//     makerLastUpdated: number;
+//     checker: string;
+//     checkerLastUpdated: number;
+//     checkerApproved: boolean;
+//     feedback: string;
+//   }
