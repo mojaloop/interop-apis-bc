@@ -121,8 +121,8 @@ export class AccountLookupEventHandler {
         return;
     }
 
-    private async _handleAccountLookUpErrorReceivedEvt(msg: AccountLookUperrorEvt):Promise<void>{
-        const { validatePayload, payload, fspiopOpaqueState } = msg;
+    private async _handleAccountLookUpErrorReceivedEvt(message: AccountLookUperrorEvt):Promise<void>{
+        const { payload, fspiopOpaqueState } = message;
   
         const requesterFspId = payload.requesterFspId;
         const partyType = payload.partyType;
@@ -143,11 +143,11 @@ export class AccountLookupEventHandler {
 
 
             // Always validate the payload and headers received
-            // validatePayload();
+            message.validatePayload();
             // Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
 
             let template;
-            switch(msg.payload.sourceEvent){
+            switch(message.payload.sourceEvent){
                 case PartyQueryReceivedEvt.name:
                 case PartyInfoAvailableEvt.name:
                 case PartyInfoRequestedEvt.name:
@@ -184,8 +184,8 @@ export class AccountLookupEventHandler {
         return;
     }
 
-    private async _handleParticipantAssociationRequestReceivedEvt(msg: ParticipantAssociationCreatedEvt):Promise<void>{
-        const { validatePayload, payload, fspiopOpaqueState } = msg;
+    private async _handleParticipantAssociationRequestReceivedEvt(message: ParticipantAssociationCreatedEvt):Promise<void>{
+        const { payload, fspiopOpaqueState } = message;
   
         const requesterFspId = payload.ownerFspId;
         const partyType = payload.partyType;
@@ -205,7 +205,7 @@ export class AccountLookupEventHandler {
             this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> start');
 
             // Always validate the payload and headers received
-            // validatePayload();
+            message.validatePayload();
             // Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
             
             const template = partySubType ? Request.PARTIES_PUT_SUB_ID(partyType, partyId, partySubType) : Request.PARTIES_PUT(partyType, partyId);
@@ -242,8 +242,8 @@ export class AccountLookupEventHandler {
         return;
     }
     
-    private async _handleParticipantDisassociateRequestReceivedEvt(msg: ParticipantAssociationRemovedEvt):Promise<void>{
-        const { validatePayload, payload, fspiopOpaqueState } = msg;
+    private async _handleParticipantDisassociateRequestReceivedEvt(message: ParticipantAssociationRemovedEvt):Promise<void>{
+        const { payload, fspiopOpaqueState } = message;
   
         const requesterFspId = payload.ownerFspId;
         const partyType = payload.partyType;
@@ -263,7 +263,7 @@ export class AccountLookupEventHandler {
             this._logger.info('_handleParticipantDisassociateRequestReceivedEvt -> start');
 
             // Always validate the payload and headers received
-            // validatePayload();
+            message.validatePayload();
             // Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
 
             const template = partySubType ? Request.PARTIES_PUT_SUB_ID(partyType, partyId, partySubType) : Request.PARTIES_PUT(partyType, partyId);
@@ -302,8 +302,8 @@ export class AccountLookupEventHandler {
         return;
     }
 
-    private async _handlePartyInfoRequestedEvt(msg: PartyInfoRequestedEvt):Promise<void>{
-        const { validatePayload, payload, fspiopOpaqueState } = msg;
+    private async _handlePartyInfoRequestedEvt(message: PartyInfoRequestedEvt):Promise<void>{
+        const { payload, fspiopOpaqueState } = message;
   
         const requesterFspId = payload.requesterFspId;
         const destinationFspId = payload.destinationFspId;
@@ -326,7 +326,7 @@ export class AccountLookupEventHandler {
             this._logger.info('_handlePartyInfoRequestedEvt -> start');
             
             // Always validate the payload and headers received
-            // validatePayload();
+            message.validatePayload();
             // Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
             
 
@@ -375,8 +375,8 @@ export class AccountLookupEventHandler {
         return;
     }
 
-    private async _handlePartyQueryResponseEvt(msg: PartyQueryResponseEvt):Promise<void>{
-        const { validatePayload, payload, fspiopOpaqueState } = msg;
+    private async _handlePartyQueryResponseEvt(message: PartyQueryResponseEvt):Promise<void>{
+        const { payload, fspiopOpaqueState } = message;
   
         const requesterFspId = payload.requesterFspId;
         const destinationFspId = payload.ownerFspId;
@@ -397,7 +397,7 @@ export class AccountLookupEventHandler {
             this._logger.info('_handlePartyQueryResponseEvt -> start');
             
             // Always validate the payload and headers received
-            // validatePayload();
+            message.validatePayload();
             // Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
 
             // if (Object.values(Constants.FSPIOP_PARTY_ACCOUNT_TYPES).includes(partyType)) {
@@ -446,8 +446,8 @@ export class AccountLookupEventHandler {
     }
 
 
-    private async _handleParticipantQueryResponseEvt(msg: ParticipantQueryResponseEvt):Promise<void>{
-        const { validatePayload, payload, fspiopOpaqueState } = msg;
+    private async _handleParticipantQueryResponseEvt(message: ParticipantQueryResponseEvt):Promise<void>{
+        const { payload, fspiopOpaqueState } = message;
   
         const partyType = payload.partyType;
         const partyId = payload.partyId;
@@ -467,7 +467,7 @@ export class AccountLookupEventHandler {
             this._logger.info('_handleParticipantQueryResponseEvt -> start');
     
             // Always validate the payload and headers received
-            // validatePayload();
+            message.validatePayload();
             // Validate.validateHeaders(partySubType ? ParticipantsPutTypeAndId : ParticipantsPutId, clonedHeaders);
             
             // if (Object.values(Constants.FSPIOP_PARTY_ACCOUNT_TYPES).includes(partyType)) {
@@ -513,29 +513,31 @@ export class AccountLookupEventHandler {
     }
 
     protected async _validateParticipantAndGetEndpoint(fspId: string):Promise<ParticipantEndpoint | null>{
-        // return {
-        //     type: "FSPIOP",
-        //     value: "http://127.0.0.1:4040"
-        // };
-        try {
-            const participant = await this._participantServiceClient.getParticipantById(fspId);
+        return {
+            id: "1",
+            protocol: "HTTPs/REST",
+            type: "FSPIOP",
+            value: "http://127.0.0.1:4040"
+        };
+        // try {
+        //     const participant = await this._participantServiceClient.getParticipantById(fspId);
 
-            if (!participant) {
-                this._logger.error(`_validateParticipantAndGetEndpoint could not get participant with id: "${fspId}"`);
-                return null;
-            }
+        //     if (!participant) {
+        //         this._logger.error(`_validateParticipantAndGetEndpoint could not get participant with id: "${fspId}"`);
+        //         return null;
+        //     }
 
-            const endpoint = participant.participantEndpoints.find(endpoint => endpoint.type==="FSPIOP");
+        //     const endpoint = participant.participantEndpoints.find(endpoint => endpoint.type==="FSPIOP");
 
-            if (!endpoint) {
-                this._logger.error(`_validateParticipantAndGetEndpoint could not get "FSPIOP" endpoint from participant with id: "${fspId}"`);
-            }
+        //     if (!endpoint) {
+        //         this._logger.error(`_validateParticipantAndGetEndpoint could not get "FSPIOP" endpoint from participant with id: "${fspId}"`);
+        //     }
 
-            return endpoint || null;
-        }catch(error:any){
-            this._logger.error(error);
-            return null;
-        }
+        //     return endpoint || null;
+        // }catch(error:any){
+        //     this._logger.error(error);
+        //     return null;
+        // }
     }
 
     async destroy () : Promise<void> {
