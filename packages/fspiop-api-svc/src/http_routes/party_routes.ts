@@ -208,24 +208,6 @@ export class PartyRoutes {
             partyDoB: putPartyBody?.personalInfo?.dateOfBirth
         };
 
-        const party = {
-            "partyIdInfo": {
-                "partyIdType": "MSISDN",
-                "partyIdentifier": "93123",
-                "fspId": "blue_id"
-            },
-            "merchantClassificationCode": "3",
-            "name": "quis magna sit",
-            "personalInfo": {
-                "complexName": {
-                    "firstName": "Maria",
-                    "lastName": "Gonzalez",
-                    "middleName": "N"
-                },
-                "dateOfBirth": "1927-04-05"
-            }
-        }
-
         const msg =  new PartyInfoAvailableEvt(msgPayload);
 
         // this is a response from the original destination, so we swap requester and destination
@@ -248,6 +230,9 @@ export class PartyRoutes {
     private async getPartyInfoAvailableByTypeAndIdAndSubId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
         this._logger.debug("Got getPartyInfoAvailableByTypeAndIdAndSubId request");
 
+        const putPartyBody: PutParty = req.body?.party;
+        // TODO validate putPartyBody
+        
         const clonedHeaders = { ...req.headers };
         const type = req.params["type"] as string || null;
         const id = req.params["id"] as string || null;
@@ -273,8 +258,8 @@ export class PartyRoutes {
             partyId: id,
             partySubType: partySubIdOrType,
             currency: currency,
-            partyName: 'partynmame',
-            partyDoB: new Date(),
+            partyName: `${putPartyBody?.personalInfo?.complexName?.firstName} ${putPartyBody?.personalInfo?.complexName?.lastName}`,
+            partyDoB: putPartyBody?.personalInfo?.dateOfBirth
         };
 
         const msg =  new PartyInfoAvailableEvt(msgPayload);
