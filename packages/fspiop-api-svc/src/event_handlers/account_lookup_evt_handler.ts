@@ -92,22 +92,22 @@ export class AccountLookupEventHandler {
 
         switch(message.msgName){
             case AccountLookUperrorEvt.name:
-                await this._handleAccountLookUpErrorReceivedEvt(new AccountLookUperrorEvt(message.payload));
+                await this._handleAccountLookUpErrorReceivedEvt(new AccountLookUperrorEvt(message.payload), message.fspiopOpaqueState);
                 break;
             case ParticipantAssociationCreatedEvt.name:
-                await this._handleParticipantAssociationRequestReceivedEvt(new ParticipantAssociationCreatedEvt(message.payload));
+                await this._handleParticipantAssociationRequestReceivedEvt(new ParticipantAssociationCreatedEvt(message.payload), message.fspiopOpaqueState);
                 break;
             case ParticipantAssociationRemovedEvt.name:
-                await this._handleParticipantDisassociateRequestReceivedEvt(new ParticipantAssociationRemovedEvt(message.payload));
+                await this._handleParticipantDisassociateRequestReceivedEvt(new ParticipantAssociationRemovedEvt(message.payload), message.fspiopOpaqueState);
                 break;
             case PartyInfoRequestedEvt.name:
-                await this._handlePartyInfoRequestedEvt(new PartyInfoRequestedEvt(message.payload));
+                await this._handlePartyInfoRequestedEvt(new PartyInfoRequestedEvt(message.payload), message.fspiopOpaqueState);
                 break;
             case PartyQueryResponseEvt.name:
-                await this._handlePartyQueryResponseEvt(new PartyQueryResponseEvt(message.payload));
+                await this._handlePartyQueryResponseEvt(new PartyQueryResponseEvt(message.payload), message.fspiopOpaqueState);
                 break;
             case ParticipantQueryResponseEvt.name:
-                await this._handleParticipantQueryResponseEvt(new ParticipantQueryResponseEvt(message.payload));
+                await this._handleParticipantQueryResponseEvt(new ParticipantQueryResponseEvt(message.payload), message.fspiopOpaqueState);
                 break;
             default:
                 this._logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
@@ -121,14 +121,14 @@ export class AccountLookupEventHandler {
         return;
     }
 
-    private async _handleAccountLookUpErrorReceivedEvt(message: AccountLookUperrorEvt):Promise<void>{
-        const { payload, fspiopOpaqueState } = message;
+    private async _handleAccountLookUpErrorReceivedEvt(message: AccountLookUperrorEvt, fspiopOpaqueState: any):Promise<void>{
+        const { payload } = message;
   
         const requesterFspId = payload.requesterFspId;
         const partyType = payload.partyType;
         const partyId = payload.partyId;
         const partySubType = null;
-        const clonedHeaders = { ...fspiopOpaqueState as unknown as Request.FspiopHttpHeaders };
+        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
 
         const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
@@ -144,7 +144,8 @@ export class AccountLookupEventHandler {
 
             // Always validate the payload and headers received
             message.validatePayload();
-            // Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
+            Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
+
 
             let template;
             switch(message.payload.sourceEvent){
@@ -159,7 +160,7 @@ export class AccountLookupEventHandler {
                     template = partySubType ? Request.PARTICIPANTS_PUT_SUB_ID_ERROR(partyType, partyId, partySubType) : Request.PARTICIPANTS_PUT_ERROR(partyType, partyId);
                     break;
                 default:
-                    throw new Error("Unhandled message source event on AccountLookupEventHandler_handleAccountLookUpErrorReceivedEvt()")
+                    throw new Error("Unhandled message source event on AccountLookupEventHandler_handleAccountLookUpErrorReceivedEvt()");
             }
 
            
@@ -184,14 +185,14 @@ export class AccountLookupEventHandler {
         return;
     }
 
-    private async _handleParticipantAssociationRequestReceivedEvt(message: ParticipantAssociationCreatedEvt):Promise<void>{
-        const { payload, fspiopOpaqueState } = message;
+    private async _handleParticipantAssociationRequestReceivedEvt(message: ParticipantAssociationCreatedEvt, fspiopOpaqueState: any):Promise<void>{
+        const { payload } = message;
   
         const requesterFspId = payload.ownerFspId;
         const partyType = payload.partyType;
         const partyId = payload.partyId;
         const partySubType = payload.partySubType as string;
-        const clonedHeaders = { ...fspiopOpaqueState as unknown as Request.FspiopHttpHeaders };
+        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
 
         const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
@@ -206,7 +207,8 @@ export class AccountLookupEventHandler {
 
             // Always validate the payload and headers received
             message.validatePayload();
-            // Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
+            Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
+
             
             const template = partySubType ? Request.PARTIES_PUT_SUB_ID(partyType, partyId, partySubType) : Request.PARTIES_PUT(partyType, partyId);
 
@@ -242,14 +244,14 @@ export class AccountLookupEventHandler {
         return;
     }
     
-    private async _handleParticipantDisassociateRequestReceivedEvt(message: ParticipantAssociationRemovedEvt):Promise<void>{
-        const { payload, fspiopOpaqueState } = message;
+    private async _handleParticipantDisassociateRequestReceivedEvt(message: ParticipantAssociationRemovedEvt, fspiopOpaqueState: any):Promise<void>{
+        const { payload } = message;
   
         const requesterFspId = payload.ownerFspId;
         const partyType = payload.partyType;
         const partyId = payload.partyId;
         const partySubType = payload.partySubType as string;
-        const clonedHeaders = { ...fspiopOpaqueState as unknown as Request.FspiopHttpHeaders };
+        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
 
         const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
@@ -264,7 +266,8 @@ export class AccountLookupEventHandler {
 
             // Always validate the payload and headers received
             message.validatePayload();
-            // Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
+            Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
+
 
             const template = partySubType ? Request.PARTIES_PUT_SUB_ID(partyType, partyId, partySubType) : Request.PARTIES_PUT(partyType, partyId);
 
@@ -302,15 +305,15 @@ export class AccountLookupEventHandler {
         return;
     }
 
-    private async _handlePartyInfoRequestedEvt(message: PartyInfoRequestedEvt):Promise<void>{
-        const { payload, fspiopOpaqueState } = message;
+    private async _handlePartyInfoRequestedEvt(message: PartyInfoRequestedEvt, fspiopOpaqueState: any):Promise<void>{
+        const { payload } = message;
   
         const requesterFspId = payload.requesterFspId;
         const destinationFspId = payload.destinationFspId;
         const partyType = payload.partyType;
         const partyId = payload.partyId;
         const partySubType = payload.partySubType as string;
-        const clonedHeaders = { ...fspiopOpaqueState as unknown as Request.FspiopHttpHeaders };
+        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
 
         // TODO handle the case where destinationFspId is null and remove ! below
 
@@ -327,7 +330,7 @@ export class AccountLookupEventHandler {
             
             // Always validate the payload and headers received
             message.validatePayload();
-            // Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
+            Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
             
 
             // if (Object.values(Constants.FSPIOP_PARTY_ACCOUNT_TYPES).includes(partyType)) {
@@ -375,15 +378,15 @@ export class AccountLookupEventHandler {
         return;
     }
 
-    private async _handlePartyQueryResponseEvt(message: PartyQueryResponseEvt):Promise<void>{
-        const { payload, fspiopOpaqueState } = message;
+    private async _handlePartyQueryResponseEvt(message: PartyQueryResponseEvt, fspiopOpaqueState: any):Promise<void>{
+        const { payload } = message;
   
         const requesterFspId = payload.requesterFspId;
         const destinationFspId = payload.ownerFspId;
         const partyType = payload.partyType ;
         const partyId = payload.partyId;
         const partySubType = payload.partySubType as string;
-        const clonedHeaders = { ...fspiopOpaqueState as unknown as Request.FspiopHttpHeaders };
+        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
 
         const destinationEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId!);
 
@@ -398,7 +401,8 @@ export class AccountLookupEventHandler {
             
             // Always validate the payload and headers received
             message.validatePayload();
-            // Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
+            Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
+
 
             // if (Object.values(Constants.FSPIOP_PARTY_ACCOUNT_TYPES).includes(partyType)) {
                 if(fspiopOpaqueState) {
@@ -446,14 +450,14 @@ export class AccountLookupEventHandler {
     }
 
 
-    private async _handleParticipantQueryResponseEvt(message: ParticipantQueryResponseEvt):Promise<void>{
-        const { payload, fspiopOpaqueState } = message;
+    private async _handleParticipantQueryResponseEvt(message: ParticipantQueryResponseEvt, fspiopOpaqueState: any):Promise<void>{
+        const { payload } = message;
   
         const partyType = payload.partyType;
         const partyId = payload.partyId;
         const partySubType = payload.partySubType as string;
         const requesterFspId = payload.requesterFspId;
-        const clonedHeaders = { ...fspiopOpaqueState as unknown as Request.FspiopHttpHeaders };
+        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
 
         const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 

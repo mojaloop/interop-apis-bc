@@ -43,6 +43,8 @@ export const validateHeaders = (arr: string[], obj: object) => {
         if(!hasKey) {
             missingKeysList.push(property);
         }
+
+        return hasKey;
     });
 
     if(!hasAllKeys) {

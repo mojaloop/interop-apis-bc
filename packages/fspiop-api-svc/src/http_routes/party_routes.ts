@@ -41,6 +41,8 @@ import { ParticipantAssociationRequestReceivedEvt } from "@mojaloop/platform-sha
 import { ParticipantAssociationRequestReceivedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import {PutParty} from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/transformer";
 
+const getEnabledHeaders = (headers: any) => Object.fromEntries(Object.entries(headers).filter(([headerKey]) => Constants.FSPIOP_REQUIRED_HEADERS_LIST.includes(headerKey)));
+
 export class PartyRoutes {
     private _logger: ILogger;
     private _producerOptions: MLKafkaJsonProducerOptions;
@@ -104,7 +106,7 @@ export class PartyRoutes {
             partyType: type,
             partyId: id,
             partySubType: null,
-            currency: currency
+            currency: currency,
         };
 
         const msg =  new PartyQueryReceivedEvt(msgPayload);
@@ -113,6 +115,7 @@ export class PartyRoutes {
         msg.fspiopOpaqueState = {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId,
+            headers: getEnabledHeaders(clonedHeaders)
         };
 
         await this._kafkaProducer.send(msg);
@@ -160,6 +163,7 @@ export class PartyRoutes {
         msg.fspiopOpaqueState = {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId,
+            headers: getEnabledHeaders(clonedHeaders)
         };
 
         await this._kafkaProducer.send(msg);
@@ -208,23 +212,6 @@ export class PartyRoutes {
             partyDoB: putPartyBody?.personalInfo?.dateOfBirth
         };
 
-        const party = {
-            "partyIdInfo": {
-                "partyIdType": "MSISDN",
-                "partyIdentifier": "93123",
-                "fspId": "blue_id"
-            },
-            "merchantClassificationCode": "3",
-            "name": "quis magna sit",
-            "personalInfo": {
-                "complexName": {
-                    "firstName": "Maria",
-                    "lastName": "Gonzalez",
-                    "middleName": "N"
-                },
-                "dateOfBirth": "1927-04-05"
-            }
-        }
 
         const msg =  new PartyInfoAvailableEvt(msgPayload);
 
@@ -232,6 +219,7 @@ export class PartyRoutes {
         msg.fspiopOpaqueState = {
             originalRequesterFspId: destinationFspId,
             originalDestination: requesterFspId,
+            headers: getEnabledHeaders(clonedHeaders)
         };
 
         await this._kafkaProducer.send(msg);
@@ -283,6 +271,7 @@ export class PartyRoutes {
         msg.fspiopOpaqueState = {
             originalRequesterFspId: destinationFspId,
             originalDestination: requesterFspId,
+            headers: getEnabledHeaders(clonedHeaders)
         };
 
         await this._kafkaProducer.send(msg);
@@ -299,6 +288,7 @@ export class PartyRoutes {
     private async associatePartyByTypeAndId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
         this._logger.debug("Got associatePartyByTypeAndId request");
 
+        const clonedHeaders = { ...req.headers };
         const type = req.params["type"] as string || null;
         const id = req.params["id"] as string || null;
         const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
@@ -325,6 +315,8 @@ export class PartyRoutes {
         msg.fspiopOpaqueState = {
             requesterFspId: requesterFspId,
             destinationFspId: null,
+            headers: getEnabledHeaders(clonedHeaders)
+
         };
 
         await this._kafkaProducer.send(msg);
@@ -341,6 +333,7 @@ export class PartyRoutes {
     private async associatePartyByTypeAndIdAndSubId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
         this._logger.debug("Got associatePartyByTypeAndId request");
 
+        const clonedHeaders = { ...req.headers };
         const type = req.params["type"] as string || null;
         const id = req.params["id"] as string || null;
         const partySubIdOrType = req.params["subid"] as string || null;
@@ -368,6 +361,8 @@ export class PartyRoutes {
         msg.fspiopOpaqueState = {
             requesterFspId: requesterFspId,
             destinationFspId: null,
+            headers: getEnabledHeaders(clonedHeaders)
+
         };
 
         await this._kafkaProducer.send(msg);
@@ -384,6 +379,7 @@ export class PartyRoutes {
     private async disassociatePartyByTypeAndId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
         this._logger.debug("Got disassociatePartyByTypeAndId request");
 
+        const clonedHeaders = { ...req.headers };
         const type = req.params["type"] as string || null;
         const id = req.params["id"] as string || null;
         const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
@@ -410,6 +406,8 @@ export class PartyRoutes {
         msg.fspiopOpaqueState = {
             requesterFspId: requesterFspId,
             destinationFspId: null,
+            headers: getEnabledHeaders(clonedHeaders)
+
         };
 
         await this._kafkaProducer.send(msg);
@@ -426,6 +424,7 @@ export class PartyRoutes {
     private async disassociatePartyByTypeAndIdAndSubId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
         this._logger.debug("Got disassociatePartyByTypeAndIdAndSubId request");
 
+        const clonedHeaders = { ...req.headers };
         const type = req.params["type"] as string || null;
         const id = req.params["id"] as string || null;
         const partySubIdOrType = req.params["subid"] as string || null;
@@ -453,6 +452,7 @@ export class PartyRoutes {
         msg.fspiopOpaqueState = {
             requesterFspId: requesterFspId,
             destinationFspId: null,
+            headers: getEnabledHeaders(clonedHeaders)
         };
 
         await this._kafkaProducer.send(msg);

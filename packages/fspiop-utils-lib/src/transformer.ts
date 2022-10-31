@@ -360,7 +360,7 @@ export const transformPayloadPartyInfoReceivedPut = (payload: PartyQueryResponse
 		}
 	};
 
-	return removeEmpty(correctPayload)
+	return removeEmpty(correctPayload);
 };
 
 export const transformPayloadError = ({errorCode, errorDescription }:{ errorCode: ErrorCode, errorDescription: string}):FspiopError => {
