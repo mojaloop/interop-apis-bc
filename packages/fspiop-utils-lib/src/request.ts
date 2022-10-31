@@ -33,7 +33,7 @@
 
 import request from 'axios';
 import { FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION,FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_CONTENT_TYPE } from './constants';
-import { FspiopError, PutParticipant, PutParty, transformHeaders } from './transformer';
+import { FspiopError, PutParticipant, PutParty } from './transformer';
 import {ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload, ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvt, AccountLookUperrorEvtPayload, AccountLookUperrorEvt} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { FspiopRequestMethodsEnum, ResponseTypeEnum } from './enums';
 
@@ -91,8 +91,11 @@ export const sendRequest = async ({
       httpMethod: method,
       sourceFsp: source,
       destinationFsp: destination,
-      protocolVersions
+      protocolVersions,
+      headers
     };
+
+    console.log(config);
 
     // const transformedHeaders = transformHeaders({ headers, config });
   

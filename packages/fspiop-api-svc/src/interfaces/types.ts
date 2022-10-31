@@ -83,3 +83,9 @@
 //     checkerApproved: boolean;
 //     feedback: string;
 //   }
+
+export type FSPIOPOpaqueState = {
+    headers: {
+        [key: string]: string | number | null
+    }
+}

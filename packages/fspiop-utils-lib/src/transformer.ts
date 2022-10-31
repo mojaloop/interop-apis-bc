@@ -33,7 +33,7 @@
 
 import { ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvtPayload, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { FSPIOP_HEADERS_CONTENT_LENGTH, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_HOST, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_ACCEPT, FSPIOP_HEADERS_SWITCH_REGEX, FSPIOP_HEADERS_CONTENT_TYPE_CONTENT, FSPIOP_HEADERS_DATE, FSPIOP_HEADERS_CONTENT_AND_ACCEPT_REGEX, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_CONTENT_AND_ACCEPT_REGEX_VALUE } from "./constants";
-import { Currency, ErrorCode, FspiopRequestMethodsEnum, PartyIdentifier } from "./enums";
+import { ErrorCode, FspiopRequestMethodsEnum } from "./enums";
 
 type TransformHeadersOptions = {
 	headers: {
@@ -282,6 +282,7 @@ export const decodePayload = (
 	}
 };
 
+// eslint-disable-next-line
 const removeEmpty = (obj: any) => {
 	Object.entries(obj).forEach(([key, val])  =>
 		(val && typeof val === 'object') && removeEmpty(val) ||

@@ -40,8 +40,9 @@ import { ParticipantDisassociateRequestReceivedEvtPayload } from "@mojaloop/plat
 import { ParticipantAssociationRequestReceivedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ParticipantAssociationRequestReceivedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import {PutParty} from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/transformer";
+import { IncomingHttpHeaders } from "http";
 
-const getEnabledHeaders = (headers: any) => Object.fromEntries(Object.entries(headers).filter(([headerKey]) => Constants.FSPIOP_REQUIRED_HEADERS_LIST.includes(headerKey)));
+const getEnabledHeaders = (headers: IncomingHttpHeaders) => Object.fromEntries(Object.entries(headers).filter(([headerKey]) => Constants.FSPIOP_REQUIRED_HEADERS_LIST.includes(headerKey)));
 
 export class PartyRoutes {
     private _logger: ILogger;
@@ -82,7 +83,7 @@ export class PartyRoutes {
         return this._router;
     }
 
-    private async getPartyQueryReceivedByTypeAndId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
+    private async getPartyQueryReceivedByTypeAndId(req: express.Request, res: express.Response): Promise<void> {
         this._logger.debug("Got getPartyQueryReceivedByTypeAndId request");
 
         const clonedHeaders = { ...req.headers };
@@ -97,7 +98,7 @@ export class PartyRoutes {
             res.status(400).json({
                 status: "not ok"
             });
-            return next();
+            return;
         }
 
         const msgPayload: PartyQueryReceivedEvtPayload = {
@@ -129,7 +130,7 @@ export class PartyRoutes {
         this._logger.debug("getPartyQueryReceivedByTypeAndId responded");
     }
 
-    private async getPartyQueryReceivedByTypeAndIdSubId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
+    private async getPartyQueryReceivedByTypeAndIdSubId(req: express.Request, res: express.Response): Promise<void> {
         this._logger.debug("Got getPartyQueryReceivedByTypeAndIdSubId request");
 
         const clonedHeaders = { ...req.headers };
@@ -145,7 +146,7 @@ export class PartyRoutes {
             res.status(400).json({
                 status: "not ok"
             });
-            return next();
+            return;
         }
 
         const msgPayload: PartyQueryReceivedEvtPayload = {
@@ -177,7 +178,7 @@ export class PartyRoutes {
         this._logger.debug("getPartyQueryReceivedByTypeAndIdSubId responded");
     }
 
-    private async getPartyInfoAvailableByTypeAndId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
+    private async getPartyInfoAvailableByTypeAndId(req: express.Request, res: express.Response): Promise<void> {
         this._logger.debug("Got getPartyInfoAvailableByTypeAndId request");
         console.log(JSON.stringify(req.headers));
 
@@ -233,7 +234,7 @@ export class PartyRoutes {
         this._logger.debug("getPartyInfoAvailableByTypeAndId responded");
     }
 
-    private async getPartyInfoAvailableByTypeAndIdAndSubId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
+    private async getPartyInfoAvailableByTypeAndIdAndSubId(req: express.Request, res: express.Response): Promise<void> {
         this._logger.debug("Got getPartyInfoAvailableByTypeAndIdAndSubId request");
 
         const clonedHeaders = { ...req.headers };
@@ -250,7 +251,7 @@ export class PartyRoutes {
             res.status(400).json({
                 status: "not ok"
             });
-            return next();
+            return;
         }
 
         const msgPayload: PartyInfoAvailableEvtPayload = {
@@ -285,7 +286,7 @@ export class PartyRoutes {
         this._logger.debug("getPartyInfoAvailableByTypeAndIdAndSubId responded");
     }
 
-    private async associatePartyByTypeAndId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
+    private async associatePartyByTypeAndId(req: express.Request, res: express.Response): Promise<void> {
         this._logger.debug("Got associatePartyByTypeAndId request");
 
         const clonedHeaders = { ...req.headers };
@@ -298,7 +299,7 @@ export class PartyRoutes {
             res.status(400).json({
                 status: "not ok"
             });
-            return next();
+            return;
         }
 
         const msgPayload: ParticipantAssociationRequestReceivedEvtPayload = {
@@ -330,7 +331,7 @@ export class PartyRoutes {
         this._logger.debug("associatePartyByTypeAndId responded");
     }
 
-    private async associatePartyByTypeAndIdAndSubId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
+    private async associatePartyByTypeAndIdAndSubId(req: express.Request, res: express.Response): Promise<void> {
         this._logger.debug("Got associatePartyByTypeAndId request");
 
         const clonedHeaders = { ...req.headers };
@@ -344,7 +345,7 @@ export class PartyRoutes {
             res.status(400).json({
                 status: "not ok"
             });
-            return next();
+            return;
         }
 
         const msgPayload: ParticipantAssociationRequestReceivedEvtPayload = {
@@ -376,7 +377,7 @@ export class PartyRoutes {
         this._logger.debug("associatePartyByTypeAndId responded");
     }
 
-    private async disassociatePartyByTypeAndId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
+    private async disassociatePartyByTypeAndId(req: express.Request, res: express.Response): Promise<void> {
         this._logger.debug("Got disassociatePartyByTypeAndId request");
 
         const clonedHeaders = { ...req.headers };
@@ -389,7 +390,7 @@ export class PartyRoutes {
             res.status(400).json({
                 status: "not ok"
             });
-            return next();
+            return;
         }
 
         const msgPayload: ParticipantDisassociateRequestReceivedEvtPayload = {
@@ -421,7 +422,7 @@ export class PartyRoutes {
         this._logger.debug("disassociatePartyByTypeAndId responded");
     }
 
-    private async disassociatePartyByTypeAndIdAndSubId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
+    private async disassociatePartyByTypeAndIdAndSubId(req: express.Request, res: express.Response): Promise<void> {
         this._logger.debug("Got disassociatePartyByTypeAndIdAndSubId request");
 
         const clonedHeaders = { ...req.headers };
@@ -435,7 +436,7 @@ export class PartyRoutes {
             res.status(400).json({
                 status: "not ok"
             });
-            return next();
+            return;
         }
 
         const msgPayload: ParticipantDisassociateRequestReceivedEvtPayload = {

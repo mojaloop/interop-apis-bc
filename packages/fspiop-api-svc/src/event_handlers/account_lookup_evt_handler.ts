@@ -50,10 +50,9 @@ import {
     PartyInfoAvailableEvt, PartyQueryReceivedEvt
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-
 import { PartiesPutTypeAndId, PartiesPutTypeAndIdAndSubId } from "../errors";
 import {ParticipantEndpoint, ParticipantsHttpClient } from "@mojaloop/participants-bc-client-lib";
-import * as fs from "fs";
+import { IncomingHttpHeaders } from "http";
 
 export class AccountLookupEventHandler {
     protected _kafkaConsumer: MLKafkaJsonConsumer;
@@ -121,7 +120,7 @@ export class AccountLookupEventHandler {
         return;
     }
 
-    private async _handleAccountLookUpErrorReceivedEvt(message: AccountLookUperrorEvt, fspiopOpaqueState: any):Promise<void>{
+    private async _handleAccountLookUpErrorReceivedEvt(message: AccountLookUperrorEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
         const { payload } = message;
   
         const requesterFspId = payload.requesterFspId;
@@ -185,7 +184,7 @@ export class AccountLookupEventHandler {
         return;
     }
 
-    private async _handleParticipantAssociationRequestReceivedEvt(message: ParticipantAssociationCreatedEvt, fspiopOpaqueState: any):Promise<void>{
+    private async _handleParticipantAssociationRequestReceivedEvt(message: ParticipantAssociationCreatedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
         const { payload } = message;
   
         const requesterFspId = payload.ownerFspId;
@@ -244,7 +243,7 @@ export class AccountLookupEventHandler {
         return;
     }
     
-    private async _handleParticipantDisassociateRequestReceivedEvt(message: ParticipantAssociationRemovedEvt, fspiopOpaqueState: any):Promise<void>{
+    private async _handleParticipantDisassociateRequestReceivedEvt(message: ParticipantAssociationRemovedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
         const { payload } = message;
   
         const requesterFspId = payload.ownerFspId;
@@ -270,8 +269,6 @@ export class AccountLookupEventHandler {
 
 
             const template = partySubType ? Request.PARTIES_PUT_SUB_ID(partyType, partyId, partySubType) : Request.PARTIES_PUT(partyType, partyId);
-
-            const test = Transformer.transformPayloadPartyDisassociationPut(payload);
 
             await Request.sendRequest({
                 url: Request.buildEndpoint(requestedEndpoint.value, template), 
@@ -305,7 +302,7 @@ export class AccountLookupEventHandler {
         return;
     }
 
-    private async _handlePartyInfoRequestedEvt(message: PartyInfoRequestedEvt, fspiopOpaqueState: any):Promise<void>{
+    private async _handlePartyInfoRequestedEvt(message: PartyInfoRequestedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
         const { payload } = message;
   
         const requesterFspId = payload.requesterFspId;
@@ -317,7 +314,12 @@ export class AccountLookupEventHandler {
 
         // TODO handle the case where destinationFspId is null and remove ! below
 
-        const destinationEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId!);
+        if(!destinationFspId){
+            // TODO this must send an error that can be forwarded to the operator - to a special topic
+            return;
+        }
+
+        const destinationEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
         if(!destinationEndpoint){
             // TODO this must send an error that can be forwarded to the operator - to a special topic
@@ -378,7 +380,7 @@ export class AccountLookupEventHandler {
         return;
     }
 
-    private async _handlePartyQueryResponseEvt(message: PartyQueryResponseEvt, fspiopOpaqueState: any):Promise<void>{
+    private async _handlePartyQueryResponseEvt(message: PartyQueryResponseEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
         const { payload } = message;
   
         const requesterFspId = payload.requesterFspId;
@@ -388,7 +390,12 @@ export class AccountLookupEventHandler {
         const partySubType = payload.partySubType as string;
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
 
-        const destinationEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId!);
+        if(!destinationFspId){
+            // TODO this must send an error that can be forwarded to the operator - to a special topic
+            return;
+        }
+
+        const destinationEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
         if(!destinationEndpoint){
             // TODO this must send an error that can be forwarded to the operator - to a special topic
@@ -450,7 +457,7 @@ export class AccountLookupEventHandler {
     }
 
 
-    private async _handleParticipantQueryResponseEvt(message: ParticipantQueryResponseEvt, fspiopOpaqueState: any):Promise<void>{
+    private async _handleParticipantQueryResponseEvt(message: ParticipantQueryResponseEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
         const { payload } = message;
   
         const partyType = payload.partyType;
@@ -518,7 +525,7 @@ export class AccountLookupEventHandler {
 
     protected async _validateParticipantAndGetEndpoint(fspId: string):Promise<ParticipantEndpoint | null>{
         return {
-            id: "1",
+            id: fspId,
             protocol: "HTTPs/REST",
             type: "FSPIOP",
             value: "http://127.0.0.1:4040"

@@ -46,7 +46,7 @@ import { MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions } from "@mojaloo
 import { AccountLookupEventHandler } from "./event_handlers/account_lookup_evt_handler";
 import { AccountLookupBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import {ParticipantsHttpClient} from "@mojaloop/participants-bc-client-lib";
-import {AuthorizationClient, LoginHelper} from "@mojaloop/security-bc-client-lib";
+// import {AuthorizationClient, LoginHelper} from "@mojaloop/security-bc-client-lib";
 
 
 
@@ -69,7 +69,7 @@ const PARTIES_URL_RESOURCE_NAME = "parties";
 const KAFKA_ACCOUNTS_LOOKUP_TOPIC = process.env["KAFKA_ACCOUNTS_LOOKUP_TOPIC"] || AccountLookupBCTopics.DomainEvents;
 
 const PARTICIPANT_SVC_BASEURL = process.env["PARTICIPANT_SVC_BASEURL"] || "http://localhost:3010";
-const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
+// const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
 
 
 const kafkaProducerOptions = {
@@ -82,7 +82,7 @@ let expressServer: Server;
 let participantRoutes:ParticipantRoutes;
 let partyRoutes:PartyRoutes;
 let participantServiceClient: ParticipantsHttpClient;
-let loginHelper:LoginHelper;
+// let loginHelper:LoginHelper;
 
 
 async function setupExpress(loggerParam:ILogger): Promise<Server> {
@@ -209,7 +209,7 @@ export async function stop(){
 async function _handle_int_and_term_signals(signal: NodeJS.Signals): Promise<void> {
     console.info(`Service - ${signal} received - cleaning up...`);
     let clean_exit = false;
-    setTimeout(args => { clean_exit || process.abort();}, 5000);
+    setTimeout(() => { clean_exit || process.abort();}, 5000);
 
     // call graceful stop routine
     await stop();
