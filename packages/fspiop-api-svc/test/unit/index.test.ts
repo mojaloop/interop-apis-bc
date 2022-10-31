@@ -33,4 +33,10 @@
 const jestOpenAPI = require('jest-openapi');
 const request = require('supertest');
 const path = require('path');
-const server = require('./server');
+// const server = require('./server');
+
+describe("placeholder", () => {
+    test("it should do nothing", () => {
+      // actual test
+    });
+  });
