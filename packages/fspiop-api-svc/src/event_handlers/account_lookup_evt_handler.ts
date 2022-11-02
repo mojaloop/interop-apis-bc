@@ -134,6 +134,8 @@ export class AccountLookupEventHandler {
         if(!requestedEndpoint){
             // TODO this must send an error that can be forwarded to the operator - to a special topic
             // _validateParticipantAndGetEndpoint already logs the error
+            this._logger.error("Cannot get requestedEndpoint at _handleAccountLookUpErrorReceivedEvt()");
+
             return;
         }
 
@@ -198,6 +200,8 @@ export class AccountLookupEventHandler {
         if(!requestedEndpoint){
             // TODO this must send an error that can be forwarded to the operator - to a special topic
             // _validateParticipantAndGetEndpoint already logs the error
+            this._logger.error("Cannot get requestedEndpoint at _handleParticipantAssociationRequestReceivedEvt()");
+
             return;
         }
 
@@ -257,6 +261,8 @@ export class AccountLookupEventHandler {
         if(!requestedEndpoint){
             // TODO this must send an error that can be forwarded to the operator - to a special topic
             // _validateParticipantAndGetEndpoint already logs the error
+            this._logger.error("Cannot get requestedEndpoint at _handleParticipantDisassociateRequestReceivedEvt()");
+
             return;
         }
 
@@ -324,6 +330,8 @@ export class AccountLookupEventHandler {
         if(!destinationEndpoint){
             // TODO this must send an error that can be forwarded to the operator - to a special topic
             // _validateParticipantAndGetEndpoint already logs the error
+            this._logger.error("Cannot get destinationEndpoint at _handlePartyInfoRequestedEvt()");
+
             return;
         }
 
@@ -400,6 +408,7 @@ export class AccountLookupEventHandler {
         if(!destinationEndpoint){
             // TODO this must send an error that can be forwarded to the operator - to a special topic
             // _validateParticipantAndGetEndpoint already logs the error
+            this._logger.error("Cannot get destinationEndpoint at _handlePartyQueryResponseEvt()");
             return;
         }
 
@@ -471,6 +480,7 @@ export class AccountLookupEventHandler {
         if(!requestedEndpoint){
             // TODO this must send an error that can be forwarded to the operator - to a special topic
             // _validateParticipantAndGetEndpoint already logs the error
+            this._logger.error("Cannot get requestedEndpoint at _handleParticipantQueryResponseEvt()");
             return;
         }
 
@@ -546,7 +556,7 @@ export class AccountLookupEventHandler {
 
         //     return endpoint || null;
         // }catch(error:any){
-        //     this._logger.error(error);
+        //     this._logger.error(error.stack);
         //     return null;
         // }
     }

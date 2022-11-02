@@ -18,6 +18,7 @@
     "start": "npm -ws --parallel -v run start",
     "start:fspiop-api-svc": "npm -w @mojaloop/interop-apis-bc-fspiop-api-svc run start",
     "build": "npm -ws run build",
+    "docker:build": "npm run build && docker build . -t \"mojaloop/interop-apis-bc-fspiop-api-svc\"",
     "watch": "npm -ws --parallel  run watch",
     "clean": "npm run clean:dist",
     "clean:npm": "rm -Rf node_modules && npm -ws --parallel  run clean:npm",
@@ -36,8 +37,8 @@
     "dep:update": "ncu -e 2 -u && npm -ws --parallel run dep:update"
   },
   "devDependencies": {
-    "@types/jest": "^29.2.0",
-    "@types/node": "^18.11.8",
+    "@types/jest": "^29.2.1",
+    "@types/node": "^18.11.9",
     "@typescript-eslint/eslint-plugin": "^5.42.0",
     "@typescript-eslint/parser": "^5.42.0",
     "eslint": "^8.26.0",

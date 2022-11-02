@@ -68,8 +68,8 @@ const PARTIES_URL_RESOURCE_NAME = "parties";
 
 const KAFKA_ACCOUNTS_LOOKUP_TOPIC = process.env["KAFKA_ACCOUNTS_LOOKUP_TOPIC"] || AccountLookupBCTopics.DomainEvents;
 
-const PARTICIPANT_SVC_BASEURL = process.env["PARTICIPANT_SVC_BASEURL"] || "http://localhost:3010";
-// const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
+const PARTICIPANT_SVC_BASEURL = process.env["PARTICIPANT_SVC_BASEURL"] || "http://127.0.0.1:3010";
+const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
 
 
 const kafkaProducerOptions = {
@@ -177,7 +177,7 @@ export async function start(
     //loginHelper = new LoginHelper(AUTH_N_SVC_BASEURL, logger);
     //loginHelper.init()
 
-    const fixedToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik94cUxMbDlRdUVuaUNGTlpLblVpSkdTWHV6MGhRc0gyUHBiWXdsQW4xUEUifQ.eyJ0eXAiOiJCZWFyZXIiLCJhenAiOiJzZWN1cml0eS1iYy11aSIsInJvbGVzIjpbIjNmMmVkOWJlLTc4MTMtNGYxYi1iYjEyLWE2NWExODViMTY5YiJdLCJpYXQiOjE2NjYzNjgzNjgsImV4cCI6MTY2NjM3MTk2OCwiYXVkIjoibW9qYWxvb3Audm5leHQuZGVmYXVsdF9hdWRpZW5jZSIsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3Q6MzIwMS8iLCJzdWIiOiJ1c2VyOjp1c2VyIiwianRpIjoiZDY0ZDgyODUtOWMxNy00OWViLWEyNmMtYjUxMzZhZjRkZWEyIn0.x-ePFp-BuRP7CxRrqVi1elEXhtlKdgENxAjCuk1d2VxOTCEffPSTbgKWEzw_DQPN-FDiGqOwJ2DCR1s0DhpbPb03KBQ1qPLHl11fSu_sQtwY-npdhHzV0zuLZMjXoXvJV-A4xdoOcEs7X_T2mu_WBKS4JzAmuB1g6C14uY2chLjYFzfxKxADVs6OxVH3NClAqaZnpTqRZJmb1ez1lEAtNAoZWvB48vZYKLuBj9fE-QENVVElN8_7Pq7BTqoUzfGc8Bk61JaPsrd96VISDFIOa9qrLpL-aurp2fHe5NK6ahoI8txGZTPphpicYBXtT8U9yp5M3iIcAAcNA7Zc54jYqQ";
+    const fixedToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InVVbFFjbkpJUk93dDIxYXFJRGpRdnVnZERvUlYzMzEzcTJtVllEQndDbWMifQ.eyJ0eXAiOiJCZWFyZXIiLCJhenAiOiJwYXJ0aWNpcGFudHMtc3ZjIiwicm9sZXMiOlsiNTI0YTQ1Y2QtNGIwOS00NmVjLThlNGEtMzMxYTVkOTcyNmVhIl0sImlhdCI6MTY2Njc3MTgyOSwiZXhwIjoxNjY3Mzc2NjI5LCJhdWQiOiJtb2phbG9vcC52bmV4dC5kZWZhdWx0X2F1ZGllbmNlIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDozMjAxLyIsInN1YiI6ImFwcDo6cGFydGljaXBhbnRzLXN2YyIsImp0aSI6IjMzNDUyODFiLThlYzktNDcyOC1hZGVkLTdlNGJmMzkyMGZjMSJ9.s2US9fEAE3SDdAtxxttkPIyxmNcACexW3Z-8T61w96iji9muF_Zdj2koKvf9tICd25rhtCkolI03hBky3mFNe4c7U1sV4YUtCNNRgReMZ69rS9xdfquO_gIaABIQFsu1WTc7xLkAccPhTHorartdQe7jvGp-tOSkqA-azj0yGjwUccFhX3Bgg3rWasmJDbbblIMih4SJuWE7MGHQxMzhX6c9l1TI-NpFRRFDTYTg1H6gXhBvtHMXnC9PPbc9x_RxAPBqmMcleIJZiMZ8Cn805OL9Wt_sMFfGPdAQm0l4cdjdesgfQahsrtCOAcp5l7NKmehY0pbLmjvP6zlrDM_D3A";
 
     participantServiceClient = new ParticipantsHttpClient(logger, PARTICIPANT_SVC_BASEURL, fixedToken, 5000);
 
