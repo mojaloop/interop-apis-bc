@@ -36,7 +36,7 @@
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import {MLKafkaJsonConsumer, MLKafkaJsonConsumerOptions, MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {
     AccountLookUperrorEvt,
     PartyInfoRequestedEvt,
@@ -51,39 +51,19 @@ import {
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { PartiesPutTypeAndId, PartiesPutTypeAndIdAndSubId } from "../errors";
-import {ParticipantEndpoint, ParticipantsHttpClient } from "@mojaloop/participants-bc-client-lib";
+import { ParticipantsHttpClient } from "@mojaloop/participants-bc-client-lib";
 import { IncomingHttpHeaders } from "http";
+import { BaseEventHandler } from "./base_event_handler"
 
-export class AccountLookupEventHandler {
-    protected _kafkaConsumer: MLKafkaJsonConsumer;
-    protected _logger:ILogger;
-    protected _consumerOpts: MLKafkaJsonConsumerOptions;
-    protected _kafkaTopics: string[];
-    protected _producerOptions: MLKafkaJsonProducerOptions;
-    protected _kafkaProducer: MLKafkaJsonProducer;
-	protected _participantServiceClient: ParticipantsHttpClient;
-
+export class AccountLookupEventHandler extends BaseEventHandler {
     constructor(
             logger: ILogger,
-            consumerOpts: MLKafkaJsonConsumerOptions,
+            consumerOptions: MLKafkaJsonConsumerOptions,
             producerOptions: MLKafkaJsonProducerOptions,
             kafkaTopics : string[],
             participantService: ParticipantsHttpClient
     ) {
-        this._logger = logger.createChild(this.constructor.name);
-        this._consumerOpts = consumerOpts;
-        this._kafkaTopics = kafkaTopics;
-        this._producerOptions = producerOptions;
-        this._participantServiceClient = participantService;
-    }
-
-    async init () : Promise<void> {
-        this._kafkaConsumer = new MLKafkaJsonConsumer(this._consumerOpts, this._logger);
-        this._kafkaConsumer.setTopics(this._kafkaTopics);
-        this._kafkaConsumer.setCallbackFn(this.processMessage.bind(this));
-        this._kafkaProducer = new MLKafkaJsonProducer(this._producerOptions);
-        await this._kafkaConsumer.connect();
-        await this._kafkaConsumer.start();
+        super(logger, consumerOptions, producerOptions, kafkaTopics, participantService);
     }
 
     async processMessage (sourceMessage: IMessage) : Promise<void> {
@@ -91,7 +71,7 @@ export class AccountLookupEventHandler {
 
         switch(message.msgName){
             case AccountLookUperrorEvt.name:
-                await this._handleAccountLookUpErrorReceivedEvt(new AccountLookUperrorEvt(message.payload), message.fspiopOpaqueState);
+                await this._handleErrorReceivedEvt(new AccountLookUperrorEvt(message.payload), message.fspiopOpaqueState);
                 break;
             case ParticipantAssociationCreatedEvt.name:
                 await this._handleParticipantAssociationRequestReceivedEvt(new ParticipantAssociationCreatedEvt(message.payload), message.fspiopOpaqueState);
@@ -120,14 +100,14 @@ export class AccountLookupEventHandler {
         return;
     }
 
-    private async _handleAccountLookUpErrorReceivedEvt(message: AccountLookUperrorEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
+    async _handleErrorReceivedEvt(message: AccountLookUperrorEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
         const { payload } = message;
   
         const requesterFspId = payload.requesterFspId;
         const partyType = payload.partyType;
         const partyId = payload.partyId;
         const partySubType = null;
-        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+        const clonedHeaders = { ...fspiopOpaqueState.headers as Request.FspiopHttpHeaders };
 
         const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
@@ -140,7 +120,7 @@ export class AccountLookupEventHandler {
         }
 
         try {
-            this._logger.info('_handleAccountLookUpErrorReceivedEvt -> start');
+            this._logger.info('_handleErrorReceivedEvt -> start');
 
 
             // Always validate the payload and headers received
@@ -177,7 +157,7 @@ export class AccountLookupEventHandler {
                 }),
             });
 
-            this._logger.info('_handleAccountLookUpErrorReceivedEvt -> end');
+            this._logger.info('_handleErrorReceivedEvt -> end');
 
         } catch (err: unknown) {
             this._logger.error(err);
@@ -193,7 +173,7 @@ export class AccountLookupEventHandler {
         const partyType = payload.partyType;
         const partyId = payload.partyId;
         const partySubType = payload.partySubType as string;
-        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+        const clonedHeaders = { ...fspiopOpaqueState.headers as Request.FspiopHttpHeaders };
 
         const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
@@ -254,7 +234,7 @@ export class AccountLookupEventHandler {
         const partyType = payload.partyType;
         const partyId = payload.partyId;
         const partySubType = payload.partySubType as string;
-        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+        const clonedHeaders = { ...fspiopOpaqueState.headers as Request.FspiopHttpHeaders };
 
         const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
@@ -316,7 +296,7 @@ export class AccountLookupEventHandler {
         const partyType = payload.partyType;
         const partyId = payload.partyId;
         const partySubType = payload.partySubType as string;
-        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+        const clonedHeaders = { ...fspiopOpaqueState.headers as Request.FspiopHttpHeaders };
 
         // TODO handle the case where destinationFspId is null and remove ! below
 
@@ -396,7 +376,7 @@ export class AccountLookupEventHandler {
         const partyType = payload.partyType ;
         const partyId = payload.partyId;
         const partySubType = payload.partySubType as string;
-        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+        const clonedHeaders = { ...fspiopOpaqueState.headers as Request.FspiopHttpHeaders };
 
         if(!destinationFspId){
             // TODO this must send an error that can be forwarded to the operator - to a special topic
@@ -473,7 +453,7 @@ export class AccountLookupEventHandler {
         const partyId = payload.partyId;
         const partySubType = payload.partySubType as string;
         const requesterFspId = payload.requesterFspId;
-        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+        const clonedHeaders = { ...fspiopOpaqueState.headers as Request.FspiopHttpHeaders };
 
         const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
@@ -533,36 +513,4 @@ export class AccountLookupEventHandler {
         return;
     }
 
-    protected async _validateParticipantAndGetEndpoint(fspId: string):Promise<ParticipantEndpoint | null>{
-        return {
-            id: fspId,
-            protocol: "HTTPs/REST",
-            type: "FSPIOP",
-            value: "http://127.0.0.1:4040"
-        };
-        // try {
-        //     const participant = await this._participantServiceClient.getParticipantById(fspId);
-
-        //     if (!participant) {
-        //         this._logger.error(`_validateParticipantAndGetEndpoint could not get participant with id: "${fspId}"`);
-        //         return null;
-        //     }
-
-        //     const endpoint = participant.participantEndpoints.find(endpoint => endpoint.type==="FSPIOP");
-
-        //     if (!endpoint) {
-        //         this._logger.error(`_validateParticipantAndGetEndpoint could not get "FSPIOP" endpoint from participant with id: "${fspId}"`);
-        //     }
-
-        //     return endpoint || null;
-        // }catch(error:any){
-        //     this._logger.error(error.stack);
-        //     return null;
-        // }
-    }
-
-    async destroy () : Promise<void> {
-        await this._kafkaProducer.destroy();
-        await this._kafkaConsumer.destroy(true);
-    }
 }
