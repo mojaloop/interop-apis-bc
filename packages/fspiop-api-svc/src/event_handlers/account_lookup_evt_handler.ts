@@ -50,10 +50,10 @@ import {
     PartyInfoAvailableEvt, PartyQueryReceivedEvt
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { PartiesPutTypeAndId, PartiesPutTypeAndIdAndSubId } from "../errors";
+import { ParticipantsPutId, ParticipantsPutTypeAndId, PartiesPutTypeAndId, PartiesPutTypeAndIdAndSubId } from "../errors";
 import { ParticipantsHttpClient } from "@mojaloop/participants-bc-client-lib";
 import { IncomingHttpHeaders } from "http";
-import { BaseEventHandler } from "./base_event_handler"
+import { BaseEventHandler } from "./base_event_handler";
 
 export class AccountLookupEventHandler extends BaseEventHandler {
     constructor(
@@ -133,12 +133,24 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 case PartyQueryReceivedEvt.name:
                 case PartyInfoAvailableEvt.name:
                 case PartyInfoRequestedEvt.name:
-                    template = partySubType ? Request.PARTIES_PUT_SUB_ID_ERROR(partyType, partyId, partySubType) : Request.PARTIES_PUT_ERROR(partyType, partyId);
+                    template = Request.buildRequestUrl({
+                        entity: Enums.EntityTypeEnum.PARTIES,
+                        partyType, 
+                        partyId, 
+                        partySubType,
+                        error: true
+                    });
                     break;
                 case ParticipantAssociationRequestReceivedEvt.name:
                 case ParticipantDisassociateRequestReceivedEvt.name:
                 case ParticipantQueryReceivedEvt.name:
-                    template = partySubType ? Request.PARTICIPANTS_PUT_SUB_ID_ERROR(partyType, partyId, partySubType) : Request.PARTICIPANTS_PUT_ERROR(partyType, partyId);
+                    template = Request.buildRequestUrl({
+                        entity: Enums.EntityTypeEnum.PARTICIPANTS,
+                        partyType, 
+                        partyId, 
+                        partySubType,
+                        error: true
+                    });
                     break;
                 default:
                     throw new Error("Unhandled message source event on AccountLookupEventHandler_handleAccountLookUpErrorReceivedEvt()");
@@ -193,7 +205,13 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
 
             
-            const template = partySubType ? Request.PARTIES_PUT_SUB_ID(partyType, partyId, partySubType) : Request.PARTIES_PUT(partyType, partyId);
+            const template = Request.buildRequestUrl({
+                entity: Enums.EntityTypeEnum.PARTIES,
+                partyType, 
+                partyId, 
+                partySubType,
+                error: true
+            });
 
             await Request.sendRequest({
                 url: Request.buildEndpoint(requestedEndpoint.value, template), 
@@ -209,7 +227,13 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         } catch (err: unknown) {
             this._logger.error(err);
             
-            const template = partySubType ? Request.PARTIES_PUT_SUB_ID_ERROR(partyType, partyId, partySubType) : Request.PARTIES_PUT_ERROR(partyType, partyId);
+            const template = Request.buildRequestUrl({
+                entity: Enums.EntityTypeEnum.PARTIES,
+                partyType, 
+                partyId, 
+                partySubType,
+                error: true
+            });
            
             await Request.sendRequest({
                 url: Request.buildEndpoint(requestedEndpoint.value, template), 
@@ -254,7 +278,12 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
 
 
-            const template = partySubType ? Request.PARTIES_PUT_SUB_ID(partyType, partyId, partySubType) : Request.PARTIES_PUT(partyType, partyId);
+            const template = Request.buildRequestUrl({
+                entity: Enums.EntityTypeEnum.PARTIES,
+                partyType, 
+                partyId, 
+                partySubType,
+            });
 
             await Request.sendRequest({
                 url: Request.buildEndpoint(requestedEndpoint.value, template), 
@@ -270,7 +299,13 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         } catch (err: unknown) {
             this._logger.error(err);
             
-            const template = partySubType ? Request.PARTIES_PUT_SUB_ID_ERROR(partyType, partyId, partySubType) : Request.PARTIES_PUT_ERROR(partyType, partyId);
+            const template = Request.buildRequestUrl({
+                entity: Enums.EntityTypeEnum.PARTIES,
+                partyType, 
+                partyId, 
+                partySubType,
+                error: true
+            });
            
             await Request.sendRequest({
                 url: Request.buildEndpoint(requestedEndpoint.value, template), 
@@ -332,7 +367,12 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                     clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
                 }
 
-                const template = partySubType ? Request.PARTIES_PUT_SUB_ID(partyType, partyId, partySubType) : Request.PARTIES_PUT(partyType, partyId);
+                const template = Request.buildRequestUrl({
+                    entity: Enums.EntityTypeEnum.PARTIES,
+                    partyType, 
+                    partyId, 
+                    partySubType,
+                });
 
                 await Request.sendRequest({
                     url: Request.buildEndpoint(destinationEndpoint.value, template),
@@ -350,7 +390,13 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         } catch (err: unknown) {
             this._logger.error(err);
 
-            const template = partySubType ? Request.PARTIES_PUT_SUB_ID_ERROR(partyType, partyId, partySubType) : Request.PARTIES_PUT_ERROR(partyType, partyId);
+            const template = Request.buildRequestUrl({
+                entity: Enums.EntityTypeEnum.PARTIES,
+                partyType, 
+                partyId, 
+                partySubType,
+                error: true
+            });
            
             await Request.sendRequest({
                 url: Request.buildEndpoint(destinationEndpoint.value, template),
@@ -409,7 +455,12 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                     clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
                 }
                 
-                const template = partySubType ? Request.PARTIES_PUT_SUB_ID(partyType, partyId, partySubType) : Request.PARTIES_PUT(partyType, partyId);
+                const template = Request.buildRequestUrl({
+                    entity: Enums.EntityTypeEnum.PARTIES,
+                    partyType, 
+                    partyId, 
+                    partySubType,
+                });
 
                 await Request.sendRequest({
                     url: Request.buildEndpoint(destinationEndpoint.value, template),
@@ -427,7 +478,13 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         } catch (err: unknown) {
             this._logger.error(err);
 
-            const template = partySubType ? Request.PARTIES_PUT_SUB_ID_ERROR(partyType, partyId, partySubType) : Request.PARTIES_PUT_ERROR(partyType, partyId);
+            const template = Request.buildRequestUrl({
+                entity: Enums.EntityTypeEnum.PARTIES,
+                partyType, 
+                partyId, 
+                partySubType,
+                error: true
+            });
            
             await Request.sendRequest({
                 url: Request.buildEndpoint(destinationEndpoint.value, template),
@@ -469,7 +526,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
     
             // Always validate the payload and headers received
             message.validatePayload();
-            // Validate.validateHeaders(partySubType ? ParticipantsPutTypeAndId : ParticipantsPutId, clonedHeaders);
+            Validate.validateHeaders(partySubType ? ParticipantsPutTypeAndId : ParticipantsPutId, clonedHeaders);
             
             // if (Object.values(Constants.FSPIOP_PARTY_ACCOUNT_TYPES).includes(partyType)) {
                 if (!clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === '') {
@@ -477,7 +534,12 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 }
                 clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
 
-                const template = partySubType ? Request.PARTICIPANTS_PUT_SUB_ID(partyType, partyId, partySubType) : Request.PARTICIPANTS_PUT(partyType, partyId) ;
+                const template = Request.buildRequestUrl({
+                    entity: Enums.EntityTypeEnum.PARTICIPANTS,
+                    partyType, 
+                    partyId, 
+                    partySubType
+                });
 
                 await Request.sendRequest({
                     url: Request.buildEndpoint(requestedEndpoint.value, template), 
@@ -495,8 +557,14 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         } catch (err: unknown) {
             this._logger.error(err);
 
-            const template = partySubType ? Request.PARTICIPANTS_PUT_SUB_ID_ERROR(partyType, partyId, partySubType) : Request.PARTICIPANTS_PUT_ERROR(partyType, partyId); 
-           
+            const template = Request.buildRequestUrl({
+                entity: Enums.EntityTypeEnum.PARTICIPANTS,
+                partyType, 
+                partyId, 
+                partySubType,
+                error: true
+            });
+
             await Request.sendRequest({
                 url: Request.buildEndpoint(requestedEndpoint.value, template), 
                 headers: clonedHeaders, 

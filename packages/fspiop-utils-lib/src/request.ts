@@ -35,7 +35,7 @@ import request from 'axios';
 import { FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION,FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_CONTENT_TYPE } from './constants';
 import { FspiopError, PutParticipant, PutParty } from './transformer';
 import {ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload, ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvt, AccountLookUperrorEvtPayload, AccountLookUperrorEvt} from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { FspiopRequestMethodsEnum, ResponseTypeEnum } from './enums';
+import { EntityTypeEnum, FspiopRequestMethodsEnum, ResponseTypeEnum } from './enums';
 
 export interface FspiopHttpHeaders {
   [FSPIOP_HEADERS_SOURCE]?: string;
@@ -123,18 +123,30 @@ export const sendRequest = async ({
   }
 };
 
-export const PARTIES_GET = (partyType: string, partyId: string) => `/parties/${partyType}/${partyId}`;
-export const PARTIES_PUT = (partyType: string, partyId: string) => `/parties/${partyType}/${partyId}`;
-export const PARTIES_PUT_SUB_ID = (partyType: string, partyId: string, partySubId: string) => `/parties/${partyType}/${partyId}/${partySubId}`;
-export const PARTIES_PUT_ERROR = (partyType: string, partyId: string) => `/parties/${partyType}/${partyId}/error`;
-export const PARTIES_PUT_SUB_ID_ERROR = (partyType: string, partyId: string, partySubId: string) => `/parties/${partyType}/${partyId}/${partySubId}/error`;
-
-export const PARTICIPANTS_GET = (partyType: string, partyId: string) => `/participants/${partyType}/${partyId}`;
-export const PARTICIPANTS_PUT = (partyType: string, partyId: string) => `/participants/${partyType}/${partyId}`;
-export const PARTICIPANTS_PUT_SUB_ID = (partyType: string, partyId: string, partySubId: string) => `/participants/${partyType}/${partyId}/${partySubId}`;
-export const PARTICIPANTS_PUT_ERROR = (partyType: string, partyId: string) => `/participants/${partyType}/${partyId}/error`;
-export const PARTICIPANTS_PUT_SUB_ID_ERROR = (partyType: string, partyId: string, partySubId: string) => `/participants/${partyType}/${partyId}/${partySubId}/error`;
-
 export const buildEndpoint = (baseUrl: string, templateUrl: string) => {
   return `${baseUrl}${templateUrl}`;
+};
+
+
+type BuildRequestUrlOptions = {
+  entity: EntityTypeEnum, 
+  partyType: string,
+  partyId: string,
+  partySubType: string | null,
+  error?: boolean
+}
+
+export const buildRequestUrl = (options: BuildRequestUrlOptions): string  => {   
+
+	let partialUrl = `/${options.entity}/${options.partyType}/${options.partyId}`;
+
+  if(!options.partySubType) {
+    partialUrl += `/${options.partySubType}`;
+  } 
+
+  if(options.error) {
+    partialUrl += '/error';
+  } 
+
+	return partialUrl;
 };
