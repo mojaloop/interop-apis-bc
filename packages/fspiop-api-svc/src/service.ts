@@ -85,7 +85,7 @@ let participantServiceClient: ParticipantsHttpClient;
 // let loginHelper:LoginHelper;
 
 
-async function setupExpress(loggerParam:ILogger): Promise<Server> {
+export async function setupExpress(loggerParam:ILogger): Promise<Server> {
     const app = express();
     app.use(express.json({
         type: (req)=>{

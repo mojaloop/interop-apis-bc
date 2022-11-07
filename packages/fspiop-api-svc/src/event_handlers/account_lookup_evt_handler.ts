@@ -54,6 +54,8 @@ import { ParticipantsPutId, ParticipantsPutTypeAndId, PartiesPutTypeAndId, Parti
 import { ParticipantsHttpClient } from "@mojaloop/participants-bc-client-lib";
 import { IncomingHttpHeaders } from "http";
 import { BaseEventHandler } from "./base_event_handler";
+import { AxiosError } from "axios";
+import { FspiopError } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/transformer";
 
 export class AccountLookupEventHandler extends BaseEventHandler {
     constructor(
@@ -107,7 +109,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         const partyType = payload.partyType;
         const partyId = payload.partyId;
         const partySubType = null;
-        const clonedHeaders = { ...fspiopOpaqueState.headers as Request.FspiopHttpHeaders };
+        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
 
         const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
@@ -172,7 +174,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             this._logger.info('_handleErrorReceivedEvt -> end');
 
         } catch (err: unknown) {
-            this._logger.error(err);
+            const error = err as unknown as AxiosError;
+            this._logger.error(JSON.stringify(error.response?.data));
         }
 
         return;
@@ -185,7 +188,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         const partyType = payload.partyType;
         const partyId = payload.partyId;
         const partySubType = payload.partySubType as string;
-        const clonedHeaders = { ...fspiopOpaqueState.headers as Request.FspiopHttpHeaders };
+        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
 
         const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
@@ -225,7 +228,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> end');
 
         } catch (err: unknown) {
-            this._logger.error(err);
+            const error = err as unknown as AxiosError;
+            this._logger.error(JSON.stringify(error.response?.data));
             
             const template = Request.buildRequestUrl({
                 entity: Enums.EntityTypeEnum.PARTIES,
@@ -258,7 +262,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         const partyType = payload.partyType;
         const partyId = payload.partyId;
         const partySubType = payload.partySubType as string;
-        const clonedHeaders = { ...fspiopOpaqueState.headers as Request.FspiopHttpHeaders };
+        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
 
         const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
@@ -297,7 +301,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             this._logger.info('_handleParticipantDisassociateRequestReceivedEvt -> end');
 
         } catch (err: unknown) {
-            this._logger.error(err);
+            const error = err as unknown as AxiosError;
+            this._logger.error(JSON.stringify(error.response?.data));
             
             const template = Request.buildRequestUrl({
                 entity: Enums.EntityTypeEnum.PARTIES,
@@ -313,10 +318,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 source: requesterFspId, 
                 destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadError({
-                    errorCode: Enums.ErrorCode.BAD_REQUEST,
-                    errorDescription: err as string,
-                }),
+                payload: error.response?.data as FspiopError,
             });
         }
 
@@ -331,7 +333,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         const partyType = payload.partyType;
         const partyId = payload.partyId;
         const partySubType = payload.partySubType as string;
-        const clonedHeaders = { ...fspiopOpaqueState.headers as Request.FspiopHttpHeaders };
+        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
 
         // TODO handle the case where destinationFspId is null and remove ! below
 
@@ -388,7 +390,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             //     throw Error('No valid party type');
             // }
         } catch (err: unknown) {
-            this._logger.error(err);
+            const error = err as unknown as AxiosError;
+            this._logger.error(JSON.stringify(error.response?.data));
 
             const template = Request.buildRequestUrl({
                 entity: Enums.EntityTypeEnum.PARTIES,
@@ -404,10 +407,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 source: requesterFspId, 
                 destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadError({
-                    errorCode: Enums.ErrorCode.BAD_REQUEST,
-                    errorDescription: err as string,
-                }),
+                payload: error.response?.data as FspiopError,
             });
         }
 
@@ -422,7 +422,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         const partyType = payload.partyType ;
         const partyId = payload.partyId;
         const partySubType = payload.partySubType as string;
-        const clonedHeaders = { ...fspiopOpaqueState.headers as Request.FspiopHttpHeaders };
+        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
 
         if(!destinationFspId){
             // TODO this must send an error that can be forwarded to the operator - to a special topic
@@ -476,7 +476,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             //     throw Error('Party type is incorrect');
             // }
         } catch (err: unknown) {
-            this._logger.error(err);
+            const error = err as unknown as AxiosError;
+            this._logger.error(JSON.stringify(error.response?.data));
 
             const template = Request.buildRequestUrl({
                 entity: Enums.EntityTypeEnum.PARTIES,
@@ -492,10 +493,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 source: requesterFspId, 
                 destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadError({
-                    errorCode: Enums.ErrorCode.BAD_REQUEST,
-                    errorDescription: err as string,
-                }),
+                payload: error.response?.data as FspiopError,
             });
         }
 
@@ -510,7 +508,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         const partyId = payload.partyId;
         const partySubType = payload.partySubType as string;
         const requesterFspId = payload.requesterFspId;
-        const clonedHeaders = { ...fspiopOpaqueState.headers as Request.FspiopHttpHeaders };
+        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
 
         const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
@@ -555,7 +553,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             //     throw Error('No valid party type');
             // }
         } catch (err: unknown) {
-            this._logger.error(err);
+            const error = err as unknown as AxiosError;
+            this._logger.error(JSON.stringify(error.response?.data));
 
             const template = Request.buildRequestUrl({
                 entity: Enums.EntityTypeEnum.PARTICIPANTS,
@@ -571,10 +570,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 source: requesterFspId, 
                 destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadError({
-                    errorCode: Enums.ErrorCode.BAD_REQUEST,
-                    errorDescription: err as string,
-                }),            
+                payload: error.response?.data as FspiopError,            
             });
         }
 

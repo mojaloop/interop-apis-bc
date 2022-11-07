@@ -72,25 +72,31 @@ export abstract class BaseEventHandler implements IEventHandler {
     }
 
     protected async _validateParticipantAndGetEndpoint(fspId: string):Promise<ParticipantEndpoint | null>{
-        try {
-            const participant = await this._participantServiceClient.getParticipantById(fspId);
+        return {
+            id: fspId,
+            protocol: "HTTPs/REST",
+            type: "FSPIOP",
+            value: "http://127.0.0.1:4040"
+        };
+        // try {
+        //     const participant = await this._participantServiceClient.getParticipantById(fspId);
 
-            if (!participant) {
-                this._logger.error(`_validateParticipantAndGetEndpoint could not get participant with id: "${fspId}"`);
-                return null;
-            }
+        //     if (!participant) {
+        //         this._logger.error(`_validateParticipantAndGetEndpoint could not get participant with id: "${fspId}"`);
+        //         return null;
+        //     }
 
-            const endpoint = participant.participantEndpoints.find(endpoint => endpoint.type==="FSPIOP");
+        //     const endpoint = participant.participantEndpoints.find(endpoint => endpoint.type==="FSPIOP");
 
-            if (!endpoint) {
-                this._logger.error(`_validateParticipantAndGetEndpoint could not get "FSPIOP" endpoint from participant with id: "${fspId}"`);
-            }
+        //     if (!endpoint) {
+        //         this._logger.error(`_validateParticipantAndGetEndpoint could not get "FSPIOP" endpoint from participant with id: "${fspId}"`);
+        //     }
 
-            return endpoint || null;
-        } catch(error: any) {
-            this._logger.error(error.stack);
-            return null;
-        }
+        //     return endpoint || null;
+        // } catch(error: any) {
+        //     this._logger.error(error.stack);
+        //     return null;
+        // }
     }
 
     async destroy () : Promise<void> {

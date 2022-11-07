@@ -103,6 +103,16 @@ const getResourceInfoFromHeader = (headerValue: string) => {
 	return result;
 };
 
+// eslint-disable-next-line
+const removeEmpty = (obj: any) => {
+	Object.entries(obj).forEach(([key, val])  =>
+		(val && typeof val === 'object') && removeEmpty(val) ||
+		(val === null || val === "") && delete obj[key]
+	);
+	return obj;
+  };
+
+
 export const transformHeaders = ({
 	headers,
 	config
@@ -282,14 +292,6 @@ export const decodePayload = (
 	}
 };
 
-// eslint-disable-next-line
-const removeEmpty = (obj: any) => {
-	Object.entries(obj).forEach(([key, val])  =>
-		(val && typeof val === 'object') && removeEmpty(val) ||
-		(val === null || val === "") && delete obj[key]
-	);
-	return obj;
-  };
 
 export const transformPayloadParticipantPut = (payload: ParticipantQueryResponseEvtPayload):PutParticipant => {
 	return {

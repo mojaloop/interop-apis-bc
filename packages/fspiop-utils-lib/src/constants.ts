@@ -46,7 +46,7 @@ export const FSPIOP_HEADERS_HTTP_METHOD = "fspiop-http-method";
 export const FSPIOP_HEADERS_SIGNATURE = "fspiop-signature";
 export const FSPIOP_HEADERS_URI = "fspiop-uri";
 
-export const FSPIOP_HEADERS_ACCEPT = "value";
+export const FSPIOP_HEADERS_ACCEPT = "accept";
 export const FSPIOP_HEADERS_ACCEPT_REGEX = /application\/vnd.interoperability[.]/;
 export const FSPIOP_HEADERS_CONTENT_TYPE_REGEX = /application\/vnd.interoperability[.]/;
 export const FSPIOP_HEADERS_CONTENT_AND_ACCEPT_REGEX = /(application\/vnd\.interoperability\.)(\w*)+(\+json\s{0,1};\s{0,1}version=)(.*)/;
@@ -84,6 +84,7 @@ export const FSPIOP_PARTY_ACCOUNT_TYPES = {
 
 
 export const FSPIOP_REQUIRED_HEADERS_LIST = [
+    FSPIOP_HEADERS_ACCEPT,
     FSPIOP_HEADERS_CONTENT_TYPE,
     FSPIOP_HEADERS_DATE,
     FSPIOP_HEADERS_SOURCE,

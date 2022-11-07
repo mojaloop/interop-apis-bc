@@ -22,64 +22,23 @@
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
 
- * Crosslake
- - Pedro Sousa Barreto <pedrob@crosslaketech.com>
+ * Arg Software
+ - José Antunes <jose.antunes@arg.software>
+ - Rui Rocha <rui.rocha@arg.software>
 
  --------------
  ******/
 
- "use strict";
+"use strict";
 
-export enum ResponseTypeEnum {
-    JSON = "json"
+import HeaderBuilder from './header_builder'
+
+export default class AccountLookupHeaderDirector {
+    private builder: HeaderBuilder;
+
+    public setBuilder(builder: HeaderBuilder): void {
+        this.builder = builder;
+    }
+
 }
-
-export enum FspiopRequestMethodsEnum {
-    GET = "GET",
-    POST = "POST",
-    PUT = "PUT",
-    DELETE = "DELETE"
-}
-
-export enum PartyIdType {
-    MSISDN = "MSISDN",
-    EMAIL = "EMAIL",
-    PERSONAL_ID = "PERSONAL_ID",
-    BUSINESS = "BUSINESS",
-    DEVICE = "DEVICE",
-    ACCOUNT_ID = "ACCOUNT_ID",
-    IBAN = "IBAN",
-    ALIAS = "ALIAS",
-}
-
-export enum ErrorCode {
-	BAD_REQUEST = "9882",
-    UNAUTHORIZED = "4565",
-    FORBIDDEN = "4244",
-    NOT_FOUND = "8377",
-    METHOD_NOT_ALLOWED = "5868",
-    NOT_ACCEPTABLE = "9221",
-    NOT_IMPLEMENTED = "5261",
-    SERVICE_UNAVAILABLE = "6991"
-} 
-
-export enum PartyIdentifier {
-    MSISDN = "MSISDN", 
-    EMAIL = "EMAIL", 
-    PERSONAL_ID = "PERSONAL_ID", 
-    BUSINESS = "BUSINESS", 
-    DEVICE = "DEVICE", 
-    ACCOUNT_ID = "ACCOUNT_ID", 
-    IBAN = "IBAN", 
-    ALIAS = "ALIAS"
-}
-
-export enum Currency {
-    EUR = "EUR",
-    USD = "USD",
-}
-
-export enum EntityTypeEnum {
-    PARTICIPANTS = "participants",
-    PARTIES = "parties",
-}
+    
