@@ -29,14 +29,15 @@
     "standard": "npm run lint",
     "lint": "eslint ./src",
     "lint:fix": "eslint ./src --fix",
-    "test:unit": "jest --passWithNoTests --testMatch '**/test/unit/**/*.test.ts'",
-    "test:integration": "jest --passWithNoTests --testMatch '**/test/integration/**/*.test.ts'",
-    "test:coverage": "jest --passWithNoTests --coverage --coverageThreshold='{}' --testMatch '**/test/unit/**/*.test.ts'",
-    "test:coverage-check": "jest --coverage --testMatch '**/test/unit/**/*.test.ts'",
+    "test:unit": "jest --passWithNoTests --testMatch **/test/unit/**/*.test.ts",
+    "test:integration": "jest --passWithNoTests --testMatch **/test/integration/**/*.teest.ts",
+    "test:coverage": "jest --passWithNoTests --coverage --coverageThreshold='{}' --testMatch **/test/integration/**/*.test.ts --detectOpenHandles",
+    "test:coverage-check": "jest --coverage --testMatch **/test/integration/**/*.test.ts",
     "audit:resolve": "SHELL=sh resolve-audit",
     "audit:check": "SHELL=sh check-audit",
     "dep:check": "ncu -e 2",
-    "dep:update": "ncu -e 2 -u"
+    "dep:update": "ncu -e 2 -u",
+    "coverage": "npx nyc --silent --cwd 'C:\\Users\\dinacellfx\\Documents\\Development\\interop-apis-bc\\packages\\fspiop-api-svc' npm start & './listen_on_port_4000.sh' && npx jest --passWithNoTests --coverage --coverageThreshold='{}' --testMatch **/test/integration/**/*.teest.ts --detectOpenHandles && kill $(lsof -t -i tcp:4000)"
   },
   "dependencies": {
     "@mojaloop/auditing-bc-client-lib": "~0.0.10",

@@ -98,7 +98,9 @@ export async function setupExpress(loggerParam:ILogger): Promise<Server> {
     partyRoutes = new PartyRoutes(kafkaProducerOptions, KAFKA_ACCOUNTS_LOOKUP_TOPIC, loggerParam);
 
     await participantRoutes.init();
-
+          
+    console.log('partyRoutes')
+    console.log(partyRoutes)
     app.use(`/${PARTICIPANTS_URL_RESOURCE_NAME}`, participantRoutes.Router);
     app.use(`/${PARTIES_URL_RESOURCE_NAME}`, partyRoutes.Router);
 

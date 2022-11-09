@@ -31,7 +31,7 @@
 
  "use strict";
 
-import request from 'axios';
+import request, { AxiosResponse } from 'axios';
 import { FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION,FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_CONTENT_TYPE, FSPIOP_HEADERS_ACCEPT, FSPIOP_HEADERS_DATE } from './constants';
 import { FspiopError, PutParticipant, PutParty, transformHeaders } from './transformer';
 import {ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload, ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvt, AccountLookUperrorEvtPayload, AccountLookUperrorEvt} from "@mojaloop/platform-shared-lib-public-messages-lib";
@@ -84,7 +84,7 @@ export const sendRequest = async ({
     content: FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION,
     accept: FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION
   }
-}:RequestOptions):Promise<void> => {
+}:RequestOptions):Promise<AxiosResponse<any, any>> => {
   let requestOptions;
     // if (!url || !method || !headers || (method !== FspiopRequestMethodsEnum.GET && method !== FspiopRequestMethodsEnum.DELETE && !payload) || !source || !destination) {
     //   throw Error('Missing parameters for function');
@@ -107,9 +107,9 @@ export const sendRequest = async ({
 
     const transformedHeaders = transformHeaders({ headers, config });
 
-    // const transformedHeaders = builder.getResult().construction();
-    // const director = new AccountLookupHeaderDirector();
-    // director.setBuilder(builder);
+    const transformedHeaders1 = builder.getResult().construction();
+    const director = new AccountLookupHeaderDirector();
+    director.setBuilder(builder);
     
     requestOptions = {
       url,
@@ -119,9 +119,9 @@ export const sendRequest = async ({
       responseType
     };
 
-    await request(requestOptions);
+    const response = await request(requestOptions);
 
-    return;
+    return response;
 
 };
 

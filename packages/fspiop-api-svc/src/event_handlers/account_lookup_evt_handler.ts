@@ -213,7 +213,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 partyType, 
                 partyId, 
                 partySubType,
-                error: true
+                error: false
             });
 
             await Request.sendRequest({
