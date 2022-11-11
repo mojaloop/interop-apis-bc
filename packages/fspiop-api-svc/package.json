@@ -30,19 +30,17 @@
     "lint": "eslint ./src",
     "lint:fix": "eslint ./src --fix",
     "test:unit": "jest --passWithNoTests --testMatch **/test/unit/**/*.test.ts",
-    "test:integration": "jest --passWithNoTests --testMatch **/test/integration/**/*.teest.ts",
+    "test:integration": "jest --passWithNoTests --testMatch **/test/integration/**/*.test.ts --silent --runInBand",
     "test:coverage": "jest --passWithNoTests --coverage --coverageThreshold='{}' --testMatch **/test/integration/**/*.test.ts --detectOpenHandles",
     "test:coverage-check": "jest --coverage --testMatch **/test/integration/**/*.test.ts",
     "audit:resolve": "SHELL=sh resolve-audit",
     "audit:check": "SHELL=sh check-audit",
     "dep:check": "ncu -e 2",
-    "dep:update": "ncu -e 2 -u",
-    "coverage": "npx nyc --silent --cwd 'C:\\Users\\dinacellfx\\Documents\\Development\\interop-apis-bc\\packages\\fspiop-api-svc' npm start & './listen_on_port_4000.sh' && npx jest --passWithNoTests --coverage --coverageThreshold='{}' --testMatch **/test/integration/**/*.teest.ts --detectOpenHandles && kill $(lsof -t -i tcp:4000)"
+    "dep:update": "ncu -e 2 -u"
   },
   "dependencies": {
     "@mojaloop/auditing-bc-client-lib": "~0.0.10",
     "@mojaloop/auditing-bc-public-types-lib": "~0.0.11",
-    "@mojaloop/interop-apis-bc-fspiop-utils-lib": "0.1.0",
     "@mojaloop/logging-bc-client-lib": "~0.1.15",
     "@mojaloop/logging-bc-public-types-lib": "^0.1.12",
     "@mojaloop/participant-bc-public-types-lib": "~0.0.4",
@@ -55,6 +53,8 @@
   },
   "devDependencies": {
     "@types/express": "~4.17.14",
-    "kafka-node": "^5.0.0"
+    "jest-openapi": "^0.14.2",
+    "kafka-node": "^5.0.0",
+    "wait-for-expect": "^3.0.2"
   }
 }

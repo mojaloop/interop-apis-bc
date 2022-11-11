@@ -55,12 +55,15 @@ export const FSPIOP_HEADERS_CONTENT_TYPE = "content-type";
 export const FSPIOP_HEADERS_CONTENT_TYPE_DEFAULT = "application/json";
 export const FSPIOP_HEADERS_CONTENT_TYPE_CONTENT = "content-length";
 export const FSPIOP_HEADERS_HOST = "host";
+export const FSPIOP_HEADERS_X_FORWARDED_FOR = "x-forwarded-for";
+export const FSPIOP_HEADERS_ENCRYPTION = "fspiop-encryption";
 
 // these are http defaults, not sure if we need them
 export const FSPIOP_HEADERS_DATE = "date";
 export const FSPIOP_HEADERS_CONTENT_LENGTH = "content-length";
 export const FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION = "1.1";
 export const FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION = "1";
+
 
 export const FSPIOP_ENDPOINT_TYPES = {
     FSPIOP_CALLBACK_URL_PARTICIPANT_PUT: "FSPIOP_CALLBACK_URL_PARTICIPANT_PUT",

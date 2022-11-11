@@ -31,9 +31,37 @@
 
  "use strict"
  
- import * as kafka from "kafka-node";
+import * as kafka from "kafka-node";
 
 const kafkaHost = "localhost:9092";
+
+export const getCurrentKafkaOffset = (topic: string): Promise<kafka.Message> => {
+    const client = new kafka.KafkaClient({kafkaHost});
+    const offset = new kafka.Offset(client);
+    return new Promise((resolve, reject) => offset.fetchLatestOffsets([topic], (error: any, data: any) => {
+        const offsetA = JSON.stringify(data[topic][0]) as unknown as number;
+        
+        let consumer = new kafka.Consumer(
+            client,
+            [
+                {
+                    topic: topic,
+                    partition: 0,
+                    offset: offsetA-1, // Offset value starts from 0
+                }
+            ], {
+                autoCommit: false,
+                fromOffset: true,
+            }
+        );
+        consumer.on('message', async function (message) {
+            error? reject(error) : resolve(message);
+            
+            consumer.close(true, () => {});
+            client.close();
+        });
+    }));
+};
 
 class KafkaProducer {
     private producer: kafka.Producer;

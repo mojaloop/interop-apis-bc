@@ -360,35 +360,32 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
             
 
-            // if (Object.values(Constants.FSPIOP_PARTY_ACCOUNT_TYPES).includes(partyType)) {
-                if(fspiopOpaqueState) {
-                    if (!clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === '') {
-                        clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
-                    }
-
-                    clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
+            if(fspiopOpaqueState) {
+                if (!clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === '') {
+                    clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
                 }
 
-                const template = Request.buildRequestUrl({
-                    entity: Enums.EntityTypeEnum.PARTIES,
-                    partyType, 
-                    partyId, 
-                    partySubType,
-                });
+                clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
+            }
 
-                await Request.sendRequest({
-                    url: Request.buildEndpoint(destinationEndpoint.value, template),
-                    headers: clonedHeaders, 
-                    source: requesterFspId, 
-                    destination: destinationFspId,
-                    method: Enums.FspiopRequestMethodsEnum.GET,
-                    payload: Transformer.transformPayloadPartyInfoRequestedPut(payload),
-                });
+            const template = Request.buildRequestUrl({
+                entity: Enums.EntityTypeEnum.PARTIES,
+                partyType, 
+                partyId, 
+                partySubType,
+            });
 
-                this._logger.info('_handlePartyInfoRequestedEvt -> end');
-            // } else {
-            //     throw Error('No valid party type');
-            // }
+            await Request.sendRequest({
+                url: Request.buildEndpoint(destinationEndpoint.value, template),
+                headers: clonedHeaders, 
+                source: requesterFspId, 
+                destination: destinationFspId,
+                method: Enums.FspiopRequestMethodsEnum.GET,
+                payload: Transformer.transformPayloadPartyInfoRequestedPut(payload),
+            });
+
+            this._logger.info('_handlePartyInfoRequestedEvt -> end');
+    
         } catch (err: unknown) {
             const error = err as unknown as AxiosError;
             this._logger.error(JSON.stringify(error.response?.data));

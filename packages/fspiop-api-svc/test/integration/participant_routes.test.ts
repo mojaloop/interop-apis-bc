@@ -31,186 +31,133 @@
 
  "use strict"
 
-import { start } from "../../src/service";
-
- const jestOpenAPI = require('jest-openapi');
+ 
  const request = require('supertest');
- const path = require('path');
- // const server = require('./server');
- const server = "http://localhost:4000";
- const workingHeaders = { 
-   'accept': 'application/vnd.interoperability.parties+json;version=1.0',
-   'content-type': 'application/vnd.interoperability.parties+json;version=1.0',
-   'date': 'randomdate',
-   'fspiop-source': 'test-fspiop-source',
- }
- 
- const missingHeaders = { 
-   'accept': 'application/vnd.interoperability.parties+json;version=1.0',
-   'content-type': 'application/vnd.interoperability.parties+json;version=1.0',
- }
- 
- const goodStatusResponse = {
-   "status": "ok"
- }
- 
- const badStatusResponse = {
-   "status": "not ok"
- }
- 
- jest.mock('../../src/http_routes/party_routes');
- 
- jestOpenAPI(path.join(__dirname, '../../src/api-specs/account-look-service/api-swagger.yaml'));
- 
+import { start, stop } from "../../src/service";
+import { getCurrentKafkaOffset } from "./helpers/kafkaproducer";
+import { AccountLookupBCTopics, ParticipantQueryReceivedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
+
+const topic = process.env["KAFKA_ACCOUNTS_LOOKUP_TOPIC"] || AccountLookupBCTopics.DomainRequests;
+
+const server = "http://localhost:4000";
+const workingHeaders = { 
+    'accept': 'application/vnd.interoperability.parties+json;version=1.0',
+    'content-type': 'application/vnd.interoperability.parties+json;version=1.0',
+    'date': 'randomdate',
+    'fspiop-source': 'test-fspiop-source',
+}
+
+const missingHeaders = { 
+    'accept': 'application/vnd.interoperability.parties+json;version=1.0',
+    'content-type': 'application/vnd.interoperability.parties+json;version=1.0',
+}
+
+const goodStatusResponse = {
+    "status": "ok"
+}
+
+const badStatusResponse = {
+    "status": "not ok"
+} 
+
 describe("FSPIOP API Service Participant Routes", () => {
-  beforeAll(async () => {
-      await start();
-  });
-  
-  it('should successfully call getPartyQueryReceivedByTypeAndId endpoint', async () => {
-     const res = await request(server)
-       .post('/parties/MSISDN/123456789')
-       .set(workingHeaders)
- 
-     expect(res.statusCode).toEqual(202)
-     expect(res.body).toStrictEqual(goodStatusResponse)
-   })
- 
-   it('should successfully call getPartyQueryReceivedByTypeAndIdSubId endpoint', async () => {
-     const res = await request(server)
-       .post('/parties/MSISDN/123456789/randomsubtype')
-       .set(workingHeaders)
- 
-     expect(res.statusCode).toEqual(202)
-     expect(res.body).toStrictEqual(goodStatusResponse)
+    beforeAll(async () => {
+        await start();
+    });
+    
+    afterAll(async () => {
+        await stop();
+    });
+
+    it('should successfully call getParticipantsByTypeAndID endpoint', async () => {
+        // Act
+        const expectedOffset = await getCurrentKafkaOffset(topic);
+
+        const res = await request(server)
+        .get('/participants/MSISDN/123456789')
+        .set(workingHeaders)
+
+        let sentMessagesCount = 0;
+        let expectedOffsetMessage;
+        const currentOffset = await getCurrentKafkaOffset(topic);
+        
+        if (currentOffset.offset && expectedOffset.offset) {
+            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
+            expectedOffsetMessage = JSON.parse(currentOffset.value as string);
+        }
+        
+        // Assert
+        expect(res.statusCode).toEqual(202)
+        expect(res.body).toStrictEqual(goodStatusResponse)
+        expect(sentMessagesCount).toBe(1);
+        expect(expectedOffsetMessage.msgName).toBe(ParticipantQueryReceivedEvt.name);
     })
  
-   it('should successfully call getPartyInfoAvailableByTypeAndId endpoint', async () => {
-     const res = await request(server)
-       .post('/parties/MSISDN/123456789')
-       .set(workingHeaders)
+    it('should successfully call getParticipantsByTypeAndIDAndSubId endpoint', async () => {
+        // Act
+        const expectedOffset = await getCurrentKafkaOffset(topic);
+
+        const res = await request(server)
+        .get('/participants/MSISDN/123456789/randomsubtype')
+        .set(workingHeaders)
+
+        let sentMessagesCount = 0;
+        let expectedOffsetMessage;
+        const currentOffset = await getCurrentKafkaOffset(topic);
+        
+        if (currentOffset.offset && expectedOffset.offset) {
+            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
+            expectedOffsetMessage = JSON.parse(currentOffset.value as string);
+        }
+        
+        // Assert
+        expect(res.statusCode).toEqual(202)
+        expect(res.body).toStrictEqual(goodStatusResponse)
+        expect(sentMessagesCount).toBe(1);
+        expect(expectedOffsetMessage.msgName).toBe(ParticipantQueryReceivedEvt.name);
+    })
  
-     expect(res.statusCode).toEqual(202)
-     expect(res.body).toStrictEqual(goodStatusResponse)
+
+   it('should give a bad request calling getParticipantsByTypeAndID endpoint', async () => {
+        // Act
+        const expectedOffset = await getCurrentKafkaOffset(topic);
+
+        const res = await request(server)
+        .get('/participants/MSISDN/123456789')
+        .set(missingHeaders)
+
+        let sentMessagesCount = 0;
+        const currentOffset = await getCurrentKafkaOffset(topic);
+        
+        if (currentOffset.offset && expectedOffset.offset) {
+            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
+        }
+        
+        // Assert
+        expect(res.statusCode).toEqual(400)
+        expect(res.body).toStrictEqual(badStatusResponse)
+        expect(sentMessagesCount).toBe(0);
    })
  
-   it('should successfully call getPartyInfoAvailableByTypeAndIdAndSubId endpoint', async () => {
+   it('should give a bad request calling getParticipantsByTypeAndIDAndSubId endpoint', async () => {
+        // Act
+        const expectedOffset = await getCurrentKafkaOffset(topic);
+
      const res = await request(server)
-       .post('/parties/MSISDN/123456789/randomsubtype')
-       .set(workingHeaders)
+     .get('/participants/MSISDN/123456789/randomsubtype')
+     .set(missingHeaders)
+
+        let sentMessagesCount = 0;
+        const currentOffset = await getCurrentKafkaOffset(topic);
+        
+        if (currentOffset.offset && expectedOffset.offset) {
+            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
+        }
+        
+        // Assert
+        expect(res.statusCode).toEqual(400)
+        expect(res.body).toStrictEqual(badStatusResponse)
+        expect(sentMessagesCount).toBe(0);
  
-     expect(res.statusCode).toEqual(202)
-     expect(res.body).toStrictEqual(goodStatusResponse)
-   })
- 
-   it('should successfully call associatePartyByTypeAndId endpoint', async () => {
-     const res = await request(server)
-       .post('/parties/MSISDN/123456789')
-       .set(workingHeaders)
- 
-     expect(res.statusCode).toEqual(202)
-     expect(res.body).toStrictEqual(goodStatusResponse)
-   })
- 
-   it('should successfully call associatePartyByTypeAndIdAndSubId endpoint', async () => {
-     const res = await request(server)
-       .post('/parties/MSISDN/123456789/randomsubtype')
-       .set(workingHeaders)
- 
-     expect(res.statusCode).toEqual(202)
-     expect(res.body).toStrictEqual(goodStatusResponse)
-   })
- 
-   it('should successfully call disassociatePartyByTypeAndId endpoint', async () => {
-     const res = await request(server)
-       .post('/parties/MSISDN/123456789')
-       .set(workingHeaders)
- 
-     expect(res.statusCode).toEqual(202)
-     expect(res.body).toStrictEqual(goodStatusResponse)
-   })
- 
-   it('should successfully call disassociatePartyByTypeAndIdAndSubId endpoint', async () => {
-     const res = await request(server)
-       .post('/parties/MSISDN/123456789/randomsubtype')
-       .set(workingHeaders)
- 
-     expect(res.statusCode).toEqual(202)
-     expect(res.body).toStrictEqual(goodStatusResponse)
-   })
- 
-   it('should give a bad request calling getPartyQueryReceivedByTypeAndId endpoint', async () => {
-     const res = await request(server)
-       .post('/parties/MSISDN/123456789')
-       .set(missingHeaders)
- 
-     expect(res.statusCode).toEqual(400)
-     expect(res.body).toStrictEqual(badStatusResponse)
-   })
- 
-   it('should give a bad request calling getPartyQueryReceivedByTypeAndIdSubId endpoint', async () => {
-     const res = await request(server)
-       .post('/parties/MSISDN/123456789/randomsubtype')
-       .set(missingHeaders)
- 
-     expect(res.statusCode).toEqual(400)
-     expect(res.body).toStrictEqual(badStatusResponse)
- 
-    //  expect(res).toSatisfyApiSpec();
- 
-   })
- 
-   it('should give a bad request calling getPartyInfoAvailableByTypeAndId endpoint', async () => {
-     const res = await request(server)
-       .post('/parties/MSISDN/123456789')
-       .set(missingHeaders)
- 
-     expect(res.statusCode).toEqual(400)
-     expect(res.body).toStrictEqual(badStatusResponse)
-   })
- 
-   it('should give a bad request calling getPartyInfoAvailableByTypeAndIdAndSubId endpoint', async () => {
-     const res = await request(server)
-       .post('/parties/MSISDN/123456789/randomsubtype')
-       .set(missingHeaders)
- 
-     expect(res.statusCode).toEqual(400)
-     expect(res.body).toStrictEqual(badStatusResponse)
-   })
- 
-   it('should give a bad request calling associatePartyByTypeAndId endpoint', async () => {
-     const res = await request(server)
-       .post('/parties/MSISDN/123456789')
-       .set(missingHeaders)
- 
-     expect(res.statusCode).toEqual(400)
-     expect(res.body).toStrictEqual(badStatusResponse)
-   })
- 
-   it('should give a bad request calling associatePartyByTypeAndIdAndSubId endpoint', async () => {
-     const res = await request(server)
-       .post('/parties/MSISDN/123456789/randomsubtype')
-       .set(missingHeaders)
- 
-     expect(res.statusCode).toEqual(400)
-     expect(res.body).toStrictEqual(badStatusResponse)
-   })
- 
-   it('should give a bad request calling disassociatePartyByTypeAndId endpoint', async () => {
-     const res = await request(server)
-       .post('/parties/MSISDN/123456789')
-       .set(missingHeaders)
- 
-     expect(res.statusCode).toEqual(400)
-     expect(res.body).toStrictEqual(badStatusResponse)
-   })
- 
-   it('should give a bad request calling disassociatePartyByTypeAndIdAndSubId endpoint', async () => {
-     const res = await request(server)
-       .post('/parties/MSISDN/123456789/randomsubtype')
-       .set(missingHeaders)
- 
-     expect(res.statusCode).toEqual(400)
-     expect(res.body).toStrictEqual(badStatusResponse)
    })
  });

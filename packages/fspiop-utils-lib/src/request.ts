@@ -33,11 +33,10 @@
 
 import request, { AxiosResponse } from 'axios';
 import { FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION,FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_CONTENT_TYPE, FSPIOP_HEADERS_ACCEPT, FSPIOP_HEADERS_DATE } from './constants';
-import { FspiopError, PutParticipant, PutParty, transformHeaders } from './transformer';
+import { FspiopError, PutParticipant, PutParty } from './transformer';
 import {ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload, ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvt, AccountLookUperrorEvtPayload, AccountLookUperrorEvt} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { EntityTypeEnum, FspiopRequestMethodsEnum, ResponseTypeEnum } from './enums';
 import HeaderBuilder from './account-lookup/headers/header_builder';
-import AccountLookupHeaderDirector from './account-lookup/headers/account_lookup_director';
 
 export interface FspiopHttpHeaders {
   [FSPIOP_HEADERS_ACCEPT]: string;
@@ -86,10 +85,6 @@ export const sendRequest = async ({
   }
 }:RequestOptions):Promise<AxiosResponse<any, any>> => {
   let requestOptions;
-    // if (!url || !method || !headers || (method !== FspiopRequestMethodsEnum.GET && method !== FspiopRequestMethodsEnum.DELETE && !payload) || !source || !destination) {
-    //   throw Error('Missing parameters for function');
-    // }
-
     const config =  {
       httpMethod: method,
       sourceFsp: source,
@@ -105,11 +100,8 @@ export const sendRequest = async ({
     builder.setDate(headers[FSPIOP_HEADERS_DATE])
     builder.setFspiopSource(headers[FSPIOP_HEADERS_SOURCE]);
 
-    const transformedHeaders = transformHeaders({ headers, config });
+    const transformedHeaders = builder.getResult().construction();
 
-    const transformedHeaders1 = builder.getResult().construction();
-    const director = new AccountLookupHeaderDirector();
-    director.setBuilder(builder);
     
     requestOptions = {
       url,
@@ -142,13 +134,13 @@ export const buildRequestUrl = (options: BuildRequestUrlOptions): string  => {
 
 	let partialUrl = `/${options.entity}/${options.partyType}/${options.partyId}`;
 
-  if(options.partySubType) {
-    partialUrl += `/${options.partySubType}`;
-  } 
+    if(options.partySubType) {
+        partialUrl += `/${options.partySubType}`;
+    } 
 
-  if(options.error) {
-    partialUrl += '/error';
-  } 
+    if(options.error) {
+        partialUrl += '/error';
+    } 
 
 	return partialUrl;
 };

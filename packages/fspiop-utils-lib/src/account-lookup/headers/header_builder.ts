@@ -56,40 +56,12 @@ export default class HeaderBuilder implements IHeaderBuilder {
     }
 
     setAccept(accept: string, config: any): this {
-        let resourceType;
-        let acceptVersion
-
-        if (!FSPIOP_HEADERS_SWITCH_REGEX.test(config.sourceFsp)) {
-            this.headers.accept = accept
-        }
-        if (!resourceType) {
-            resourceType = getResourceInfoFromHeader('headers[headerKey]').resourceType;
-        }
-        // Fall back to using the legacy approach to determine the resourceVersion
-        // if (resourceType && !acceptVersion) {
-        //     acceptVersion = resourceVersions[resourceType].acceptVersion;
-        // }
-
-        this.headers.accept = `application/vnd.interoperability.${resourceType}+json;version=${acceptVersion}`
+        this.headers.accept = accept;
 
         return this;
     }
     setContentType(contentType: string, config: any): this {
-        let resourceType;
-        let acceptVersion
-
-        if (!FSPIOP_HEADERS_SWITCH_REGEX.test(config.sourceFsp)) {
-            this.headers.contentType = contentType
-        }
-        if (!resourceType) {
-            resourceType = getResourceInfoFromHeader('headers[headerKey]').resourceType;
-        }
-        // Fall back to using the legacy approach to determine the resourceVersion
-        // if (resourceType && !acceptVersion) {
-        //     acceptVersion = resourceVersions[resourceType].acceptVersion;
-        // }
-
-        this.headers.contentType = `application/vnd.interoperability.${resourceType}+json;version=${acceptVersion}`
+        this.headers.contentType = contentType;
 
         return this;
     }

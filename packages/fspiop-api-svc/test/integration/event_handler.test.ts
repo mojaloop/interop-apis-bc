@@ -31,38 +31,15 @@
 
  "use strict"
 
- import {MLKafkaJsonConsumer, MLKafkaJsonConsumerOptions, MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
- import { AccountLookupBCTopics, ParticipantAssociationCreatedEvt, ParticipantAssociationCreatedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
- import { SlowBuffer } from "buffer";
- const jestOpenAPI = require('jest-openapi');
- const request = require('supertest');
- const path = require('path');
- // const server = require('./server');
- const server = "http://localhost:4000";
- const workingHeaders = { 
-     'accept': 'application/vnd.interoperability.parties+json;version=1.0',
-     'content-type': 'application/vnd.interoperability.parties+json;version=1.0',
-     'date': 'randomdate',
-     'fspiop-source': 'test-fspiop-source',
- }
- 
- const missingHeaders = { 
-     'accept': 'application/vnd.interoperability.parties+json;version=1.0',
-     'content-type': 'application/vnd.interoperability.parties+json;version=1.0',
- }
- 
- const goodStatusResponse = {
-     "status": "ok"
- }
- 
- const badStatusResponse = {
-     "status": "not ok"
- }
- 
- jest.mock('../../src/http_routes/party_routes');
- 
+ import { Request } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+ import { AccountLookupEventHandler } from "../../src/event_handlers/account_lookup_evt_handler";
+ import {MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+ import { AccountLookUperrorEvt, AccountLookUperrorEvtPayload, ParticipantAssociationCreatedEvt, ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvt, ParticipantQueryResponseEvt, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvt, PartyInfoRequestedEvtPayload, PartyQueryReceivedEvt, PartyQueryResponseEvt, PartyQueryResponseEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+
+import jestOpenAPI from 'jest-openapi';
+
  // Sets the location of your OpenAPI Specification file
- // jestOpenAPI(path.join(__dirname, '../../src/api-specs/account-look-service/api-swagger.yaml'));
+ jestOpenAPI('C:/Users/dinacellfx/Documents/Development/interop-apis-bc/packages/fspiop-api-svc/api-specs/account-lookup-service/api-swagger.yaml');
  
  const BC_NAME = "interop-apis-bc";
  const APP_NAME = "fspiop-api-svc";
@@ -74,14 +51,15 @@
      producerClientId: `${BC_NAME}_${APP_NAME}`,
      skipAcknowledgements: true,
  };
- 
+
  import * as kafka from "kafka-node";
- import kafkaProducer1 from "./kafkaproducer";
+import { start, stop } from "../../src/service";
+ import KafkaProducer from "./helpers/kafkaproducer";
  
- const kafkaProducer = new kafkaProducer1()
+ const kafkaProducer = new KafkaProducer()
  
  const kafkaHost = "localhost:9092";
- 
+ const localhostUrl = 'http://127.0.0.1:4040';
  // const KAFKA_ACCOUNTS_LOOKUP_TOPIC = process.env["KAFKA_ACCOUNTS_LOOKUP_TOPIC"] || AccountLookupBCTopics.DomainEvents;
  const KAFKA_ACCOUNTS_LOOKUP_TOPIC = 'AccountLookupBcRequests';
  
@@ -111,38 +89,195 @@
          });
      }));
  };
- jest.setTimeout(100000);
- 
+ jest.setTimeout(65000);
  
  describe("placeholder", () => {
-     // it("should send message to kafka", async () => {
-     //     await kafkaProducer.init();
-     //     const topic = KAFKA_ACCOUNTS_LOOKUP_TOPIC;
-     //     const someMessage = "some message";
-     //     const expectedOffset = await getCurrentKafkaOffset(topic) as number;
+
+    beforeAll(async () => {
+        await start();
+        await kafkaProducer.init();
+    });
+    
+    afterAll(async () => {
+        await stop();
+        kafkaProducer.destroy();
+    });
+    
+    it('successful AccountLookUperrorEvt', async () => {
+        // Arrange
+        const payload : AccountLookUperrorEvtPayload = {
+            requesterFspId: "test-fspiop-source",
+            partyId: '123456789',
+            partyType: 'MSISDN',
+            partySubType: null,
+            errorMsg: 'test error message',
+            sourceEvent: PartyQueryReceivedEvt.name,
+        };
+
+        const event = new AccountLookUperrorEvt(payload);
+
+        event.fspiopOpaqueState = { 
+            "requesterFspId":"test-fspiop-source",
+            "destinationFspId": null,
+            "headers":{
+                "accept":"application/vnd.interoperability.parties+json;version=1.0",
+                "content-type":"application/vnd.interoperability.parties+json;version=1.0",
+                "date":"randomdate",
+                "fspiop-source":"test-fspiop-source"
+            }
+        };
+          
+        const requestSpy = jest.spyOn(Request, 'sendRequest');
+
+        // Act
+        kafkaProducer.sendMessage('AccountLookupBcEvents', event);
+
+        jest.spyOn(Request, 'sendRequest');
+
+        const res = async (): Promise<any> => {
+            return await requestSpy.mock.results[0].value;
+        }
          
-     //     kafkaProducer.sendMessage(topic, someMessage);
+        await new Promise((r) => setTimeout(r, 55000));
          
-     //     const currentOffset = await getCurrentKafkaOffset(topic) as number;
-     //     const sentMessagesCount = currentOffset - expectedOffset;
-     //     expect(sentMessagesCount).toBe(1);
-     //     console.log("!!!!!!!!!!!!!!!!!");
-     //     console.log("!!!!!!!!!!!!!!!!!");
-     //     console.log(sentMessagesCount);
-     //     console.log("!!!!!!!!!!!!!!!!!");
-     //     console.log("!!!!!!!!!!!!!!!!!");
-     //     kafkaProducer.destroy();
-     // });
- 
-     it('should successfully call getPartyQueryReceivedByTypeAndId endpoint', async () => {
-         const res = await request(server)
-         .post('/parties/MSISDN/123456789')
-         .set(workingHeaders)
- 
-         expect(res.statusCode).toEqual(202)
-         expect(res.body).toStrictEqual(goodStatusResponse)
- 
-         await kafkaProducer.init();
+        // Assert
+        expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+            url: `${localhostUrl}/parties/MSISDN/123456789/error`
+        }));
+
+        expect(await res()).toSatisfyApiSpec();
+    })
+
+    it('error AccountLookUperrorEvt', async () => {
+        // Arrange
+        const payload : AccountLookUperrorEvtPayload = {
+            requesterFspId: "test-fspiop-source",
+            partyId: '123456789',
+            partyType: 'MSISDN',
+            partySubType: null,
+            errorMsg: 'test error message',
+            sourceEvent: 'non-existing-source-event',
+        };
+
+        const event = new AccountLookUperrorEvt(payload);
+
+        event.fspiopOpaqueState = { 
+            "requesterFspId":"test-fspiop-source",
+            "destinationFspId": null,
+            "headers":{
+                "accept":"application/vnd.interoperability.parties+json;version=1.0",
+                "content-type":"application/vnd.interoperability.parties+json;version=1.0",
+                "date":"randomdate",
+                "fspiop-source":"test-fspiop-source"
+            }
+        };
+          
+        const requestSpy = jest.spyOn(Request, 'sendRequest');
+
+        // Act
+        kafkaProducer.sendMessage('AccountLookupBcEvents', event);
+
+        jest.spyOn(Request, 'sendRequest');
+         
+        await new Promise((r) => setTimeout(r, 55000));
+         
+        // Assert
+         expect(Request.sendRequest).toHaveBeenCalledTimes(0);
+
+    })
+
+    it('ParticipantAssociationCreatedEvt', async () => {
+        // Arrange
+        const topic = KAFKA_ACCOUNTS_LOOKUP_TOPIC;
+        const payload : ParticipantAssociationCreatedEvtPayload = {
+            ownerFspId:"test-fspiop-source",
+            partyId: '123456789',
+            partyType: 'MSISDN',
+            partySubType: null
+        };
+
+        const event = new ParticipantAssociationCreatedEvt(payload);
+
+        event.fspiopOpaqueState = { 
+            "requesterFspId":"test-fspiop-source",
+            "destinationFspId": null,
+            "headers":{
+                "accept":"application/vnd.interoperability.parties+json;version=1.0",
+                "content-type":"application/vnd.interoperability.parties+json;version=1.0",
+                "date":"randomdate",
+                "fspiop-source":"test-fspiop-source"
+            }
+        };
+
+        const expectedOffset = await getCurrentKafkaOffset(topic);
+        
+        kafkaProducer.sendMessage('AccountLookupBcEvents', event);
+
+        let sentMessagesCount = 0;
+        const currentOffset = await getCurrentKafkaOffset(topic);
+        
+        if (currentOffset.offset && expectedOffset.offset) {
+            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
+        }
+
+        jest.spyOn(Request, 'sendRequest');
+
+        const apiSpy = jest.spyOn(Request, 'sendRequest');
+        const res = async (): Promise<any> => {
+            return await apiSpy.mock.results[0].value;
+        }
+         await new Promise((r) => setTimeout(r, 55000));
+         
+         expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+            url: `${localhostUrl}/parties/MSISDN/123456789`
+        }));
+
+
+        expect(await res()).toSatisfyApiSpec();
+
+    })
+
+    it('should throw error ParticipantAssociationCreatedEvt due to missing payload', async () => {
+        // Arrange
+        const topic = KAFKA_ACCOUNTS_LOOKUP_TOPIC;
+        const payload : ParticipantAssociationCreatedEvtPayload = {
+            ownerFspId:"test-fspiop-source",
+            partyId: '123456789',
+            partyType: 'MSISDN',
+            partySubType: null
+        };
+
+        const event = new ParticipantAssociationCreatedEvt(payload);
+
+        event.fspiopOpaqueState = { 
+            "requesterFspId":"test-fspiop-source",
+            "destinationFspId": null,
+            "headers":{
+                "accept":"application/vnd.interoperability.parties+json;version=1.0",
+                "content-type":"application/vnd.interoperability.parties+json;version=1.0",
+                "fspiop-source":"test-fspiop-source"
+            }
+        };
+        
+        kafkaProducer.sendMessage('AccountLookupBcEvents', event);
+
+        jest.spyOn(Request, 'sendRequest');
+
+        const apiSpy = jest.spyOn(Request, 'sendRequest');
+        const res = async (): Promise<any> => {
+            return await apiSpy.mock.results[0].value;
+        }
+         await new Promise((r) => setTimeout(r, 55000));
+         
+         expect(Request.sendRequest).toHaveBeenCalled();
+
+
+        expect(await res()).toSatisfyApiSpec();
+
+    })
+
+    it('ParticipantAssociationCreatedEvt', async () => {
+        // Arrange
          const topic = KAFKA_ACCOUNTS_LOOKUP_TOPIC;
          const payload : ParticipantAssociationCreatedEvtPayload = {
              ownerFspId:"test-fspiop-source",
@@ -151,7 +286,7 @@
              partySubType: null
          };
  
-         const event = new ParticipantAssociationCreatedEvt(payload);
+         const event = new ParticipantAssociationRemovedEvt(payload);
  
          event.fspiopOpaqueState = { 
              "requesterFspId":"test-fspiop-source",
@@ -163,23 +298,206 @@
                  "fspiop-source":"test-fspiop-source"
              }
          };
- 
-         const expectedOffset = await getCurrentKafkaOffset(topic);
-         
-         kafkaProducer.sendMessage('AccountLookupBcEvents', event);
- 
-         let sentMessagesCount = 0;
-         const currentOffset = await getCurrentKafkaOffset(topic);
-         
-         console.log(expectedOffset);
-         if (currentOffset.offset && expectedOffset.offset) {
-             sentMessagesCount = currentOffset.offset - expectedOffset.offset;
-         }
-         console.log(currentOffset);
- 
- 
-         // expect(sentMessagesCount).toBe(1);
-         kafkaProducer.destroy();
-     })
+          
+        const requestSpy = jest.spyOn(Request, 'sendRequest');
 
+        // Act
+        kafkaProducer.sendMessage('AccountLookupBcEvents', event);
+
+        jest.spyOn(Request, 'sendRequest');
+
+        const res = async (): Promise<any> => {
+            return await requestSpy.mock.results[0].value;
+        }
+         
+        await new Promise((r) => setTimeout(r, 55000));
+         
+        // Assert
+         expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+            url: `${localhostUrl}/parties/MSISDN/123456789`
+        }));
+
+        expect(await res()).toSatisfyApiSpec();
+    })
+
+    it('successful PartyInfoRequestedEvt', async () => {
+        // Arrange
+        const payload : PartyInfoRequestedEvtPayload = {
+            requesterFspId: "test-fspiop-source",
+            destinationFspId: 'test-fspiop-destination',
+            partyId: '123456789',
+            partyType: 'MSISDN',
+            partySubType: null,
+            currency: null
+        };
+
+        const event = new PartyInfoRequestedEvt(payload);
+
+        event.fspiopOpaqueState = { 
+            "requesterFspId":"test-fspiop-source",
+            "destinationFspId": null,
+            "headers":{
+                "accept":"application/vnd.interoperability.parties+json;version=1.0",
+                "content-type":"application/vnd.interoperability.parties+json;version=1.0",
+                "date":"randomdate",
+                "fspiop-source":"test-fspiop-source"
+            }
+        };
+          
+        const requestSpy = jest.spyOn(Request, 'sendRequest');
+
+        // Act
+        kafkaProducer.sendMessage('AccountLookupBcEvents', event);
+
+        jest.spyOn(Request, 'sendRequest');
+
+        const res = async (): Promise<any> => {
+            return await requestSpy.mock.results[0].value;
+        }
+         
+        await new Promise((r) => setTimeout(r, 55000));
+         
+        // Assert
+         expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+            url: `${localhostUrl}/parties/MSISDN/123456789`
+        }));
+
+        expect(await res()).toSatisfyApiSpec();
+    })
+
+    it('successful PartyQueryResponseEvt', async () => {
+        // Arrange
+        const payload : PartyQueryResponseEvtPayload = {
+            requesterFspId: "test-fspiop-source",
+            destinationFspId: 'test-fspiop-destination',
+            ownerFspId: 'test-fspiop-owner',
+            partyId: '123456789',
+            partyType: 'MSISDN',
+            partyName: 'test-party-name',
+            partyDoB: new Date(),
+            partySubType: null,
+            currency: null
+        };
+
+        const event = new PartyQueryResponseEvt(payload);
+
+        event.fspiopOpaqueState = { 
+            "requesterFspId":"test-fspiop-source",
+            "destinationFspId": null,
+            "headers":{
+                "accept":"application/vnd.interoperability.parties+json;version=1.0",
+                "content-type":"application/vnd.interoperability.parties+json;version=1.0",
+                "date":"randomdate",
+                "fspiop-source":"test-fspiop-source"
+            }
+        };
+          
+        const requestSpy = jest.spyOn(Request, 'sendRequest');
+
+        // Act
+        kafkaProducer.sendMessage('AccountLookupBcEvents', event);
+
+        jest.spyOn(Request, 'sendRequest');
+
+        const res = async (): Promise<any> => {
+            return await requestSpy.mock.results[0].value;
+        }
+         
+        await new Promise((r) => setTimeout(r, 55000));
+         
+        // Assert
+         expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+            url: `${localhostUrl}/parties/MSISDN/123456789`
+        }));
+
+        expect(await res()).toSatisfyApiSpec();
+    })
+
+    it('successful ParticipantQueryResponseEvt', async () => {
+        // Arrange
+        const payload : ParticipantQueryResponseEvtPayload = {
+            requesterFspId: "test-fspiop-source",
+            ownerFspId: 'test-fspiop-owner',
+            partyId: '123456789',
+            partyType: 'MSISDN',
+            partySubType: null,
+            currency: null
+        };
+
+        const event = new ParticipantQueryResponseEvt(payload);
+
+        event.fspiopOpaqueState = { 
+            "requesterFspId":"test-fspiop-source",
+            "destinationFspId": null,
+            "headers":{
+                "accept":"application/vnd.interoperability.parties+json;version=1.0",
+                "content-type":"application/vnd.interoperability.parties+json;version=1.0",
+                "date":"randomdate",
+                "fspiop-source":"test-fspiop-source"
+            }
+        };
+          
+        const requestSpy = jest.spyOn(Request, 'sendRequest');
+
+        // Act
+        kafkaProducer.sendMessage('AccountLookupBcEvents', event);
+
+        jest.spyOn(Request, 'sendRequest');
+
+        const res = async (): Promise<any> => {
+            return await requestSpy.mock.results[0].value;
+        }
+         
+        await new Promise((r) => setTimeout(r, 55000));
+         
+        // Assert
+         expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+            url: `${localhostUrl}/participants/MSISDN/123456789`
+        }));
+
+        expect(await res()).toSatisfyApiSpec();
+    })
+
+    it('should throw error ParticipantQueryResponseEvt due to missing payload', async () => {
+        // Arrange
+        const payload : ParticipantQueryResponseEvtPayload = {
+            requesterFspId: "test-fspiop-source",
+            ownerFspId: 'test-fspiop-owner',
+            partyId: '123456789',
+            partyType: 'MSISDN',
+            partySubType: null,
+            currency: null
+        };
+
+        const event = new ParticipantQueryResponseEvt(payload);
+
+        event.fspiopOpaqueState = { 
+            "requesterFspId":"test-fspiop-source",
+            "destinationFspId": null,
+            "headers":{
+                "accept":"application/vnd.interoperability.undefined+json;version=1.0",
+                "content-type":"application/vnd.interoperability.undefined+json;version=1.0",
+                "fspiop-source":"test-fspiop-source",
+                "date": "randomdate"
+            }
+        };
+          
+        const requestSpy = jest.spyOn(Request, 'sendRequest');
+
+        // Act
+        kafkaProducer.sendMessage('AccountLookupBcEvents', event);
+
+        jest.spyOn(Request, 'sendRequest');
+
+        const res = async (): Promise<any> => {
+            return await requestSpy.mock.results[0].value;
+        }
+         
+        await new Promise((r) => setTimeout(r, 45000));
+         
+        // Assert
+        expect(Request.sendRequest).toHaveBeenCalledWith({"destination": "test-fspiop-source", "headers": {"accept": "application/vnd.interoperability.undefined+json;version=1.0", "content-type": "application/vnd.interoperability.undefined+json;version=1.0", "date": "randomdate", "fspiop-destination": "test-fspiop-source", "fspiop-source": "switch"}, "method": "PUT", "payload": {"fspId": "test-fspiop-owner"}, "source": "test-fspiop-source", "url": "http://127.0.0.1:4040/participants/MSISDN/123456789"});
+
+        expect(await res()).toSatisfyApiSpec();
+    })
  });
