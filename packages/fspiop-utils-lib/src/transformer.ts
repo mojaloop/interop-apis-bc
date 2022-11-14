@@ -32,7 +32,7 @@
  'use strict';
 
 import { ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvtPayload, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { ErrorCode, FspiopRequestMethodsEnum } from "./enums";
+import { ErrorCode } from "./enums";
 
 
 export interface ExtensionList {
@@ -78,7 +78,7 @@ export interface PutParty {
 }
 
 // eslint-disable-next-line
-const removeEmpty = (obj: any) => {
+export const removeEmpty = (obj: any) => {
 	Object.entries(obj).forEach(([key, val])  =>
 		(val && typeof val === 'object') && removeEmpty(val) ||
 		(val === null || val === "") && delete obj[key]

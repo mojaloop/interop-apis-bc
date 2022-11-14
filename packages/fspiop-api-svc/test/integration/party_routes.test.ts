@@ -33,7 +33,7 @@
 
 import { AccountLookupBCTopics, ParticipantAssociationRequestReceivedEvt, ParticipantDisassociateRequestReceivedEvt, ParticipantQueryReceivedEvt, PartyInfoAvailableEvt, PartyQueryReceivedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 
-const request = require('supertest');
+import request from 'supertest';
 import { start, stop } from "../../src/service";
 import KafkaProducer, { getCurrentKafkaOffset } from "./helpers/kafkaproducer";
 

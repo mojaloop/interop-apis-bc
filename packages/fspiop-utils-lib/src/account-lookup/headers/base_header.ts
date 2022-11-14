@@ -58,7 +58,7 @@ export default class Header {
     fspiopUri!: string;
     fspiopHttpMethod!: string;
 
-    construction(): HeaderResult {
+    build(): HeaderResult {
         const headers: HeaderResult = {
             'accept': this.accept,
             'content-type': this.contentType,
@@ -71,7 +71,7 @@ export default class Header {
             'fspiop-signature': this.fspiopSignature,
             'fspiop-uri': this.fspiopUri,
             'fspiop-http-method': this.fspiopHttpMethod,
-        }
+        };
 
         return headers;
     }
@@ -79,8 +79,8 @@ export default class Header {
 
 export interface IHeaderBuilder {
     headers: Header
-    setAccept(accept: string, config: any): this
-    setContentType(contentType: string, config: any): this
+    setAccept(accept: string): this
+    setContentType(contentType: string): this
     setContentLength(contentLength: number): this
     setDate(date: string | Date): this
     setXForwardedFor(xForwardedFor: string): this
@@ -89,6 +89,6 @@ export interface IHeaderBuilder {
     setFspiopEncryption(fspiopEncryption: string): this
     setFspiopSignature(fspiopSignature: string): this
     setFspiopUri(fspiopUri: string): this
-    setFspiopHttpMethod(fspiopHttpMethod: string, config: any): this
+    setFspiopHttpMethod(fspiopHttpMethod: string, config: any): this // eslint-disable-line @typescript-eslint/no-explicit-any
     getResult(): Header
 }

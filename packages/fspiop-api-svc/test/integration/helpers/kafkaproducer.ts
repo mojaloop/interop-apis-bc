@@ -57,8 +57,9 @@ export const getCurrentKafkaOffset = (topic: string): Promise<kafka.Message> => 
         consumer.on('message', async function (message) {
             error? reject(error) : resolve(message);
             
-            consumer.close(true, () => {});
-            client.close();
+            consumer.close(false, () => {
+                client.close();
+            });
         });
     }));
 };
@@ -72,6 +73,7 @@ class KafkaProducer {
 
     public async destroy(): Promise<void> {
         this.producer.close()
+        this.producer
 
     }
 

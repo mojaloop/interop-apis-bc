@@ -31,7 +31,7 @@
 
  "use strict";
 
-import request, { AxiosResponse } from 'axios';
+import request from 'axios';
 import { FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION,FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_CONTENT_TYPE, FSPIOP_HEADERS_ACCEPT, FSPIOP_HEADERS_DATE } from './constants';
 import { FspiopError, PutParticipant, PutParty } from './transformer';
 import {ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload, ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvt, AccountLookUperrorEvtPayload, AccountLookUperrorEvt} from "@mojaloop/platform-shared-lib-public-messages-lib";
@@ -83,8 +83,7 @@ export const sendRequest = async ({
     content: FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION,
     accept: FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION
   }
-}:RequestOptions):Promise<AxiosResponse<any, any>> => {
-  let requestOptions;
+}:RequestOptions) => {
     const config =  {
       httpMethod: method,
       sourceFsp: source,
@@ -95,15 +94,16 @@ export const sendRequest = async ({
 
     
     const builder = new HeaderBuilder();
-    builder.setAccept(headers[FSPIOP_HEADERS_ACCEPT], config);
-    builder.setContentType(headers[FSPIOP_HEADERS_CONTENT_TYPE], config);
-    builder.setDate(headers[FSPIOP_HEADERS_DATE])
+    builder.setAccept(headers[FSPIOP_HEADERS_ACCEPT]);
+    builder.setContentType(headers[FSPIOP_HEADERS_CONTENT_TYPE]);
+    builder.setDate(headers[FSPIOP_HEADERS_DATE]);
     builder.setFspiopSource(headers[FSPIOP_HEADERS_SOURCE]);
+    builder.setFspiopHttpMethod(headers[FSPIOP_HEADERS_HTTP_METHOD], config);
 
-    const transformedHeaders = builder.getResult().construction();
+    const transformedHeaders = builder.getResult().build();
 
     
-    requestOptions = {
+    const requestOptions = {
       url,
       method,
       headers: transformedHeaders,

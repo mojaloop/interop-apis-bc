@@ -46,7 +46,6 @@ import { MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions } from "@mojaloo
 import { AccountLookupEventHandler } from "./event_handlers/account_lookup_evt_handler";
 import { AccountLookupBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import {ParticipantsHttpClient} from "@mojaloop/participants-bc-client-lib";
-import { ParticipantRoutesbk } from "./http_routes/participant_routes_bk";
 // import {AuthorizationClient, LoginHelper} from "@mojaloop/security-bc-client-lib";
 
 
@@ -70,7 +69,7 @@ const PARTIES_URL_RESOURCE_NAME = "parties";
 const KAFKA_ACCOUNTS_LOOKUP_TOPIC = process.env["KAFKA_ACCOUNTS_LOOKUP_TOPIC"] || AccountLookupBCTopics.DomainEvents;
 
 const PARTICIPANT_SVC_BASEURL = process.env["PARTICIPANT_SVC_BASEURL"] || "http://127.0.0.1:3010";
-const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
+// const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
 
 
 const kafkaProducerOptions = {
@@ -99,6 +98,7 @@ export async function setupExpress(loggerParam:ILogger): Promise<Server> {
     partyRoutes = new PartyRoutes(kafkaProducerOptions, KAFKA_ACCOUNTS_LOOKUP_TOPIC, loggerParam);
 
     await participantRoutes.init();
+    await partyRoutes.init();
 
     app.use(`/${PARTICIPANTS_URL_RESOURCE_NAME}`, participantRoutes.Router);
     app.use(`/${PARTIES_URL_RESOURCE_NAME}`, partyRoutes.Router);

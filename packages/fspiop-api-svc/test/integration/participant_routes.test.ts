@@ -32,7 +32,7 @@
  "use strict"
 
  
- const request = require('supertest');
+import request from 'supertest';
 import { start, stop } from "../../src/service";
 import { getCurrentKafkaOffset } from "./helpers/kafkaproducer";
 import { AccountLookupBCTopics, ParticipantQueryReceivedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";

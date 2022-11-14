@@ -32,35 +32,20 @@
 "use strict";
 
 import { FSPIOP_HEADERS_SWITCH_REGEX } from '../../constants';
-import Header, { IHeaderBuilder } from './base_header'
-
-const regexForContentAndAcceptHeaders = /(application\/vnd\.interoperability\.)(\w*)+(\+json\s{0,1};\s{0,1}version=)(.*)/
-
-const getResourceInfoFromHeader = (headerValue: any) => {
-    const result:any = {}
-    const regex = regexForContentAndAcceptHeaders.exec(headerValue)
-    if (regex) {
-      if (regex[2]) result.resourceType = regex[2]
-      if (regex[4]) result.version = regex[4]
-    }
-    return result
-}
-
-// const resourceVersions = require('../helpers').resourceVersions
-
+import Header, { IHeaderBuilder } from './base_header';
 export default class HeaderBuilder implements IHeaderBuilder {
-    headers: Header
+    headers: Header;
 
     constructor() {
-        this.headers = new Header()
+        this.headers = new Header();
     }
 
-    setAccept(accept: string, config: any): this {
+    setAccept(accept: string): this {
         this.headers.accept = accept;
 
         return this;
     }
-    setContentType(contentType: string, config: any): this {
+    setContentType(contentType: string): this {
         this.headers.contentType = contentType;
 
         return this;
@@ -124,9 +109,14 @@ export default class HeaderBuilder implements IHeaderBuilder {
         return this;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     setFspiopHttpMethod(httpMethod: string, config: any): this {
         // Check to see if we find a regex match the source header containing the switch name.
         // If so we include the signature otherwise we remove it.
+        if(!httpMethod) {
+            return this;
+        }
+
         if (this.headers.fspiopSource.match(FSPIOP_HEADERS_SWITCH_REGEX) === null) {
             if (
                 config.httpMethod.toLowerCase() === httpMethod.toLowerCase()
@@ -136,17 +126,6 @@ export default class HeaderBuilder implements IHeaderBuilder {
             } else {
                 // HTTP Methods DO NOT match, and thus a change is required for target HTTP Method
                 this.headers.fspiopHttpMethod = config.httpMethod;
-            }
-        } else {
-            if (
-                config.httpMethod.toLowerCase() ===
-                httpMethod.toLowerCase()
-            ) {
-                // HTTP Methods match, and thus no change is required
-                this.headers.fspiopHttpMethod = httpMethod.toUpperCase();
-            } else {
-                // HTTP Methods DO NOT match, and thus a change is required for target HTTP Method
-                this.headers.fspiopHttpMethod = config.httpMethod.toUpperCase();
             }
         }
 
@@ -160,7 +139,7 @@ export default class HeaderBuilder implements IHeaderBuilder {
     }
 
     getResult(): Header {
-        return this.headers
+        return this.headers;
     }
 
 }

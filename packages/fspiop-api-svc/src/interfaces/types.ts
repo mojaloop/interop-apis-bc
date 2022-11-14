@@ -32,10 +32,7 @@
 
  "use strict";
 
-import { ParticipantEndpoint } from "@mojaloop/participant-bc-public-types-lib";
 import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { AccountLookUperrorEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { IncomingHttpHeaders } from "http";
 
 //
 //  export interface IParticipant {
@@ -88,12 +85,6 @@ import { IncomingHttpHeaders } from "http";
 //     checkerApproved: boolean;
 //     feedback: string;
 //   }
-
-export type FSPIOPOpaqueState = {
-    headers: {
-        [key: string]: string | number | null
-    }
-}
 
 export interface IEventHandler {
 	init(): Promise<void>;

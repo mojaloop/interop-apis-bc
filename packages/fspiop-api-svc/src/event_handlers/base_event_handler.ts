@@ -69,6 +69,8 @@ export abstract class BaseEventHandler implements IEventHandler {
         this._kafkaProducer = new MLKafkaJsonProducer(this._producerOptions);
         await this._kafkaConsumer.connect();
         await this._kafkaConsumer.start();
+        await this._kafkaProducer.connect();this._kafkaProducer;
+
     }
 
     protected async _validateParticipantAndGetEndpoint(fspId: string):Promise<ParticipantEndpoint | null>{
@@ -87,7 +89,10 @@ export abstract class BaseEventHandler implements IEventHandler {
             }
 
             return endpoint || null;
-        } catch(error: any) {
+        } catch(err: unknown) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const error = err as unknown as any;
+            
             this._logger.error(error.stack);
             return null;
         }
