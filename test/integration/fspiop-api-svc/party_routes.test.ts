@@ -33,22 +33,22 @@
 
 import { AccountLookupBCTopics, ParticipantAssociationRequestReceivedEvt, ParticipantDisassociateRequestReceivedEvt, ParticipantQueryReceivedEvt, PartyInfoAvailableEvt, PartyQueryReceivedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 
-import request from 'supertest';
-import { start, stop } from "../../src/service";
+import request from "supertest";
+import { start, stop } from "../../../packages/fspiop-api-svc/src/service";
 import KafkaProducer, { getCurrentKafkaOffset } from "./helpers/kafkaproducer";
 
 const server = "http://localhost:4000";
 
 const workingHeaders = { 
-    'accept': 'application/vnd.interoperability.parties+json;version=1.0',
-    'content-type': 'application/vnd.interoperability.parties+json;version=1.0',
-    'date': 'randomdate',
-    'fspiop-source': 'test-fspiop-source',
+    "accept": "application/vnd.interoperability.parties+json;version=1.0",
+    "content-type": "application/vnd.interoperability.parties+json;version=1.0",
+    "date": "randomdate",
+    "fspiop-source": "test-fspiop-source",
 }
 
 const missingHeaders = { 
-    'accept': 'application/vnd.interoperability.parties+json;version=1.0',
-    'content-type': 'application/vnd.interoperability.parties+json;version=1.0',
+    "accept": "application/vnd.interoperability.parties+json;version=1.0",
+    "content-type": "application/vnd.interoperability.parties+json;version=1.0",
 }
 
 const goodStatusResponse = {
@@ -65,7 +65,6 @@ const topic = process.env["KAFKA_ACCOUNTS_LOOKUP_TOPIC"] || AccountLookupBCTopic
 
 jest.setTimeout(20000);
 
-
 describe("FSPIOP API Service Participant Routes", () => {
 
     beforeAll(async () => {
@@ -78,12 +77,12 @@ describe("FSPIOP API Service Participant Routes", () => {
         kafkaProducer.destroy();
     });
     
-    it('should successfully call getPartyQueryReceivedByTypeAndId endpoint', async () => {
+    it("should successfully call getPartyQueryReceivedByTypeAndId endpoint", async () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .get('/parties/MSISDN/123456789')
+        .get("/parties/MSISDN/123456789")
         .set(workingHeaders)
 
         let sentMessagesCount = 0;
@@ -102,12 +101,12 @@ describe("FSPIOP API Service Participant Routes", () => {
         expect(expectedOffsetMessage.msgName).toBe(PartyQueryReceivedEvt.name);
     })
 
-    it('should successfully call getPartyQueryReceivedByTypeAndIdSubId endpoint', async () => {
+    it("should successfully call getPartyQueryReceivedByTypeAndIdSubId endpoint", async () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .get('/parties/MSISDN/123456789/randomsubtype')
+        .get("/parties/MSISDN/123456789/randomsubtype")
         .set(workingHeaders)
 
         let sentMessagesCount = 0;
@@ -126,12 +125,12 @@ describe("FSPIOP API Service Participant Routes", () => {
         expect(expectedOffsetMessage.msgName).toBe(PartyQueryReceivedEvt.name);
     })
 
-    it('should successfully call getPartyInfoAvailableByTypeAndId endpoint', async () => {
+    it("should successfully call getPartyInfoAvailableByTypeAndId endpoint", async () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .put('/parties/MSISDN/123456789')
+        .put("/parties/MSISDN/123456789")
         .set(workingHeaders)
 
         let sentMessagesCount = 0;
@@ -150,12 +149,12 @@ describe("FSPIOP API Service Participant Routes", () => {
         expect(expectedOffsetMessage.msgName).toBe(PartyInfoAvailableEvt.name);
     })
 
-    it('should successfully call getPartyInfoAvailableByTypeAndIdAndSubId endpoint', async () => {
+    it("should successfully call getPartyInfoAvailableByTypeAndIdAndSubId endpoint", async () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .put('/parties/MSISDN/123456789/randomsubtype')
+        .put("/parties/MSISDN/123456789/randomsubtype")
         .set(workingHeaders)
 
         let sentMessagesCount = 0;
@@ -174,12 +173,12 @@ describe("FSPIOP API Service Participant Routes", () => {
         expect(expectedOffsetMessage.msgName).toBe(PartyInfoAvailableEvt.name);
     })
 
-    it('should successfully call associatePartyByTypeAndId endpoint', async () => {
+    it("should successfully call associatePartyByTypeAndId endpoint", async () => {
        // Act
        const expectedOffset = await getCurrentKafkaOffset(topic);
 
        const res = await request(server)
-       .post('/parties/MSISDN/123456789')
+       .post("/parties/MSISDN/123456789")
        .set(workingHeaders)
 
        let sentMessagesCount = 0;
@@ -198,12 +197,12 @@ describe("FSPIOP API Service Participant Routes", () => {
        expect(expectedOffsetMessage.msgName).toBe(ParticipantAssociationRequestReceivedEvt.name);
     })
 
-    it('should successfully call associatePartyByTypeAndIdAndSubId endpoint', async () => {
+    it("should successfully call associatePartyByTypeAndIdAndSubId endpoint", async () => {
        // Act
        const expectedOffset = await getCurrentKafkaOffset(topic);
 
        const res = await request(server)
-       .post('/parties/MSISDN/123456789/randomsubtype')
+       .post("/parties/MSISDN/123456789/randomsubtype")
        .set(workingHeaders)
 
        let sentMessagesCount = 0;
@@ -222,12 +221,12 @@ describe("FSPIOP API Service Participant Routes", () => {
        expect(expectedOffsetMessage.msgName).toBe(ParticipantAssociationRequestReceivedEvt.name);
     })
 
-    it('should successfully call disassociatePartyByTypeAndId endpoint', async () => {
+    it("should successfully call disassociatePartyByTypeAndId endpoint", async () => {
        // Act
        const expectedOffset = await getCurrentKafkaOffset(topic);
 
        const res = await request(server)
-       .delete('/parties/MSISDN/123456789')
+       .delete("/parties/MSISDN/123456789")
        .set(workingHeaders)
 
        let sentMessagesCount = 0;
@@ -246,12 +245,12 @@ describe("FSPIOP API Service Participant Routes", () => {
        expect(expectedOffsetMessage.msgName).toBe(ParticipantDisassociateRequestReceivedEvt.name);
     })
 
-    it('should successfully call disassociatePartyByTypeAndIdAndSubId endpoint', async () => {
+    it("should successfully call disassociatePartyByTypeAndIdAndSubId endpoint", async () => {
        // Act
        const expectedOffset = await getCurrentKafkaOffset(topic);
 
        const res = await request(server)
-       .delete('/parties/MSISDN/123456789/randomsubtype')
+       .delete("/parties/MSISDN/123456789/randomsubtype")
        .set(workingHeaders)
 
        let sentMessagesCount = 0;
@@ -270,12 +269,12 @@ describe("FSPIOP API Service Participant Routes", () => {
        expect(expectedOffsetMessage.msgName).toBe(ParticipantDisassociateRequestReceivedEvt.name);
     })
 
-    it('should give a bad request calling getPartyQueryReceivedByTypeAndId endpoint', async () => {
+    it("should give a bad request calling getPartyQueryReceivedByTypeAndId endpoint", async () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .get('/parties/MSISDN/123456789')
+        .get("/parties/MSISDN/123456789")
         .set(missingHeaders)
 
         let sentMessagesCount = 0;
@@ -291,12 +290,12 @@ describe("FSPIOP API Service Participant Routes", () => {
         expect(sentMessagesCount).toBe(0);
     })
 
-    it('should give a bad request calling getPartyQueryReceivedByTypeAndIdSubId endpoint', async () => {
+    it("should give a bad request calling getPartyQueryReceivedByTypeAndIdSubId endpoint", async () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .get('/parties/MSISDN/123456789')
+        .get("/parties/MSISDN/123456789")
         .set(missingHeaders)
 
         let sentMessagesCount = 0;
@@ -312,12 +311,12 @@ describe("FSPIOP API Service Participant Routes", () => {
         expect(sentMessagesCount).toBe(0);
     })
 
-    it('should give a bad request calling getPartyInfoAvailableByTypeAndId endpoint', async () => {
+    it("should give a bad request calling getPartyInfoAvailableByTypeAndId endpoint", async () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .put('/parties/MSISDN/123456789')
+        .put("/parties/MSISDN/123456789")
         .set(missingHeaders)
 
         let sentMessagesCount = 0;
@@ -333,12 +332,12 @@ describe("FSPIOP API Service Participant Routes", () => {
         expect(sentMessagesCount).toBe(0);
     })
 
-    it('should give a bad request calling getPartyInfoAvailableByTypeAndIdAndSubId endpoint', async () => {
+    it("should give a bad request calling getPartyInfoAvailableByTypeAndIdAndSubId endpoint", async () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .put('/parties/MSISDN/123456789/randomsubtype')
+        .put("/parties/MSISDN/123456789/randomsubtype")
         .set(missingHeaders)
 
         let sentMessagesCount = 0;
@@ -354,12 +353,12 @@ describe("FSPIOP API Service Participant Routes", () => {
         expect(sentMessagesCount).toBe(0);
     })
 
-    it('should give a bad request calling associatePartyByTypeAndId endpoint', async () => {
+    it("should give a bad request calling associatePartyByTypeAndId endpoint", async () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .post('/parties/MSISDN/123456789')
+        .post("/parties/MSISDN/123456789")
         .set(missingHeaders)
         
         let sentMessagesCount = 0;
@@ -375,12 +374,12 @@ describe("FSPIOP API Service Participant Routes", () => {
         expect(sentMessagesCount).toBe(0);
     })
 
-    it('should give a bad request calling associatePartyByTypeAndIdAndSubId endpoint', async () => {
+    it("should give a bad request calling associatePartyByTypeAndIdAndSubId endpoint", async () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .post('/parties/MSISDN/123456789/randomsubtype')
+        .post("/parties/MSISDN/123456789/randomsubtype")
         .set(missingHeaders)
 
         let sentMessagesCount = 0;
@@ -396,12 +395,12 @@ describe("FSPIOP API Service Participant Routes", () => {
         expect(sentMessagesCount).toBe(0);
     })
 
-    it('should give a bad request calling disassociatePartyByTypeAndId endpoint', async () => {
+    it("should give a bad request calling disassociatePartyByTypeAndId endpoint", async () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .delete('/parties/MSISDN/123456789')
+        .delete("/parties/MSISDN/123456789")
         .set(missingHeaders)
 
         let sentMessagesCount = 0;
@@ -417,12 +416,12 @@ describe("FSPIOP API Service Participant Routes", () => {
         expect(sentMessagesCount).toBe(0);
     })
 
-    it('should give a bad request calling disassociatePartyByTypeAndIdAndSubId endpoint', async () => {
+    it("should give a bad request calling disassociatePartyByTypeAndIdAndSubId endpoint", async () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .delete('/parties/MSISDN/123456789/randomsubtype')
+        .delete("/parties/MSISDN/123456789/randomsubtype")
         .set(missingHeaders)
 
         let sentMessagesCount = 0;

@@ -33,11 +33,15 @@
  
 import * as kafka from "kafka-node";
 
-const kafkaHost = "localhost:9092";
+const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
 
 export const getCurrentKafkaOffset = (topic: string): Promise<kafka.Message> => {
-    const client = new kafka.KafkaClient({kafkaHost});
+    const client = new kafka.KafkaClient({
+        kafkaHost: KAFKA_URL
+    });
+
     const offset = new kafka.Offset(client);
+    
     return new Promise((resolve, reject) => offset.fetchLatestOffsets([topic], (error: any, data: any) => {
         const offsetA = JSON.stringify(data[topic][0]) as unknown as number;
         
@@ -87,7 +91,9 @@ class KafkaProducer {
     }
 
     private create(): Promise<kafka.Producer> {
-        const client = new kafka.KafkaClient({kafkaHost});
+        const client = new kafka.KafkaClient({
+            kafkaHost: KAFKA_URL
+        });
 
         const producer = new kafka.Producer(client);
 

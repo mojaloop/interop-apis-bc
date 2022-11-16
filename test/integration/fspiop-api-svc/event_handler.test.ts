@@ -38,7 +38,7 @@ import jestOpenAPI from 'jest-openapi';
 import path from "path";
 
 // Sets the location of your OpenAPI Specification file
-jestOpenAPI(path.join(__dirname, '../../api-specs/account-lookup-service/api-swagger.yaml'));
+jestOpenAPI(path.join(__dirname, '../../../packages/fspiop-api-svc/api-specs/account-lookup-service/api-swagger.yaml'));
  
 import KafkaProducer, { getCurrentKafkaOffset } from "./helpers/kafkaproducer";
 
@@ -61,10 +61,10 @@ import {
     LocalAuditClientCryptoProvider
 } from "@mojaloop/auditing-bc-client-lib";
 import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
-import {ParticipantRoutes} from "../../src/http_routes/participant_routes";
-import {PartyRoutes} from "../../src/http_routes/party_routes";
+import {ParticipantRoutes} from "../../../packages/fspiop-api-svc/src/http_routes/account-lookup-bc/participant_routes";
+import {PartyRoutes} from "../../../packages/fspiop-api-svc/src/http_routes/account-lookup-bc/party_routes";
 import { MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import { AccountLookupEventHandler } from "../../src/event_handlers/account_lookup_evt_handler";
+import { AccountLookupEventHandler } from "../../../packages/fspiop-api-svc/src/event_handlers/account_lookup_evt_handler";
 import {Participant, ParticipantsHttpClient} from "@mojaloop/participants-bc-client-lib";
 
 const LOGLEVEL:LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
@@ -78,7 +78,7 @@ const SVC_DEFAULT_HTTP_PORT = 4000;
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
 const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
-const AUDIT_CERT_FILE_PATH = process.env["AUDIT_CERT_FILE_PATH"] || "./dist/tmp_key_file";
+const AUDIT_CERT_FILE_PATH = process.env["AUDIT_CERT_FILE_PATH"] || path.join(__dirname, "../../../packages/fspiop-api-svc/dist/tmp_key_file");
 const PARTICIPANTS_URL_RESOURCE_NAME = "participants";
 const PARTIES_URL_RESOURCE_NAME = "parties";
 
@@ -212,7 +212,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
     });
 
     beforeEach(async () => {
-        participantClientSpy = jest.spyOn(participantServiceClient, 'getParticipantById');
+        participantClientSpy = jest.spyOn(participantServiceClient, "getParticipantById");
 
         participantClientSpy.mockResolvedValue({
                 id: 1,
@@ -231,14 +231,14 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
     });
 
     //#region AccountLookUperrorEvt
-    it('should successful treat AccountLookUperrorEvt for Party type event', async () => {
+    it("should successful treat AccountLookUperrorEvt for Party type event", async () => {
         // Arrange
         const payload : AccountLookUperrorEvtPayload = {
             requesterFspId: "test-fspiop-source",
-            partyId: '123456789',
-            partyType: 'MSISDN',
+            partyId: "123456789",
+            partyType: "MSISDN",
             partySubType: null,
-            errorMsg: 'test error message',
+            errorMsg: "test error message",
             sourceEvent: PartyQueryReceivedEvt.name,
         };
 
@@ -255,12 +255,12 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
             }
         };
             
-        const requestSpy = jest.spyOn(Request, 'sendRequest');
+        const requestSpy = jest.spyOn(Request, "sendRequest");
 
         // Act
         kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
 
-        jest.spyOn(Request, 'sendRequest');
+        jest.spyOn(Request, "sendRequest");
 
         const res = async (): Promise<any> => {
             return await requestSpy.mock.results[0].value;
@@ -277,14 +277,14 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         expect(await res()).toSatisfyApiSpec();
     })
 
-    it('should successful treat AccountLookUperrorEvt for Participant type event', async () => {
+    it("should successful treat AccountLookUperrorEvt for Participant type event", async () => {
         // Arrange
         const payload : AccountLookUperrorEvtPayload = {
             requesterFspId: "test-fspiop-source",
-            partyId: '123456789',
-            partyType: 'MSISDN',
+            partyId: "123456789",
+            partyType: "MSISDN",
             partySubType: null,
-            errorMsg: 'test error message',
+            errorMsg: "test error message",
             sourceEvent: ParticipantAssociationRequestReceivedEvt.name,
         };
 
@@ -301,12 +301,12 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
             }
         };
             
-        const requestSpy = jest.spyOn(Request, 'sendRequest');
+        const requestSpy = jest.spyOn(Request, "sendRequest");
 
         // Act
         kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
 
-        jest.spyOn(Request, 'sendRequest');
+        jest.spyOn(Request, "sendRequest");
 
         const res = async (): Promise<any> => {
             return await requestSpy.mock.results[0].value;
@@ -324,15 +324,15 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
     })
 
 
-    it('should log error when AccountLookUperrorEvt finds no participant endpoint', async () => {
+    it("should log error when AccountLookUperrorEvt finds no participant endpoint", async () => {
         // Arrange
         const payload : AccountLookUperrorEvtPayload = {
             requesterFspId: "non-existing-requester-id",
-            partyId: '123456789',
-            partyType: 'MSISDN',
+            partyId: "123456789",
+            partyType: "MSISDN",
             partySubType: null,
-            errorMsg: 'test error message',
-            sourceEvent: 'non-existing-source-event',
+            errorMsg: "test error message",
+            sourceEvent: "non-existing-source-event",
         };
 
         const event = new AccountLookUperrorEvt(payload);
@@ -373,15 +373,15 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         });
     })
 
-    it('should log when AccountLookUperrorEvt throws an error', async () => {
+    it("should log when AccountLookUperrorEvt throws an error", async () => {
         // Arrange
         const payload : AccountLookUperrorEvtPayload = {
             requesterFspId: "test-fspiop-source",
-            partyId: '123456789',
-            partyType: 'MSISDN',
+            partyId: "123456789",
+            partyType: "MSISDN",
             partySubType: null,
-            errorMsg: 'test error message',
-            sourceEvent: 'non-existing-source-event',
+            errorMsg: "test error message",
+            sourceEvent: "non-existing-source-event",
         };
 
         const event = new AccountLookUperrorEvt(payload);
@@ -401,7 +401,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Act
         kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
 
-        jest.spyOn(Request, 'sendRequest');
+        jest.spyOn(Request, "sendRequest");
             
         await new Promise((r) => setTimeout(r, 2000));
 
@@ -411,25 +411,25 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         });
     })
 
-    it('should use default case when AccountLookUperrorEvt has no correct name', async () => {
+    it("should use default case when AccountLookUperrorEvt has no correct name", async () => {
         // Arrange
         const payload : AccountLookUperrorEvtPayload = {
             requesterFspId: "test-fspiop-source",
-            partyId: '123456789',
-            partyType: 'MSISDN',
+            partyId: "123456789",
+            partyType: "MSISDN",
             partySubType: null,
-            errorMsg: 'test error message',
-            sourceEvent: 'non-existing-source-event',
+            errorMsg: "test error message",
+            sourceEvent: "non-existing-source-event",
         };
 
         const event = new AccountLookUperrorEvt(payload);
 
-        event.msgName = 'non-existing-message-name';
+        event.msgName = "non-existing-message-name";
 
         // Act
         kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
 
-        jest.spyOn(Request, 'sendRequest');
+        jest.spyOn(Request, "sendRequest");
             
         await new Promise((r) => setTimeout(r, 2000));
 
@@ -441,12 +441,12 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
     //#endregion
 
     //#region ParticipantAssociationCreatedEvt
-    it('should log error when ParticipantAssociationCreatedEvt finds no participant endpoint', async () => {
+    it("should log error when ParticipantAssociationCreatedEvt finds no participant endpoint", async () => {
         // Arrange
         const payload : ParticipantAssociationCreatedEvtPayload = {
             ownerFspId: "non-existing-owner-id",
-            partyId: '123456789',
-            partyType: 'MSISDN',
+            partyId: "123456789",
+            partyType: "MSISDN",
             partySubType: null
         };
 
@@ -488,12 +488,12 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         });
     })
 
-    it('should throw error ParticipantAssociationCreatedEvt due to failing to sendRequest', async () => {
+    it("should throw error ParticipantAssociationCreatedEvt due to failing to sendRequest", async () => {
         // Arrange
         const payload : ParticipantAssociationCreatedEvtPayload = {
             ownerFspId:"test-fspiop-source",
-            partyId: '123456789',
-            partyType: 'MSISDN',
+            partyId: "123456789",
+            partyType: "MSISDN",
             partySubType: null
         };
 
@@ -510,17 +510,17 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
             }
         };
 
-        const requestSpyOn = jest.spyOn(Request, 'sendRequest');
+        const requestSpyOn = jest.spyOn(Request, "sendRequest");
 
         requestSpyOn.mockImplementationOnce(() => {
-            throw new Error('test error');
+            throw new Error("test error");
         });
         
         // Act
         kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
 
 
-        const apiSpy = jest.spyOn(Request, 'sendRequest');
+        const apiSpy = jest.spyOn(Request, "sendRequest");
         const res = async (): Promise<any> => {
             return await apiSpy.mock.results[apiSpy.mock.results.length-1].value;
         }
@@ -538,12 +538,12 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
     //#endregion
 
     //#region ParticipantAssociationRemovedEvt
-    it('should successful treat ParticipantAssociationRemovedEvt', async () => {
+    it("should successful treat ParticipantAssociationRemovedEvt", async () => {
         // Arrange
             const payload : ParticipantAssociationRemovedEvtPayload = {
                 ownerFspId:"test-fspiop-source",
-                partyId: '123456789',
-                partyType: 'MSISDN',
+                partyId: "123456789",
+                partyType: "MSISDN",
                 partySubType: null
             };
 
@@ -560,12 +560,12 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
                 }
             };
             
-        const requestSpy = jest.spyOn(Request, 'sendRequest');
+        const requestSpy = jest.spyOn(Request, "sendRequest");
 
         // Act
         kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
 
-        jest.spyOn(Request, 'sendRequest');
+        jest.spyOn(Request, "sendRequest");
 
         const res = async (): Promise<any> => {
             return await requestSpy.mock.results[0].value;
@@ -581,12 +581,12 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         expect(await res()).toSatisfyApiSpec();
     })
 
-    it('should log error when ParticipantAssociationRemovedEvt finds no participant endpoint', async () => {
+    it("should log error when ParticipantAssociationRemovedEvt finds no participant endpoint", async () => {
         // Arrange
         const payload : ParticipantAssociationRemovedEvtPayload = {
             ownerFspId: "non-existing-requester-id",
-            partyId: '123456789',
-            partyType: 'MSISDN',
+            partyId: "123456789",
+            partyType: "MSISDN",
             partySubType: null
         };
 
@@ -628,12 +628,12 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         });
     })
 
-    it('should throw error ParticipantAssociationRemovedEvt due to failing to sendRequest', async () => {
+    it("should throw error ParticipantAssociationRemovedEvt due to failing to sendRequest", async () => {
         // Arrange
         const payload : ParticipantAssociationRemovedEvtPayload = {
             ownerFspId:"test-fspiop-source",
-            partyId: '123456789',
-            partyType: 'MSISDN',
+            partyId: "123456789",
+            partyType: "MSISDN",
             partySubType: null
         };
 
@@ -650,17 +650,17 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
             }
         };
 
-        const requestSpyOn = jest.spyOn(Request, 'sendRequest');
+        const requestSpyOn = jest.spyOn(Request, "sendRequest");
 
         requestSpyOn.mockImplementationOnce(() => {
-            throw new Error('test error');
+            throw new Error("test error");
         });
         
         // Act
         kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
 
 
-        const apiSpy = jest.spyOn(Request, 'sendRequest');
+        const apiSpy = jest.spyOn(Request, "sendRequest");
         const res = async (): Promise<any> => {
             return await apiSpy.mock.results[apiSpy.mock.results.length-1].value;
         }
@@ -678,13 +678,13 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
     //#endregion
 
     //#region PartyInfoRequestedEvt
-    it('should successful treat PartyInfoRequestedEvt', async () => {
+    it("should successful treat PartyInfoRequestedEvt", async () => {
         // Arrange
         const payload : PartyInfoRequestedEvtPayload = {
             requesterFspId: "test-fspiop-source",
-            destinationFspId: 'test-fspiop-destination',
-            partyId: '123456789',
-            partyType: 'MSISDN',
+            destinationFspId: "test-fspiop-destination",
+            partyId: "123456789",
+            partyType: "MSISDN",
             partySubType: null,
             currency: null
         };
@@ -702,12 +702,12 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
             }
         };
             
-        const requestSpy = jest.spyOn(Request, 'sendRequest');
+        const requestSpy = jest.spyOn(Request, "sendRequest");
 
         // Act
         kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
 
-        jest.spyOn(Request, 'sendRequest');
+        jest.spyOn(Request, "sendRequest");
 
         const res = async (): Promise<any> => {
             return await requestSpy.mock.results[0].value;
@@ -723,13 +723,13 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         expect(await res()).toSatisfyApiSpec();
     })
 
-    it('should log error when PartyInfoRequestedEvt finds no participant endpoint', async () => {
+    it("should log error when PartyInfoRequestedEvt finds no participant endpoint", async () => {
         // Arrange
         const payload : PartyInfoRequestedEvtPayload = {
             requesterFspId: "test-fspiop-source",
-            destinationFspId: 'non-existing-requester-id',
-            partyId: '123456789',
-            partyType: 'MSISDN',
+            destinationFspId: "non-existing-requester-id",
+            partyId: "123456789",
+            partyType: "MSISDN",
             partySubType: null,
             currency: null
         };
@@ -772,13 +772,13 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         });
     })
 
-    it('should throw error PartyInfoRequestedEvt due to failing to sendRequest', async () => {
+    it("should throw error PartyInfoRequestedEvt due to failing to sendRequest", async () => {
         // Arrange
         const payload : PartyInfoRequestedEvtPayload = {
             requesterFspId: "test-fspiop-source",
-            destinationFspId: 'test-fspiop-destination',
-            partyId: '123456789',
-            partyType: 'MSISDN',
+            destinationFspId: "test-fspiop-destination",
+            partyId: "123456789",
+            partyType: "MSISDN",
             partySubType: null,
             currency: null
         };
@@ -797,16 +797,16 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
             }
         };
 
-        const requestSpyOn = jest.spyOn(Request, 'sendRequest');
+        const requestSpyOn = jest.spyOn(Request, "sendRequest");
 
         requestSpyOn.mockImplementationOnce(() => {
-            throw new Error('test error');
+            throw new Error("test error");
         });
         
         // Act
         kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
 
-        const apiSpy = jest.spyOn(Request, 'sendRequest');
+        const apiSpy = jest.spyOn(Request, "sendRequest");
         const res = async (): Promise<any> => {
             return await apiSpy.mock.results[apiSpy.mock.results.length-1].value;
         }
@@ -824,15 +824,15 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
     //#endregion
 
     //#region PartyQueryResponseEvt
-    it('should successful treat PartyQueryResponseEvt', async () => {
+    it("should successful treat PartyQueryResponseEvt", async () => {
         // Arrange
         const payload : PartyQueryResponseEvtPayload = {
             requesterFspId: "test-fspiop-source",
-            destinationFspId: 'test-fspiop-destination',
-            ownerFspId: 'test-fspiop-owner',
-            partyId: '123456789',
-            partyType: 'MSISDN',
-            partyName: 'test-party-name',
+            destinationFspId: "test-fspiop-destination",
+            ownerFspId: "test-fspiop-owner",
+            partyId: "123456789",
+            partyType: "MSISDN",
+            partyName: "test-party-name",
             partyDoB: new Date(),
             partySubType: null,
             currency: null
@@ -851,12 +851,12 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
             }
         };
             
-        const requestSpy = jest.spyOn(Request, 'sendRequest');
+        const requestSpy = jest.spyOn(Request, "sendRequest");
 
         // Act
         kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
 
-        jest.spyOn(Request, 'sendRequest');
+        jest.spyOn(Request, "sendRequest");
 
         const res = async (): Promise<any> => {
             return await requestSpy.mock.results[0].value;
@@ -872,15 +872,15 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         expect(await res()).toSatisfyApiSpec();
     })
 
-    it('should log error when PartyQueryResponseEvt finds no participant endpoint', async () => {
+    it("should log error when PartyQueryResponseEvt finds no participant endpoint", async () => {
         // Arrange
         const payload : PartyQueryResponseEvtPayload = {
             requesterFspId: "test-fspiop-source",
-            destinationFspId: 'non-existing-owner-id',
-            ownerFspId: 'non-existing-owner-id',
-            partyId: '123456789',
-            partyType: 'MSISDN',
-            partyName: 'test-party-name',
+            destinationFspId: "non-existing-owner-id",
+            ownerFspId: "non-existing-owner-id",
+            partyId: "123456789",
+            partyType: "MSISDN",
+            partyName: "test-party-name",
             partyDoB: new Date(),
             partySubType: null,
             currency: null
@@ -924,15 +924,15 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         });
     })
 
-    it('should throw error PartyQueryResponseEvt due to failing to sendRequest', async () => {
+    it("should throw error PartyQueryResponseEvt due to failing to sendRequest", async () => {
         // Arrange
         const payload : PartyQueryResponseEvtPayload = {
             requesterFspId: "test-fspiop-source",
-            destinationFspId: 'test-fspiop-destination',
-            ownerFspId: 'test-fspiop-owner',
-            partyId: '123456789',
-            partyType: 'MSISDN',
-            partyName: 'test-party-name',
+            destinationFspId: "test-fspiop-destination",
+            ownerFspId: "test-fspiop-owner",
+            partyId: "123456789",
+            partyType: "MSISDN",
+            partyName: "test-party-name",
             partyDoB: new Date(),
             partySubType: null,
             currency: null
@@ -951,16 +951,16 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
             }
         };
 
-        const requestSpyOn = jest.spyOn(Request, 'sendRequest');
+        const requestSpyOn = jest.spyOn(Request, "sendRequest");
 
         requestSpyOn.mockImplementationOnce(() => {
-            throw new Error('test error');
+            throw new Error("test error");
         });
         
         // Act
         kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
 
-        const apiSpy = jest.spyOn(Request, 'sendRequest');
+        const apiSpy = jest.spyOn(Request, "sendRequest");
         const res = async (): Promise<any> => {
             return await apiSpy.mock.results[apiSpy.mock.results.length-1].value;
         }
@@ -978,13 +978,13 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
     //#endregion
 
     //#region ParticipantQueryResponseEvt
-    it('should successful treat ParticipantQueryResponseEvt', async () => {
+    it("should successful treat ParticipantQueryResponseEvt", async () => {
         // Arrange
         const payload : ParticipantQueryResponseEvtPayload = {
             requesterFspId: "test-fspiop-source",
-            ownerFspId: 'test-fspiop-owner',
-            partyId: '123456789',
-            partyType: 'MSISDN',
+            ownerFspId: "test-fspiop-owner",
+            partyId: "123456789",
+            partyType: "MSISDN",
             partySubType: null,
             currency: null
         };
@@ -1002,12 +1002,12 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
             }
         };
             
-        const requestSpy = jest.spyOn(Request, 'sendRequest');
+        const requestSpy = jest.spyOn(Request, "sendRequest");
 
         // Act
         kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
 
-        jest.spyOn(Request, 'sendRequest');
+        jest.spyOn(Request, "sendRequest");
 
         const res = async (): Promise<any> => {
             return await requestSpy.mock.results[0].value;
@@ -1023,13 +1023,13 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         expect(await res()).toSatisfyApiSpec();
     })
 
-    it('should log error when ParticipantQueryResponseEvt finds no participant endpoint', async () => {
+    it("should log error when ParticipantQueryResponseEvt finds no participant endpoint", async () => {
         // Arrange
         const payload : ParticipantQueryResponseEvtPayload = {
             requesterFspId: "non-existing-requester-id",
             ownerFspId:"test-fspiop-source",
-            partyId: '123456789',
-            partyType: 'MSISDN',
+            partyId: "123456789",
+            partyType: "MSISDN",
             partySubType: null,
             currency: null
         };
@@ -1072,13 +1072,13 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         });
     })
 
-    it('should throw error ParticipantQueryResponseEvt due to failing to sendRequest', async () => {
+    it("should throw error ParticipantQueryResponseEvt due to failing to sendRequest", async () => {
         // Arrange
         const payload : ParticipantQueryResponseEvtPayload = {
             requesterFspId: "test-fspiop-source",
-            ownerFspId: 'test-fspiop-owner',
-            partyId: '123456789',
-            partyType: 'MSISDN',
+            ownerFspId: "test-fspiop-owner",
+            partyId: "123456789",
+            partyType: "MSISDN",
             partySubType: null,
             currency: null
         };
@@ -1096,16 +1096,16 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
             }
         };
 
-        const requestSpyOn = jest.spyOn(Request, 'sendRequest');
+        const requestSpyOn = jest.spyOn(Request, "sendRequest");
 
         requestSpyOn.mockImplementationOnce(() => {
-            throw new Error('test error');
+            throw new Error("test error");
         });
         
         // Act
         kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
 
-        const apiSpy = jest.spyOn(Request, 'sendRequest');
+        const apiSpy = jest.spyOn(Request, "sendRequest");
         const res = async (): Promise<any> => {
             return await apiSpy.mock.results[apiSpy.mock.results.length-1].value;
         }

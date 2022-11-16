@@ -48,6 +48,7 @@ import { AccountLookupBCTopics, QuotingBCTopics } from "@mojaloop/platform-share
 import {ParticipantsHttpClient} from "@mojaloop/participants-bc-client-lib";
 import { QuoteRoutes } from "./http_routes/quoting-bc/quote";
 import { BulkQuotesRoutes } from "./http_routes/quoting-bc/bulk_quotes";
+import path from "path";
 // import {AuthorizationClient, LoginHelper} from "@mojaloop/security-bc-client-lib";
 
 
@@ -64,7 +65,7 @@ const SVC_DEFAULT_HTTP_PORT = 4000;
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
 const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
-const AUDIT_CERT_FILE_PATH = process.env["AUDIT_CERT_FILE_PATH"] || "./dist/tmp_key_file";
+const AUDIT_CERT_FILE_PATH = process.env["AUDIT_CERT_FILE_PATH"] || path.join(__dirname, "../dist/tmp_key_file");
 
 // Account Lookup
 const PARTICIPANTS_URL_RESOURCE_NAME = "participants";
