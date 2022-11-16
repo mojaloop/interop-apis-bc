@@ -40,12 +40,14 @@ import {
     LocalAuditClientCryptoProvider
 } from "@mojaloop/auditing-bc-client-lib";
 import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
-import {ParticipantRoutes} from "./http_routes/participant_routes";
-import {PartyRoutes} from "./http_routes/party_routes";
+import {ParticipantRoutes} from "./http_routes/account-lookup-bc/participant_routes";
+import {PartyRoutes} from "./http_routes/account-lookup-bc/party_routes";
 import { MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { AccountLookupEventHandler } from "./event_handlers/account_lookup_evt_handler";
-import { AccountLookupBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { AccountLookupBCTopics, QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import {ParticipantsHttpClient} from "@mojaloop/participants-bc-client-lib";
+import { QuoteRoutes } from "./http_routes/quoting-bc/quote";
+import { BulkQuotesRoutes } from "./http_routes/quoting-bc/bulk_quotes";
 // import {AuthorizationClient, LoginHelper} from "@mojaloop/security-bc-client-lib";
 
 
@@ -63,10 +65,18 @@ const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
 const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
 const AUDIT_CERT_FILE_PATH = process.env["AUDIT_CERT_FILE_PATH"] || "./dist/tmp_key_file";
+
+// Account Lookup
 const PARTICIPANTS_URL_RESOURCE_NAME = "participants";
 const PARTIES_URL_RESOURCE_NAME = "parties";
 
 const KAFKA_ACCOUNTS_LOOKUP_TOPIC = process.env["KAFKA_ACCOUNTS_LOOKUP_TOPIC"] || AccountLookupBCTopics.DomainEvents;
+
+// Quotes
+const QUOTES_URL_RESOURCE_NAME = "quotes ";
+const BULK_QUOTES_URL_RESOURCE_NAME = "bulkQuotes";
+
+const KAFKA_QUOTES_LOOKUP_TOPIC = process.env["KAFKA_QUOTES_LOOKUP_TOPIC"] || QuotingBCTopics.DomainEvents;
 
 const PARTICIPANT_SVC_BASEURL = process.env["PARTICIPANT_SVC_BASEURL"] || "http://127.0.0.1:3010";
 // const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
@@ -81,6 +91,8 @@ let logger:ILogger;
 let expressServer: Server;
 let participantRoutes:ParticipantRoutes;
 let partyRoutes:PartyRoutes;
+let quotesRoutes:QuoteRoutes;
+let bulkQuotesRoutes:BulkQuotesRoutes;
 let participantServiceClient: ParticipantsHttpClient;
 // let loginHelper:LoginHelper;
 
@@ -102,6 +114,12 @@ export async function setupExpress(loggerParam:ILogger): Promise<Server> {
 
     app.use(`/${PARTICIPANTS_URL_RESOURCE_NAME}`, participantRoutes.Router);
     app.use(`/${PARTIES_URL_RESOURCE_NAME}`, partyRoutes.Router);
+
+    quotesRoutes = new QuoteRoutes(kafkaProducerOptions, KAFKA_QUOTES_LOOKUP_TOPIC, loggerParam);
+    bulkQuotesRoutes = new BulkQuotesRoutes(kafkaProducerOptions, KAFKA_QUOTES_LOOKUP_TOPIC, loggerParam);
+
+    app.use(`/${QUOTES_URL_RESOURCE_NAME}`, quotesRoutes.Router);
+    app.use(`/${BULK_QUOTES_URL_RESOURCE_NAME}`, bulkQuotesRoutes.Router);
 
     app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
         // catch all
