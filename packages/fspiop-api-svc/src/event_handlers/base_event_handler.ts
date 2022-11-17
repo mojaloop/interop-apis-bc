@@ -37,7 +37,7 @@ import {MLKafkaJsonConsumer, MLKafkaJsonConsumerOptions, MLKafkaJsonProducer, ML
 import {ParticipantEndpoint, ParticipantsHttpClient } from "@mojaloop/participants-bc-client-lib";
 import { IEventHandler } from "../interfaces/types";
 import { IncomingHttpHeaders } from "http";
-import { AccountLookUperrorEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { AccountLookUperrorEvt, QuotingErrorEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 
 export abstract class BaseEventHandler implements IEventHandler {
     protected _kafkaConsumer: MLKafkaJsonConsumer;
@@ -105,6 +105,6 @@ export abstract class BaseEventHandler implements IEventHandler {
     
     abstract processMessage (sourceMessage: IMessage): Promise<void>
 
-    abstract _handleErrorReceivedEvt(message: AccountLookUperrorEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>
+    abstract _handleErrorReceivedEvt(message: AccountLookUperrorEvt | QuotingErrorEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>
 
 }

@@ -31,7 +31,7 @@
 
  'use strict';
 
-import { ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvtPayload, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvtPayload, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload, QuotingRequestCreatedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ErrorCode } from "./enums";
 
 
@@ -167,4 +167,14 @@ export const transformPayloadError = ({errorCode, errorDescription }:{ errorCode
 			errorDescription: errorDescription,
 		}
 	};
+};
+
+// Quoting
+
+export const transformPayloadQuotingRequestPost = (payload: QuotingRequestCreatedEvtPayload):any => {
+	const info = {
+	
+	};
+		
+	return removeEmpty(info);
 };

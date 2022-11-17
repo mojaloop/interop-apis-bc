@@ -74,7 +74,7 @@ const PARTIES_URL_RESOURCE_NAME = "parties";
 const KAFKA_ACCOUNTS_LOOKUP_TOPIC = process.env["KAFKA_ACCOUNTS_LOOKUP_TOPIC"] || AccountLookupBCTopics.DomainEvents;
 
 // Quotes
-const QUOTES_URL_RESOURCE_NAME = "quotes ";
+const QUOTES_URL_RESOURCE_NAME = "quotes";
 const BULK_QUOTES_URL_RESOURCE_NAME = "bulkQuotes";
 
 const KAFKA_QUOTES_LOOKUP_TOPIC = process.env["KAFKA_QUOTES_LOOKUP_TOPIC"] || QuotingBCTopics.DomainEvents;

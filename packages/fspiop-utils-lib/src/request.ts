@@ -124,8 +124,8 @@ export const buildEndpoint = (baseUrl: string, templateUrl: string) => {
 
 type BuildRequestUrlOptions = {
   entity: EntityTypeEnum, 
-  partyType: string,
-  partyId: string,
+  partyType: string | null,
+  partyId: string | null,
   partySubType: string | null,
   error?: boolean
 }

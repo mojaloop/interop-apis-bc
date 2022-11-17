@@ -22,23 +22,53 @@
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
 
- * Crosslake
- - Pedro Sousa Barreto <pedrob@crosslaketech.com>
-
+ * Arg Software
+ - José Antunes <jose.antunes@arg.software>
+ - Rui Rocha <rui.rocha@arg.software>
+  
  --------------
  ******/
 
  "use strict";
-
-import { Constants } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-
-// Required
-export const ParticipantsPutId = [Constants.FSPIOP_HEADERS_CONTENT_TYPE, Constants.FSPIOP_HEADERS_DATE, Constants.FSPIOP_HEADERS_SOURCE];
-export const ParticipantsPutTypeAndId = [Constants.FSPIOP_HEADERS_CONTENT_TYPE, Constants.FSPIOP_HEADERS_DATE, Constants.FSPIOP_HEADERS_SOURCE];
-export const ParticipantsPutTypeAndIdAndSubId = [Constants.FSPIOP_HEADERS_CONTENT_TYPE, Constants.FSPIOP_HEADERS_DATE, Constants.FSPIOP_HEADERS_SOURCE];
-
-export const PartiesPutId = [Constants.FSPIOP_HEADERS_CONTENT_TYPE, Constants.FSPIOP_HEADERS_DATE, Constants.FSPIOP_HEADERS_SOURCE];
-export const PartiesPutTypeAndId = [Constants.FSPIOP_HEADERS_CONTENT_TYPE, Constants.FSPIOP_HEADERS_DATE, Constants.FSPIOP_HEADERS_SOURCE];
-export const PartiesPutTypeAndIdAndSubId = [Constants.FSPIOP_HEADERS_CONTENT_TYPE, Constants.FSPIOP_HEADERS_DATE, Constants.FSPIOP_HEADERS_SOURCE];
-
-export const QuotesPost = [Constants.FSPIOP_HEADERS_CONTENT_TYPE, Constants.FSPIOP_HEADERS_DATE, Constants.FSPIOP_HEADERS_SOURCE];
+ 
+ export default {
+    $id: "defs",
+    definitions: {
+      "TransactionType": {
+        "title": "TransactionType",
+        "description": "Data model for the complex type TransactionType.",
+        "required": [
+          "scenario",
+          "initiator",
+          "initiatorType"
+        ],
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "scenario": {
+            "description": "Deposit, withdrawal, refund, …",
+            "type": "string"
+          },
+          "subScenario": {
+            "description": "Possible sub-scenario, defined locally within the scheme.",
+            "type": "string"
+          },
+          "initiator": {
+            "description": "Who is initiating the transaction - Payer or Payee",
+            "type": "string"
+          },
+          "initiatorType": {
+            "description": "Consumer, agent, business, …",
+            "type": "string"
+          },
+          "refundInfo": {
+            "$ref": "#/components/schemas/Refund"
+          },
+          "balanceOfPayments": {
+            "description": "Balance of Payments code.",
+            "type": "string"
+          }
+        }
+      },
+    },
+}

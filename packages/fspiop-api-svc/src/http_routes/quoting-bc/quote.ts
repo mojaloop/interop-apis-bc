@@ -34,9 +34,11 @@
  import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
  import { Constants } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
  import { MLKafkaJsonProducer, MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
- import { QuotingRequestCreatedCreatedEvt, QuotingRequestCreatedCreatedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+ import { QuotingRequestCreatedEvt, QuotingRequestCreatedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
  import { IncomingHttpHeaders } from "http";
- 
+import { schemaValidator } from "../ajv";
+import ajv from "ajv"
+
  const getEnabledHeaders = (headers: IncomingHttpHeaders) => Object.fromEntries(Object.entries(headers).filter(([headerKey]) => Constants.FSPIOP_REQUIRED_HEADERS_LIST.includes(headerKey)));
  
 export interface IParty {
@@ -55,7 +57,7 @@ export interface IParty {
     private _router = express.Router();
 
     constructor(producerOptions: MLKafkaJsonProducerOptions, kafkaTopic: string, logger: ILogger) {
-        this._logger = logger.createChild("ParticipantRoutesbk");
+        this._logger = logger.createChild("QuotesRoutes");
         this._producerOptions = producerOptions;
         this._kafkaTopic = kafkaTopic;
         this._kafkaProducer = new MLKafkaJsonProducer(this._producerOptions);
@@ -63,16 +65,31 @@ export interface IParty {
         // bind routes
 
         // POST Quote Calculation
-        this._router.post("/", this.getQuoteCalculation.bind(this));
+        this._router.post("/", this.createQuoteCalculation.bind(this));
     }
 
     get Router(): express.Router {
         return this._router;
     }
     
-    private async getQuoteCalculation(req: express.Request, res: express.Response): Promise<void> {
-        this._logger.debug("Got getQuoteCalculation request");
+    private async createQuoteCalculation(req: express.Request, res: express.Response): Promise<void> {
+        this._logger.debug("Got createQuoteCalculation request");
+        
+        const validate = schemaValidator.getSchema("QuotesPostRequest") as ajv.ValidateFunction;
+        const valid = validate(req.body);
+        
+        if (!valid) {
+            this._logger.error(validate.errors)
 
+            this._logger.debug(`createQuoteCalculation body errors: ${JSON.stringify(validate.errors)}`);
+
+            res.status(400).json({
+                status: 422,
+                errors: validate.errors
+            });
+            return;
+        }
+          
         // Headers
         const clonedHeaders = { ...req.headers };
         const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
@@ -100,7 +117,7 @@ export interface IParty {
             return;
         }
 
-        const msgPayload: QuotingRequestCreatedCreatedEvtPayload = {
+        const msgPayload: QuotingRequestCreatedEvtPayload = {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId,
             quoteId: quoteId,
@@ -118,7 +135,7 @@ export interface IParty {
             extensionList: extensionList,
         };
 
-        const msg =  new QuotingRequestCreatedCreatedEvt(msgPayload);
+        const msg =  new QuotingRequestCreatedEvt(msgPayload);
 
         // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
         msg.fspiopOpaqueState = {
@@ -129,13 +146,13 @@ export interface IParty {
 
         await this._kafkaProducer.send(msg);
 
-        this._logger.debug("getQuoteCalculation sent message");
+        this._logger.debug("createQuoteCalculation sent message");
 
         res.status(202).json({
             status: "ok"
         });
 
-        this._logger.debug("getQuoteCalculation responded");
+        this._logger.debug("createQuoteCalculation responded");
     }
 
 

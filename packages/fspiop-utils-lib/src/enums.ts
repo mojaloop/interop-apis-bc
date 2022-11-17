@@ -82,4 +82,5 @@ export enum Currency {
 export enum EntityTypeEnum {
     PARTICIPANTS = "participants",
     PARTIES = "parties",
+    QUOTES = "quotes",
 }
