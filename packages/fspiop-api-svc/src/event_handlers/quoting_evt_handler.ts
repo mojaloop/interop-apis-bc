@@ -188,7 +188,7 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             
             const template = Request.buildRequestUrl({
-                entity: Enums.EntityTypeEnum.PARTIES,
+                entity: Enums.EntityTypeEnum.QUOTES,
                 partyType: null, 
                 partyId: null, 
                 partySubType: null,
@@ -200,7 +200,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 headers: clonedHeaders, 
                 source: requesterFspId, 
                 destination: requesterFspId, 
-                method: Enums.FspiopRequestMethodsEnum.PUT,
+                method: Enums.FspiopRequestMethodsEnum.POST,
                 payload: Transformer.transformPayloadQuotingRequestPost(payload),
             });
 
@@ -211,7 +211,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             this._logger.error(JSON.stringify(error.response?.data));
             
             const template = Request.buildRequestUrl({
-                entity: Enums.EntityTypeEnum.PARTIES,
+                entity: Enums.EntityTypeEnum.QUOTES,
                 partyType: null, 
                 partyId: null, 
                 partySubType: null,

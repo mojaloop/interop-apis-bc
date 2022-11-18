@@ -173,8 +173,14 @@ export const transformPayloadError = ({errorCode, errorDescription }:{ errorCode
 
 export const transformPayloadQuotingRequestPost = (payload: QuoteRequestAcceptedEvtPayload):any => {
 	const info = {
-	
-	};
+		"quoteId": payload.quoteId,
+		"transactionId": payload.transactionId,
+		"payee": payload.payee,
+		"payer": payload.payer,
+		"amountType": payload.amountType,
+		"amount": payload.amount,
+		"transactionType": payload.transactionType
+	  };
 		
 	return removeEmpty(info);
 };

@@ -48,7 +48,7 @@
      private _router = express.Router();
  
      constructor(producerOptions: MLKafkaJsonProducerOptions, kafkaTopic: string, logger: ILogger) {
-         this._logger = logger.createChild("ParticipantRoutesbk");
+         this._logger = logger.createChild("PartyRoutes");
          this._producerOptions = producerOptions;
          this._kafkaTopic = kafkaTopic;
          this._kafkaProducer = new MLKafkaJsonProducer(this._producerOptions);

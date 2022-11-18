@@ -132,7 +132,15 @@ type BuildRequestUrlOptions = {
 
 export const buildRequestUrl = (options: BuildRequestUrlOptions): string  => {   
 
-	let partialUrl = `/${options.entity}/${options.partyType}/${options.partyId}`;
+    let partialUrl = `/${options.entity}`;
+
+    if(options.partyType) {
+        partialUrl += `/${options.partyType}`;
+    } 
+
+    if(options.partyId) {
+        partialUrl += `/${options.partyId}`;
+    } 
 
     if(options.partySubType) {
         partialUrl += `/${options.partySubType}`;
