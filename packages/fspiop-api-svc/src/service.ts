@@ -44,10 +44,11 @@ import {ParticipantRoutes} from "./http_routes/account-lookup-bc/participant_rou
 import {PartyRoutes} from "./http_routes/account-lookup-bc/party_routes";
 import { MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { AccountLookupEventHandler } from "./event_handlers/account_lookup_evt_handler";
+import { QuotingEventHandler } from "./event_handlers/quoting_evt_handler";
 import { AccountLookupBCTopics, QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import {ParticipantsHttpClient} from "@mojaloop/participants-bc-client-lib";
-import { QuoteRoutes } from "./http_routes/quoting-bc/quote";
-import { BulkQuotesRoutes } from "./http_routes/quoting-bc/bulk_quotes";
+import { QuoteRoutes } from "./http_routes/quoting-bc/quote_routes";
+import { BulkQuotesRoutes } from "./http_routes/quoting-bc/bulk_quotes_routes";
 import path from "path";
 // import {AuthorizationClient, LoginHelper} from "@mojaloop/security-bc-client-lib";
 
@@ -119,6 +120,9 @@ export async function setupExpress(loggerParam:ILogger): Promise<Server> {
     quotesRoutes = new QuoteRoutes(kafkaProducerOptions, KAFKA_QUOTES_LOOKUP_TOPIC, loggerParam);
     bulkQuotesRoutes = new BulkQuotesRoutes(kafkaProducerOptions, KAFKA_QUOTES_LOOKUP_TOPIC, loggerParam);
 
+    await quotesRoutes.init();
+    await bulkQuotesRoutes.init();
+    
     app.use(`/${QUOTES_URL_RESOURCE_NAME}`, quotesRoutes.Router);
     app.use(`/${BULK_QUOTES_URL_RESOURCE_NAME}`, bulkQuotesRoutes.Router);
 
@@ -133,6 +137,7 @@ export async function setupExpress(loggerParam:ILogger): Promise<Server> {
 }
 
 let accountEvtHandler:AccountLookupEventHandler;
+let quotingEvtHandler:QuotingEventHandler;
 
 async function setupEventHandlers():Promise<void>{
     const kafkaJsonConsumerOptions: MLKafkaJsonConsumerOptions = {
@@ -147,13 +152,22 @@ async function setupEventHandlers():Promise<void>{
     };
 
     accountEvtHandler = new AccountLookupEventHandler(
-            logger,
-            kafkaJsonConsumerOptions,
-            kafkaJsonProducerOptions,
-            [KAFKA_ACCOUNTS_LOOKUP_TOPIC],
-            participantServiceClient
+        logger,
+        kafkaJsonConsumerOptions,
+        kafkaJsonProducerOptions,
+        [KAFKA_ACCOUNTS_LOOKUP_TOPIC],
+        participantServiceClient
     );
     await accountEvtHandler.init();
+
+    quotingEvtHandler = new QuotingEventHandler(
+        logger,
+        kafkaJsonConsumerOptions,
+        kafkaJsonProducerOptions,
+        [KAFKA_QUOTES_LOOKUP_TOPIC],
+        participantServiceClient
+    );
+    await quotingEvtHandler.init();
 
 }
 

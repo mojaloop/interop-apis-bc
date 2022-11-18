@@ -34,7 +34,7 @@
  import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
  import { Constants } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
  import { MLKafkaJsonProducer, MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
- import { QuotingRequestCreatedEvt, QuotingRequestCreatedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+ import { QuoteRequestReceivedEvt, QuoteRequestReceivedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
  import { IncomingHttpHeaders } from "http";
 import { schemaValidator } from "../ajv";
 import ajv from "ajv"
@@ -83,8 +83,8 @@ export interface IParty {
 
             this._logger.debug(`createQuoteCalculation body errors: ${JSON.stringify(validate.errors)}`);
 
-            res.status(400).json({
-                status: 422,
+            res.status(422).json({
+                status: "invalid request body",
                 errors: validate.errors
             });
             return;
@@ -117,7 +117,7 @@ export interface IParty {
             return;
         }
 
-        const msgPayload: QuotingRequestCreatedEvtPayload = {
+        const msgPayload: QuoteRequestReceivedEvtPayload = {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId,
             quoteId: quoteId,
@@ -135,7 +135,7 @@ export interface IParty {
             extensionList: extensionList,
         };
 
-        const msg =  new QuotingRequestCreatedEvt(msgPayload);
+        const msg =  new QuoteRequestReceivedEvt(msgPayload);
 
         // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
         msg.fspiopOpaqueState = {

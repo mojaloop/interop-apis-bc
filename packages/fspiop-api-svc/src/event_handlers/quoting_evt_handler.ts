@@ -35,20 +35,20 @@ import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {
-    QuotingErrorEvt,
-    QuotingRequestCreatedEvt,
-    QuotingRequestReceivedEvt,
+    QuoteErrorEvt,
+    QuoteRequestAcceptedEvt,
+    QuoteRequestReceivedEvt,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { ParticipantsHttpClient } from "@mojaloop/participants-bc-client-lib";
 import { IncomingHttpHeaders } from "http";
 import { BaseEventHandler } from "./base_event_handler";
 import { AxiosError } from "axios";
-import { QuotesPost } from "../../../fspiop-api-svc/src/errors";
+import { QuotesPost } from "../errors";
 
 const KAFKA_OPERATOR_ERROR_TOPIC = process.env["KAFKA_OPERATOR_ERROR_TOPIC"] || 'OperatorBcErrors';
 
-export class AccountLookupEventHandler extends BaseEventHandler {
+export class QuotingEventHandler extends BaseEventHandler {
     constructor(
             logger: ILogger,
             consumerOptions: MLKafkaJsonConsumerOptions,
@@ -63,11 +63,11 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         const message: IDomainMessage = sourceMessage as IDomainMessage;
 
         switch(message.msgName){
-            case QuotingErrorEvt.name:
-                await this._handleErrorReceivedEvt(new QuotingErrorEvt(message.payload), message.fspiopOpaqueState);
+            case QuoteErrorEvt.name:
+                await this._handleErrorReceivedEvt(new QuoteErrorEvt(message.payload), message.fspiopOpaqueState);
                 break;
-            case QuotingRequestCreatedEvt.name:
-                await this._handleQuotingCreatedRequestReceivedEvt(new QuotingRequestCreatedEvt(message.payload), message.fspiopOpaqueState);
+            case QuoteRequestAcceptedEvt.name:
+                await this._handleQuotingCreatedRequestReceivedEvt(new QuoteRequestAcceptedEvt(message.payload), message.fspiopOpaqueState);
                 break;
             default:
                 this._logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
@@ -81,7 +81,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         return;
     }
 
-    async _handleErrorReceivedEvt(message: QuotingErrorEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
+    async _handleErrorReceivedEvt(message: QuoteErrorEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
         const { payload } = message;
   
         const requesterFspId = payload.requesterFspId;
@@ -98,7 +98,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             
             // TODO discuss about having the specific event for overall errors so we dont have
             // to change an existing event to use the generic topic
-            const msg = new QuotingErrorEvt(payload);
+            const msg = new QuoteErrorEvt(payload);
     
             msg.msgTopic = KAFKA_OPERATOR_ERROR_TOPIC;
 
@@ -118,7 +118,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             let template;
             switch(message.payload.sourceEvent){
-                case QuotingRequestReceivedEvt.name:
+                case QuoteRequestReceivedEvt.name:
                     template = Request.buildRequestUrl({
                         entity: Enums.EntityTypeEnum.QUOTES,
                         partyType: null, 
@@ -154,7 +154,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         return;
     }
 
-    private async _handleQuotingCreatedRequestReceivedEvt(message: QuotingRequestCreatedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
+    private async _handleQuotingCreatedRequestReceivedEvt(message: QuoteRequestAcceptedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
         const { payload } = message;
   
         const requesterFspId = payload.requesterFspId;
@@ -170,7 +170,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             // TODO discuss about having the specific event for overall errors so we dont have
             // to change an existing event to use the generic topic
-            const msg =  new QuotingRequestCreatedEvt(payload);
+            const msg =  new QuoteRequestAcceptedEvt(payload);
     
             msg.msgTopic = KAFKA_OPERATOR_ERROR_TOPIC;
 
