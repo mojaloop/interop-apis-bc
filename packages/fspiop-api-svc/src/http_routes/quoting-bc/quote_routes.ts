@@ -34,7 +34,7 @@
  import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
  import { Constants } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
  import { MLKafkaJsonProducer, MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
- import { QuoteRequestReceivedEvt, QuoteRequestReceivedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+ import { QuoteRequestReceivedEvt, QuoteRequestReceivedEvtPayload, QuoteResponseReceivedEvt, QuoteResponseReceivedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
  import { IncomingHttpHeaders } from "http";
 import { schemaValidator } from "../ajv";
 import ajv from "ajv"
@@ -65,15 +65,16 @@ export interface IParty {
         // bind routes
 
         // POST Quote Calculation
-        this._router.post("/", this.createQuoteCalculation.bind(this));
+        this._router.post("/", this.quoteRequestReceived.bind(this));
+        this._router.put("/:id", this.quoteResponseReceived.bind(this));
     }
 
     get Router(): express.Router {
         return this._router;
     }
     
-    private async createQuoteCalculation(req: express.Request, res: express.Response): Promise<void> {
-        this._logger.debug("Got createQuoteCalculation request");
+    private async quoteRequestReceived(req: express.Request, res: express.Response): Promise<void> {
+        this._logger.debug("Got quoteRequestReceived request");
         
         const validate = schemaValidator.getSchema("QuotesPostRequest") as ajv.ValidateFunction;
         const valid = validate(req.body);
@@ -81,7 +82,7 @@ export interface IParty {
         if (!valid) {
             this._logger.error(validate.errors)
 
-            this._logger.debug(`createQuoteCalculation body errors: ${JSON.stringify(validate.errors)}`);
+            this._logger.debug(`quoteRequestReceived body errors: ${JSON.stringify(validate.errors)}`);
 
             res.status(422).json({
                 status: "invalid request body",
@@ -146,15 +147,92 @@ export interface IParty {
 
         await this._kafkaProducer.send(msg);
 
-        this._logger.debug("createQuoteCalculation sent message");
+        this._logger.debug("quoteRequestReceived sent message");
 
         res.status(202).json({
             status: "ok"
         });
 
-        this._logger.debug("createQuoteCalculation responded");
+        this._logger.debug("quoteRequestReceived responded");
     }
 
+    private async quoteResponseReceived(req: express.Request, res: express.Response): Promise<void> {
+        this._logger.debug("Got quoteResponseReceived request");
+        
+        const validate = schemaValidator.getSchema("QuotesPostRequest") as ajv.ValidateFunction;
+        const valid = validate(req.body);
+        
+        if (!valid) {
+            this._logger.error(validate.errors)
+
+            this._logger.debug(`quoteResponseReceived body errors: ${JSON.stringify(validate.errors)}`);
+
+            res.status(422).json({
+                status: "invalid request body",
+                errors: validate.errors
+            });
+            return;
+        }
+          
+        // Headers
+        const clonedHeaders = { ...req.headers };
+        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+        
+        // Date Model
+        const quoteId = req.body["quoteId"] as string || null;
+        const transferAmount = req.body["transferAmount"] as string || null;
+        const expiration = req.body["expiration"] as string || null;
+        const ilpPacket = req.body["ilpPacket"] as string || null;
+        const condition = req.body["condition"] as string || null;
+        const payeeReceiveAmount = req.body["payeeReceiveAmount"] as string || null;
+        const payeeFspFee = req.body["payeeFspFee"] as string || null;
+        const payeeFspCommission = req.body["payeeFspCommission"] as string || null;
+        const geoCode = req.body["geoCode"] as string || null;
+        const extensionList = req.body["extensionList"] as string || null;
+
+
+        if(!requesterFspId || ! destinationFspId || !quoteId || !transferAmount || !expiration || !ilpPacket || !condition) {
+            res.status(400).json({
+                status: "not ok"
+            });
+            return;
+        }
+
+        const msgPayload: QuoteResponseReceivedEvtPayload = {
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId,
+            quoteId: quoteId,
+            transferAmount: transferAmount,
+            expiration: expiration,
+            ilpPacket: ilpPacket,
+            condition: condition,
+            payeeReceiveAmount: payeeReceiveAmount,
+            payeeFspFee: payeeFspFee,
+            payeeFspCommission: payeeFspCommission,
+            geoCode: geoCode,
+            extensionList: extensionList
+        };
+
+        const msg =  new QuoteResponseReceivedEvt(msgPayload);
+
+        // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
+        msg.fspiopOpaqueState = {
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId,
+            headers: getEnabledHeaders(clonedHeaders)
+        };
+
+        await this._kafkaProducer.send(msg);
+
+        this._logger.debug("quoteResponseReceived sent message");
+
+        res.status(202).json({
+            status: "ok"
+        });
+
+        this._logger.debug("quoteResponseReceived responded");
+    }
 
     async init(): Promise<void>{
         await this._kafkaProducer.connect();

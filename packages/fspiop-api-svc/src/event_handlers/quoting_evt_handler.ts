@@ -38,6 +38,7 @@ import {
     QuoteErrorEvt,
     QuoteRequestAcceptedEvt,
     QuoteRequestReceivedEvt,
+    QuoteResponseAccepted,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { ParticipantsHttpClient } from "@mojaloop/participants-bc-client-lib";
@@ -68,6 +69,9 @@ export class QuotingEventHandler extends BaseEventHandler {
                 break;
             case QuoteRequestAcceptedEvt.name:
                 await this._handleQuotingCreatedRequestReceivedEvt(new QuoteRequestAcceptedEvt(message.payload), message.fspiopOpaqueState);
+                break;
+            case QuoteResponseAccepted.name:
+                await this._handleQuotingResponseAcceptedEvt(new QuoteResponseAccepted(message.payload), message.fspiopOpaqueState);
                 break;
             default:
                 this._logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
@@ -119,6 +123,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             let template;
             switch(message.payload.sourceEvent){
                 case QuoteRequestReceivedEvt.name:
+                case QuoteResponseAccepted.name:
                     template = Request.buildRequestUrl({
                         entity: Enums.EntityTypeEnum.QUOTES,
                         partyType: null, 
@@ -205,6 +210,86 @@ export class QuotingEventHandler extends BaseEventHandler {
             });
 
             this._logger.info('_handleQuotingCreatedRequestReceivedEvt -> end');
+
+        } catch (err: unknown) {
+            const error = err as unknown as AxiosError;
+            this._logger.error(JSON.stringify(error.response?.data));
+            
+            const template = Request.buildRequestUrl({
+                entity: Enums.EntityTypeEnum.QUOTES,
+                partyType: null, 
+                partyId: null, 
+                partySubType: null,
+                error: true
+            });
+           
+            await Request.sendRequest({
+                url: Request.buildEndpoint(requestedEndpoint.value, template), 
+                headers: clonedHeaders, 
+                source: requesterFspId, 
+                destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
+                method: Enums.FspiopRequestMethodsEnum.PUT,
+                payload: Transformer.transformPayloadError({
+                    errorCode: Enums.ErrorCode.BAD_REQUEST,
+                    errorDescription: JSON.stringify(err),
+                })
+            });
+        }
+
+        return;
+    }
+
+    private async _handleQuotingResponseAcceptedEvt(message: QuoteResponseAccepted, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
+        const { payload } = message;
+  
+        const requesterFspId = payload.requesterFspId;
+        const destinationFspId = payload.destinationFspId;
+        const quoteId = payload.quoteId;
+        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+
+        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
+
+        if(!requestedEndpoint){
+
+            this._logger.error("Cannot get requestedEndpoint at _handleQuotingResponseAcceptedEvt()");
+
+            // TODO discuss about having the specific event for overall errors so we dont have
+            // to change an existing event to use the generic topic
+            const msg = new QuoteResponseAccepted(payload);
+    
+            msg.msgTopic = KAFKA_OPERATOR_ERROR_TOPIC;
+
+            await this._kafkaProducer.send(msg);
+
+            return;
+        }
+
+        try {
+            this._logger.info('_handleQuotingResponseAcceptedEvt -> start');
+
+            // Always validate the payload and headers received
+            message.validatePayload();
+            Validate.validateHeaders(QuotesPost, clonedHeaders);
+
+            
+            const template = Request.buildRequestUrl({
+                entity: Enums.EntityTypeEnum.QUOTES,
+                partyType: null, 
+                partyId: null, 
+                partySubType: null,
+                error: false
+            });
+
+            await Request.sendRequest({
+                url: Request.buildEndpoint(requestedEndpoint.value, template), 
+                headers: clonedHeaders, 
+                source: requesterFspId, 
+                destination: requesterFspId, 
+                method: Enums.FspiopRequestMethodsEnum.PUT,
+                payload: Transformer.transformPayloadQuotingResponsePut(payload),
+            });
+
+            this._logger.info('_handleQuotingResponseAcceptedEvt -> end');
 
         } catch (err: unknown) {
             const error = err as unknown as AxiosError;

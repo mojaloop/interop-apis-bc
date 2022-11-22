@@ -31,7 +31,7 @@
 
  'use strict';
 
-import { ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvtPayload, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload, QuoteRequestAcceptedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvtPayload, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload, QuoteRequestAcceptedEvtPayload, QuoteResponseAcceptedPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ErrorCode } from "./enums";
 
 
@@ -180,6 +180,25 @@ export const transformPayloadQuotingRequestPost = (payload: QuoteRequestAccepted
 		amountType: payload.amountType,
 		amount: payload.amount,
 		transactionType: payload.transactionType
+	};
+		
+	return removeEmpty(info);
+};
+
+export const transformPayloadQuotingResponsePut = (payload: QuoteResponseAcceptedPayload):any => {
+	const info = {
+		requesterFspId: payload.requesterFspId,
+		destinationFspId: payload.destinationFspId,
+		quoteId: payload.quoteId,
+		transferAmount: payload.transferAmount,
+		expiration: payload.expiration,
+		ilpPacket: payload.ilpPacket,
+		condition: payload.condition,
+		payeeReceiveAmount: payload.payeeReceiveAmount,
+		payeeFspFee: payload.payeeFspFee,
+		payeeFspCommission: payload.payeeFspCommission,
+		geoCode: payload.geoCode,
+		extensionList: payload.extensionList
 	};
 		
 	return removeEmpty(info);

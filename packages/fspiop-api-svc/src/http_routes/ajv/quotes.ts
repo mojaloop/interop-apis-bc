@@ -31,66 +31,111 @@
 
  "use strict";
  
- export default {
+ export const QuotesPostRequest = {
     "$id": "QuotesPostRequest",
     "title": "QuotesPostRequest",
     "description": "POST /quotes object",
     "required": [
-      "quoteId",
-      "transactionId",
-      "payee",
-      "payer",
-      "amountType",
-      "amount",
-      "transactionType"
+        "quoteId",
+        "transactionId",
+        "payee",
+        "payer",
+        "amountType",
+        "amount",
+        "transactionType"
     ],
     "type": "object",
     "additionalProperties": false,
     "properties": {
-      "quoteId": {
-        "description": "Common ID between the FSPs for the quote object, decided by the Payer FSP. The ID should be reused for resends of the same quote for a transaction. A new ID should be generated for each new quote for a transaction.",
-        "type": "string"
-      },
-      "transactionId": {
-        "description": "Common ID (decided by the Payer FSP) between the FSPs for the future transaction object. The actual transaction will be created as part of a successful transfer process. The ID should be reused for resends of the same quote for a transaction. A new ID should be generated for each new quote for a transaction.",
-        "type": "string"
-      },
-      "transactionRequestId": {
-        "description": "Identifies an optional previously-sent transaction request.",
-        "type": "string"
-      },
-      "payee": {
-        "$ref": "defs#/definitions/Party"
-      },
-      "payer": {
-        "$ref": "defs#/definitions/Party"
-      },
-      "amountType": {
-        "description": "SEND for send amount, RECEIVE for receive amount.",
-        "type": "string"
-      },
-      "amount": {
-        "$ref": "defs#/definitions/Money"
-      },
-      "fees": {
-        "$ref": "defs#/definitions/Money"
-      },
-      "transactionType": {
-        "$ref": "defs#/definitions/TransactionType"
-      },
-      "geoCode": {
-        "$ref": "defs#/definitions/GeoCode"
-      },
-      "note": {
-        "description": "A memo that will be attached to the transaction.",
-        "type": "string"
-      },
-      "expiration": {
-        "description": "Expiration is optional. It can be set to get a quick failure in case the peer FSP takes too long to respond. Also, it may be beneficial for Consumer, Agent, and Merchant to know that their request has a time limit.",
-        "type": "string"
-      },
-      "extensionList": {
-        "$ref": "defs#/definitions/ExtensionList"
-      }
+        "quoteId": {
+            "description": "Common ID between the FSPs for the quote object, decided by the Payer FSP. The ID should be reused for resends of the same quote for a transaction. A new ID should be generated for each new quote for a transaction.",
+            "type": "string"
+        },
+        "transactionId": {
+            "description": "Common ID (decided by the Payer FSP) between the FSPs for the future transaction object. The actual transaction will be created as part of a successful transfer process. The ID should be reused for resends of the same quote for a transaction. A new ID should be generated for each new quote for a transaction.",
+            "type": "string"
+        },
+        "transactionRequestId": {
+            "description": "Identifies an optional previously-sent transaction request.",
+            "type": "string"
+        },
+        "payee": {
+            "$ref": "defs#/definitions/Party"
+        },
+        "payer": {
+            "$ref": "defs#/definitions/Party"
+        },
+        "amountType": {
+            "description": "SEND for send amount, RECEIVE for receive amount.",
+            "type": "string"
+        },
+        "amount": {
+            "$ref": "defs#/definitions/Money"
+        },
+        "fees": {
+            "$ref": "defs#/definitions/Money"
+        },
+        "transactionType": {
+            "$ref": "defs#/definitions/TransactionType"
+        },
+        "geoCode": {
+            "$ref": "defs#/definitions/GeoCode"
+        },
+        "note": {
+            "description": "A memo that will be attached to the transaction.",
+            "type": "string"
+        },
+        "expiration": {
+            "description": "Expiration is optional. It can be set to get a quick failure in case the peer FSP takes too long to respond. Also, it may be beneficial for Consumer, Agent, and Merchant to know that their request has a time limit.",
+            "type": "string"
+        },
+            "extensionList": {
+            "$ref": "defs#/definitions/ExtensionList"
+        }
     }
-  }
+}
+
+export const QuotesIDPutResponse = {
+    "title": "QuotesIDPutResponse",
+    "description": "PUT /quotes/{ID} object",
+    "required": [
+        "transferAmount",
+        "expiration",
+        "ilpPacket",
+        "condition"
+    ],
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "transferAmount": {
+            "$ref": "#/components/schemas/Money"
+        },
+        "payeeReceiveAmount": {
+            "$ref": "#/components/schemas/Money"
+        },
+        "payeeFspFee": {
+            "$ref": "#/components/schemas/Money"
+        },
+        "payeeFspCommission": {
+            "$ref": "#/components/schemas/Money"
+        },
+        "expiration": {
+            "description": "Date and time until when the quotation is valid and can be honored when used in the subsequent transaction.",
+            "type": "string"
+        },
+        "geoCode": {
+            "$ref": "#/components/schemas/GeoCode"
+        },
+        "ilpPacket": {
+            "description": "The ILP Packet that must be attached to the transfer by the Payer.",
+            "type": "string"
+        },
+        "condition": {
+            "description": "The condition that must be attached to the transfer by the Payer.",
+            "type": "string"
+        },
+        "extensionList": {
+            "$ref": "#/components/schemas/ExtensionList"
+        }
+    }
+}
