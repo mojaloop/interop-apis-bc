@@ -171,7 +171,7 @@ export class QuotingEventHandler extends BaseEventHandler {
 
         if(!requestedEndpoint){
 
-            this._logger.error("Cannot get requestedEndpoint at _handleQuotingCreatedRequestReceivedEvt()");
+            this._logger.error("Cannot get requestedEndpoint at _handleQuotingCreatedRequestReceivedEvt");
 
             // TODO discuss about having the specific event for overall errors so we dont have
             // to change an existing event to use the generic topic
@@ -201,7 +201,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             });
 
             await Request.sendRequest({
-                url: Request.buildEndpoint(requestedEndpoint.value, template), 
+                url: Request.buildEndpoint(requestedEndpoint.value, template),
                 headers: clonedHeaders, 
                 source: requesterFspId, 
                 destination: requesterFspId, 
@@ -281,7 +281,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             });
 
             await Request.sendRequest({
-                url: Request.buildEndpoint(requestedEndpoint.value, template), 
+                url: `${Request.buildEndpoint(requestedEndpoint.value, template)}/${payload.quoteId}`, 
                 headers: clonedHeaders, 
                 source: requesterFspId, 
                 destination: requesterFspId, 

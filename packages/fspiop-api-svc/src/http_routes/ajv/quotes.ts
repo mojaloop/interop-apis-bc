@@ -96,6 +96,7 @@
 }
 
 export const QuotesIDPutResponse = {
+    "$id": "QuotesIDPutResponse",
     "title": "QuotesIDPutResponse",
     "description": "PUT /quotes/{ID} object",
     "required": [
@@ -108,23 +109,23 @@ export const QuotesIDPutResponse = {
     "additionalProperties": false,
     "properties": {
         "transferAmount": {
-            "$ref": "#/components/schemas/Money"
+            "$ref": "defs#/definitions/Money"
         },
         "payeeReceiveAmount": {
-            "$ref": "#/components/schemas/Money"
+            "$ref": "defs#/definitions/Money"
         },
         "payeeFspFee": {
-            "$ref": "#/components/schemas/Money"
+            "$ref": "defs#/definitions/Money"
         },
         "payeeFspCommission": {
-            "$ref": "#/components/schemas/Money"
+            "$ref": "defs#/definitions/Money"
         },
         "expiration": {
             "description": "Date and time until when the quotation is valid and can be honored when used in the subsequent transaction.",
             "type": "string"
         },
         "geoCode": {
-            "$ref": "#/components/schemas/GeoCode"
+            "$ref": "defs#/definitions/GeoCode"
         },
         "ilpPacket": {
             "description": "The ILP Packet that must be attached to the transfer by the Payer.",
@@ -135,7 +136,7 @@ export const QuotesIDPutResponse = {
             "type": "string"
         },
         "extensionList": {
-            "$ref": "#/components/schemas/ExtensionList"
+            "$ref": "defs#/definitions/ExtensionList"
         }
     }
 }

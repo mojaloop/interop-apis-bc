@@ -159,7 +159,7 @@ export interface IParty {
     private async quoteResponseReceived(req: express.Request, res: express.Response): Promise<void> {
         this._logger.debug("Got quoteResponseReceived request");
         
-        const validate = schemaValidator.getSchema("QuotesPostRequest") as ajv.ValidateFunction;
+        const validate = schemaValidator.getSchema("QuotesIDPutResponse") as ajv.ValidateFunction;
         const valid = validate(req.body);
         
         if (!valid) {
@@ -180,7 +180,7 @@ export interface IParty {
         const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
         
         // Date Model
-        const quoteId = req.body["quoteId"] as string || null;
+        const quoteId = req.params["id"] as string || null;
         const transferAmount = req.body["transferAmount"] as string || null;
         const expiration = req.body["expiration"] as string || null;
         const ilpPacket = req.body["ilpPacket"] as string || null;
