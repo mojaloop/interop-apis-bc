@@ -31,7 +31,7 @@
 
  'use strict';
 
-import { ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvtPayload, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload, QuoteRequestAcceptedEvtPayload, QuoteResponseAcceptedPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvtPayload, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload, QuoteRequestAcceptedEvtPayload, QuoteResponseAcceptedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ErrorCode } from "./enums";
 
 
@@ -185,10 +185,8 @@ export const transformPayloadQuotingRequestPost = (payload: QuoteRequestAccepted
 	return removeEmpty(info);
 };
 
-export const transformPayloadQuotingResponsePut = (payload: QuoteResponseAcceptedPayload):any => {
+export const transformPayloadQuotingResponsePut = (payload: QuoteResponseAcceptedEvtPayload):any => {
 	const info = {
-		requesterFspId: payload.requesterFspId,
-		destinationFspId: payload.destinationFspId,
 		quoteId: payload.quoteId,
 		transferAmount: payload.transferAmount,
 		expiration: payload.expiration,

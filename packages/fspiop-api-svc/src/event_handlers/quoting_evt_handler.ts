@@ -88,11 +88,9 @@ export class QuotingEventHandler extends BaseEventHandler {
     async _handleErrorReceivedEvt(message: QuoteErrorEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
         const { payload } = message;
   
-        const requesterFspId = payload.requesterFspId;
-        const destinationFspId = payload.destinationFspId;
-        const quoteId = payload.quoteId;
-        
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
 
         const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
@@ -162,10 +160,9 @@ export class QuotingEventHandler extends BaseEventHandler {
     private async _handleQuotingCreatedRequestReceivedEvt(message: QuoteRequestAcceptedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
         const { payload } = message;
   
-        const requesterFspId = payload.requesterFspId;
-        const destinationFspId = payload.destinationFspId;
-        const quoteId = payload.quoteId;
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
 
         const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
@@ -242,11 +239,10 @@ export class QuotingEventHandler extends BaseEventHandler {
     private async _handleQuotingResponseAcceptedEvt(message: QuoteResponseAccepted, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
         const { payload } = message;
   
-        const requesterFspId = payload.requesterFspId;
-        const destinationFspId = payload.destinationFspId;
-        const quoteId = payload.quoteId;
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-
+        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+        
         const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
         if(!requestedEndpoint){

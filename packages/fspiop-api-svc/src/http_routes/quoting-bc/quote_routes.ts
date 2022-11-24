@@ -97,19 +97,19 @@ export interface IParty {
         const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
         
         // Date Model
-        const quoteId = req.body["quoteId"] as string || null;
-        const transactionId = req.body["transactionId"] as string || null;
-        const transactionRequestId = req.body["transactionRequestId"] as string || null;
-        const payee = req.body["payee"] as string || null;
-        const payer = req.body["payer"] as string || null;
-        const amountType = req.body["amountType"] as string || null;
-        const amount = req.body["amount"] as string || null;
-        const fees = req.body["fees"] as string || null;
-        const transactionType = req.body["transactionType"] as string || null;
-        const geoCode = req.body["geoCode"] as string || null;
-        const note = req.body["note"] as string || null;
-        const expiration = req.body["expiration"] as string || null;
-        const extensionList = req.body["extensionList"] as string || null;
+        const quoteId = req.body["quoteId"] || null;
+        const transactionId = req.body["transactionId"] || null;
+        const transactionRequestId = req.body["transactionRequestId"] || null;
+        const payee = req.body["payee"] || null;
+        const payer = req.body["payer"] || null;
+        const amountType = req.body["amountType"] || null;
+        const amount = req.body["amount"] || null;
+        const fees = req.body["fees"] || null;
+        const transactionType = req.body["transactionType"] || null;
+        const geoCode = req.body["geoCode"] || null;
+        const note = req.body["note"] || null;
+        const expiration = req.body["expiration"] || null;
+        const extensionList = req.body["extensionList"] || null;
 
         if(!requesterFspId || !destinationFspId || !quoteId || !transactionId || !payee || !payer || !amountType || !amount || !transactionType) {
             res.status(400).json({
@@ -134,9 +134,14 @@ export interface IParty {
             note: note,
             expiration: expiration,
             extensionList: extensionList,
-        };
+        } as unknown as QuoteRequestReceivedEvtPayload;
 
         const msg =  new QuoteRequestReceivedEvt(msgPayload);
+
+        // Since we don't export the types of the body (but we validate them in the entrypoint of the route),
+        // we can use the builtin method of validatePayload of the evt messages to make sure consistency 
+        // is shared between both
+        msg.validatePayload();
 
         // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
         msg.fspiopOpaqueState = {
@@ -180,16 +185,16 @@ export interface IParty {
         const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
         
         // Date Model
-        const quoteId = req.params["id"] as string || null;
-        const transferAmount = req.body["transferAmount"] as string || null;
-        const expiration = req.body["expiration"] as string || null;
-        const ilpPacket = req.body["ilpPacket"] as string || null;
-        const condition = req.body["condition"] as string || null;
-        const payeeReceiveAmount = req.body["payeeReceiveAmount"] as string || null;
-        const payeeFspFee = req.body["payeeFspFee"] as string || null;
-        const payeeFspCommission = req.body["payeeFspCommission"] as string || null;
-        const geoCode = req.body["geoCode"] as string || null;
-        const extensionList = req.body["extensionList"] as string || null;
+        const quoteId = req.params["id"] || null;
+        const transferAmount = req.body["transferAmount"] || null;
+        const expiration = req.body["expiration"] || null;
+        const ilpPacket = req.body["ilpPacket"] || null;
+        const condition = req.body["condition"] || null;
+        const payeeReceiveAmount = req.body["payeeReceiveAmount"] || null;
+        const payeeFspFee = req.body["payeeFspFee"] || null;
+        const payeeFspCommission = req.body["payeeFspCommission"] || null;
+        const geoCode = req.body["geoCode"] || null;
+        const extensionList = req.body["extensionList"] || null;
 
 
         if(!requesterFspId || ! destinationFspId || !quoteId || !transferAmount || !expiration || !ilpPacket || !condition) {
@@ -212,9 +217,14 @@ export interface IParty {
             payeeFspCommission: payeeFspCommission,
             geoCode: geoCode,
             extensionList: extensionList
-        };
+        } as unknown as QuoteResponseReceivedEvtPayload;
 
         const msg =  new QuoteResponseReceivedEvt(msgPayload);
+
+        // Since we don't export the types of the body (but we validate them in the entrypoint of the route),
+        // we can use the builtin method of validatePayload of the evt messages to make sure consistency 
+        // is shared between both 
+        msg.validatePayload();
 
         // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
         msg.fspiopOpaqueState = {
