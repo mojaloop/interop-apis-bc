@@ -34,7 +34,7 @@
  import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
  import { Constants } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
  import { MLKafkaJsonProducer, MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
- import { QuoteRequestReceivedEvt, QuoteRequestReceivedEvtPayload, QuoteResponseReceivedEvt, QuoteResponseReceivedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+ import { QuoteRequestReceivedEvt, QuoteRequestReceivedEvtPayload, QuoteResponseReceivedEvt, QuoteResponseReceivedEvtPayload, QuoteQueryReceivedEvt, QuoteQueryReceivedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
  import { IncomingHttpHeaders } from "http";
 import { schemaValidator } from "../ajv";
 import ajv from "ajv"
@@ -64,8 +64,13 @@ export interface IParty {
 
         // bind routes
 
+        // GET Quote by ID
+        this._router.get("/:id/", this.quoteQueryReceived.bind(this));
+        
         // POST Quote Calculation
         this._router.post("/", this.quoteRequestReceived.bind(this));
+
+        // PUT Quote Created
         this._router.put("/:id", this.quoteResponseReceived.bind(this));
     }
 
@@ -242,6 +247,49 @@ export interface IParty {
         });
 
         this._logger.debug("quoteResponseReceived responded");
+    }
+
+    private async quoteQueryReceived(req: express.Request, res: express.Response): Promise<void> {
+        this._logger.debug("Got quoteQueryReceived request");
+
+        const clonedHeaders = { ...req.headers };
+        const quoteId = req.params["id"] as string || null;
+        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+
+        const currency = req.query["currency"] as string || null;
+
+        if(!quoteId || !requesterFspId) {
+            res.status(400).json({
+                status: "not ok"
+            });
+            return;
+        }
+
+        const msgPayload: QuoteQueryReceivedEvtPayload = {
+            quoteId: quoteId,
+        };
+
+        const msg =  new QuoteQueryReceivedEvt(msgPayload);
+
+        msg.validatePayload();
+
+        // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
+        msg.fspiopOpaqueState = {
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId,
+            headers: getEnabledHeaders(clonedHeaders)
+        };
+
+        await this._kafkaProducer.send(msg);
+
+        this._logger.debug("quoteQueryReceived sent message");
+
+        res.status(202).json({
+            status: "ok"
+        });
+
+        this._logger.debug("quoteQueryReceived responded");
     }
 
     async init(): Promise<void>{
