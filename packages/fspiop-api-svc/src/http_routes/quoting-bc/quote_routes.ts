@@ -116,7 +116,7 @@ export interface IParty {
         const expiration = req.body["expiration"] || null;
         const extensionList = req.body["extensionList"] || null;
 
-        if(!requesterFspId || !destinationFspId || !quoteId || !transactionId || !payee || !payer || !amountType || !amount || !transactionType) {
+        if(!requesterFspId || !quoteId || !transactionId || !payee || !payer || !amountType || !amount || !transactionType) {
             res.status(400).json({
                 status: "not ok"
             });
