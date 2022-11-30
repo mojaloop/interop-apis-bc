@@ -34,10 +34,12 @@
 import Ajv from "ajv"
 import defsSchema from "./defs"
 import { QuotesPostRequest, QuotesIDPutResponse } from "./quotes"
+import { BulkQuotesPostRequest, BulkQuotesIDPutResponse } from "./bulkQuotes"
 
 export const schemaValidator = new Ajv({
     schemas: [
         QuotesPostRequest, QuotesIDPutResponse, // Quotes
+        BulkQuotesPostRequest, BulkQuotesIDPutResponse, // BulkQuotes
         defsSchema  // Definitions
     ]
 })
