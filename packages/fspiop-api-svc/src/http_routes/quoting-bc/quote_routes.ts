@@ -139,7 +139,7 @@ export interface IParty {
             note: note,
             expiration: expiration,
             extensionList: extensionList,
-        } as unknown as QuoteRequestReceivedEvtPayload;
+        } as QuoteRequestReceivedEvtPayload;
 
         const msg =  new QuoteRequestReceivedEvt(msgPayload);
 
@@ -202,7 +202,7 @@ export interface IParty {
         const extensionList = req.body["extensionList"] || null;
 
 
-        if(!requesterFspId || ! destinationFspId || !quoteId || !transferAmount || !expiration || !ilpPacket || !condition) {
+        if(!requesterFspId || !quoteId || !transferAmount || !expiration || !ilpPacket || !condition) {
             res.status(400).json({
                 status: "not ok"
             });
@@ -222,7 +222,7 @@ export interface IParty {
             payeeFspCommission: payeeFspCommission,
             geoCode: geoCode,
             extensionList: extensionList
-        } as unknown as QuoteResponseReceivedEvtPayload;
+        } as QuoteResponseReceivedEvtPayload;
 
         const msg =  new QuoteResponseReceivedEvt(msgPayload);
 

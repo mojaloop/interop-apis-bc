@@ -29,21 +29,20 @@
  --------------
  ******/
 
-"use strict";
+ "use strict";
  
-import Ajv from "ajv"
-import defsSchema from "./defs"
-import { ParticipantsIDPutResponse, ParticipantsPostRequest, ParticipantsTypeIDPutResponse, ParticipantsTypeIDSubIDPostRequest } from "./participants";
-import { PartiesTypeIDPutResponse } from "./parties";
-import { QuotesPostRequest, QuotesIDPutResponse } from "./quotes"
-import { BulkQuotesPostRequest, BulkQuotesIDPutResponse } from "./bulkQuotes"
-
-export const schemaValidator = new Ajv({
-    schemas: [
-        ParticipantsTypeIDSubIDPostRequest, ParticipantsTypeIDPutResponse, ParticipantsIDPutResponse, ParticipantsPostRequest, // Participants
-        PartiesTypeIDPutResponse, // Parties
-        QuotesPostRequest, QuotesIDPutResponse, // Quotes
-        BulkQuotesPostRequest, BulkQuotesIDPutResponse, // BulkQuotes
-        defsSchema  // Definitions
-    ]
-})
+ export const PartiesTypeIDPutResponse = {
+    "$id": "PartiesTypeIDPutResponse",
+    "title": "PartiesTypeIDPutResponse",
+    "description": "PUT /parties/{Type}/{ID} object",
+    "required": [
+      "party"
+    ],
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "party": {
+            "$ref": "#/components/schemas/Party"
+        }
+    }
+}

@@ -96,6 +96,7 @@ let partyRoutes:PartyRoutes;
 let quotesRoutes:QuoteRoutes;
 let bulkQuotesRoutes:BulkQuotesRoutes;
 let participantServiceClient: ParticipantsHttpClient;
+let auditClient: IAuditClient;
 // let loginHelper:LoginHelper;
 
 
@@ -174,7 +175,7 @@ async function setupEventHandlers():Promise<void>{
 
 export async function start(
         loggerParam?:ILogger,
-        auditClient?:IAuditClient):Promise<void> {
+        auditClientParam?:IAuditClient):Promise<void> {
     console.log(`Fspiop-api-svc - service starting with PID: ${process.pid}`);
 
     if(!loggerParam) {
@@ -191,7 +192,7 @@ export async function start(
         logger = loggerParam;
     }
 
-    if(!auditClient) {
+    if(!auditClientParam) {
         if (!existsSync(AUDIT_CERT_FILE_PATH)) {
             if (PRODUCTION_MODE) process.exit(9);
 
@@ -205,13 +206,16 @@ export async function start(
         auditClient = new AuditClient(BC_NAME, APP_NAME, APP_VERSION, cryptoProvider, auditDispatcher);
 
         await auditClient.init();
+    } else{
+        auditClient = auditClientParam;
     }
+    
 
     // TODO setup login helper
     //loginHelper = new LoginHelper(AUTH_N_SVC_BASEURL, logger);
     //loginHelper.init()
 
-    const fixedToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InVVbFFjbkpJUk93dDIxYXFJRGpRdnVnZERvUlYzMzEzcTJtVllEQndDbWMifQ.eyJ0eXAiOiJCZWFyZXIiLCJhenAiOiJwYXJ0aWNpcGFudHMtc3ZjIiwicm9sZXMiOlsiNTI0YTQ1Y2QtNGIwOS00NmVjLThlNGEtMzMxYTVkOTcyNmVhIl0sImlhdCI6MTY2Njc3MTgyOSwiZXhwIjoxNjY3Mzc2NjI5LCJhdWQiOiJtb2phbG9vcC52bmV4dC5kZWZhdWx0X2F1ZGllbmNlIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDozMjAxLyIsInN1YiI6ImFwcDo6cGFydGljaXBhbnRzLXN2YyIsImp0aSI6IjMzNDUyODFiLThlYzktNDcyOC1hZGVkLTdlNGJmMzkyMGZjMSJ9.s2US9fEAE3SDdAtxxttkPIyxmNcACexW3Z-8T61w96iji9muF_Zdj2koKvf9tICd25rhtCkolI03hBky3mFNe4c7U1sV4YUtCNNRgReMZ69rS9xdfquO_gIaABIQFsu1WTc7xLkAccPhTHorartdQe7jvGp-tOSkqA-azj0yGjwUccFhX3Bgg3rWasmJDbbblIMih4SJuWE7MGHQxMzhX6c9l1TI-NpFRRFDTYTg1H6gXhBvtHMXnC9PPbc9x_RxAPBqmMcleIJZiMZ8Cn805OL9Wt_sMFfGPdAQm0l4cdjdesgfQahsrtCOAcp5l7NKmehY0pbLmjvP6zlrDM_D3A";
+    const fixedToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Iml2SC1pVUVDRHdTVnVGS0QtRzdWc0MzS0pnLXN4TFgteWNvSjJpOTFmLTgifQ.eyJ0eXAiOiJCZWFyZXIiLCJhenAiOiJzZWN1cml0eS1iYy11aSIsInJvbGVzIjpbIjI2ODBjYTRhLTRhM2EtNGU5YS1iMWZhLTY1MDAyMjkyMTAwOSJdLCJpYXQiOjE2NzAxMjAxNDcsImV4cCI6MTY3MDcyNDk0NywiYXVkIjoibW9qYWxvb3Audm5leHQuZGVmYXVsdF9hdWRpZW5jZSIsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3Q6MzIwMS8iLCJzdWIiOiJ1c2VyOjphZG1pbiIsImp0aSI6IjQwMmI0N2RmLWY1NWMtNDRlYS04MjBiLWU5NTMwMTFkNGVmOSJ9.JCe96DJer79k_yaHg_Sf1CKNPUvLIMnUezOmoRHclLO4Fit65zU8EuM0RQiKdXWCLMVrPvbDfiemZEUFBOmt8vfqHK8YPM1gPbDtU-bbkKTLSvaZ8HEVrPzw1sq4t1JGT6LnD08gwEE9KzWDvjHVpGoHDAifp3ArRDqunB2GkU5rpS4nksDf97ysv2u2G8wx1283N_nqF0Brvfifcte7jSzc4NWIVafrLZuqQqBPR_2X1CTWYaLFHdOuVxL-_wmkiTTwWhuR2SyQDbxM91sIfLqoWz-S8NRDhG0AH3ecczjuvULzLqVmL0OG0d0VYNeFBr_mOIQDyhsshR5544eWMg";
 
     participantServiceClient = new ParticipantsHttpClient(logger, PARTICIPANT_SVC_BASEURL, fixedToken, 5000);
 
@@ -233,7 +237,12 @@ export async function start(
 
 export async function stop(){
     await accountEvtHandler.destroy();
+    await quotingEvtHandler.destroy();
     expressServer.close();
+    auditClient.destroy();
+    setTimeout(async () => {
+        await (logger as KafkaLogger).destroy();
+    }, 5000);
 }
 
 /**
