@@ -115,8 +115,8 @@ export async function setupExpress(loggerParam:ILogger): Promise<Server> {
     await participantRoutes.init();
     await partyRoutes.init();
 
-    app.use(`/${PARTICIPANTS_URL_RESOURCE_NAME}`, participantRoutes.Router);
-    app.use(`/${PARTIES_URL_RESOURCE_NAME}`, partyRoutes.Router);
+    app.use(`/${PARTICIPANTS_URL_RESOURCE_NAME}`, participantRoutes.router);
+    app.use(`/${PARTIES_URL_RESOURCE_NAME}`, partyRoutes.router);
 
     quotesRoutes = new QuoteRoutes(kafkaProducerOptions, KAFKA_QUOTES_LOOKUP_TOPIC, loggerParam);
     bulkQuotesRoutes = new BulkQuotesRoutes(kafkaProducerOptions, KAFKA_QUOTES_LOOKUP_TOPIC, loggerParam);
@@ -124,8 +124,8 @@ export async function setupExpress(loggerParam:ILogger): Promise<Server> {
     await quotesRoutes.init();
     await bulkQuotesRoutes.init();
     
-    app.use(`/${QUOTES_URL_RESOURCE_NAME}`, quotesRoutes.Router);
-    app.use(`/${BULK_QUOTES_URL_RESOURCE_NAME}`, bulkQuotesRoutes.Router);
+    app.use(`/${QUOTES_URL_RESOURCE_NAME}`, quotesRoutes.router);
+    app.use(`/${BULK_QUOTES_URL_RESOURCE_NAME}`, bulkQuotesRoutes.router);
 
     app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
         // catch all

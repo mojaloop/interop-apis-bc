@@ -30,16 +30,18 @@
  ******/
 
  "use strict";
- import express from "express";
- import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
- import { Constants } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
- import { MLKafkaJsonProducer, MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
- import { QuoteRequestReceivedEvt, QuoteRequestReceivedEvtPayload, QuoteResponseReceivedEvt, QuoteResponseReceivedEvtPayload, QuoteQueryReceivedEvt, QuoteQueryReceivedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
- import { IncomingHttpHeaders } from "http";
+
+import express from "express";
+import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
+import { Constants } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import { QuoteRequestReceivedEvt, QuoteRequestReceivedEvtPayload, QuoteResponseReceivedEvt, QuoteResponseReceivedEvtPayload, QuoteQueryReceivedEvt, QuoteQueryReceivedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { IncomingHttpHeaders } from "http";
 import { schemaValidator } from "../ajv";
 import ajv from "ajv"
+import { BaseRoutes } from "../_base_router";
 
- const getEnabledHeaders = (headers: IncomingHttpHeaders) => Object.fromEntries(Object.entries(headers).filter(([headerKey]) => Constants.FSPIOP_REQUIRED_HEADERS_LIST.includes(headerKey)));
+const getEnabledHeaders = (headers: IncomingHttpHeaders) => Object.fromEntries(Object.entries(headers).filter(([headerKey]) => Constants.FSPIOP_REQUIRED_HEADERS_LIST.includes(headerKey)));
  
 export interface IParty {
     id: string;
@@ -48,46 +50,34 @@ export interface IParty {
     subId: string | null;
 }
 
- export class QuoteRoutes {
-    private _logger: ILogger;
-    private _producerOptions: MLKafkaJsonProducerOptions;
-    private _kafkaProducer: MLKafkaJsonProducer;
-    private _kafkaTopic: string;
-
-    private _router = express.Router();
+ export class QuoteRoutes extends BaseRoutes {
 
     constructor(producerOptions: MLKafkaJsonProducerOptions, kafkaTopic: string, logger: ILogger) {
-        this._logger = logger.createChild("QuotesRoutes");
-        this._producerOptions = producerOptions;
-        this._kafkaTopic = kafkaTopic;
-        this._kafkaProducer = new MLKafkaJsonProducer(this._producerOptions);
+        super(producerOptions, kafkaTopic, logger);
+        logger = logger.createChild("QuotesRoutes");
 
         // bind routes
 
         // GET Quote by ID
-        this._router.get("/:id/", this.quoteQueryReceived.bind(this));
+        this.router.get("/:id/", this.quoteQueryReceived.bind(this));
         
         // POST Quote Calculation
-        this._router.post("/", this.quoteRequestReceived.bind(this));
+        this.router.post("/", this.quoteRequestReceived.bind(this));
 
         // PUT Quote Created
-        this._router.put("/:id", this.quoteResponseReceived.bind(this));
+        this.router.put("/:id", this.quoteResponseReceived.bind(this));
     }
 
-    get Router(): express.Router {
-        return this._router;
-    }
-    
     private async quoteRequestReceived(req: express.Request, res: express.Response): Promise<void> {
-        this._logger.debug("Got quoteRequestReceived request");
+        this.logger.debug("Got quoteRequestReceived request");
         
         const validate = schemaValidator.getSchema("QuotesPostRequest") as ajv.ValidateFunction;
         const valid = validate(req.body);
         
         if (!valid) {
-            this._logger.error(validate.errors)
+            this.logger.error(validate.errors)
 
-            this._logger.debug(`quoteRequestReceived body errors: ${JSON.stringify(validate.errors)}`);
+            this.logger.debug(`quoteRequestReceived body errors: ${JSON.stringify(validate.errors)}`);
 
             res.status(422).json({
                 status: "invalid request body",
@@ -155,27 +145,27 @@ export interface IParty {
             headers: getEnabledHeaders(clonedHeaders)
         };
 
-        await this._kafkaProducer.send(msg);
+        await this.kafkaProducer.send(msg);
 
-        this._logger.debug("quoteRequestReceived sent message");
+        this.logger.debug("quoteRequestReceived sent message");
 
         res.status(202).json({
             status: "ok"
         });
 
-        this._logger.debug("quoteRequestReceived responded");
+        this.logger.debug("quoteRequestReceived responded");
     }
 
     private async quoteResponseReceived(req: express.Request, res: express.Response): Promise<void> {
-        this._logger.debug("Got quoteResponseReceived request");
+        this.logger.debug("Got quoteResponseReceived request");
         
         const validate = schemaValidator.getSchema("QuotesIDPutResponse") as ajv.ValidateFunction;
         const valid = validate(req.body);
         
         if (!valid) {
-            this._logger.error(validate.errors)
+            this.logger.error(validate.errors)
 
-            this._logger.debug(`quoteResponseReceived body errors: ${JSON.stringify(validate.errors)}`);
+            this.logger.debug(`quoteResponseReceived body errors: ${JSON.stringify(validate.errors)}`);
 
             res.status(422).json({
                 status: "invalid request body",
@@ -238,19 +228,19 @@ export interface IParty {
             headers: getEnabledHeaders(clonedHeaders)
         };
 
-        await this._kafkaProducer.send(msg);
+        await this.kafkaProducer.send(msg);
 
-        this._logger.debug("quoteResponseReceived sent message");
+        this.logger.debug("quoteResponseReceived sent message");
 
         res.status(202).json({
             status: "ok"
         });
 
-        this._logger.debug("quoteResponseReceived responded");
+        this.logger.debug("quoteResponseReceived responded");
     }
 
     private async quoteQueryReceived(req: express.Request, res: express.Response): Promise<void> {
-        this._logger.debug("Got quoteQueryReceived request");
+        this.logger.debug("Got quoteQueryReceived request");
 
         const clonedHeaders = { ...req.headers };
         const quoteId = req.params["id"] as string || null;
@@ -281,23 +271,15 @@ export interface IParty {
             headers: getEnabledHeaders(clonedHeaders)
         };
 
-        await this._kafkaProducer.send(msg);
+        await this.kafkaProducer.send(msg);
 
-        this._logger.debug("quoteQueryReceived sent message");
+        this.logger.debug("quoteQueryReceived sent message");
 
         res.status(202).json({
             status: "ok"
         });
 
-        this._logger.debug("quoteQueryReceived responded");
+        this.logger.debug("quoteQueryReceived responded");
     }
-
-    async init(): Promise<void>{
-        await this._kafkaProducer.connect();
-    }
-
-    async destroy(): Promise<void>{
-        await this._kafkaProducer.destroy();
-    }
- }
+}
  

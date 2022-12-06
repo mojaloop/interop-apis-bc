@@ -25,6 +25,10 @@
  * Crosslake
  - Pedro Sousa Barreto <pedrob@crosslaketech.com>
 
+ * Arg Software
+ - José Antunes <jose.antunes@arg.software>
+ - Rui Rocha <rui.rocha@arg.software>
+
  --------------
  ******/
 
@@ -34,35 +38,28 @@ import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {Constants} from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {ParticipantQueryReceivedEvtPayload, ParticipantQueryReceivedEvt} from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { BaseRoutes } from "../_base_router";
 
-export class ParticipantRoutes {
-    private _logger: ILogger;
-    private _producerOptions: MLKafkaJsonProducerOptions;
-    private _kafkaProducer: MLKafkaJsonProducer;
-    private _kafkaTopic: string;
-
-    private _router = express.Router();
+export class ParticipantRoutes extends BaseRoutes {
 
     constructor(producerOptions: MLKafkaJsonProducerOptions, kafkaTopic: string, logger: ILogger) {
-        this._logger = logger.createChild("ParticipantRoutes");
-        this._producerOptions = producerOptions;
-        this._kafkaTopic = kafkaTopic;
-        this._kafkaProducer = new MLKafkaJsonProducer(this._producerOptions);
+        super(producerOptions, kafkaTopic, logger);
+        logger = logger.createChild("ParticipantRoutes");
 
         // bind routes
 
         // GET Participant by Type & ID
-        this._router.get("/:type/:id/", this.getParticipantsByTypeAndID.bind(this));
+        this.router.get("/:type/:id/", this.getParticipantsByTypeAndID.bind(this));
         // GET Participants by Type, ID & SubId
-        this._router.get("/:type/:id/:subid", this.getParticipantsByTypeAndIDAndSubId.bind(this));
+        this.router.get("/:type/:id/:subid", this.getParticipantsByTypeAndIDAndSubId.bind(this));
     }
 
     get Router(): express.Router {
-        return this._router;
+        return this.router;
     }
 
     private async getParticipantsByTypeAndID(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
-        this._logger.debug("Got getParticipantsByTypeAndID request");
+        this.logger.debug("Got getParticipantsByTypeAndID request");
 
         const type = req.params["type"] as string || null;
         const id = req.params["id"] as string || null;
@@ -93,19 +90,19 @@ export class ParticipantRoutes {
             destinationFspId: null,
         };
 
-        await this._kafkaProducer.send(msg);
+        await this.kafkaProducer.send(msg);
 
-        this._logger.debug("getParticipantsByTypeAndID sent message");
+        this.logger.debug("getParticipantsByTypeAndID sent message");
 
         res.status(202).json({
             status: "ok"
         });
 
-        this._logger.debug("getParticipantsByTypeAndID responded");
+        this.logger.debug("getParticipantsByTypeAndID responded");
     }
 
     private async getParticipantsByTypeAndIDAndSubId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
-        this._logger.debug("Got getParticipantsByTypeAndIDAndSubId request");
+        this.logger.debug("Got getParticipantsByTypeAndIDAndSubId request");
 
         const type = req.params["type"] as string || null;
         const id = req.params["id"] as string || null;
@@ -137,22 +134,22 @@ export class ParticipantRoutes {
             destinationFspId: null,
         };
 
-        await this._kafkaProducer.send(msg);
+        await this.kafkaProducer.send(msg);
 
-        this._logger.debug("getParticipantsByTypeAndIDAndSubId sent message");
+        this.logger.debug("getParticipantsByTypeAndIDAndSubId sent message");
 
         res.status(202).json({
             status: "ok"
         });
 
-        this._logger.debug("getParticipantsByTypeAndIDAndSubId responded");
+        this.logger.debug("getParticipantsByTypeAndIDAndSubId responded");
     }
 
     async init(): Promise<void>{
-        await this._kafkaProducer.connect();
+        await this.kafkaProducer.connect();
     }
 
     async destroy(): Promise<void>{
-        await this._kafkaProducer.destroy();
+        await this.kafkaProducer.destroy();
     }
 }
