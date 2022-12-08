@@ -31,7 +31,7 @@
 
  'use strict';
 
-import { ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvtPayload, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload, QuoteRequestAcceptedEvtPayload, QuoteResponseAcceptedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvtPayload, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload, QuoteErrorEvtPayload, QuoteRequestAcceptedEvtPayload, QuoteResponseAcceptedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ErrorCode } from "./enums";
 
 
@@ -186,6 +186,40 @@ export const transformPayloadQuotingRequestPost = (payload: QuoteRequestAccepted
 };
 
 export const transformPayloadQuotingResponsePut = (payload: QuoteResponseAcceptedEvtPayload):any => {
+	const info = {
+		quoteId: payload.quoteId,
+		transferAmount: payload.transferAmount,
+		expiration: payload.expiration,
+		ilpPacket: payload.ilpPacket,
+		condition: payload.condition,
+		payeeReceiveAmount: payload.payeeReceiveAmount,
+		payeeFspFee: payload.payeeFspFee,
+		payeeFspCommission: payload.payeeFspCommission,
+		geoCode: payload.geoCode,
+		extensionList: payload.extensionList
+	};
+		
+	return removeEmpty(info);
+};
+
+export const transformPayloadQuotingError = (payload: any):any => {
+	const info = {
+		quoteId: payload.quoteId,
+		transferAmount: payload.transferAmount,
+		expiration: payload.expiration,
+		ilpPacket: payload.ilpPacket,
+		condition: payload.condition,
+		payeeReceiveAmount: payload.payeeReceiveAmount,
+		payeeFspFee: payload.payeeFspFee,
+		payeeFspCommission: payload.payeeFspCommission,
+		geoCode: payload.geoCode,
+		extensionList: payload.extensionList
+	};
+		
+	return removeEmpty(info);
+};
+
+export const transformPayloadQuotingRequestError = (payload: any):any => {
 	const info = {
 		quoteId: payload.quoteId,
 		transferAmount: payload.transferAmount,

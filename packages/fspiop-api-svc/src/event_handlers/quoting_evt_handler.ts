@@ -128,6 +128,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 case QuoteResponseAccepted.name:
                     template = Request.buildRequestUrl({
                         entity: Enums.EntityTypeEnum.QUOTES,
+                        quoteId: payload.quoteId,
                         partyType: null, 
                         partyId: null, 
                         partySubType: null,
@@ -218,6 +219,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             
             const template = Request.buildRequestUrl({
                 entity: Enums.EntityTypeEnum.QUOTES,
+                quoteId: payload.quoteId,
                 partyType: null, 
                 partyId: null, 
                 partySubType: null,
@@ -295,25 +297,26 @@ export class QuotingEventHandler extends BaseEventHandler {
             const error = err as unknown as AxiosError;
             this._logger.error(JSON.stringify(error.response?.data));
             
-            // const template = Request.buildRequestUrl({
-            //     entity: Enums.EntityTypeEnum.QUOTES,
-            //     partyType: null, 
-            //     partyId: null, 
-            //     partySubType: null,
-            //     error: true
-            // });
+            const template = Request.buildRequestUrl({
+                entity: Enums.EntityTypeEnum.QUOTES,
+                quoteId: payload.quoteId,
+                partyType: null, 
+                partyId: null, 
+                partySubType: null,
+                error: true
+            });
            
-            // await Request.sendRequest({
-            //     url: Request.buildEndpoint(requestedEndpoint.value, template), 
-            //     headers: clonedHeaders, 
-            //     source: requesterFspId, 
-            //     destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
-            //     method: Enums.FspiopRequestMethodsEnum.PUT,
-            //     payload: Transformer.transformPayloadError({
-            //         errorCode: Enums.ErrorCode.BAD_REQUEST,
-            //         errorDescription: JSON.stringify(err),
-            //     })
-            // });
+            await Request.sendRequest({
+                url: Request.buildEndpoint(requestedEndpoint.value, template), 
+                headers: clonedHeaders, 
+                source: requesterFspId, 
+                destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
+                method: Enums.FspiopRequestMethodsEnum.PUT,
+                payload: Transformer.transformPayloadError({
+                    errorCode: Enums.ErrorCode.BAD_REQUEST,
+                    errorDescription: JSON.stringify(err),
+                })
+            });
         }
 
         return;
@@ -363,7 +366,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 headers: clonedHeaders, 
                 source: requesterFspId, 
                 destination: requesterFspId, 
-                method: Enums.FspiopRequestMethodsEnum.PUT,
+                method: Enums.FspiopRequestMethodsEnum.GET,
                 payload: null,
             });
 
@@ -375,6 +378,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             
             const template = Request.buildRequestUrl({
                 entity: Enums.EntityTypeEnum.QUOTES,
+                quoteId: payload.quoteId,
                 partyType: null, 
                 partyId: null, 
                 partySubType: null,

@@ -84,3 +84,8 @@ export enum EntityTypeEnum {
     PARTIES = "parties",
     QUOTES = "quotes",
 }
+
+export enum AmountTypeEnum {
+    SEND = "SEND",
+    RECEIVE = "RECEIVE"
+}

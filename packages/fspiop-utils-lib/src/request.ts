@@ -37,6 +37,7 @@ import { FspiopError, PutParticipant, PutParty } from './transformer';
 import {ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload, ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvt, AccountLookUperrorEvtPayload, AccountLookUperrorEvt} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { EntityTypeEnum, FspiopRequestMethodsEnum, ResponseTypeEnum } from './enums';
 import HeaderBuilder from './account-lookup/headers/header_builder';
+import { Enums } from '.';
 
 export interface FspiopHttpHeaders {
   [FSPIOP_HEADERS_ACCEPT]: string;
@@ -124,9 +125,12 @@ export const buildEndpoint = (baseUrl: string, templateUrl: string) => {
 
 type BuildRequestUrlOptions = {
   entity: EntityTypeEnum, 
+  // Party & Participants
   partyType: string | null,
   partyId: string | null,
   partySubType: string | null,
+  // Quotes
+  quoteId?: string | null,
   error?: boolean
 }
 
@@ -147,7 +151,11 @@ export const buildRequestUrl = (options: BuildRequestUrlOptions): string  => {
     } 
 
     if(options.error) {
-        partialUrl += '/error';
+      if(options.entity === Enums.EntityTypeEnum.QUOTES) {
+        partialUrl += `/${options.quoteId}`;
+      }
+      
+      partialUrl += "/error";
     } 
 
 	return partialUrl;

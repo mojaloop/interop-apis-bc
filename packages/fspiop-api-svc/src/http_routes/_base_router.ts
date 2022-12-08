@@ -47,17 +47,18 @@ export abstract class BaseRoutes {
         this._producerOptions = producerOptions;
         this._kafkaTopic = kafkaTopic;
         this._kafkaProducer = new MLKafkaJsonProducer(this._producerOptions);
+        this._logger = logger;
     }
 
-    public get logger(): ILogger {
+    get logger(): ILogger {
         return this._logger;
     }
 
-    public get kafkaProducer(): MLKafkaJsonProducer {
+    get kafkaProducer(): MLKafkaJsonProducer {
         return this._kafkaProducer;
     }
 
-    public get router(): express.Router {
+    get router(): express.Router {
         return this._router;
     }
 

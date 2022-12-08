@@ -77,6 +77,8 @@ class KafkaProducer {
 
     public async destroy(): Promise<void> {
         this.producer.close()
+        this.producer
+
     }
 
     public sendMessage(topic: string, message: any) {

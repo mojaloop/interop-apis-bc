@@ -74,34 +74,28 @@ export abstract class BaseEventHandler implements IEventHandler {
     }
 
     protected async _validateParticipantAndGetEndpoint(fspId: string):Promise<ParticipantEndpoint | null>{
-        return {
-            id: fspId,
-            protocol: "HTTPs/REST",
-            type: "FSPIOP",
-            value: "http://127.0.0.1:4040"
-        };
-        // try {
-        //     const participant = await this._participantServiceClient.getParticipantById(fspId);
+        try {
+            const participant = await this._participantServiceClient.getParticipantById(fspId);
 
-        //     if (!participant) {
-        //         this._logger.error(`_validateParticipantAndGetEndpoint could not get participant with id: "${fspId}"`);
-        //         return null;
-        //     }
+            if (!participant) {
+                this._logger.error(`_validateParticipantAndGetEndpoint could not get participant with id: "${fspId}"`);
+                return null;
+            }
 
-        //     const endpoint = participant.participantEndpoints.find(endpoint => endpoint.type==="FSPIOP");
+            const endpoint = participant.participantEndpoints.find(endpoint => endpoint.type==="FSPIOP");
 
-        //     if (!endpoint) {
-        //         this._logger.error(`_validateParticipantAndGetEndpoint could not get "FSPIOP" endpoint from participant with id: "${fspId}"`);
-        //     }
+            if (!endpoint) {
+                this._logger.error(`_validateParticipantAndGetEndpoint could not get "FSPIOP" endpoint from participant with id: "${fspId}"`);
+            }
 
-        //     return endpoint || null;
-        // } catch(err: unknown) {
-        //     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        //     const error = err as unknown as any;
+            return endpoint || null;
+        } catch(err: unknown) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const error = err as unknown as any;
             
-        //     this._logger.error(error.stack);
-        //     return null;
-        // }
+            this._logger.error(error.stack);
+            return null;
+        }
     }
 
     async destroy () : Promise<void> {

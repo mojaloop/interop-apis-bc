@@ -48,8 +48,8 @@ const getEnabledHeaders = (headers: IncomingHttpHeaders) => Object.fromEntries(O
 export class PartyRoutes extends BaseRoutes {
 
     constructor(producerOptions: MLKafkaJsonProducerOptions, kafkaTopic: string, logger: ILogger) {
-    super(producerOptions, kafkaTopic, logger);
-    logger = logger.createChild("PartyRoutes");
+        super(producerOptions, kafkaTopic, logger);
+        logger = logger.createChild("PartyRoutes");
 
         // bind routes
 
@@ -69,10 +69,6 @@ export class PartyRoutes extends BaseRoutes {
         this.router.delete("/:type/:id/", this.disassociatePartyByTypeAndId.bind(this));
         // DELETE Disassociate Party Party by Type, ID & SubId
         this.router.delete("/:type/:id/:subid", this.disassociatePartyByTypeAndIdAndSubId.bind(this));
-    }
-
-    get Router(): express.Router {
-        return this.router;
     }
 
     private async getPartyQueryReceivedByTypeAndId(req: express.Request, res: express.Response): Promise<void> {
