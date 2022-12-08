@@ -93,7 +93,7 @@
             "$ref": "defs#/definitions/ExtensionList"
         }
     }
-}
+};
 
 export const QuotesIDPutResponse = {
     "$id": "QuotesIDPutResponse",
@@ -139,4 +139,4 @@ export const QuotesIDPutResponse = {
             "$ref": "defs#/definitions/ExtensionList"
         }
     }
-}
+};

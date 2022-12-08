@@ -73,7 +73,7 @@ export class BulkQuotesRoutes extends BaseRoutes {
         const valid = validate(req.body);
         
         if (!valid) {
-            this.logger.error(validate.errors)
+            this.logger.error(validate.errors);
 
             this.logger.debug(`quoteRequestReceived body errors: ${JSON.stringify(validate.errors)}`);
 

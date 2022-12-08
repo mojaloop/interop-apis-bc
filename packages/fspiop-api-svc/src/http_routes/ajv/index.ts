@@ -31,12 +31,12 @@
 
 "use strict";
  
-import Ajv from "ajv"
-import defsSchema from "./defs"
+import Ajv from "ajv";
+import defsSchema from "./defs";
 import { ParticipantsIDPutResponse, ParticipantsPostRequest, ParticipantsTypeIDPutResponse, ParticipantsTypeIDSubIDPostRequest } from "./participants";
 import { PartiesTypeIDPutResponse } from "./parties";
-import { QuotesPostRequest, QuotesIDPutResponse } from "./quotes"
-import { BulkQuotesPostRequest, BulkQuotesIDPutResponse } from "./bulkQuotes"
+import { QuotesPostRequest, QuotesIDPutResponse } from "./quotes";
+import { BulkQuotesPostRequest, BulkQuotesIDPutResponse } from "./bulkQuotes";
 
 export const schemaValidator = new Ajv({
     schemas: [
@@ -46,4 +46,4 @@ export const schemaValidator = new Ajv({
         BulkQuotesPostRequest, BulkQuotesIDPutResponse, // BulkQuotes
         defsSchema  // Definitions
     ]
-})
+});

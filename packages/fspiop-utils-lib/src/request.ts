@@ -50,7 +50,7 @@ export interface FspiopHttpHeaders {
 
 }
 
-type EventPayload = AccountLookUperrorEvt | FspiopError | PutParticipant | ParticipantQueryResponseEvtPayload | PartyInfoRequestedEvtPayload | PartyQueryResponseEvtPayload  | ParticipantAssociationCreatedEvtPayload | ParticipantAssociationRemovedEvt | AccountLookUperrorEvtPayload | PutParty | Pick<PutParty, "party"> | any;
+type EventPayload = AccountLookUperrorEvt | FspiopError | PutParticipant | ParticipantQueryResponseEvtPayload | PartyInfoRequestedEvtPayload | PartyQueryResponseEvtPayload  | ParticipantAssociationCreatedEvtPayload | ParticipantAssociationRemovedEvt | AccountLookUperrorEvtPayload | PutParty | Pick<PutParty, "party"> | null;
 
 type RequestOptions = {
   url: string, 

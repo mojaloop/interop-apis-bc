@@ -50,7 +50,7 @@
             "type": "string"
         }
     }
-}
+};
   
 export const ParticipantsTypeIDPutResponse = {
     "$id": "ParticipantsTypeIDPutResponse",
@@ -64,7 +64,7 @@ export const ParticipantsTypeIDPutResponse = {
             "type": "string"
         }
     }
-}
+};
 
 export const ParticipantsIDPutResponse = {
     "$id": "ParticipantsIDPutResponse",
@@ -90,7 +90,7 @@ export const ParticipantsIDPutResponse = {
             "type": "string"
         }
     }
-}
+};
 
 export const  ParticipantsPostRequest = {
     "$id": "ParticipantsPostRequest",
@@ -121,4 +121,4 @@ export const  ParticipantsPostRequest = {
             "type": "string"
         }
     }
-}
+};

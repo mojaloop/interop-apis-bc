@@ -31,9 +31,10 @@
 
  'use strict';
 
-import { ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvtPayload, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload, QuoteErrorEvtPayload, QuoteRequestAcceptedEvtPayload, QuoteResponseAcceptedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvtPayload, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload, QuoteRequestAcceptedEvtPayload, QuoteResponseAcceptedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ErrorCode } from "./enums";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface ExtensionList {
 	extension: [
@@ -77,7 +78,6 @@ export interface PutParty {
 	}
 }
 
-// eslint-disable-next-line
 export const removeEmpty = (obj: any) => {
 	Object.entries(obj).forEach(([key, val])  =>
 		(val && typeof val === 'object') && removeEmpty(val) ||

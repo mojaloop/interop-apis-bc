@@ -37,7 +37,7 @@
 import express from "express";
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {Constants} from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import {MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { PartyQueryReceivedEvt, PartyQueryReceivedEvtPayload, ParticipantDisassociateRequestReceivedEvt, ParticipantAssociationRequestReceivedEvt, ParticipantAssociationRequestReceivedEvtPayload, ParticipantDisassociateRequestReceivedEvtPayload, PartyInfoAvailableEvt, PartyInfoAvailableEvtPayload} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IncomingHttpHeaders } from "http";
 import { PutParty } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/transformer";

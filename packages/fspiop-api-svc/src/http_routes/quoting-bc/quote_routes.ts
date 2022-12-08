@@ -38,19 +38,12 @@ import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs
 import { QuoteRequestReceivedEvt, QuoteRequestReceivedEvtPayload, QuoteResponseReceivedEvt, QuoteResponseReceivedEvtPayload, QuoteQueryReceivedEvt, QuoteQueryReceivedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IncomingHttpHeaders } from "http";
 import { schemaValidator } from "../ajv";
-import ajv from "ajv"
+import ajv from "ajv";
 import { BaseRoutes } from "../_base_router";
 
 const getEnabledHeaders = (headers: IncomingHttpHeaders) => Object.fromEntries(Object.entries(headers).filter(([headerKey]) => Constants.FSPIOP_REQUIRED_HEADERS_LIST.includes(headerKey)));
- 
-export interface IParty {
-    id: string;
-    type: string;
-    currency: string | null;
-    subId: string | null;
-}
 
- export class QuoteRoutes extends BaseRoutes {
+export class QuoteRoutes extends BaseRoutes {
 
     constructor(producerOptions: MLKafkaJsonProducerOptions, kafkaTopic: string, logger: ILogger) {
         super(producerOptions, kafkaTopic, logger);
@@ -75,7 +68,7 @@ export interface IParty {
         const valid = validate(req.body);
         
         if (!valid) {
-            this.logger.error(validate.errors)
+            this.logger.error(validate.errors);
 
             this.logger.debug(`quoteRequestReceived body errors: ${JSON.stringify(validate.errors)}`);
 
@@ -163,7 +156,7 @@ export interface IParty {
         const valid = validate(req.body);
         
         if (!valid) {
-            this.logger.error(validate.errors)
+            this.logger.error(validate.errors);
 
             this.logger.debug(`quoteResponseReceived body errors: ${JSON.stringify(validate.errors)}`);
 
@@ -247,8 +240,6 @@ export interface IParty {
         const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
         const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
 
-        const currency = req.query["currency"] as string || null;
-
         if(!quoteId || !requesterFspId) {
             res.status(400).json({
                 status: "not ok"
@@ -282,4 +273,3 @@ export interface IParty {
         this.logger.debug("quoteQueryReceived responded");
     }
 }
- 

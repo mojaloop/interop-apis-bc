@@ -70,7 +70,7 @@
         "$ref": "defs#/definitions/ExtensionList"
       }
     }
-}
+};
 
 export const BulkQuotesIDPutResponse = {
     "$id": "BulkQuotesIDPutResponse",
@@ -98,4 +98,4 @@ export const BulkQuotesIDPutResponse = {
         "$ref": "defs#/definitions/ExtensionList"
       }
     }
-}
+};

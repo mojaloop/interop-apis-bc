@@ -144,7 +144,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 url: Request.buildEndpoint(requestedEndpoint.value, template), 
                 headers: clonedHeaders, 
                 source: requesterFspId, 
-                destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
+                destination: destinationFspId, 
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: Transformer.transformPayloadError({
                     errorCode: Enums.ErrorCode.NOT_FOUND, // TODO: find proper error code
@@ -206,7 +206,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 url: Request.buildEndpoint(requestedEndpoint.value, template),
                 headers: clonedHeaders, 
                 source: requesterFspId, 
-                destination: requesterFspId, 
+                destination: destinationFspId, 
                 method: Enums.FspiopRequestMethodsEnum.POST,
                 payload: Transformer.transformPayloadQuotingRequestPost(payload),
             });
@@ -310,7 +310,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 url: Request.buildEndpoint(requestedEndpoint.value, template), 
                 headers: clonedHeaders, 
                 source: requesterFspId, 
-                destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
+                destination: destinationFspId, 
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: Transformer.transformPayloadError({
                     errorCode: Enums.ErrorCode.BAD_REQUEST,

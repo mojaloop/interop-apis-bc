@@ -45,4 +45,4 @@
             "$ref": "#/components/schemas/Party"
         }
     }
-}
+};
