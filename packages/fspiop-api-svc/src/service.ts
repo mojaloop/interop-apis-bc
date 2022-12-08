@@ -48,7 +48,7 @@ import { QuotingEventHandler } from "./event_handlers/quoting_evt_handler";
 import { AccountLookupBCTopics, QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import {ParticipantsHttpClient} from "@mojaloop/participants-bc-client-lib";
 import { QuoteRoutes } from "./http_routes/quoting-bc/quote_routes";
-import { BulkQuotesRoutes } from "./http_routes/quoting-bc/bulk_quotes_routes";
+import { QuoteBulkRoutes } from "./http_routes/quoting-bc/bulk_quote_routes";
 import path from "path";
 // import {AuthorizationClient, LoginHelper} from "@mojaloop/security-bc-client-lib";
 
@@ -94,7 +94,7 @@ let expressServer: Server;
 let participantRoutes:ParticipantRoutes;
 let partyRoutes:PartyRoutes;
 let quotesRoutes:QuoteRoutes;
-let bulkQuotesRoutes:BulkQuotesRoutes;
+let bulkQuotesRoutes:QuoteBulkRoutes;
 let participantServiceClient: ParticipantsHttpClient;
 let auditClient: IAuditClient;
 // let loginHelper:LoginHelper;
@@ -119,7 +119,7 @@ export async function setupExpress(loggerParam:ILogger): Promise<Server> {
     app.use(`/${PARTIES_URL_RESOURCE_NAME}`, partyRoutes.router);
 
     quotesRoutes = new QuoteRoutes(kafkaProducerOptions, KAFKA_QUOTES_LOOKUP_TOPIC, loggerParam);
-    bulkQuotesRoutes = new BulkQuotesRoutes(kafkaProducerOptions, KAFKA_QUOTES_LOOKUP_TOPIC, loggerParam);
+    bulkQuotesRoutes = new QuoteBulkRoutes(kafkaProducerOptions, KAFKA_QUOTES_LOOKUP_TOPIC, loggerParam);
 
     await quotesRoutes.init();
     await bulkQuotesRoutes.init();

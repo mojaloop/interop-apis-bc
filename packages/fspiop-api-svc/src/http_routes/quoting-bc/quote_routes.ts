@@ -47,7 +47,6 @@ export class QuoteRoutes extends BaseRoutes {
 
     constructor(producerOptions: MLKafkaJsonProducerOptions, kafkaTopic: string, logger: ILogger) {
         super(producerOptions, kafkaTopic, logger);
-        logger = logger.createChild("QuotesRoutes");
 
         // bind routes
 

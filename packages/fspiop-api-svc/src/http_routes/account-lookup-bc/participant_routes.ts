@@ -44,7 +44,6 @@ export class ParticipantRoutes extends BaseRoutes {
 
     constructor(producerOptions: MLKafkaJsonProducerOptions, kafkaTopic: string, logger: ILogger) {
         super(producerOptions, kafkaTopic, logger);
-        logger = logger.createChild("ParticipantRoutes");
 
         // bind routes
 

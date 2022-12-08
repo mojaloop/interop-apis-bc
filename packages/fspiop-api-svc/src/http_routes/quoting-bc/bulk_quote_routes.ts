@@ -43,11 +43,10 @@ import { BaseRoutes } from "../_base_router";
 
 const getEnabledHeaders = (headers: IncomingHttpHeaders) => Object.fromEntries(Object.entries(headers).filter(([headerKey]) => Constants.FSPIOP_REQUIRED_HEADERS_LIST.includes(headerKey)));
  
-export class BulkQuotesRoutes extends BaseRoutes {
+export class QuoteBulkRoutes extends BaseRoutes {
 
     constructor(producerOptions: MLKafkaJsonProducerOptions, kafkaTopic: string, logger: ILogger) {
         super(producerOptions, kafkaTopic, logger);
-        logger = logger.createChild("QuoteBulkRoutes");
 
         // bind routes
  
@@ -183,14 +182,6 @@ export class BulkQuotesRoutes extends BaseRoutes {
         });
 
         this.logger.debug("quoteRequestReceived responded");
-    }
-
-    async init(): Promise<void>{
-        await this.kafkaProducer.connect();
-    }
-
-    async destroy(): Promise<void>{
-        await this.kafkaProducer.destroy();
     }
 }
  
