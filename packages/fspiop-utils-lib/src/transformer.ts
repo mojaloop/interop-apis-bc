@@ -201,37 +201,3 @@ export const transformPayloadQuotingResponsePut = (payload: QuoteResponseAccepte
 		
 	return removeEmpty(info);
 };
-
-export const transformPayloadQuotingError = (payload: any):any => {
-	const info = {
-		quoteId: payload.quoteId,
-		transferAmount: payload.transferAmount,
-		expiration: payload.expiration,
-		ilpPacket: payload.ilpPacket,
-		condition: payload.condition,
-		payeeReceiveAmount: payload.payeeReceiveAmount,
-		payeeFspFee: payload.payeeFspFee,
-		payeeFspCommission: payload.payeeFspCommission,
-		geoCode: payload.geoCode,
-		extensionList: payload.extensionList
-	};
-		
-	return removeEmpty(info);
-};
-
-export const transformPayloadQuotingRequestError = (payload: any):any => {
-	const info = {
-		quoteId: payload.quoteId,
-		transferAmount: payload.transferAmount,
-		expiration: payload.expiration,
-		ilpPacket: payload.ilpPacket,
-		condition: payload.condition,
-		payeeReceiveAmount: payload.payeeReceiveAmount,
-		payeeFspFee: payload.payeeFspFee,
-		payeeFspCommission: payload.payeeFspCommission,
-		geoCode: payload.geoCode,
-		extensionList: payload.extensionList
-	};
-		
-	return removeEmpty(info);
-};
