@@ -34,8 +34,8 @@
 import { AccountLookupBCTopics, ParticipantAssociationRequestReceivedEvt, ParticipantDisassociateRequestReceivedEvt, ParticipantQueryReceivedEvt, PartyInfoAvailableEvt, PartyQueryReceivedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 
 import request from "supertest";
-import { start, stop } from "../../../packages/fspiop-api-svc/src/service";
-import KafkaProducer, { getCurrentKafkaOffset } from "./helpers/kafkaproducer";
+import { start, stop } from "../../../../packages/fspiop-api-svc/src/service";
+import KafkaProducer, { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
 
 const server = "http://localhost:4000";
 

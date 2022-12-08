@@ -38,9 +38,9 @@ import jestOpenAPI from 'jest-openapi';
 import path from "path";
 
 // Sets the location of your OpenAPI Specification file
-jestOpenAPI(path.join(__dirname, '../../../packages/fspiop-api-svc/api-specs/account-lookup-service/api-swagger.yaml'));
+jestOpenAPI(path.join(__dirname, '../../../../packages/fspiop-api-svc/api-specs/account-lookup-service/api-swagger.yaml'));
  
-import KafkaProducer, { getCurrentKafkaOffset } from "./helpers/kafkaproducer";
+import KafkaProducer, { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
 
 const kafkaProducer = new KafkaProducer()
 
@@ -61,10 +61,10 @@ import {
     LocalAuditClientCryptoProvider
 } from "@mojaloop/auditing-bc-client-lib";
 import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
-import {ParticipantRoutes} from "../../../packages/fspiop-api-svc/src/http_routes/account-lookup-bc/participant_routes";
-import {PartyRoutes} from "../../../packages/fspiop-api-svc/src/http_routes/account-lookup-bc/party_routes";
+import {ParticipantRoutes} from "../../../../packages/fspiop-api-svc/src/http_routes/account-lookup-bc/participant_routes";
+import {PartyRoutes} from "../../../../packages/fspiop-api-svc/src/http_routes/account-lookup-bc/party_routes";
 import { MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import { AccountLookupEventHandler } from "../../../packages/fspiop-api-svc/src/event_handlers/account_lookup_evt_handler";
+import { AccountLookupEventHandler } from "../../../../packages/fspiop-api-svc/src/event_handlers/account_lookup_evt_handler";
 import {Participant, ParticipantsHttpClient} from "@mojaloop/participants-bc-client-lib";
 
 const LOGLEVEL:LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
@@ -78,7 +78,7 @@ const SVC_DEFAULT_HTTP_PORT = 4000;
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
 const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
-const AUDIT_CERT_FILE_PATH = process.env["AUDIT_CERT_FILE_PATH"] || path.join(__dirname, "../../../packages/fspiop-api-svc/dist/tmp_key_file");
+const AUDIT_CERT_FILE_PATH = process.env["AUDIT_CERT_FILE_PATH"] || path.join(__dirname, "../../../../packages/fspiop-api-svc/dist/tmp_key_file");
 const PARTICIPANTS_URL_RESOURCE_NAME = "participants";
 const PARTIES_URL_RESOURCE_NAME = "parties";
 
