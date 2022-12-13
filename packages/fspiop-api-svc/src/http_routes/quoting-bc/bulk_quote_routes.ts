@@ -38,7 +38,7 @@ import {MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-k
 import { IncomingHttpHeaders } from "http";
 import ajv from "ajv";
 import { schemaValidator } from "../ajv";
-import { QuoteRequestReceivedEvt, QuoteRequestReceivedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { BulkQuoteRequestedEvt, BulkQuoteRequestedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseRoutes } from "../_base_router";
 
 const getEnabledHeaders = (headers: IncomingHttpHeaders) => Object.fromEntries(Object.entries(headers).filter(([headerKey]) => Constants.FSPIOP_REQUIRED_HEADERS_LIST.includes(headerKey)));
@@ -54,7 +54,7 @@ export class QuoteBulkRoutes extends BaseRoutes {
         // this.router.get("/:id/", this.quoteQueryReceived.bind(this));
         
         // POST Quote Calculation
-        this.router.post("/", this.quoteRequestReceived.bind(this));
+        this.router.post("/", this.bulkQuoteRequest.bind(this));
 
         // // PUT Quote Created
         // this.router.put("/:id", this.quoteResponseReceived.bind(this));
@@ -65,8 +65,8 @@ export class QuoteBulkRoutes extends BaseRoutes {
     }
 
     
-    private async quoteRequestReceived(req: express.Request, res: express.Response): Promise<void> {
-        this.logger.debug("Got quoteRequestReceived request");
+    private async bulkQuoteRequest(req: express.Request, res: express.Response): Promise<void> {
+        this.logger.debug("Got bulkQuoteRequest request");
         
         const validate = schemaValidator.getSchema("QuotesPostRequest") as ajv.ValidateFunction;
         const valid = validate(req.body);
@@ -74,7 +74,7 @@ export class QuoteBulkRoutes extends BaseRoutes {
         if (!valid) {
             this.logger.error(validate.errors);
 
-            this.logger.debug(`quoteRequestReceived body errors: ${JSON.stringify(validate.errors)}`);
+            this.logger.debug(`bulkQuoteRequest body errors: ${JSON.stringify(validate.errors)}`);
 
             res.status(422).json({
                 status: "invalid request body",
@@ -89,77 +89,30 @@ export class QuoteBulkRoutes extends BaseRoutes {
         const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
         
         // Date Model
-        const quoteId = req.body["quoteId"] || null;
-        const transactionId = req.body["transactionId"] || null;
-        const transactionRequestId = req.body["transactionRequestId"] || null;
-        const payee = req.body["payee"] || null;
+        const bulkQuoteId = req.body["bulkQuoteId"] || null;
         const payer = req.body["payer"] || null;
-        const amountType = req.body["amountType"] || null;
-        const amount = req.body["amount"] || null;
-        const fees = req.body["fees"] || null;
-        const transactionType = req.body["transactionType"] || null;
         const geoCode = req.body["geoCode"] || null;
-        const note = req.body["note"] || null;
         const expiration = req.body["expiration"] || null;
+        const individualQuotes = req.body["individualQuotes"] || null;
         const extensionList = req.body["extensionList"] || null;
 
-        if(!requesterFspId || !quoteId || !transactionId || !payee || !payer || !amountType || !amount || !transactionType) {
+        if(!requesterFspId || !bulkQuoteId || !payer || !individualQuotes) {
             res.status(400).json({
                 status: "not ok"
             });
             return;
         }
-
-        // {
-        //     "bulkQuoteId": "8843fdbe-5dea-3abd-a210-3780e7f2f17a",
-        //     "payer": {
-        //         "partyIdInfo": {
-        //         "partyIdType": "MSISDN",
-        //         "partyIdentifier": "1"
-        //         }
-        //     },
-        //     "individualQuotes": [
-        //         {
-        //             "quoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
-        //             "transactionId": "7f5d9784-3a57-5865-9aa0-7dde7791548a",
-        //             "payee": {
-        //                 "partyIdInfo": {
-        //                 "partyIdType": "MSISDN",
-        //                 "partyIdentifier": "1"
-        //                 }
-        //             },
-        //             "amountType": "SEND",
-        //             "amount": {
-        //                 "currency": "EUR",
-        //                 "amount": "1"
-        //             },
-        //             "transactionType": {
-        //                 "scenario": "DEPOSIT",
-        //                 "initiator": "PAYER",
-        //                 "initiatorType": "BUSINESS"
-        //             }
-        //         }
-        //     ]
-        // }
-
         
-        const msgPayload: QuoteRequestReceivedEvtPayload = {
-            quoteId: quoteId,
-            transactionId: transactionId,
-            transactionRequestId: transactionRequestId,
-            payee: payee,
+        const msgPayload: BulkQuoteRequestedEvtPayload = {
+            bulkQuoteId: bulkQuoteId,
             payer: payer,
-            amountType: amountType,
-            amount: amount,
-            fees: fees,
-            transactionType: transactionType,
             geoCode: geoCode,
-            note: note,
             expiration: expiration,
+            individualQuotes: individualQuotes,
             extensionList: extensionList,
-        } as unknown as QuoteRequestReceivedEvtPayload;
+        } as BulkQuoteRequestedEvtPayload;
 
-        const msg =  new QuoteRequestReceivedEvt(msgPayload);
+        const msg =  new BulkQuoteRequestedEvt(msgPayload);
 
         // Since we don't export the types of the body (but we validate them in the entrypoint of the route),
         // we can use the builtin method of validatePayload of the evt messages to make sure consistency 
@@ -175,13 +128,13 @@ export class QuoteBulkRoutes extends BaseRoutes {
 
         await this.kafkaProducer.send(msg);
 
-        this.logger.debug("quoteRequestReceived sent message");
+        this.logger.debug("bulkQuoteRequest sent message");
 
         res.status(202).json({
             status: "ok"
         });
 
-        this.logger.debug("quoteRequestReceived responded");
+        this.logger.debug("bulkQuoteRequest responded");
     }
 }
  

@@ -40,6 +40,7 @@ import {
     QuoteRequestReceivedEvt,
     QuoteResponseAccepted,
     QuoteQueryResponseEvt,
+    BulkQuoteReceivedEvt
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { ParticipantsHttpClient } from "@mojaloop/participants-bc-client-lib";
@@ -76,6 +77,9 @@ export class QuotingEventHandler extends BaseEventHandler {
                 break;
             case QuoteQueryResponseEvt.name:
                 await this._handleQuotingQueryResponseEvt(new QuoteQueryResponseEvt(message.payload), message.fspiopOpaqueState);
+                break;
+            case BulkQuoteReceivedEvt.name:
+                await this._handleBulkQuotingRequestReceivedEvt(new BulkQuoteReceivedEvt(message.payload), message.fspiopOpaqueState);
                 break;
             default:
                 this._logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
@@ -379,6 +383,83 @@ export class QuotingEventHandler extends BaseEventHandler {
             const template = Request.buildRequestUrl({
                 entity: Enums.EntityTypeEnum.QUOTES,
                 quoteId: payload.quoteId,
+                partyType: null, 
+                partyId: null, 
+                partySubType: null,
+                error: true
+            });
+           
+            await Request.sendRequest({
+                url: Request.buildEndpoint(requestedEndpoint.value, template), 
+                headers: clonedHeaders, 
+                source: requesterFspId, 
+                destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
+                method: Enums.FspiopRequestMethodsEnum.PUT,
+                payload: Transformer.transformPayloadError({
+                    errorCode: Enums.ErrorCode.BAD_REQUEST,
+                    errorDescription: JSON.stringify(err),
+                })
+            });
+        }
+
+        return;
+    }
+
+    private async _handleBulkQuotingRequestReceivedEvt(message: BulkQuoteReceivedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
+        const { payload } = message;
+  
+        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+        
+        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
+
+        if(!requestedEndpoint){
+
+            this._logger.error("Cannot get requestedEndpoint at _handleBulkQuotingRequestReceivedEvt()");
+
+            const msg = new BulkQuoteReceivedEvt(payload);
+    
+            msg.msgTopic = KAFKA_OPERATOR_ERROR_TOPIC;
+
+            await this._kafkaProducer.send(msg);
+
+            return;
+        }
+
+        try {
+            this._logger.info('_handleBulkQuotingRequestReceivedEvt -> start');
+
+            // Always validate the payload and headers received
+            message.validatePayload();
+            Validate.validateHeaders(QuotesPost, clonedHeaders);
+
+            
+            const template = Request.buildRequestUrl({
+                entity: Enums.EntityTypeEnum.BULK_QUOTES,
+                partyType: null, 
+                partyId: null, 
+                partySubType: null,
+                error: false
+            });
+
+            await Request.sendRequest({
+                url: `${Request.buildEndpoint(requestedEndpoint.value, template)}/${payload.bulkQuoteId}`, 
+                headers: clonedHeaders, 
+                source: requesterFspId, 
+                destination: requesterFspId, 
+                method: Enums.FspiopRequestMethodsEnum.GET,
+                payload: null,
+            });
+
+            this._logger.info('_handleBulkQuotingRequestReceivedEvt -> end');
+
+        } catch (err: unknown) {
+            const error = err as unknown as AxiosError;
+            this._logger.error(JSON.stringify(error.response?.data));
+            
+            const template = Request.buildRequestUrl({
+                entity: Enums.EntityTypeEnum.BULK_QUOTES,
+                quoteId: payload.bulkQuoteId,
                 partyType: null, 
                 partyId: null, 
                 partySubType: null,
