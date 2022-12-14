@@ -31,7 +31,7 @@
 
  'use strict';
 
-import { ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvtPayload, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload, QuoteRequestAcceptedEvtPayload, QuoteResponseAcceptedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { BulkQuoteReceivedEvtPayload, ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvtPayload, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload, QuoteRequestAcceptedEvtPayload, QuoteResponseAcceptedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ErrorCode } from "./enums";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -198,6 +198,19 @@ export const transformPayloadQuotingResponsePut = (payload: QuoteResponseAccepte
 		geoCode: payload.geoCode,
 		extensionList: payload.extensionList
 	};
+		
+	return removeEmpty(info);
+};
+
+export const transformPayloadBulkQuotingResponsePost = (payload: BulkQuoteReceivedEvtPayload):any => {
+	const info = {
+        bulkQuoteId: payload.bulkQuoteId,
+        payer: payload.payer,
+		geoCode: payload.geoCode,
+		expiration: payload.expiration,
+        individualQuotes: payload.individualQuotes,
+		extensionList: payload.extensionList
+    };
 		
 	return removeEmpty(info);
 };

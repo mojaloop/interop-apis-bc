@@ -443,12 +443,12 @@ export class QuotingEventHandler extends BaseEventHandler {
             });
 
             await Request.sendRequest({
-                url: `${Request.buildEndpoint(requestedEndpoint.value, template)}/${payload.bulkQuoteId}`, 
+                url: `${Request.buildEndpoint(requestedEndpoint.value, template)}`, 
                 headers: clonedHeaders, 
                 source: requesterFspId, 
                 destination: requesterFspId, 
-                method: Enums.FspiopRequestMethodsEnum.GET,
-                payload: null,
+                method: Enums.FspiopRequestMethodsEnum.POST,
+                payload: Transformer.transformPayloadBulkQuotingResponsePost(payload),
             });
 
             this._logger.info('_handleBulkQuotingRequestReceivedEvt -> end');

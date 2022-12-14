@@ -68,7 +68,7 @@ export class QuoteBulkRoutes extends BaseRoutes {
     private async bulkQuoteRequest(req: express.Request, res: express.Response): Promise<void> {
         this.logger.debug("Got bulkQuoteRequest request");
         
-        const validate = schemaValidator.getSchema("QuotesPostRequest") as ajv.ValidateFunction;
+        const validate = schemaValidator.getSchema("BulkQuotesPostRequest") as ajv.ValidateFunction;
         const valid = validate(req.body);
         
         if (!valid) {

@@ -102,6 +102,53 @@ export default {
         }
       }
     },
+    "IndividualQuote": {
+      "title": "IndividualQuote",
+      "description": "Data model for the complex type IndividualQuote.",
+      "required": [
+        "quoteId",
+        "transactionId",
+        "payee",
+        "amountType",
+        "amount",
+        "transactionType"
+      ],
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "quoteId": {
+          "description": "Identifies quote message.",
+          "type": "string"
+        },
+        "transactionId": {
+          "description": "Identifies transaction message.",
+          "type": "string"
+        },
+        "payee": {
+          "$ref": "defs#/definitions/Party"
+        },
+        "amountType": {
+          "description": "SEND for sendAmount, RECEIVE for receiveAmount.",
+          "type": "string"
+        },
+        "amount": {
+          "$ref": "defs#/definitions/Money"
+        },
+        "fees": {
+          "$ref": "defs#/definitions/Money"
+        },
+        "transactionType": {
+          "$ref": "defs#/definitions/TransactionType"
+        },
+        "note": {
+          "description": "Memo that will be attached to the transaction.",
+          "type": "string"
+        },
+        "extensionList": {
+          "$ref": "defs#/definitions/ExtensionList"
+        }
+      }
+    },
     "LastName": {
       "title": "LastName",
       "description": "Last name of the Party (Name Type).",
