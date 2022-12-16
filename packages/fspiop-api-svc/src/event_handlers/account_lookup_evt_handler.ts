@@ -109,7 +109,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         const requesterFspId = payload.requesterFspId;
         const partyType = payload.partyType;
         const partyId = payload.partyId;
-        const partySubType = null;
+        const partySubType = payload.partySubType as string;
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
 
         const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
@@ -138,29 +138,27 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
 
 
-            let template;
+            let url;
+            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value)
+
             switch(message.payload.sourceEvent){
                 case PartyQueryReceivedEvt.name:
                 case PartyInfoAvailableEvt.name:
                 case PartyInfoRequestedEvt.name:
-                    template = Request.buildRequestUrl({
-                        entity: Enums.EntityTypeEnum.PARTIES,
-                        partyType, 
-                        partyId, 
-                        partySubType,
-                        error: true
-                    });
+                    urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
+                    urlBuilder.setLocation([partyType, partyId, partySubType]);
+                    urlBuilder.hasError(true);
+
+                    url = urlBuilder.build();
                     break;
                 case ParticipantAssociationRequestReceivedEvt.name:
                 case ParticipantDisassociateRequestReceivedEvt.name:
                 case ParticipantQueryReceivedEvt.name:
-                    template = Request.buildRequestUrl({
-                        entity: Enums.EntityTypeEnum.PARTICIPANTS,
-                        partyType, 
-                        partyId, 
-                        partySubType,
-                        error: true
-                    });
+                    urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
+                    urlBuilder.setLocation([partyType, partyId, partySubType]);
+                    urlBuilder.hasError(true);
+
+                    url = urlBuilder.build();
                     break;
                 default:
                     throw new Error("Unhandled message source event on AccountLookupEventHandler_handleAccountLookUpErrorReceivedEvt()");
@@ -168,7 +166,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
            
             await Request.sendRequest({
-                url: Request.buildEndpoint(requestedEndpoint.value, template), 
+                url: url, 
                 headers: clonedHeaders, 
                 source: requesterFspId, 
                 destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
@@ -222,17 +220,12 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             message.validatePayload();
             Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
 
-            
-            const template = Request.buildRequestUrl({
-                entity: Enums.EntityTypeEnum.PARTIES,
-                partyType, 
-                partyId, 
-                partySubType,
-                error: false
-            });
+            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value)
+            urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
+            urlBuilder.setLocation([partyType, partyId, partySubType])
 
             await Request.sendRequest({
-                url: Request.buildEndpoint(requestedEndpoint.value, template), 
+                url: urlBuilder.build(), 
                 headers: clonedHeaders, 
                 source: requesterFspId, 
                 destination: requesterFspId, 
@@ -242,29 +235,15 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> end');
 
-        } catch (err: unknown) {
-            const error = err as unknown as AxiosError;
-            this._logger.error(JSON.stringify(error.response?.data));
-            
-            const template = Request.buildRequestUrl({
+        } catch (error: unknown) {
+            this._sendErrorFeedbackToFsp({ 
+                error: error,
+                headers: clonedHeaders,
+                source: requesterFspId,
+                endpoint: requestedEndpoint,
                 entity: Enums.EntityTypeEnum.PARTIES,
-                partyType, 
-                partyId, 
-                partySubType,
-                error: true
-            });
-           
-            await Request.sendRequest({
-                url: Request.buildEndpoint(requestedEndpoint.value, template), 
-                headers: clonedHeaders, 
-                source: requesterFspId, 
-                destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadError({
-                    errorCode: Enums.ErrorCode.BAD_REQUEST,
-                    errorDescription: JSON.stringify(err),
-                })
-            });
+                id: [partyType, partyId, partySubType],
+            })
         }
 
         return;
@@ -304,15 +283,12 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
 
 
-            const template = Request.buildRequestUrl({
-                entity: Enums.EntityTypeEnum.PARTIES,
-                partyType, 
-                partyId, 
-                partySubType,
-            });
+            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value)
+            urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
+            urlBuilder.setLocation([partyType, partyId, partySubType])
 
             await Request.sendRequest({
-                url: Request.buildEndpoint(requestedEndpoint.value, template), 
+                url: urlBuilder.build(), 
                 headers: clonedHeaders, 
                 source: requesterFspId, 
                 destination: requesterFspId, 
@@ -322,29 +298,15 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             this._logger.info('_handleParticipantDisassociateRequestReceivedEvt -> end');
 
-        } catch (err: unknown) {
-            const error = err as unknown as AxiosError;
-            this._logger.error(JSON.stringify(error.response?.data));
-            
-            const template = Request.buildRequestUrl({
+        } catch (error: unknown) {
+            this._sendErrorFeedbackToFsp({ 
+                error: error,
+                headers: clonedHeaders,
+                source: requesterFspId,
+                endpoint: requestedEndpoint,
                 entity: Enums.EntityTypeEnum.PARTIES,
-                partyType, 
-                partyId, 
-                partySubType,
-                error: true
-            });
-           
-            await Request.sendRequest({
-                url: Request.buildEndpoint(requestedEndpoint.value, template), 
-                headers: clonedHeaders, 
-                source: requesterFspId, 
-                destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadError({
-                    errorCode: Enums.ErrorCode.BAD_REQUEST,
-                    errorDescription: JSON.stringify(err),
-                })
-            });
+                id: [partyType, partyId, partySubType],
+            })
         }
 
         return;
@@ -400,15 +362,12 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
             }
 
-            const template = Request.buildRequestUrl({
-                entity: Enums.EntityTypeEnum.PARTIES,
-                partyType, 
-                partyId, 
-                partySubType,
-            });
+            const urlBuilder = new Request.URLBuilder(destinationEndpoint.value)
+            urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
+            urlBuilder.setLocation([partyType, partyId, partySubType])
 
             await Request.sendRequest({
-                url: Request.buildEndpoint(destinationEndpoint.value, template),
+                url: urlBuilder.build(), 
                 headers: clonedHeaders, 
                 source: requesterFspId, 
                 destination: destinationFspId,
@@ -418,29 +377,15 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             this._logger.info('_handlePartyInfoRequestedEvt -> end');
     
-        } catch (err: unknown) {
-            const error = err as unknown as AxiosError;
-            this._logger.error(JSON.stringify(error.response?.data));
-
-            const template = Request.buildRequestUrl({
+        } catch (error: unknown) {
+            this._sendErrorFeedbackToFsp({ 
+                error: error,
+                headers: clonedHeaders,
+                source: requesterFspId,
+                endpoint: destinationEndpoint,
                 entity: Enums.EntityTypeEnum.PARTIES,
-                partyType, 
-                partyId, 
-                partySubType,
-                error: true
-            });
-           
-            await Request.sendRequest({
-                url: Request.buildEndpoint(destinationEndpoint.value, template),
-                headers: clonedHeaders, 
-                source: requesterFspId, 
-                destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadError({
-                    errorCode: Enums.ErrorCode.BAD_REQUEST,
-                    errorDescription: JSON.stringify(err),
-                })
-            });
+                id: [partyType, partyId, partySubType],
+            })
         }
 
         return;
@@ -504,15 +449,12 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
             }
             
-            const template = Request.buildRequestUrl({
-                entity: Enums.EntityTypeEnum.PARTIES,
-                partyType, 
-                partyId, 
-                partySubType,
-            });
+            const urlBuilder = new Request.URLBuilder(destinationEndpoint.value)
+            urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
+            urlBuilder.setLocation([partyType, partyId, partySubType])
 
             await Request.sendRequest({
-                url: Request.buildEndpoint(destinationEndpoint.value, template),
+                url: urlBuilder.build(), 
                 headers: clonedHeaders, 
                 source: requesterFspId, 
                 destination: destinationFspId,
@@ -521,29 +463,15 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             });
 
             this._logger.info('_handlePartyQueryResponseEvt -> end');
-        } catch (err: unknown) {
-            const error = err as unknown as AxiosError;
-            this._logger.error(JSON.stringify(error.response?.data));
-
-            const template = Request.buildRequestUrl({
+        } catch (error: unknown) {
+            this._sendErrorFeedbackToFsp({ 
+                error: error,
+                headers: clonedHeaders,
+                source: requesterFspId,
+                endpoint: destinationEndpoint,
                 entity: Enums.EntityTypeEnum.PARTIES,
-                partyType, 
-                partyId, 
-                partySubType,
-                error: true
-            });
-           
-            await Request.sendRequest({
-                url: Request.buildEndpoint(destinationEndpoint.value, template),
-                headers: clonedHeaders, 
-                source: requesterFspId, 
-                destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadError({
-                    errorCode: Enums.ErrorCode.BAD_REQUEST,
-                    errorDescription: JSON.stringify(err),
-                })
-            });
+                id: [partyType, partyId, partySubType],
+            })
         }
 
         return;
@@ -588,15 +516,12 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             }
             clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
 
-            const template = Request.buildRequestUrl({
-                entity: Enums.EntityTypeEnum.PARTICIPANTS,
-                partyType, 
-                partyId, 
-                partySubType
-            });
+            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value)
+            urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
+            urlBuilder.setLocation([partyType, partyId, partySubType])
 
             await Request.sendRequest({
-                url: Request.buildEndpoint(requestedEndpoint.value, template), 
+                url: urlBuilder.build(), 
                 headers: clonedHeaders, 
                 source: requesterFspId, 
                 destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
@@ -605,29 +530,15 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             });
 
             this._logger.info('_handleParticipantQueryResponseEvt -> end');
-        } catch (err: unknown) {
-            const error = err as unknown as AxiosError;
-            this._logger.error(JSON.stringify(error.response?.data));
-
-            const template = Request.buildRequestUrl({
+        } catch (error: unknown) {
+            this._sendErrorFeedbackToFsp({ 
+                error: error,
+                headers: clonedHeaders,
+                source: requesterFspId,
+                endpoint: requestedEndpoint,
                 entity: Enums.EntityTypeEnum.PARTICIPANTS,
-                partyType, 
-                partyId, 
-                partySubType,
-                error: true
-            });
-
-            await Request.sendRequest({
-                url: Request.buildEndpoint(requestedEndpoint.value, template), 
-                headers: clonedHeaders, 
-                source: requesterFspId, 
-                destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadError({
-                    errorCode: Enums.ErrorCode.BAD_REQUEST,
-                    errorDescription: JSON.stringify(err),
-                })            
-            });
+                id: [partyType, partyId, partySubType],
+            })
         }
 
         return;

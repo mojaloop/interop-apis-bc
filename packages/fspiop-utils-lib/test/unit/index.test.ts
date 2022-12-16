@@ -35,7 +35,6 @@
 
 import { FSPIOP_HEADERS_ACCEPT, FSPIOP_HEADERS_CONTENT_LENGTH, FSPIOP_HEADERS_CONTENT_TYPE, FSPIOP_HEADERS_DATE, FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION, FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_ENCRYPTION, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_URI, FSPIOP_HEADERS_X_FORWARDED_FOR } from "../../src/constants";
 import { EntityTypeEnum, ErrorCode, FspiopRequestMethodsEnum } from "../../src/enums";
-import { buildRequestUrl, sendRequest } from "../../src/request";
 import { validateHeaders } from "../../src/validate";
 import axios from "axios";
 import HeaderBuilder from "../../src/account-lookup/headers/header_builder";
@@ -105,29 +104,6 @@ describe("FSPIOP Utils Lib", () => {
             "url": "testurl",
         });
     });
-
-
-    test("should be able to build a request url", async()=>{
-        // Arrange 
-        const partyType = 'MSISDN';
-        const partyId = '123456789';
-        const partySubType = 'randomsubtype';
-
-        // Act
-        const result = buildRequestUrl ({
-            entity: EntityTypeEnum.PARTICIPANTS,
-            partyType, 
-            partyId, 
-            partySubType,
-            error: false
-        });
-
-
-        // Assert
-        expect(result).toBe(`/${EntityTypeEnum.PARTICIPANTS}/${partyType}/${partyId}/${partySubType}`);
-    });
-
-   
     //#endregion
 
     //#region Header builder

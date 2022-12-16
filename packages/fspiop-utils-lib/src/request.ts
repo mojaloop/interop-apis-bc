@@ -122,7 +122,6 @@ export const buildEndpoint = (baseUrl: string, templateUrl: string) => {
   return `${baseUrl}${templateUrl}`;
 };
 
-
 type BuildRequestUrlOptions = {
   entity: EntityTypeEnum, 
   // Party & Participants
@@ -134,29 +133,133 @@ type BuildRequestUrlOptions = {
   error?: boolean
 }
 
-export const buildRequestUrl = (options: BuildRequestUrlOptions): string  => {   
+export class URLBuilder {
 
-    let partialUrl = `/${options.entity}`;
+    private readonly _base: URL;
+    private _params: URLSearchParams;
+    private _entity!: string;
+    private _id!: string;
+    private _location!: string;
+    private _withError: boolean = false;
 
-    if(options.partyType) {
-        partialUrl += `/${options.partyType}`;
-    } 
+    constructor(url: string) {
+        try {
+            this._base = new URL(url);
+            this._params = new URLSearchParams(this._base.search.slice(1));
+        } catch (e: unknown) {
+            throw Error('Not able to build url' + e);
+        }
+    }
 
-    if(options.partyId) {
-        partialUrl += `/${options.partyId}`;
-    } 
+    appendQueryParam(name: string, value: string) {
+        this._params.append(name, value ? value.toString() : '');
+    }
 
-    if(options.partySubType) {
-        partialUrl += `/${options.partySubType}`;
-    } 
+    clearQueryParams(): URLBuilder {
+        this._params = new URLSearchParams();
+        return this;
+    }
 
-    if(options.error) {
-      if(options.entity === Enums.EntityTypeEnum.QUOTES) {
-        partialUrl += `/${options.quoteId}`;
-      }
-      
-      partialUrl += "/error";
-    } 
+    deleteQueryParam(name: string) {
+        this._params.delete(name);
+    }
 
-	return partialUrl;
-};
+    getBase(): URL {
+        return this._base;
+    }
+
+    getPath(): string {
+        return this._base.pathname;
+    }
+
+    getHostname(): string {
+        return this._base.hostname;
+    }
+
+    getParams() {
+        return this._params;
+    }
+
+    getQueryParam(name: string): string | void {
+        if (!this._params) {
+            return '';
+        }
+
+        const value = this._params.get(name);
+        return (!value || value === 'undefined' || value === 'null') ? undefined : value;
+    }
+
+    getQueryString(): string {
+        return this._params.toString();
+    }
+
+    setPath(path: string): URLBuilder {
+        this._base.pathname = path;
+        return this;
+    }
+
+    setEntity(value: string) {
+        this._entity = value; 
+    }
+
+    setId(value: string) {
+        this._id = value 
+    }
+
+    setLocation(values: string[]) {
+        const filtered = values.filter(x => x != null)
+        
+        this._location = filtered.join("/");
+    }
+
+    setQueryParam(name: string, value: string | number): URLBuilder {
+        this._params.set(name, value ? value.toString() : '');
+        return this;
+    }
+
+    setQueryString(value: string): URLBuilder | void {
+        if (!value) {
+            return;
+        }
+
+        if (value[0] === '?') {
+            value = value.slice(1);
+        }
+
+        this._params = new URLSearchParams(value);
+        return this;
+    }
+
+    hasError(value: boolean = true): URLBuilder | void {
+        this._withError = value;
+        
+        return this;
+    }
+
+    build(): string {
+        let url = this._base.toString().replace(/\/$/, ''); // This regular expression removes the '/' in case it exists in the last character
+        const query = this._params.toString();
+
+        if(this._entity) {
+            url += `/${this._entity}`
+        }
+
+        if(this._location) {
+            url += `/${this._location}`;
+        }
+
+        if(this._id) {
+            url += `/${this._id}`;
+        }
+        
+        if(this._withError) {
+            url += `/error`
+        }
+
+        if (query !== '') {
+            url = '?' + query;
+        }
+
+        return url;
+    }
+}

@@ -38,6 +38,8 @@ import {ParticipantEndpoint, ParticipantsHttpClient } from "@mojaloop/participan
 import { IEventHandler } from "../interfaces/types";
 import { IncomingHttpHeaders } from "http";
 import { AccountLookUperrorEvt, QuoteErrorEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { AxiosError } from "axios";
+import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 
 export abstract class BaseEventHandler implements IEventHandler {
     protected _kafkaConsumer: MLKafkaJsonConsumer;
@@ -97,6 +99,52 @@ export abstract class BaseEventHandler implements IEventHandler {
             return null;
         }
     }
+
+    protected async _sendErrorFeedbackToFsp({
+        error,
+        headers,
+        source,
+        endpoint,
+        entity,
+        id,
+    }: {
+        error: unknown,
+        headers: Request.FspiopHttpHeaders,
+        source: string,
+        endpoint: ParticipantEndpoint,
+        entity: Enums.EntityTypeEnum,
+        id: string[],
+    }):Promise<void>{
+        try {
+            const err = error as unknown as AxiosError;
+            this._logger.error(JSON.stringify(err.response?.data));
+            
+            const urlBuilder = new Request.URLBuilder(endpoint.value)
+            urlBuilder.setEntity(entity);
+            urlBuilder.setLocation(id);
+            urlBuilder.hasError(true);
+           
+            await Request.sendRequest({
+                url: urlBuilder.build(), 
+                headers: headers, 
+                source: source, 
+                destination: headers[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
+                method: Enums.FspiopRequestMethodsEnum.PUT,
+                payload: Transformer.transformPayloadError({
+                    errorCode: Enums.ErrorCode.BAD_REQUEST,
+                    errorDescription: JSON.stringify(err),
+                })
+            });
+        } catch(err: unknown) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const error = err as unknown as any;
+            
+            this._logger.error(error.stack);
+        }
+        
+        return;
+    }
+
 
     async destroy () : Promise<void> {
         await this._kafkaProducer.destroy();

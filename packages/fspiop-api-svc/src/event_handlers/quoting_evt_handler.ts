@@ -126,18 +126,17 @@ export class QuotingEventHandler extends BaseEventHandler {
             Validate.validateHeaders(QuotesPost, clonedHeaders);
 
 
-            let template;
+            let url;
             switch(message.payload.sourceEvent){
                 case QuoteRequestReceivedEvt.name:
                 case QuoteResponseAccepted.name:
-                    template = Request.buildRequestUrl({
-                        entity: Enums.EntityTypeEnum.QUOTES,
-                        quoteId: payload.quoteId,
-                        partyType: null, 
-                        partyId: null, 
-                        partySubType: null,
-                        error: true
-                    });
+                    const urlBuilder = new Request.URLBuilder(requestedEndpoint.value)
+                    urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
+                    urlBuilder.setId(payload.quoteId);
+                    urlBuilder.hasError(true);
+
+                    url = urlBuilder.build();
+        
                     break;
                 default:
                     throw new Error("Unhandled message source event on QuotingEventHandler_handleQuotingErrorReceivedEvt()");
@@ -145,7 +144,7 @@ export class QuotingEventHandler extends BaseEventHandler {
 
            
             await Request.sendRequest({
-                url: Request.buildEndpoint(requestedEndpoint.value, template), 
+                url: url, 
                 headers: clonedHeaders, 
                 source: requesterFspId, 
                 destination: destinationFspId, 
@@ -197,17 +196,11 @@ export class QuotingEventHandler extends BaseEventHandler {
             message.validatePayload();
             Validate.validateHeaders(QuotesPost, clonedHeaders);
 
-            
-            const template = Request.buildRequestUrl({
-                entity: Enums.EntityTypeEnum.QUOTES,
-                partyType: null, 
-                partyId: null, 
-                partySubType: null,
-                error: false
-            });
+            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value)
+            urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
 
             await Request.sendRequest({
-                url: Request.buildEndpoint(requestedEndpoint.value, template),
+                url: urlBuilder.build(), 
                 headers: clonedHeaders, 
                 source: requesterFspId, 
                 destination: destinationFspId, 
@@ -217,30 +210,15 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             this._logger.info('_handleQuotingCreatedRequestReceivedEvt -> end');
 
-        } catch (err: unknown) {
-            const error = err as unknown as AxiosError;
-            this._logger.error(JSON.stringify(error.response?.data));
-            
-            const template = Request.buildRequestUrl({
+        } catch (error: unknown) {
+            this._sendErrorFeedbackToFsp({ 
+                error: error,
+                headers: clonedHeaders,
+                source: requesterFspId,
+                endpoint: requestedEndpoint,
                 entity: Enums.EntityTypeEnum.QUOTES,
-                quoteId: payload.quoteId,
-                partyType: null, 
-                partyId: null, 
-                partySubType: null,
-                error: true
-            });
-           
-            await Request.sendRequest({
-                url: Request.buildEndpoint(requestedEndpoint.value, template), 
-                headers: clonedHeaders, 
-                source: requesterFspId, 
-                destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadError({
-                    errorCode: Enums.ErrorCode.BAD_REQUEST,
-                    errorDescription: JSON.stringify(err),
-                })
-            });
+                id: [payload.quoteId],
+            })
         }
 
         return;
@@ -277,17 +255,12 @@ export class QuotingEventHandler extends BaseEventHandler {
             message.validatePayload();
             Validate.validateHeaders(QuotesPost, clonedHeaders);
 
-            
-            const template = Request.buildRequestUrl({
-                entity: Enums.EntityTypeEnum.QUOTES,
-                partyType: null, 
-                partyId: null, 
-                partySubType: null,
-                error: false
-            });
+            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value)
+            urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
+            urlBuilder.setLocation([payload.quoteId]);
 
             await Request.sendRequest({
-                url: `${Request.buildEndpoint(requestedEndpoint.value, template)}/${payload.quoteId}`, 
+                url: urlBuilder.build(), 
                 headers: clonedHeaders, 
                 source: requesterFspId, 
                 destination: requesterFspId, 
@@ -297,30 +270,15 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             this._logger.info('_handleQuotingResponseAcceptedEvt -> end');
 
-        } catch (err: unknown) {
-            const error = err as unknown as AxiosError;
-            this._logger.error(JSON.stringify(error.response?.data));
-            
-            const template = Request.buildRequestUrl({
+        } catch (error: unknown) {
+            this._sendErrorFeedbackToFsp({ 
+                error: error,
+                headers: clonedHeaders,
+                source: requesterFspId,
+                endpoint: requestedEndpoint,
                 entity: Enums.EntityTypeEnum.QUOTES,
-                quoteId: payload.quoteId,
-                partyType: null, 
-                partyId: null, 
-                partySubType: null,
-                error: true
-            });
-           
-            await Request.sendRequest({
-                url: Request.buildEndpoint(requestedEndpoint.value, template), 
-                headers: clonedHeaders, 
-                source: requesterFspId, 
-                destination: destinationFspId, 
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadError({
-                    errorCode: Enums.ErrorCode.BAD_REQUEST,
-                    errorDescription: JSON.stringify(err),
-                })
-            });
+                id: [payload.quoteId],
+            })
         }
 
         return;
@@ -356,17 +314,12 @@ export class QuotingEventHandler extends BaseEventHandler {
             message.validatePayload();
             Validate.validateHeaders(QuotesPost, clonedHeaders);
 
-            
-            const template = Request.buildRequestUrl({
-                entity: Enums.EntityTypeEnum.QUOTES,
-                partyType: null, 
-                partyId: null, 
-                partySubType: null,
-                error: false
-            });
+            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value)
+            urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
+            urlBuilder.setId(payload.quoteId);
 
             await Request.sendRequest({
-                url: `${Request.buildEndpoint(requestedEndpoint.value, template)}/${payload.quoteId}`, 
+                url: urlBuilder.build(), 
                 headers: clonedHeaders, 
                 source: requesterFspId, 
                 destination: requesterFspId, 
@@ -376,30 +329,15 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             this._logger.info('_handleQuotingResponseAcceptedEvt -> end');
 
-        } catch (err: unknown) {
-            const error = err as unknown as AxiosError;
-            this._logger.error(JSON.stringify(error.response?.data));
-            
-            const template = Request.buildRequestUrl({
+        } catch (error: unknown) {
+            this._sendErrorFeedbackToFsp({ 
+                error: error,
+                headers: clonedHeaders,
+                source: requesterFspId,
+                endpoint: requestedEndpoint,
                 entity: Enums.EntityTypeEnum.QUOTES,
-                quoteId: payload.quoteId,
-                partyType: null, 
-                partyId: null, 
-                partySubType: null,
-                error: true
-            });
-           
-            await Request.sendRequest({
-                url: Request.buildEndpoint(requestedEndpoint.value, template), 
-                headers: clonedHeaders, 
-                source: requesterFspId, 
-                destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadError({
-                    errorCode: Enums.ErrorCode.BAD_REQUEST,
-                    errorDescription: JSON.stringify(err),
-                })
-            });
+                id: [payload.quoteId],
+            })
         }
 
         return;
@@ -433,17 +371,11 @@ export class QuotingEventHandler extends BaseEventHandler {
             message.validatePayload();
             Validate.validateHeaders(QuotesPost, clonedHeaders);
 
-            
-            const template = Request.buildRequestUrl({
-                entity: Enums.EntityTypeEnum.BULK_QUOTES,
-                partyType: null, 
-                partyId: null, 
-                partySubType: null,
-                error: false
-            });
+            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value)
+            urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);
 
             await Request.sendRequest({
-                url: `${Request.buildEndpoint(requestedEndpoint.value, template)}`, 
+                url: urlBuilder.build(), 
                 headers: clonedHeaders, 
                 source: requesterFspId, 
                 destination: requesterFspId, 
@@ -453,30 +385,15 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             this._logger.info('_handleBulkQuotingRequestReceivedEvt -> end');
 
-        } catch (err: unknown) {
-            const error = err as unknown as AxiosError;
-            this._logger.error(JSON.stringify(error.response?.data));
-            
-            const template = Request.buildRequestUrl({
-                entity: Enums.EntityTypeEnum.BULK_QUOTES,
-                quoteId: payload.bulkQuoteId,
-                partyType: null, 
-                partyId: null, 
-                partySubType: null,
-                error: true
-            });
-           
-            await Request.sendRequest({
-                url: Request.buildEndpoint(requestedEndpoint.value, template), 
-                headers: clonedHeaders, 
-                source: requesterFspId, 
-                destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadError({
-                    errorCode: Enums.ErrorCode.BAD_REQUEST,
-                    errorDescription: JSON.stringify(err),
-                })
-            });
+        } catch (error: unknown) {
+            this._sendErrorFeedbackToFsp({ 
+                error: error,
+                headers: clonedHeaders,
+                source: requesterFspId,
+                endpoint: requestedEndpoint,
+                entity: Enums.EntityTypeEnum.QUOTES,
+                id: [payload.bulkQuoteId],
+            })
         }
 
         return;
