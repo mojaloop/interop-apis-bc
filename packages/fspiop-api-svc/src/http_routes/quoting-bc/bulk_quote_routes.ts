@@ -38,7 +38,7 @@ import {MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-k
 import { IncomingHttpHeaders } from "http";
 import ajv from "ajv";
 import { schemaValidator } from "../ajv";
-import { BulkQuoteRequestedEvt, BulkQuoteRequestedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { BulkQuotePendingReceivedEvt, BulkQuotePendingReceivedEvtPayload, BulkQuoteRequestedEvt, BulkQuoteRequestedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseRoutes } from "../_base_router";
 
 const getEnabledHeaders = (headers: IncomingHttpHeaders) => Object.fromEntries(Object.entries(headers).filter(([headerKey]) => Constants.FSPIOP_REQUIRED_HEADERS_LIST.includes(headerKey)));
@@ -56,8 +56,8 @@ export class QuoteBulkRoutes extends BaseRoutes {
         // POST Quote Calculation
         this.router.post("/", this.bulkQuoteRequest.bind(this));
 
-        // // PUT Quote Created
-        // this.router.put("/:id", this.quoteResponseReceived.bind(this));
+        // PUT Quote Created
+        this.router.put("/:id", this.bulkQuotePending.bind(this));
     }
 
     get Router(): express.Router {
@@ -135,6 +135,73 @@ export class QuoteBulkRoutes extends BaseRoutes {
         });
 
         this.logger.debug("bulkQuoteRequest responded");
+    }
+
+    private async bulkQuotePending(req: express.Request, res: express.Response): Promise<void> {
+        this.logger.debug("Got bulkQuotePending request");
+        
+        const validate = schemaValidator.getSchema("BulkQuotesIDPutResponse") as ajv.ValidateFunction;
+        const valid = validate(req.body);
+        
+        if (!valid) {
+            this.logger.error(validate.errors);
+
+            this.logger.debug(`bulkQuotePending body errors: ${JSON.stringify(validate.errors)}`);
+
+            // TODO: Check what's wrong with the complexName returned from the TTK
+            // res.status(422).json({
+            //     status: "invalid request body",
+            //     errors: validate.errors
+            // });
+            // return;
+        }
+          
+        // Headers
+        const clonedHeaders = { ...req.headers };
+        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+        
+        // Date Model
+        const expiration = req.body["expiration"] || null;
+        const individualQuoteResults = req.body["individualQuoteResults"] || null;
+        const extensionList = req.body["extensionList"] || null;
+
+        if(!requesterFspId || !individualQuoteResults) {
+            res.status(400).json({
+                status: "not ok"
+            });
+            return;
+        }
+        
+        const msgPayload: BulkQuotePendingReceivedEvtPayload = {
+            expiration: expiration,
+            individualQuoteResults: individualQuoteResults,
+            extensionList: extensionList,
+        };
+
+        const msg =  new BulkQuotePendingReceivedEvt(msgPayload);
+
+        // Since we don't export the types of the body (but we validate them in the entrypoint of the route),
+        // we can use the builtin method of validatePayload of the evt messages to make sure consistency 
+        // is shared between both
+        msg.validatePayload();
+
+        // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
+        msg.fspiopOpaqueState = {
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId,
+            headers: getEnabledHeaders(clonedHeaders)
+        };
+
+        await this.kafkaProducer.send(msg);
+
+        this.logger.debug("bulkQuotePending sent message");
+
+        res.status(202).json({
+            status: "ok"
+        });
+
+        this.logger.debug("bulkQuotePending responded");
     }
 }
  

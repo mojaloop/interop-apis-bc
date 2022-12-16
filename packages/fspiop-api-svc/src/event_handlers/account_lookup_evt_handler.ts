@@ -38,7 +38,7 @@ import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {
-    AccountLookUperrorEvt,
+    AccountLookUpErrorEvt,
     PartyInfoRequestedEvt,
     PartyQueryResponseEvt,
     ParticipantAssociationCreatedEvt,
@@ -73,8 +73,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         const message: IDomainMessage = sourceMessage as IDomainMessage;
 
         switch(message.msgName){
-            case AccountLookUperrorEvt.name:
-                await this._handleErrorReceivedEvt(new AccountLookUperrorEvt(message.payload), message.fspiopOpaqueState);
+            case AccountLookUpErrorEvt.name:
+                await this._handleErrorReceivedEvt(new AccountLookUpErrorEvt(message.payload), message.fspiopOpaqueState);
                 break;
             case ParticipantAssociationCreatedEvt.name:
                 await this._handleParticipantAssociationRequestReceivedEvt(new ParticipantAssociationCreatedEvt(message.payload), message.fspiopOpaqueState);
@@ -103,12 +103,12 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         return;
     }
 
-    async _handleErrorReceivedEvt(message: AccountLookUperrorEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
+    async _handleErrorReceivedEvt(message: AccountLookUpErrorEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
         const { payload } = message;
   
-        const requesterFspId = payload.requesterFspId;
-        const partyType = payload.partyType;
-        const partyId = payload.partyId;
+        const requesterFspId = payload.requesterFspId as string;
+        const partyType = payload.partyType as string;
+        const partyId = payload.partyId as string;
         const partySubType = payload.partySubType as string;
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
 
@@ -120,7 +120,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             
             // TODO discuss about having the specific event for overall errors so we dont have
             // to change an existing event to use the generic topic
-            const msg =  new AccountLookUperrorEvt(payload);
+            const msg =  new AccountLookUpErrorEvt(payload);
     
             msg.msgTopic = KAFKA_OPERATOR_ERROR_TOPIC;
 

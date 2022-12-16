@@ -37,7 +37,7 @@ import {MLKafkaJsonConsumer, MLKafkaJsonConsumerOptions, MLKafkaJsonProducer, ML
 import {ParticipantEndpoint, ParticipantsHttpClient } from "@mojaloop/participants-bc-client-lib";
 import { IEventHandler } from "../interfaces/types";
 import { IncomingHttpHeaders } from "http";
-import { AccountLookUperrorEvt, QuoteErrorEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { AccountLookUpErrorEvt, QuoteErrorEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { AxiosError } from "axios";
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 
@@ -153,6 +153,6 @@ export abstract class BaseEventHandler implements IEventHandler {
     
     abstract processMessage (sourceMessage: IMessage): Promise<void>
 
-    abstract _handleErrorReceivedEvt(message: AccountLookUperrorEvt | QuoteErrorEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>
+    abstract _handleErrorReceivedEvt(message: AccountLookUpErrorEvt | QuoteErrorEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>
 
 }

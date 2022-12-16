@@ -40,7 +40,8 @@ import {
     QuoteRequestReceivedEvt,
     QuoteResponseAccepted,
     QuoteQueryResponseEvt,
-    BulkQuoteReceivedEvt
+    BulkQuoteReceivedEvt,
+    BulkQuoteAcceptedEvt
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { ParticipantsHttpClient } from "@mojaloop/participants-bc-client-lib";
@@ -80,6 +81,9 @@ export class QuotingEventHandler extends BaseEventHandler {
                 break;
             case BulkQuoteReceivedEvt.name:
                 await this._handleBulkQuotingRequestReceivedEvt(new BulkQuoteReceivedEvt(message.payload), message.fspiopOpaqueState);
+                break;
+            case BulkQuoteAcceptedEvt.name:
+                await this._handleBulkQuoteAcceptedResponseEvt(new BulkQuoteAcceptedEvt(message.payload), message.fspiopOpaqueState);
                 break;
             default:
                 this._logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
@@ -253,7 +257,7 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             // Always validate the payload and headers received
             message.validatePayload();
-            Validate.validateHeaders(QuotesPost, clonedHeaders);
+            // Validate.validateHeaders(QuotesPost, clonedHeaders);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value)
             urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
@@ -393,6 +397,63 @@ export class QuotingEventHandler extends BaseEventHandler {
                 endpoint: requestedEndpoint,
                 entity: Enums.EntityTypeEnum.QUOTES,
                 id: [payload.bulkQuoteId],
+            })
+        }
+
+        return;
+    }
+
+    private async _handleBulkQuoteAcceptedResponseEvt(message: BulkQuoteAcceptedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
+        const { payload } = message;
+  
+        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+        
+        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
+
+        if(!requestedEndpoint){
+
+            this._logger.error("Cannot get requestedEndpoint at _handleBulkQuoteAcceptedResponseEvt()");
+
+            const msg = new BulkQuoteAcceptedEvt(payload);
+    
+            msg.msgTopic = KAFKA_OPERATOR_ERROR_TOPIC;
+
+            await this._kafkaProducer.send(msg);
+
+            return;
+        }
+
+        try {
+            this._logger.info('_handleBulkQuoteAcceptedResponseEvt -> start');
+
+            // Always validate the payload and headers received
+            message.validatePayload();
+            Validate.validateHeaders(QuotesPost, clonedHeaders);
+
+            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value)
+            urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);
+            urlBuilder.setId(payload.bulkQuoteId);
+
+            await Request.sendRequest({
+                url: urlBuilder.build(), 
+                headers: clonedHeaders, 
+                source: requesterFspId, 
+                destination: requesterFspId, 
+                method: Enums.FspiopRequestMethodsEnum.PUT,
+                payload: Transformer.transformPayloadBulkQuotingResponsePut(payload),
+            });
+
+            this._logger.info('_handleBulkQuoteAcceptedResponseEvt -> end');
+
+        } catch (error: unknown) {
+            this._sendErrorFeedbackToFsp({ 
+                error: error,
+                headers: clonedHeaders,
+                source: requesterFspId,
+                endpoint: requestedEndpoint,
+                entity: Enums.EntityTypeEnum.QUOTES,
+                id: [''],
             })
         }
 

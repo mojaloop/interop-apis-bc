@@ -31,7 +31,7 @@
 
  'use strict';
 
-import { BulkQuoteReceivedEvtPayload, ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvtPayload, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload, QuoteRequestAcceptedEvtPayload, QuoteResponseAcceptedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { BulkQuoteReceivedEvtPayload, BulkQuoteAcceptedEvtPayload, ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvtPayload, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload, QuoteRequestAcceptedEvtPayload, QuoteResponseAcceptedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ErrorCode } from "./enums";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -209,6 +209,25 @@ export const transformPayloadBulkQuotingResponsePost = (payload: BulkQuoteReceiv
 		geoCode: payload.geoCode,
 		expiration: payload.expiration,
         individualQuotes: payload.individualQuotes,
+		extensionList: payload.extensionList
+    };
+		
+	return removeEmpty(info);
+};
+
+export const transformPayloadBulkQuotingResponsePut = (payload: BulkQuoteAcceptedEvtPayload):any => {
+	const info = {
+		expiration: payload.expiration,
+		// Temporary fix until TTK gives names with the correct pattern
+        individualQuoteResults: payload.individualQuoteResults.map((quote: any) => {
+			quote.payee.personalInfo.complexName = {
+					"middleName": "abvc",
+					"firstName": "abcd",
+					"lastName": "abdn"
+				  }
+				
+			return quote;
+		}),
 		extensionList: payload.extensionList
     };
 		

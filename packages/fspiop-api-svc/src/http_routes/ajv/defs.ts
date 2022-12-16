@@ -34,6 +34,29 @@
 export default {
   $id: "defs",
   definitions: {
+    "ErrorInformation": {
+      "title": "ErrorInformation",
+      "description": "Data model for the complex type ErrorInformation.",
+      "required": [
+        "errorCode",
+        "errorDescription"
+      ],
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "errorCode": {
+          "description": "Specific error number.",
+          "type": "string"
+        },
+        "errorDescription": {
+          "description": "Error description string.",
+          "type": "string"
+        },
+        "extensionList": {
+          "$ref": "defs#/definitions/ExtensionList"
+        }
+      }
+    },
     "Extension": {
       "title": "Extension",
       "description": "Data model for the complex type Extension",
@@ -143,6 +166,50 @@ export default {
         "note": {
           "description": "Memo that will be attached to the transaction.",
           "type": "string"
+        },
+        "extensionList": {
+          "$ref": "defs#/definitions/ExtensionList"
+        }
+      }
+    },
+    "IndividualQuoteResult": {
+      "title": "IndividualQuoteResult",
+      "description": "Data model for the complex type IndividualQuoteResult.",
+      "required": [
+        "quoteId"
+      ],
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "quoteId": {
+          "description": "Identifies quote message.",
+          "type": "string"
+        },
+        "payee": {
+          "$ref": "defs#/definitions/Party"
+        },
+        "transferAmount": {
+          "$ref": "defs#/definitions/Money"
+        },
+        "payeeReceiveAmount": {
+          "$ref": "defs#/definitions/Money"
+        },
+        "payeeFspFee": {
+          "$ref": "defs#/definitions/Money"
+        },
+        "payeeFspCommission": {
+          "$ref": "defs#/definitions/Money"
+        },
+        "ilpPacket": {
+          "description": "The ILP Packet that must be attached to the transfer by the Payer.",
+          "type": "string"
+        },
+        "condition": {
+          "description": "The condition that must be attached to the transfer by the Payer.",
+          "type": "string"
+        },
+        "errorInformation": {
+          "$ref": "defs#/definitions/ErrorInformation"
         },
         "extensionList": {
           "$ref": "defs#/definitions/ExtensionList"
