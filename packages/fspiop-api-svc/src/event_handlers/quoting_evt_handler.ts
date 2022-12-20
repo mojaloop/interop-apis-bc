@@ -44,11 +44,11 @@ import {
     BulkQuoteAcceptedEvt
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { ParticipantsHttpClient } from "@mojaloop/participants-bc-client-lib";
 import { IncomingHttpHeaders } from "http";
 import { BaseEventHandler } from "./base_event_handler";
 import { AxiosError } from "axios";
 import { QuotesPost } from "../errors";
+import { IParticipantService } from "../interfaces/types";
 
 const KAFKA_OPERATOR_ERROR_TOPIC = process.env["KAFKA_OPERATOR_ERROR_TOPIC"] || 'OperatorBcErrors';
 
@@ -58,7 +58,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             consumerOptions: MLKafkaJsonConsumerOptions,
             producerOptions: MLKafkaJsonProducerOptions,
             kafkaTopics : string[],
-            participantService: ParticipantsHttpClient
+            participantService: IParticipantService
     ) {
         super(logger, consumerOptions, producerOptions, kafkaTopics, participantService);
     }
@@ -198,7 +198,6 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             // Always validate the payload and headers received
             message.validatePayload();
-            Validate.validateHeaders(QuotesPost, clonedHeaders);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value)
             urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
@@ -257,7 +256,6 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             // Always validate the payload and headers received
             message.validatePayload();
-            // Validate.validateHeaders(QuotesPost, clonedHeaders);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value)
             urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
@@ -373,7 +371,6 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             // Always validate the payload and headers received
             message.validatePayload();
-            Validate.validateHeaders(QuotesPost, clonedHeaders);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value)
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);
@@ -429,7 +426,6 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             // Always validate the payload and headers received
             message.validatePayload();
-            Validate.validateHeaders(QuotesPost, clonedHeaders);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value)
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);

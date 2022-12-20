@@ -50,6 +50,8 @@ import {ParticipantsHttpClient} from "@mojaloop/participants-bc-client-lib";
 import { QuoteRoutes } from "./http_routes/quoting-bc/quote_routes";
 import { QuoteBulkRoutes } from "./http_routes/quoting-bc/bulk_quote_routes";
 import path from "path";
+import { IParticipantService } from "./interfaces/types";
+import { ParticipantAdapter } from "./external_adapters/participant_adapter";
 // import {AuthorizationClient, LoginHelper} from "@mojaloop/security-bc-client-lib";
 
 
@@ -80,7 +82,7 @@ const BULK_QUOTES_URL_RESOURCE_NAME = "bulkQuotes";
 
 const KAFKA_QUOTES_LOOKUP_TOPIC = process.env["KAFKA_QUOTES_LOOKUP_TOPIC"] || QuotingBCTopics.DomainEvents;
 
-const PARTICIPANT_SVC_BASEURL = process.env["PARTICIPANT_SVC_BASEURL"] || "http://127.0.0.1:3010";
+const PARTICIPANT_SVC_BASEURL = process.env["PARTICIPANT_SVC_BASEURL"] || "http://localhost:3010";
 // const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
 
 
@@ -95,7 +97,7 @@ let participantRoutes:ParticipantRoutes;
 let partyRoutes:PartyRoutes;
 let quotesRoutes:QuoteRoutes;
 let bulkQuotesRoutes:QuoteBulkRoutes;
-let participantServiceClient: ParticipantsHttpClient;
+let participantService: IParticipantService;
 let auditClient: IAuditClient;
 // let loginHelper:LoginHelper;
 
@@ -157,7 +159,7 @@ async function setupEventHandlers():Promise<void>{
         kafkaJsonConsumerOptions,
         kafkaJsonProducerOptions,
         [KAFKA_ACCOUNTS_LOOKUP_TOPIC],
-        participantServiceClient
+        participantService
     );
     await accountEvtHandler.init();
 
@@ -166,7 +168,7 @@ async function setupEventHandlers():Promise<void>{
         kafkaJsonConsumerOptions,
         kafkaJsonProducerOptions,
         [KAFKA_QUOTES_LOOKUP_TOPIC],
-        participantServiceClient
+        participantService
     );
     await quotingEvtHandler.init();
 
@@ -215,10 +217,9 @@ export async function start(
     //loginHelper = new LoginHelper(AUTH_N_SVC_BASEURL, logger);
     //loginHelper.init()
 
-    const fixedToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Iml2SC1pVUVDRHdTVnVGS0QtRzdWc0MzS0pnLXN4TFgteWNvSjJpOTFmLTgifQ.eyJ0eXAiOiJCZWFyZXIiLCJhenAiOiJzZWN1cml0eS1iYy11aSIsInJvbGVzIjpbIjI2ODBjYTRhLTRhM2EtNGU5YS1iMWZhLTY1MDAyMjkyMTAwOSJdLCJpYXQiOjE2NzAxMjAxNDcsImV4cCI6MTY3MDcyNDk0NywiYXVkIjoibW9qYWxvb3Audm5leHQuZGVmYXVsdF9hdWRpZW5jZSIsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3Q6MzIwMS8iLCJzdWIiOiJ1c2VyOjphZG1pbiIsImp0aSI6IjQwMmI0N2RmLWY1NWMtNDRlYS04MjBiLWU5NTMwMTFkNGVmOSJ9.JCe96DJer79k_yaHg_Sf1CKNPUvLIMnUezOmoRHclLO4Fit65zU8EuM0RQiKdXWCLMVrPvbDfiemZEUFBOmt8vfqHK8YPM1gPbDtU-bbkKTLSvaZ8HEVrPzw1sq4t1JGT6LnD08gwEE9KzWDvjHVpGoHDAifp3ArRDqunB2GkU5rpS4nksDf97ysv2u2G8wx1283N_nqF0Brvfifcte7jSzc4NWIVafrLZuqQqBPR_2X1CTWYaLFHdOuVxL-_wmkiTTwWhuR2SyQDbxM91sIfLqoWz-S8NRDhG0AH3ecczjuvULzLqVmL0OG0d0VYNeFBr_mOIQDyhsshR5544eWMg";
+    const fixedToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Iml2SC1pVUVDRHdTVnVGS0QtRzdWc0MzS0pnLXN4TFgteWNvSjJpOTFmLTgifQ.eyJ0eXAiOiJCZWFyZXIiLCJhenAiOiJzZWN1cml0eS1iYy11aSIsInJvbGVzIjpbIjI2ODBjYTRhLTRhM2EtNGU5YS1iMWZhLTY1MDAyMjkyMTAwOSJdLCJpYXQiOjE2NzExNzUxNDAsImV4cCI6MTY3MTc3OTk0MCwiYXVkIjoibW9qYWxvb3Audm5leHQuZGVmYXVsdF9hdWRpZW5jZSIsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3Q6MzIwMS8iLCJzdWIiOiJ1c2VyOjp1c2VyIiwianRpIjoiNDMwZmFkODUtNTMyNy00MzU5LWEwYTktOTZjMDAyOWZiMmExIn0.RbTr0ZXzLwyJqrTW3KZRxc3hwSIR4WE8t-pJZLc35_ell0kiDx94c3sxNn5mbwzM-x5gzElSBJ8jVjVMl1Q-Bc8_zy9zd62na3cnYnVWLJLBTMtRbg4I3bUAhVdHKiv8sfzZuCFM4MkvSiPC0LlyHEIqLbHsMgqLQL1VTnIwCE4yhONpG9TFzMg0uymGDG5lZ_-haI9lSxQw_f9yqmHia6iFAHyahLRv4By7Y7dglchaDfvx9UkByl6T53VlA3GVLV1CEXlzw_ZohVLiW7if8GWfF-XSRlJlw6WN1whecD7zWsjM0v4tthts_QlIksBM73zSIAYTSzWY8JdXEpd-FA";
 
-    participantServiceClient = new ParticipantsHttpClient(logger, PARTICIPANT_SVC_BASEURL, fixedToken, 5000);
-
+    participantService = new ParticipantAdapter(logger, PARTICIPANT_SVC_BASEURL, fixedToken);
 
     await setupEventHandlers();
 

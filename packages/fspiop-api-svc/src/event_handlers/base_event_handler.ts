@@ -35,7 +35,7 @@ import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumer, MLKafkaJsonConsumerOptions, MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {ParticipantEndpoint, ParticipantsHttpClient } from "@mojaloop/participants-bc-client-lib";
-import { IEventHandler } from "../interfaces/types";
+import { IEventHandler, IParticipantService } from "../interfaces/types";
 import { IncomingHttpHeaders } from "http";
 import { AccountLookUpErrorEvt, QuoteErrorEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { AxiosError } from "axios";
@@ -48,20 +48,20 @@ export abstract class BaseEventHandler implements IEventHandler {
     protected _kafkaTopics: string[];
     protected _producerOptions: MLKafkaJsonProducerOptions;
     protected _kafkaProducer: MLKafkaJsonProducer;
-    protected _participantServiceClient: ParticipantsHttpClient;
+    protected _participantService: IParticipantService;
 
     constructor(
             logger: ILogger,
             consumerOptions: MLKafkaJsonConsumerOptions,
             producerOptions: MLKafkaJsonProducerOptions,
             kafkaTopics : string[],
-            participantService: ParticipantsHttpClient
+            participantService: IParticipantService
     ) {
         this._logger = logger.createChild(this.constructor.name);
         this._consumerOpts = consumerOptions;
         this._kafkaTopics = kafkaTopics;
         this._producerOptions = producerOptions;
-        this._participantServiceClient = participantService;
+        this._participantService = participantService;
     }
 
     async init () : Promise<void> {
@@ -77,7 +77,7 @@ export abstract class BaseEventHandler implements IEventHandler {
 
     protected async _validateParticipantAndGetEndpoint(fspId: string):Promise<ParticipantEndpoint | null>{
         try {
-            const participant = await this._participantServiceClient.getParticipantById(fspId);
+            const participant = await this._participantService.getParticipantInfo(fspId);
 
             if (!participant) {
                 this._logger.error(`_validateParticipantAndGetEndpoint could not get participant with id: "${fspId}"`);

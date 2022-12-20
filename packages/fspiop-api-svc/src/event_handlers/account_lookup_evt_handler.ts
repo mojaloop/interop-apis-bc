@@ -55,6 +55,7 @@ import { ParticipantsHttpClient } from "@mojaloop/participants-bc-client-lib";
 import { IncomingHttpHeaders } from "http";
 import { BaseEventHandler } from "./base_event_handler";
 import { AxiosError } from "axios";
+import { IParticipantService } from "../interfaces/types";
 
 const KAFKA_OPERATOR_ERROR_TOPIC = process.env["KAFKA_OPERATOR_ERROR_TOPIC"] || 'OperatorBcErrors';
 
@@ -64,7 +65,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             consumerOptions: MLKafkaJsonConsumerOptions,
             producerOptions: MLKafkaJsonProducerOptions,
             kafkaTopics : string[],
-            participantService: ParticipantsHttpClient
+            participantService: IParticipantService
     ) {
         super(logger, consumerOptions, producerOptions, kafkaTopics, participantService);
     }

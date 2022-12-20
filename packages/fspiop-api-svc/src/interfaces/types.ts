@@ -32,6 +32,7 @@
 
  "use strict";
 
+import { Participant } from "@mojaloop/participant-bc-public-types-lib";
 import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
 //
@@ -90,4 +91,8 @@ export interface IEventHandler {
 	init(): Promise<void>;
 	destroy(): Promise<void>;
     processMessage (sourceMessage: IMessage): Promise<void>;
+}
+
+export interface IParticipantService {
+    getParticipantInfo(fspId: string): Promise<Participant| null>;
 }

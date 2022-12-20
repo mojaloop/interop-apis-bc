@@ -51,11 +51,12 @@
     "typescript": "^4.9.3"
   },
   "workspaces": [
+    "packages/implementations",
     "packages/fspiop-utils-lib",
     "packages/fspiop-api-svc"
   ],
   "dependencies": {
-    "@mojaloop/platform-shared-lib-public-messages-lib": "~0.1.29",
+    "@mojaloop/platform-shared-lib-public-messages-lib": "~0.1.30",
     "bignumber.js": "^9.1.0"
   }
 }
