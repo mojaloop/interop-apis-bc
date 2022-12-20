@@ -158,6 +158,7 @@ export class QuoteBulkRoutes extends BaseRoutes {
           
         // Headers
         const clonedHeaders = { ...req.headers };
+        const bulkQuoteId = req.params["id"] as string || null;
         const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
         const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
         
@@ -166,7 +167,7 @@ export class QuoteBulkRoutes extends BaseRoutes {
         const individualQuoteResults = req.body["individualQuoteResults"] || null;
         const extensionList = req.body["extensionList"] || null;
 
-        if(!requesterFspId || !individualQuoteResults) {
+        if(!bulkQuoteId || !requesterFspId || !individualQuoteResults) {
             res.status(400).json({
                 status: "not ok"
             });
@@ -174,6 +175,7 @@ export class QuoteBulkRoutes extends BaseRoutes {
         }
         
         const msgPayload: BulkQuotePendingReceivedEvtPayload = {
+            bulkQuoteId: bulkQuoteId,
             expiration: expiration,
             individualQuoteResults: individualQuoteResults,
             extensionList: extensionList,
