@@ -48,7 +48,7 @@ import { IncomingHttpHeaders } from "http";
 import { BaseEventHandler } from "./base_event_handler";
 import { AxiosError } from "axios";
 import { QuotesPost } from "../errors";
-import { IParticipantService } from "../interfaces/types";
+import { IParticipantService } from "../interfaces/infrastructure";
 
 const KAFKA_OPERATOR_ERROR_TOPIC = process.env["KAFKA_OPERATOR_ERROR_TOPIC"] || 'OperatorBcErrors';
 

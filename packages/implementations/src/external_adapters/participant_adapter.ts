@@ -19,6 +19,9 @@
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
 
+ * Gates Foundation
+ - Name Surname <name.surname@gatesfoundation.com>
+
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
@@ -28,17 +31,15 @@
 
 "use strict";
 
-import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
+import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import { ParticipantsHttpClient} from "@mojaloop/participants-bc-client-lib";
 import { Participant } from "@mojaloop/participant-bc-public-types-lib";
-
-export interface IParticipantService {
-    getParticipantInfo(fspId: string): Promise<Participant| null>;
-}
-
+import { IParticipantService } from "@mojaloop/interop-apis-bc-fspiop-api-svc";
+import { ILocalCache, LocalCache } from "../local_cache";
 
 export class ParticipantAdapter implements IParticipantService {
 	private readonly _logger: ILogger;
+	private readonly _localCache: ILocalCache;
 	private readonly _clientBaseUrl: string;
 	private readonly _externalParticipantClient :ParticipantsHttpClient;
 	private token: string;
@@ -48,18 +49,28 @@ export class ParticipantAdapter implements IParticipantService {
 		logger: ILogger,
 		clientBaseUrl: string,
 		token: string,
+		localCache?: ILocalCache
 	) {
 		this._logger = logger;
 		this.token = token;
 		this._clientBaseUrl = clientBaseUrl;
 		this._externalParticipantClient = new ParticipantsHttpClient(this._logger, this._clientBaseUrl, this.token);
+		this._localCache = localCache ?? new LocalCache(logger);
 	}
 
 	async getParticipantInfo(fspId: string): Promise<Participant| null> {
+		const result = this._localCache.get("getParticipantInfo", fspId) as Participant;
+		
+		if (result) {
+			this._logger.debug(`getParticipantInfo: returning cached result for fspId: ${fspId}`);
+			return result;
+		}
 		
 		try {
 			const result = await this._externalParticipantClient.getParticipantById(fspId);
-
+			if(result) {
+				this._localCache.set(result, "getParticipantInfo", fspId);
+			}
 			return result;
 		} catch (e: unknown) {
 			this._logger.error(`getParticipantInfo: error getting participant info for fspId: ${fspId} - ${e}`);
@@ -67,4 +78,36 @@ export class ParticipantAdapter implements IParticipantService {
 		}
 	}
 
+	async getParticipantsInfo(fspIds: string[]): Promise<Participant[]|null> {
+		let result: Participant[] = [];
+		const missingFspIds: string[] = [];
+		
+		for (const fspId of fspIds) {
+			const cachedResult = this._localCache.get("getParticipantInfo", fspId) as Participant;
+			if (cachedResult) {
+				result.push(cachedResult);
+			} else {
+				missingFspIds.push(fspId);
+			}
+		}
+
+		if (missingFspIds.length === 0) {
+			this._logger.debug(`getParticipantsInfo: returning cached result for fspIds: ${fspIds}`);
+			return result;
+		}
+
+		try {
+			const participants = await this._externalParticipantClient.getParticipantsByIds(missingFspIds);
+			if(participants) {
+				participants.forEach((participant:Participant) => this._localCache.set(participant, "getParticipantInfo", participant.id));
+				result = result.concat(participants);
+			}
+			return result;
+
+		} catch (e: unknown) {
+			this._logger.error(`getParticipantInfo: error getting participants info for fspIds: ${fspIds} - ${e}`);
+			return null;
+		}
+	}
 }
+ 

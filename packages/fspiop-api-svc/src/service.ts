@@ -46,12 +46,11 @@ import { MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions } from "@mojaloo
 import { AccountLookupEventHandler } from "./event_handlers/account_lookup_evt_handler";
 import { QuotingEventHandler } from "./event_handlers/quoting_evt_handler";
 import { AccountLookupBCTopics, QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import {ParticipantsHttpClient} from "@mojaloop/participants-bc-client-lib";
 import { QuoteRoutes } from "./http_routes/quoting-bc/quote_routes";
 import { QuoteBulkRoutes } from "./http_routes/quoting-bc/bulk_quote_routes";
 import path from "path";
-import { IParticipantService } from "./interfaces/types";
-import { ParticipantAdapter } from "./external_adapters/participant_adapter";
+import { IParticipantService } from "./interfaces/infrastructure";
+import { ParticipantAdapter } from "@mojaloop/interop-apis-bc-implementations";
 // import {AuthorizationClient, LoginHelper} from "@mojaloop/security-bc-client-lib";
 
 

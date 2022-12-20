@@ -92,7 +92,3 @@ export interface IEventHandler {
 	destroy(): Promise<void>;
     processMessage (sourceMessage: IMessage): Promise<void>;
 }
-
-export interface IParticipantService {
-    getParticipantInfo(fspId: string): Promise<Participant| null>;
-}
