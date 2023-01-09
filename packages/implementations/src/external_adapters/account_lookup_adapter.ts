@@ -61,8 +61,7 @@ export class AccountLookupAdapter implements IAccountLookupService {
 		}
 		try {
 			this._logger.info(`getAccountFspId: calling external account lookup service for partyId: ${partyId}, partyType ${partyType}, partySubIdOrType: ${partySubIdOrType}, currency: ${currency}`);
-			const result = partySubIdOrType ? await this._externalAccountClient.getFspIdByTypeAndIdAndSubId(partyId, partyType, partySubIdOrType, currency) 
-				: await this._externalAccountClient.getFspIdByTypeAndId(partyId, partyType, currency);
+			const result = await this._externalAccountClient.participantLookUp(partyId, partyType, partySubIdOrType, currency);
 			
 			if(result) {
 				this._logger.info(`getAccountFspId: caching result for partyId: ${partyId}, partyType ${partyType}, partySubIdOrType: ${partySubIdOrType}, currency: ${currency}`);

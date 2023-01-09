@@ -65,6 +65,8 @@ export const getCurrentKafkaOffset = (topic: string): Promise<kafka.Message> => 
                 client.close();
             });
         });
+
+        return;
     }));
 };
 

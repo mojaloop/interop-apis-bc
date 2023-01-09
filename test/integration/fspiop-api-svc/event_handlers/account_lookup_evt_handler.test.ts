@@ -33,6 +33,7 @@
 
 import { Request } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { AccountLookupBCTopics, AccountLookUpErrorEvt, AccountLookUpErrorEvtPayload, ParticipantAssociationCreatedEvt, ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvt, ParticipantAssociationRemovedEvtPayload, ParticipantAssociationRequestReceivedEvt, ParticipantQueryResponseEvt, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvt, PartyInfoRequestedEvtPayload, PartyQueryReceivedEvt, PartyQueryResponseEvt, PartyQueryResponseEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { ParticipantAdapter } from "@mojaloop/interop-apis-bc-implementations";
 import waitForExpect from "wait-for-expect";
 import jestOpenAPI from 'jest-openapi';
 import path from "path";
@@ -61,11 +62,12 @@ import {
     LocalAuditClientCryptoProvider
 } from "@mojaloop/auditing-bc-client-lib";
 import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
-import {ParticipantRoutes} from "../../../../packages/fspiop-api-svc/src/http_routes/account-lookup-bc/participant_routes";
-import {PartyRoutes} from "../../../../packages/fspiop-api-svc/src/http_routes/account-lookup-bc/party_routes";
+import {ParticipantRoutes} from "@mojaloop/interop-apis-bc-fspiop-api-svc/src/http_routes/account-lookup-bc/participant_routes";
+import {PartyRoutes} from "@mojaloop/interop-apis-bc-fspiop-api-svc/src/http_routes/account-lookup-bc/party_routes";
 import { MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import { AccountLookupEventHandler } from "../../../../packages/fspiop-api-svc/src/event_handlers/account_lookup_evt_handler";
+import { AccountLookupEventHandler } from "@mojaloop/interop-apis-bc-fspiop-api-svc/src/event_handlers/account_lookup_evt_handler";
 import {Participant, ParticipantsHttpClient} from "@mojaloop/participants-bc-client-lib";
+import { IParticipantService } from "@mojaloop/interop-apis-bc-fspiop-api-svc";
 
 const LOGLEVEL:LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
 
@@ -93,7 +95,7 @@ let logger:ILogger;
 let expressServer: Server;
 let participantRoutes:ParticipantRoutes;
 let partyRoutes:PartyRoutes;
-let participantServiceClient: ParticipantsHttpClient;
+let participantService: IParticipantService;
 
 
 export async function setupExpress(loggerParam:ILogger): Promise<Server> {
@@ -143,7 +145,7 @@ async function setupEventHandlers():Promise<void>{
             kafkaJsonConsumerOptions,
             kafkaJsonProducerOptions,
             [KAFKA_ACCOUNTS_LOOKUP_TOPIC],
-            participantServiceClient
+            participantService
     );
     await accountEvtHandler.init();
 
@@ -181,7 +183,7 @@ export async function start(
 
     const fixedToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InVVbFFjbkpJUk93dDIxYXFJRGpRdnVnZERvUlYzMzEzcTJtVllEQndDbWMifQ.eyJ0eXAiOiJCZWFyZXIiLCJhenAiOiJwYXJ0aWNpcGFudHMtc3ZjIiwicm9sZXMiOlsiNTI0YTQ1Y2QtNGIwOS00NmVjLThlNGEtMzMxYTVkOTcyNmVhIl0sImlhdCI6MTY2Njc3MTgyOSwiZXhwIjoxNjY3Mzc2NjI5LCJhdWQiOiJtb2phbG9vcC52bmV4dC5kZWZhdWx0X2F1ZGllbmNlIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDozMjAxLyIsInN1YiI6ImFwcDo6cGFydGljaXBhbnRzLXN2YyIsImp0aSI6IjMzNDUyODFiLThlYzktNDcyOC1hZGVkLTdlNGJmMzkyMGZjMSJ9.s2US9fEAE3SDdAtxxttkPIyxmNcACexW3Z-8T61w96iji9muF_Zdj2koKvf9tICd25rhtCkolI03hBky3mFNe4c7U1sV4YUtCNNRgReMZ69rS9xdfquO_gIaABIQFsu1WTc7xLkAccPhTHorartdQe7jvGp-tOSkqA-azj0yGjwUccFhX3Bgg3rWasmJDbbblIMih4SJuWE7MGHQxMzhX6c9l1TI-NpFRRFDTYTg1H6gXhBvtHMXnC9PPbc9x_RxAPBqmMcleIJZiMZ8Cn805OL9Wt_sMFfGPdAQm0l4cdjdesgfQahsrtCOAcp5l7NKmehY0pbLmjvP6zlrDM_D3A";
 
-    participantServiceClient = new ParticipantsHttpClient(logger, PARTICIPANT_SVC_BASEURL, fixedToken, 5000);
+    participantService = new ParticipantAdapter(logger, PARTICIPANT_SVC_BASEURL, fixedToken);
 
     await setupEventHandlers();
 
@@ -212,7 +214,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
     });
 
     beforeEach(async () => {
-        participantClientSpy = jest.spyOn(participantServiceClient, "getParticipantById");
+        participantClientSpy = jest.spyOn(participantService, "getParticipantInfo");
 
         participantClientSpy.mockResolvedValue({
                 id: 1,

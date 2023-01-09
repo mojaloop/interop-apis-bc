@@ -33,6 +33,7 @@
 
 import { Request, Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { QuoteErrorEvt, QuoteErrorEvtPayload, QuoteQueryResponseEvt, QuoteQueryResponseEvtPayload, QuoteRequestAcceptedEvt, QuoteRequestAcceptedEvtPayload, QuoteRequestReceivedEvt, QuoteResponseAccepted, QuoteResponseAcceptedEvtPayload, QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { ParticipantAdapter } from "@mojaloop/interop-apis-bc-implementations";
 import waitForExpect from "wait-for-expect";
 import jestOpenAPI from 'jest-openapi';
 import path from "path";
@@ -60,11 +61,12 @@ import {
     LocalAuditClientCryptoProvider
 } from "@mojaloop/auditing-bc-client-lib";
 import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
-import {ParticipantRoutes} from "../../../../packages/fspiop-api-svc/src/http_routes/account-lookup-bc/participant_routes";
-import {PartyRoutes} from "../../../../packages/fspiop-api-svc/src/http_routes/account-lookup-bc/party_routes";
+import {ParticipantRoutes} from "@mojaloop/interop-apis-bc-fspiop-api-svc/src/http_routes/account-lookup-bc/participant_routes";
+import {PartyRoutes} from "@mojaloop/interop-apis-bc-fspiop-api-svc/src/http_routes/account-lookup-bc/party_routes";
 import { MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import { QuotingEventHandler } from "../../../../packages/fspiop-api-svc/src/event_handlers/quoting_evt_handler";
+import { QuotingEventHandler } from "@mojaloop/interop-apis-bc-fspiop-api-svc/src/event_handlers/quoting_evt_handler";
 import {Participant, ParticipantsHttpClient} from "@mojaloop/participants-bc-client-lib";
+import { IParticipantService } from "@mojaloop/interop-apis-bc-fspiop-api-svc";
 
 const LOGLEVEL:LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
 
@@ -92,7 +94,7 @@ let logger:ILogger;
 let expressServer: Server;
 let participantRoutes:ParticipantRoutes;
 let partyRoutes:PartyRoutes;
-let participantServiceClient: ParticipantsHttpClient;
+let participantService: IParticipantService;
 let auditClient:IAuditClient;
 
 
@@ -143,7 +145,7 @@ async function setupEventHandlers():Promise<void>{
             kafkaJsonConsumerOptions,
             kafkaJsonProducerOptions,
             [KAFKA_QUOTING_TOPIC],
-            participantServiceClient
+            participantService
     );
     await quotingEvtHandler.init();
 }
@@ -183,7 +185,7 @@ export async function start(
 
     const fixedToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InVVbFFjbkpJUk93dDIxYXFJRGpRdnVnZERvUlYzMzEzcTJtVllEQndDbWMifQ.eyJ0eXAiOiJCZWFyZXIiLCJhenAiOiJwYXJ0aWNpcGFudHMtc3ZjIiwicm9sZXMiOlsiNTI0YTQ1Y2QtNGIwOS00NmVjLThlNGEtMzMxYTVkOTcyNmVhIl0sImlhdCI6MTY2Njc3MTgyOSwiZXhwIjoxNjY3Mzc2NjI5LCJhdWQiOiJtb2phbG9vcC52bmV4dC5kZWZhdWx0X2F1ZGllbmNlIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDozMjAxLyIsInN1YiI6ImFwcDo6cGFydGljaXBhbnRzLXN2YyIsImp0aSI6IjMzNDUyODFiLThlYzktNDcyOC1hZGVkLTdlNGJmMzkyMGZjMSJ9.s2US9fEAE3SDdAtxxttkPIyxmNcACexW3Z-8T61w96iji9muF_Zdj2koKvf9tICd25rhtCkolI03hBky3mFNe4c7U1sV4YUtCNNRgReMZ69rS9xdfquO_gIaABIQFsu1WTc7xLkAccPhTHorartdQe7jvGp-tOSkqA-azj0yGjwUccFhX3Bgg3rWasmJDbbblIMih4SJuWE7MGHQxMzhX6c9l1TI-NpFRRFDTYTg1H6gXhBvtHMXnC9PPbc9x_RxAPBqmMcleIJZiMZ8Cn805OL9Wt_sMFfGPdAQm0l4cdjdesgfQahsrtCOAcp5l7NKmehY0pbLmjvP6zlrDM_D3A";
 
-    participantServiceClient = new ParticipantsHttpClient(logger, PARTICIPANT_SVC_BASEURL, fixedToken, 5000);
+    participantService = new ParticipantAdapter(logger, PARTICIPANT_SVC_BASEURL, fixedToken);
 
     await setupEventHandlers();
 
@@ -293,7 +295,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
     });
 
     beforeEach(async () => {
-        participantClientSpy = jest.spyOn(participantServiceClient, "getParticipantById");
+        participantClientSpy = jest.spyOn(participantService, "getParticipantInfo");
 
         participantClientSpy.mockResolvedValue({
                 id: 1,
@@ -659,6 +661,140 @@ describe("FSPIOP API Service Quoting Handler", () => {
         };
 
         const event = new QuoteResponseAccepted(payload);
+
+        event.fspiopOpaqueState = { 
+            "requesterFspId":"test-fspiop-source",
+            "destinationFspId": null,
+            "headers":{
+                "accept":`application/vnd.interoperability.${quoteEntity}+json;version=1.0`,
+                "content-type":`application/vnd.interoperability.${quoteEntity}+json;version=1.0`,
+                "date":"randomdate",
+                "fspiop-source":"test-fspiop-source"
+            }
+        };
+
+        const requestSpyOn = jest.spyOn(Request, "sendRequest");
+
+        requestSpyOn.mockImplementationOnce(() => {
+            throw new Error("test error");
+        });
+        
+        // Act
+        kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
+
+
+        const apiSpy = jest.spyOn(Request, "sendRequest");
+        const res = async (): Promise<any> => {
+            return await apiSpy.mock.results[apiSpy.mock.results.length-1].value;
+        }
+
+        // Assert        
+        await waitForExpect(() => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                url: `${localhostUrl}/${quoteEntity}/${payload.quoteId}/error`
+            }));
+        });
+
+        expect(await res()).toSatisfyApiSpec();
+
+    })
+    //#endregion
+
+    //#region QuoteQueryResponseEvt
+    it("should successful treat QuoteQueryResponseEvt", async () => {
+        // Arrange
+        const payload : QuoteQueryResponseEvtPayload = {
+            "quoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
+            ...validPutPayload
+        };
+
+        const event = new QuoteQueryResponseEvt(payload);
+
+        event.fspiopOpaqueState = { 
+            "requesterFspId":"test-fspiop-source",
+            "destinationFspId": null,
+            "headers":{
+                "accept":`application/vnd.interoperability.${quoteEntity}+json;version=1.0`,
+                "content-type":`application/vnd.interoperability.${quoteEntity}+json;version=1.0`,
+                "date":"randomdate",
+                "fspiop-source":"test-fspiop-source"
+            }
+        };
+            
+        const requestSpy = jest.spyOn(Request, "sendRequest");
+
+        // Act
+        kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
+
+        jest.spyOn(Request, "sendRequest");
+
+        const res = async (): Promise<any> => {
+            return await requestSpy.mock.results[0].value;
+        }
+                    
+        // Assert
+        await waitForExpect(() => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                url: `${localhostUrl}/${quoteEntity}/${payload.quoteId}`
+            }));
+        });
+
+        expect(await res()).toSatisfyApiSpec();
+    })
+
+    it("should log error when QuoteQueryResponseEvt finds no participant endpoint", async () => {
+        // Arrange
+        const payload : QuoteQueryResponseEvtPayload = {
+            "quoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
+            ...validPutPayload
+        };
+
+        const event = new QuoteQueryResponseEvt(payload);
+
+        event.fspiopOpaqueState = { 
+            "requesterFspId":"non-existing-requester-id",
+            "destinationFspId": null,
+            "headers":{
+                "accept":`application/vnd.interoperability.${quoteEntity}+json;version=1.0`,
+                "content-type":`application/vnd.interoperability.${quoteEntity}+json;version=1.0`,
+                "date":"randomdate",
+                "fspiop-source":"test-fspiop-source"
+            }
+        };
+            
+        participantClientSpy.mockResolvedValueOnce(null);
+
+        // Act
+        const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
+        
+        kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
+
+        await new Promise((r) => setTimeout(r, 2000));
+
+        let sentMessagesCount = 0;
+        let expectedOffsetMessage: any;
+        const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
+        
+        if (currentOffset.offset && expectedOffset.offset) {
+            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
+            expectedOffsetMessage = JSON.parse(currentOffset.value as string);
+        }
+        
+        // Assert        
+        await waitForExpect(() => {
+            expect(sentMessagesCount).toBe(1);
+            expect(expectedOffsetMessage.msgName).toBe(QuoteQueryResponseEvt.name);
+        });
+    })
+
+    it("should throw error QuoteQueryResponseEvt due to failing to sendRequest", async () => {
+        // Arrange
+        const payload : QuoteQueryResponseEvtPayload = {
+            "quoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
+            ...validPutPayload
+        };
+
+        const event = new QuoteQueryResponseEvt(payload);
 
         event.fspiopOpaqueState = { 
             "requesterFspId":"test-fspiop-source",
