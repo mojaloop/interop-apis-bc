@@ -42,7 +42,7 @@ import {
 import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 import {ParticipantRoutes} from "./http_routes/account-lookup-bc/participant_routes";
 import {PartyRoutes} from "./http_routes/account-lookup-bc/party_routes";
-import { MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import { MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions, MLKafkaRawProducerOptions, MLKafkaRawProducerPartitioners } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { AccountLookupEventHandler } from "./event_handlers/account_lookup_evt_handler";
 import { QuotingEventHandler } from "./event_handlers/quoting_evt_handler";
 import { AccountLookupBCTopics, QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
@@ -85,8 +85,9 @@ const PARTICIPANT_SVC_BASEURL = process.env["PARTICIPANT_SVC_BASEURL"] || "http:
 // const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
 
 
-const kafkaProducerOptions = {
-    kafkaBrokerList: KAFKA_URL
+const kafkaProducerOptions: MLKafkaRawProducerOptions = {
+    kafkaBrokerList: KAFKA_URL,
+    partitioner: MLKafkaRawProducerPartitioners.MURMUR2
 };
 
 // only the vars required outside the start fn
