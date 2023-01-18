@@ -392,7 +392,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 headers: clonedHeaders,
                 source: requesterFspId,
                 endpoint: requestedEndpoint,
-                entity: Enums.EntityTypeEnum.QUOTES,
+                entity: Enums.EntityTypeEnum.BULK_QUOTES,
                 id: [payload.bulkQuoteId],
             })
         }
@@ -448,8 +448,8 @@ export class QuotingEventHandler extends BaseEventHandler {
                 headers: clonedHeaders,
                 source: requesterFspId,
                 endpoint: requestedEndpoint,
-                entity: Enums.EntityTypeEnum.QUOTES,
-                id: [''],
+                entity: Enums.EntityTypeEnum.BULK_QUOTES,
+                id: [payload.bulkQuoteId],
             })
         }
 

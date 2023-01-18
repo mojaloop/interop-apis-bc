@@ -32,7 +32,7 @@
  "use strict"
 
 import { Request, Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { QuoteErrorEvt, QuoteErrorEvtPayload, QuoteQueryResponseEvt, QuoteQueryResponseEvtPayload, QuoteRequestAcceptedEvt, QuoteRequestAcceptedEvtPayload, QuoteRequestReceivedEvt, QuoteResponseAccepted, QuoteResponseAcceptedEvtPayload, QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { BulkQuoteAcceptedEvt, BulkQuoteAcceptedEvtPayload, BulkQuoteReceivedEvt, BulkQuoteReceivedEvtPayload, QuoteErrorEvt, QuoteErrorEvtPayload, QuoteQueryResponseEvt, QuoteQueryResponseEvtPayload, QuoteRequestAcceptedEvt, QuoteRequestAcceptedEvtPayload, QuoteRequestReceivedEvt, QuoteResponseAccepted, QuoteResponseAcceptedEvtPayload, QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ParticipantAdapter } from "@mojaloop/interop-apis-bc-implementations";
 import waitForExpect from "wait-for-expect";
 import jestOpenAPI from 'jest-openapi';
@@ -50,6 +50,7 @@ const KAFKA_QUOTING_TOPIC = process.env["KAFKA_QUOTING_TOPIC"] || QuotingBCTopic
 const KAFKA_OPERATOR_ERROR_TOPIC = process.env["KAFKA_OPERATOR_ERROR_TOPIC"] || 'OperatorBcErrors';
 
 const quoteEntity = "quotes";
+const bulkQuoteEntity = "bulkQuotes";
 
 import {createServer, Server} from "http";
 import express from "express";
@@ -285,6 +286,125 @@ const validPutPayload = {
       extensionList: null,
 }
 
+// Bulk Quotes
+
+const validBulkPostPayload = {
+    "payer": {
+        "partyIdInfo": {
+            "partyIdType": "MSISDN",
+            "partyIdentifier": "1"
+        }
+    },
+    "geoCode": {
+        "latitude": "8.0",
+        "longitude": "48.5378"
+    },
+    "expiration": "2023-01-04T22:49:25.375Z",
+    "individualQuotes": [
+        {
+            "quoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
+            "transactionId": "7f5d9784-3a57-5865-9aa0-7dde7791548a",
+            "payee": {
+                "partyIdInfo": {
+                    "partyIdType": "MSISDN",
+                    "partyIdentifier": "1"
+                }
+            },
+            "amountType": "SEND",
+            "amount": {
+                "currency": "EUR",
+                "amount": "1"
+            },
+            "transactionType": {
+                "scenario": "DEPOSIT",
+                "initiator": "PAYER",
+                "initiatorType": "BUSINESS"
+            },
+        }
+    ]
+} as BulkQuoteReceivedEvtPayload;
+
+const validBulkPutPayload = {
+    "expiration": "4346-10-31T23:04:15.737+12:48",
+    "individualQuoteResults": [
+      {
+        "quoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
+        "ilpPacket": "AYICFwAAAAAAAABkFGcudW5kZWZpbmVkLm1zaXNkbi4xggH2ZXlKMGNtRnVjMkZqZEdsdmJrbGtJam9pTjJZMVpEazNPRFF0TTJFMU55MDFPRFkxTFRsaFlUQXROMlJrWlRjM09URTFORGhoSWl3aWNYVnZkR1ZKWkNJNklqSXlORE5tWkdKbExUVmtaV0V0TTJGaVpDMWhNakV3TFRNM09EQmxOMll5WmpGbU5DSXNJbkJoZVdWbElqcDdJbkJoY25SNVNXUkpibVp2SWpwN0luQmhjblI1U1dSVWVYQmxJam9pVFZOSlUwUk9JaXdpY0dGeWRIbEpaR1Z1ZEdsbWFXVnlJam9pTVNKOWZTd2ljR0Y1WlhJaU9uc2ljR0Z5ZEhsSlpFbHVabThpT25zaWNHRnlkSGxKWkZSNWNHVWlPaUpOVTBsVFJFNGlMQ0p3WVhKMGVVbGtaVzUwYVdacFpYSWlPaUl4SW4xOUxDSmhiVzkxYm5RaU9uc2lZM1Z5Y21WdVkza2lPaUpGVlZJaUxDSmhiVzkxYm5RaU9pSXhJbjBzSW5SeVlXNXpZV04wYVc5dVZIbHdaU0k2ZXlKelkyVnVZWEpwYnlJNklrUkZVRTlUU1ZRaUxDSnBibWwwYVdGMGIzSWlPaUpRUVZsRlVpSXNJbWx1YVhScFlYUnZjbFI1Y0dVaU9pSkNWVk5KVGtWVFV5SjlmUQA",
+        "payeeFspFee": {
+          "currency": "USD",
+          "amount": "2"
+        },
+        "transferAmount": {
+          "currency": "USD",
+          "amount": "123"
+        },
+        "errorInformation": null,
+        "condition": "xmHnYE0iQnMvi1CshISk9iYCf7MG3_ZsMNN9I4HKnAo",
+        "extensionList": {
+          "extension": [
+            {
+              "key": "irure",
+              "value": "occaecat irure"
+            },
+            {
+              "key": "eu laborum qui",
+              "value": "dolore ipsum aliqua irure reprehenderit"
+            }
+          ]
+        },
+        "payeeReceiveAmount": {
+          "currency": "USD",
+          "amount": "123"
+        },
+        "payee": {
+          "partyIdInfo": {
+            "partyIdType": "EMAIL",
+            "partyIdentifier": "ex nostrud veniam mollit",
+            "partySubIdOrType": "aliquip anim qui reprehenderit o",
+            "extensionList": {
+              "extension": [
+                {
+                  "key": "proident cill",
+                  "value": "cupidatat tempor"
+                },
+                {
+                  "key": "aute Duis pariatu",
+                  "value": "id sit proident"
+                }
+              ]
+            },
+            "fspId": "magna minim sit"
+          },
+          "name": " L_lauPoCLiu=nlpeu,}=iurploMri ag.gL=aJukraaMtp r_ =cMC{'PnkugJJ{--e}eoL{aL}M}kd,otMiC_pte,LoaoMr.,r",
+          "personalInfo": {
+            "complexName": {
+              "firstName": "Maria",
+              "middleName": "G",
+              "lastName": "Smith"
+            },
+            "dateOfBirth": "1988-11-04"
+          },
+          "merchantClassificationCode": "7"
+        },
+        "payeeFspCommission": {
+          "currency": "USD",
+          "amount": "3"
+        }
+      }
+    ],
+    "extensionList": {
+      "extension": [
+        {
+          "key": "cillum ut co",
+          "value": "nisi"
+        },
+        {
+          "key": "velit repr",
+          "value": "fugiat culpa reprehenderit commodo"
+        }
+      ]
+    }
+  };
 
 describe("FSPIOP API Service Quoting Handler", () => {
     let participantClientSpy: jest.SpyInstance;
@@ -316,7 +436,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
     //#region QuoteErrorEvt
     it("should successful treat QuoteErrorEvt for Quote type event", async () => {
         // Arrange
-        const payload : QuoteErrorEvtPayload = {
+        const payload: QuoteErrorEvtPayload = {
             requesterFspId: "test-fspiop-source",
             destinationFspId: "test-fspiop-destination",
             quoteId: '2243fdbe-5dea-3abd-a210-3780e7f2f1f4',
@@ -361,7 +481,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
     it("should log error when QuoteErrorEvt finds no participant endpoint", async () => {
         // Arrange
-        const payload : QuoteErrorEvtPayload = {
+        const payload: QuoteErrorEvtPayload = {
             requesterFspId: "test-fspiop-source",
             destinationFspId: "test-fspiop-destination",
             quoteId: '2243fdbe-5dea-3abd-a210-3780e7f2f1f4',
@@ -409,7 +529,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
     it("should log when QuoteErrorEvt throws an error", async () => {
         // Arrange
-        const payload : QuoteErrorEvtPayload = {
+        const payload: QuoteErrorEvtPayload = {
             requesterFspId: "test-fspiop-source",
             destinationFspId: "test-fspiop-destination",
             quoteId: '2243fdbe-5dea-3abd-a210-3780e7f2f1f4',
@@ -447,7 +567,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
     it("should use default case when QuoteErrorEvt has no correct name", async () => {
         // Arrange
-        const payload : QuoteErrorEvtPayload = {
+        const payload: QuoteErrorEvtPayload = {
             requesterFspId: "test-fspiop-source",
             destinationFspId: "test-fspiop-destination",
             quoteId: '2243fdbe-5dea-3abd-a210-3780e7f2f1f4',
@@ -477,7 +597,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
     //#region QuoteRequestAcceptedEvt
     it("should log error when QuoteRequestAcceptedEvt finds no participant endpoint", async () => {
         // Arrange
-        const payload : QuoteRequestAcceptedEvtPayload = {
+        const payload: QuoteRequestAcceptedEvtPayload = {
             ...validPostPayload,
 
         };
@@ -522,7 +642,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
     it("should throw error QuoteRequestAcceptedEvt due to failing to sendRequest", async () => {
         // Arrange
-        const payload : QuoteRequestAcceptedEvtPayload = {
+        const payload: QuoteRequestAcceptedEvtPayload = {
             ...validPostPayload
         };
 
@@ -569,7 +689,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
      //#region QuoteResponseAccepted
      it("should successful treat QuoteResponseAccepted", async () => {
         // Arrange
-        const payload : QuoteResponseAcceptedEvtPayload = {
+        const payload: QuoteResponseAcceptedEvtPayload = {
             "quoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
             ...validPutPayload
         };
@@ -610,7 +730,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
     it("should log error when QuoteResponseAccepted finds no participant endpoint", async () => {
         // Arrange
-        const payload : QuoteResponseAcceptedEvtPayload = {
+        const payload: QuoteResponseAcceptedEvtPayload = {
             "quoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
             ...validPutPayload
         };
@@ -655,7 +775,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
     it("should throw error QuoteResponseAccepted due to failing to sendRequest", async () => {
         // Arrange
-        const payload : QuoteResponseAcceptedEvtPayload = {
+        const payload: QuoteResponseAcceptedEvtPayload = {
             "quoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
             ...validPutPayload
         };
@@ -703,7 +823,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
     //#region QuoteQueryResponseEvt
     it("should successful treat QuoteQueryResponseEvt", async () => {
         // Arrange
-        const payload : QuoteQueryResponseEvtPayload = {
+        const payload: QuoteQueryResponseEvtPayload = {
             "quoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
             ...validPutPayload
         };
@@ -744,7 +864,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
     it("should log error when QuoteQueryResponseEvt finds no participant endpoint", async () => {
         // Arrange
-        const payload : QuoteQueryResponseEvtPayload = {
+        const payload: QuoteQueryResponseEvtPayload = {
             "quoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
             ...validPutPayload
         };
@@ -789,7 +909,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
     it("should throw error QuoteQueryResponseEvt due to failing to sendRequest", async () => {
         // Arrange
-        const payload : QuoteQueryResponseEvtPayload = {
+        const payload: QuoteQueryResponseEvtPayload = {
             "quoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
             ...validPutPayload
         };
@@ -837,7 +957,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
     //#region QuoteQueryResponseEvt
     it("should successful treat QuoteQueryResponseEvt", async () => {
         // Arrange
-        const payload : QuoteQueryResponseEvtPayload = {
+        const payload: QuoteQueryResponseEvtPayload = {
             "quoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
             ...validPutPayload
         };
@@ -878,7 +998,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
     it("should log error when QuoteQueryResponseEvt finds no participant endpoint", async () => {
         // Arrange
-        const payload : QuoteQueryResponseEvtPayload = {
+        const payload: QuoteQueryResponseEvtPayload = {
             "quoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
             ...validPutPayload
         };
@@ -923,7 +1043,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
     it("should throw error QuoteQueryResponseEvt due to failing to sendRequest", async () => {
         // Arrange
-        const payload : QuoteQueryResponseEvtPayload = {
+        const payload: QuoteQueryResponseEvtPayload = {
             "quoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
             ...validPutPayload
         };
@@ -967,4 +1087,272 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
     })
     //#endregion
+
+    //#region BulkQuoteReceivedEvtPayload
+    it("should successful treat _handleQuotingQueryResponseEvt", async () => {
+        // Arrange
+        const payload: BulkQuoteReceivedEvtPayload = {
+            ...validBulkPostPayload,
+            "bulkQuoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
+        };
+
+        const event = new BulkQuoteReceivedEvt(payload);
+
+        event.fspiopOpaqueState = { 
+            "requesterFspId":"test-fspiop-source",
+            "destinationFspId": null,
+            "headers":{
+                "accept":`application/vnd.interoperability.${bulkQuoteEntity}+json;version=1.0`,
+                "content-type":`application/vnd.interoperability.${bulkQuoteEntity}+json;version=1.0`,
+                "date":"randomdate",
+                "fspiop-source":"test-fspiop-source"
+            }
+        };
+            
+        const requestSpy = jest.spyOn(Request, "sendRequest");
+
+        // Act
+        kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
+
+        jest.spyOn(Request, "sendRequest");
+
+        const res = async (): Promise<any> => {
+            return await requestSpy.mock.results[0].value;
+        }
+                    
+        // Assert
+        await waitForExpect(() => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                url: `${localhostUrl}/${bulkQuoteEntity}`
+            }));
+        });
+
+        expect(await res()).toSatisfyApiSpec();
+    })
+
+    it("should log error when _handleQuotingQueryResponseEvt finds no participant endpoint", async () => {
+        // Arrange
+        const payload: BulkQuoteReceivedEvtPayload = {
+            ...validBulkPostPayload,
+            "bulkQuoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
+        };
+
+        const event = new BulkQuoteReceivedEvt(payload);
+
+        event.fspiopOpaqueState = { 
+            "requesterFspId":"non-existing-requester-id",
+            "destinationFspId": null,
+            "headers":{
+                "accept":`application/vnd.interoperability.${bulkQuoteEntity}+json;version=1.0`,
+                "content-type":`application/vnd.interoperability.${bulkQuoteEntity}+json;version=1.0`,
+                "date":"randomdate",
+                "fspiop-source":"test-fspiop-source"
+            }
+        };
+            
+        participantClientSpy.mockResolvedValueOnce(null);
+
+        // Act
+        const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
+        
+        kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
+
+        await new Promise((r) => setTimeout(r, 2000));
+
+        let sentMessagesCount = 0;
+        let expectedOffsetMessage: any;
+        const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
+        
+        if (currentOffset.offset && expectedOffset.offset) {
+            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
+            expectedOffsetMessage = JSON.parse(currentOffset.value as string);
+        }
+        
+        // Assert        
+        await waitForExpect(() => {
+            expect(sentMessagesCount).toBe(1);
+            expect(expectedOffsetMessage.msgName).toBe(BulkQuoteReceivedEvt.name);
+        });
+    })
+
+    it("should throw error _handleQuotingQueryResponseEvt due to failing to sendRequest", async () => {
+        // Arrange
+        const payload: BulkQuoteReceivedEvtPayload = {
+            ...validBulkPostPayload,
+            "bulkQuoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
+        };
+
+        const event = new BulkQuoteReceivedEvt(payload);
+
+        event.fspiopOpaqueState = { 
+            "requesterFspId":"test-fspiop-source",
+            "destinationFspId": null,
+            "headers":{
+                "accept":`application/vnd.interoperability.${bulkQuoteEntity}+json;version=1.0`,
+                "content-type":`application/vnd.interoperability.${bulkQuoteEntity}+json;version=1.0`,
+                "date":"randomdate",
+                "fspiop-source":"test-fspiop-source"
+            }
+        };
+
+        const requestSpyOn = jest.spyOn(Request, "sendRequest");
+
+        requestSpyOn.mockImplementationOnce(() => {
+            throw new Error("test error");
+        });
+        
+        // Act
+        kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
+
+
+        const apiSpy = jest.spyOn(Request, "sendRequest");
+        const res = async (): Promise<any> => {
+            return await apiSpy.mock.results[apiSpy.mock.results.length-1].value;
+        }
+
+        // Assert        
+        await waitForExpect(() => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                url: `${localhostUrl}/${bulkQuoteEntity}/${payload.bulkQuoteId}/error`
+            }));
+        });
+
+        expect(await res()).toSatisfyApiSpec();
+
+    })
+    //#endregion
+
+    //#region BulkQuoteAcceptedEvtPayload
+    it("should successful treat _handleQuotingQueryResponseEvt", async () => {
+        // Arrange
+        const payload: BulkQuoteAcceptedEvtPayload = {
+            "bulkQuoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
+            ...validBulkPutPayload,
+        };
+
+        const event = new BulkQuoteAcceptedEvt(payload);
+
+        event.fspiopOpaqueState = { 
+            "requesterFspId":"test-fspiop-source",
+            "destinationFspId": null,
+            "headers":{
+                "accept":`application/vnd.interoperability.${bulkQuoteEntity}+json;version=1.0`,
+                "content-type":`application/vnd.interoperability.${bulkQuoteEntity}+json;version=1.0`,
+                "date":"randomdate",
+                "fspiop-source":"test-fspiop-source"
+            }
+        };
+            
+        const requestSpy = jest.spyOn(Request, "sendRequest");
+
+        // Act
+        kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
+
+        jest.spyOn(Request, "sendRequest");
+
+        const res = async (): Promise<any> => {
+            return await requestSpy.mock.results[0].value;
+        }
+                    
+        // Assert
+        await waitForExpect(() => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                url: `${localhostUrl}/${bulkQuoteEntity}/${payload.bulkQuoteId}`
+            }));
+        });
+
+        expect(await res()).toSatisfyApiSpec();
+    })
+
+    it("should log error when _handleQuotingQueryResponseEvt finds no participant endpoint", async () => {
+        // Arrange
+        const payload: BulkQuoteAcceptedEvtPayload = {
+            "bulkQuoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
+            ...validBulkPutPayload,
+        };
+
+        const event = new BulkQuoteAcceptedEvt(payload);
+
+        event.fspiopOpaqueState = { 
+            "requesterFspId":"non-existing-requester-id",
+            "destinationFspId": null,
+            "headers":{
+                "accept":`application/vnd.interoperability.${bulkQuoteEntity}+json;version=1.0`,
+                "content-type":`application/vnd.interoperability.${bulkQuoteEntity}+json;version=1.0`,
+                "date":"randomdate",
+                "fspiop-source":"test-fspiop-source"
+            }
+        };
+            
+        participantClientSpy.mockResolvedValueOnce(null);
+
+        // Act
+        const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
+        
+        kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
+
+        await new Promise((r) => setTimeout(r, 2000));
+
+        let sentMessagesCount = 0;
+        let expectedOffsetMessage: any;
+        const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
+        
+        if (currentOffset.offset && expectedOffset.offset) {
+            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
+            expectedOffsetMessage = JSON.parse(currentOffset.value as string);
+        }
+        
+        // Assert        
+        await waitForExpect(() => {
+            expect(sentMessagesCount).toBe(1);
+            expect(expectedOffsetMessage.msgName).toBe(BulkQuoteAcceptedEvt.name);
+        });
+    })
+
+    it("should throw error _handleQuotingQueryResponseEvt due to failing to sendRequest", async () => {
+        // Arrange
+        const payload: BulkQuoteAcceptedEvtPayload = {
+            "bulkQuoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
+            ...validBulkPutPayload,
+        };
+
+        const event = new BulkQuoteAcceptedEvt(payload);
+
+        event.fspiopOpaqueState = { 
+            "requesterFspId":"test-fspiop-source",
+            "destinationFspId": null,
+            "headers":{
+                "accept":`application/vnd.interoperability.${bulkQuoteEntity}+json;version=1.0`,
+                "content-type":`application/vnd.interoperability.${bulkQuoteEntity}+json;version=1.0`,
+                "date":"randomdate",
+                "fspiop-source":"test-fspiop-source"
+            }
+        };
+
+        const requestSpyOn = jest.spyOn(Request, "sendRequest");
+
+        requestSpyOn.mockImplementationOnce(() => {
+            throw new Error("test error");
+        });
+        
+        // Act
+        kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
+
+
+        const apiSpy = jest.spyOn(Request, "sendRequest");
+        const res = async (): Promise<any> => {
+            return await apiSpy.mock.results[apiSpy.mock.results.length-1].value;
+        }
+
+        // Assert        
+        await waitForExpect(() => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                url: `${localhostUrl}/${bulkQuoteEntity}/${payload.bulkQuoteId}/error`
+            }));
+        });
+
+        expect(await res()).toSatisfyApiSpec();
+
+    })
+    // //#endregion
 });
