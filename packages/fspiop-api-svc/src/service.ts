@@ -105,11 +105,12 @@ let auditClient: IAuditClient;
 export async function setupExpress(loggerParam:ILogger): Promise<Server> {
     const app = express();
     app.use(express.json({
+        limit: '100mb',
         type: (req)=>{
             return req.headers["content-type"]?.startsWith("application/vnd.interoperability.") || false;
         }
     })); // for parsing application/json
-    app.use(express.urlencoded({extended: true})); // for parsing application/x-www-form-urlencoded
+    app.use(express.urlencoded({limit: '100mb', extended: true})); // for parsing application/x-www-form-urlencoded
 
     participantRoutes = new ParticipantRoutes(kafkaProducerOptions, KAFKA_ACCOUNTS_LOOKUP_TOPIC, loggerParam);
     partyRoutes = new PartyRoutes(kafkaProducerOptions, KAFKA_ACCOUNTS_LOOKUP_TOPIC, loggerParam);
@@ -120,7 +121,7 @@ export async function setupExpress(loggerParam:ILogger): Promise<Server> {
     app.use(`/${PARTICIPANTS_URL_RESOURCE_NAME}`, participantRoutes.router);
     app.use(`/${PARTIES_URL_RESOURCE_NAME}`, partyRoutes.router);
 
-    quotesRoutes = new QuoteRoutes(kafkaProducerOptions, KAFKA_QUOTES_LOOKUP_TOPIC, loggerParam);
+    quotesRoutes = new QuoteRoutes(kafkaProducerOptions,  KAFKA_QUOTES_LOOKUP_TOPIC, loggerParam);
     bulkQuotesRoutes = new QuoteBulkRoutes(kafkaProducerOptions, KAFKA_QUOTES_LOOKUP_TOPIC, loggerParam);
 
     await quotesRoutes.init();

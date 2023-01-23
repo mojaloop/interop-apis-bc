@@ -349,7 +349,7 @@ export class QuotingEventHandler extends BaseEventHandler {
         const { payload } = message;
   
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
         
         const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
@@ -404,7 +404,7 @@ export class QuotingEventHandler extends BaseEventHandler {
         const { payload } = message;
   
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
         
         const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
