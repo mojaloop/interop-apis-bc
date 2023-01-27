@@ -45,9 +45,10 @@ import {PartyRoutes} from "./http_routes/account-lookup-bc/party_routes";
 import { MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions, MLKafkaRawProducerOptions, MLKafkaRawProducerPartitioners } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { AccountLookupEventHandler } from "./event_handlers/account_lookup_evt_handler";
 import { QuotingEventHandler } from "./event_handlers/quoting_evt_handler";
-import { AccountLookupBCTopics, QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { AccountLookupBCTopics, QuotingBCTopics, TransfersBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { QuoteRoutes } from "./http_routes/quoting-bc/quote_routes";
 import { QuoteBulkRoutes } from "./http_routes/quoting-bc/bulk_quote_routes";
+import { TransfersRoutes } from "./http_routes/transfers-bc/transfers_routes";
 import path from "path";
 import { IParticipantService } from "./interfaces/infrastructure";
 import { ParticipantAdapter } from "@mojaloop/interop-apis-bc-implementations";
@@ -81,6 +82,11 @@ const BULK_QUOTES_URL_RESOURCE_NAME = "bulkQuotes";
 
 const KAFKA_QUOTES_LOOKUP_TOPIC = process.env["KAFKA_QUOTES_LOOKUP_TOPIC"] || QuotingBCTopics.DomainEvents;
 
+// Transfers
+const TRANSFERS_URL_RESOURCE_NAME = "transfers";
+
+const KAFKA_TRANSFERS_TOPIC = process.env["KAFKA_TRANSFERS_TOPIC"] || TransfersBCTopics.DomainEvents;
+
 const PARTICIPANT_SVC_BASEURL = process.env["PARTICIPANT_SVC_BASEURL"] || "http://localhost:3010";
 // const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
 
@@ -97,6 +103,7 @@ let participantRoutes:ParticipantRoutes;
 let partyRoutes:PartyRoutes;
 let quotesRoutes:QuoteRoutes;
 let bulkQuotesRoutes:QuoteBulkRoutes;
+let transfersRoutes:TransfersRoutes;
 let participantService: IParticipantService;
 let auditClient: IAuditClient;
 // let loginHelper:LoginHelper;
@@ -123,12 +130,15 @@ export async function setupExpress(loggerParam:ILogger): Promise<Server> {
 
     quotesRoutes = new QuoteRoutes(kafkaProducerOptions,  KAFKA_QUOTES_LOOKUP_TOPIC, loggerParam);
     bulkQuotesRoutes = new QuoteBulkRoutes(kafkaProducerOptions, KAFKA_QUOTES_LOOKUP_TOPIC, loggerParam);
+    transfersRoutes = new TransfersRoutes(kafkaProducerOptions,  KAFKA_TRANSFERS_TOPIC, loggerParam);
 
     await quotesRoutes.init();
     await bulkQuotesRoutes.init();
+    await transfersRoutes.init();
     
     app.use(`/${QUOTES_URL_RESOURCE_NAME}`, quotesRoutes.router);
     app.use(`/${BULK_QUOTES_URL_RESOURCE_NAME}`, bulkQuotesRoutes.router);
+    app.use(`/${TRANSFERS_URL_RESOURCE_NAME}`, transfersRoutes.router);
 
     app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
         // catch all
