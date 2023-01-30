@@ -45,6 +45,7 @@ import {PartyRoutes} from "./http_routes/account-lookup-bc/party_routes";
 import { MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions, MLKafkaRawProducerOptions, MLKafkaRawProducerPartitioners } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { AccountLookupEventHandler } from "./event_handlers/account_lookup_evt_handler";
 import { QuotingEventHandler } from "./event_handlers/quoting_evt_handler";
+import { TransferEventHandler } from "./event_handlers/transfers_evt_handler";
 import { AccountLookupBCTopics, QuotingBCTopics, TransfersBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { QuoteRoutes } from "./http_routes/quoting-bc/quote_routes";
 import { QuoteBulkRoutes } from "./http_routes/quoting-bc/bulk_quote_routes";
@@ -152,6 +153,7 @@ export async function setupExpress(loggerParam:ILogger): Promise<Server> {
 
 let accountEvtHandler:AccountLookupEventHandler;
 let quotingEvtHandler:QuotingEventHandler;
+let transferEvtHandler:TransferEventHandler;
 
 async function setupEventHandlers():Promise<void>{
     const kafkaJsonConsumerOptions: MLKafkaJsonConsumerOptions = {
@@ -182,6 +184,15 @@ async function setupEventHandlers():Promise<void>{
         participantService
     );
     await quotingEvtHandler.init();
+
+    transferEvtHandler = new TransferEventHandler(
+        logger,
+        kafkaJsonConsumerOptions,
+        kafkaJsonProducerOptions,
+        [KAFKA_TRANSFERS_TOPIC],
+        participantService
+    );
+    await transferEvtHandler.init();
 
 }
 
@@ -250,6 +261,7 @@ export async function start(
 export async function stop(){
     await accountEvtHandler.destroy();
     await quotingEvtHandler.destroy();
+    await transferEvtHandler.destroy();
     expressServer.close();
     auditClient.destroy();
     setTimeout(async () => {

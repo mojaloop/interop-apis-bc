@@ -31,7 +31,7 @@
 
  'use strict';
 
-import { BulkQuoteReceivedEvtPayload, BulkQuoteAcceptedEvtPayload, ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvtPayload, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload, QuoteRequestAcceptedEvtPayload, QuoteResponseAcceptedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { BulkQuoteReceivedEvtPayload, BulkQuoteAcceptedEvtPayload, ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvtPayload, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload, QuoteRequestAcceptedEvtPayload, QuoteResponseAcceptedEvtPayload, TransferPreparedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ErrorCode } from "./enums";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -230,6 +230,23 @@ export const transformPayloadBulkQuotingResponsePut = (payload: BulkQuoteAccepte
 		}),
 		extensionList: payload.extensionList
     };
+		
+	return removeEmpty(info);
+};
+
+// Transfer
+
+export const transformPayloadTransferRequestPost = (payload: TransferPreparedEvtPayload):any => {
+	const info = {
+		transferId: payload.transferId,
+		payeeFsp: payload.transferId,
+		payerFsp: payload.transferId,
+		amount: payload.transferId,
+		ilpPacket: payload.transferId,
+		condition: payload.transferId,
+		expiration: payload.expiration,
+		extensionList: payload.extensionList
+	};
 		
 	return removeEmpty(info);
 };

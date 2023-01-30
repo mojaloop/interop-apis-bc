@@ -38,7 +38,7 @@ import {ParticipantEndpoint, ParticipantsHttpClient } from "@mojaloop/participan
 import { IEventHandler } from "../interfaces/types";
 import { IParticipantService } from "../interfaces/infrastructure";
 import { IncomingHttpHeaders } from "http";
-import { AccountLookUpErrorEvt, QuoteErrorEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { AccountLookUpErrorEvt, QuoteErrorEvt, TransferErrorEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { AxiosError } from "axios";
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 
@@ -77,28 +77,34 @@ export abstract class BaseEventHandler implements IEventHandler {
     }
 
     protected async _validateParticipantAndGetEndpoint(fspId: string):Promise<ParticipantEndpoint | null>{
-        try {
-            const participant = await this._participantService.getParticipantInfo(fspId);
-
-            if (!participant) {
-                this._logger.error(`_validateParticipantAndGetEndpoint could not get participant with id: "${fspId}"`);
-                return null;
-            }
-
-            const endpoint = participant.participantEndpoints.find(endpoint => endpoint.type==="FSPIOP");
-
-            if (!endpoint) {
-                this._logger.error(`_validateParticipantAndGetEndpoint could not get "FSPIOP" endpoint from participant with id: "${fspId}"`);
-            }
-
-            return endpoint || null;
-        } catch(err: unknown) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const error = err as unknown as any;
-            
-            this._logger.error(error.stack);
-            return null;
+        return {
+            id: "1123",
+            type: "FSPIOP",
+            protocol: "HTTPs/REST",
+            value: "http://localhost:4039",
         }
+        // try {
+        //     const participant = await this._participantService.getParticipantInfo(fspId);
+
+        //     if (!participant) {
+        //         this._logger.error(`_validateParticipantAndGetEndpoint could not get participant with id: "${fspId}"`);
+        //         return null;
+        //     }
+
+        //     const endpoint = participant.participantEndpoints.find(endpoint => endpoint.type==="FSPIOP");
+
+        //     if (!endpoint) {
+        //         this._logger.error(`_validateParticipantAndGetEndpoint could not get "FSPIOP" endpoint from participant with id: "${fspId}"`);
+        //     }
+
+        //     return endpoint || null;
+        // } catch(err: unknown) {
+        //     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        //     const error = err as unknown as any;
+            
+        //     this._logger.error(error.stack);
+        //     return null;
+        // }
     }
 
     protected async _sendErrorFeedbackToFsp({
@@ -154,6 +160,6 @@ export abstract class BaseEventHandler implements IEventHandler {
     
     abstract processMessage (sourceMessage: IMessage): Promise<void>
 
-    abstract _handleErrorReceivedEvt(message: AccountLookUpErrorEvt | QuoteErrorEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>
+    abstract _handleErrorReceivedEvt(message: AccountLookUpErrorEvt | QuoteErrorEvt | TransferErrorEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>
 
 }

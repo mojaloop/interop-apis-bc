@@ -44,3 +44,5 @@ export const PartiesPutTypeAndIdAndSubId = [Constants.FSPIOP_HEADERS_CONTENT_TYP
 export const QuotesPost = [Constants.FSPIOP_HEADERS_CONTENT_TYPE, Constants.FSPIOP_HEADERS_DATE, Constants.FSPIOP_HEADERS_SOURCE];
 export const QuotesPut = [Constants.FSPIOP_HEADERS_CONTENT_TYPE, Constants.FSPIOP_HEADERS_DATE, Constants.FSPIOP_HEADERS_SOURCE, Constants.FSPIOP_HEADERS_DESTINATION];
 export const QuotesGet = [Constants.FSPIOP_HEADERS_CONTENT_TYPE, Constants.FSPIOP_HEADERS_DATE, Constants.FSPIOP_HEADERS_SOURCE, Constants.FSPIOP_HEADERS_DESTINATION];
+
+export const TransfersPost = [Constants.FSPIOP_HEADERS_CONTENT_TYPE, Constants.FSPIOP_HEADERS_DATE, Constants.FSPIOP_HEADERS_SOURCE];

@@ -83,7 +83,8 @@ export enum EntityTypeEnum {
     PARTICIPANTS = "participants",
     PARTIES = "parties",
     QUOTES = "quotes",
-    BULK_QUOTES = "bulkQuotes"
+    BULK_QUOTES = "bulkQuotes",
+    TRANSFERS = "transfers"
 }
 
 export enum AmountTypeEnum {
