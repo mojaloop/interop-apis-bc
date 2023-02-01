@@ -34,7 +34,7 @@
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import { TransferErrorEvt, TransferPreparedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { TransferErrorEvt, TransferPreparedEvt, TransferCommittedFulfiledEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { IncomingHttpHeaders } from "http";
 import { BaseEventHandler } from "./base_event_handler";
@@ -65,7 +65,9 @@ export class TransferEventHandler extends BaseEventHandler {
             case TransferPreparedEvt.name:
                 await this._handleTransferPreparedEvt(new TransferPreparedEvt(message.payload), message.fspiopOpaqueState);
                 break;
-        
+            case TransferCommittedFulfiledEvt.name:
+                await this._handleTransferCommittedFulfiledEvt(new TransferCommittedFulfiledEvt(message.payload), message.fspiopOpaqueState);
+                break;
             default:
                 this._logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
                 break;
@@ -114,6 +116,7 @@ export class TransferEventHandler extends BaseEventHandler {
             let url;
             switch(message.payload.sourceEvent){
                 case TransferPreparedEvt.name:
+                case TransferCommittedFulfiledEvt.name:
                     const urlBuilder = new Request.URLBuilder(requestedEndpoint.value)
                     urlBuilder.setEntity(Enums.EntityTypeEnum.TRANSFERS);
                     urlBuilder.setId(payload.transferId);
@@ -192,6 +195,65 @@ export class TransferEventHandler extends BaseEventHandler {
             });
 
             this._logger.info('_handleTransferPreparedEvt -> end');
+
+        } catch (error: unknown) {
+            this._sendErrorFeedbackToFsp({ 
+                error: error,
+                headers: clonedHeaders,
+                source: requesterFspId,
+                endpoint: requestedEndpoint,
+                entity: Enums.EntityTypeEnum.TRANSFERS,
+                id: [payload.transferId],
+            })
+        }
+
+        return;
+    }
+
+    private async _handleTransferCommittedFulfiledEvt(message: TransferCommittedFulfiledEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
+        const { payload } = message;
+  
+        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+
+        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
+
+        if(!requestedEndpoint){
+
+            this._logger.error("Cannot get requestedEndpoint at _handleTransferCommittedFulfiledEvt");
+
+            // TODO discuss about having the specific event for overall errors so we dont have
+            // to change an existing event to use the generic topic
+            const msg =  new TransferCommittedFulfiledEvt(payload);
+    
+            msg.msgTopic = KAFKA_OPERATOR_ERROR_TOPIC;
+
+            await this._kafkaProducer.send(msg);
+
+            return;
+        }
+
+        try {
+            this._logger.info('_handleTransferCommittedFulfiledEvt -> start');
+
+            // Always validate the payload and headers received
+            message.validatePayload();
+
+            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value)
+            urlBuilder.setEntity(Enums.EntityTypeEnum.TRANSFERS);
+            urlBuilder.setLocation([payload.transferId]);
+
+            await Request.sendRequest({
+                url: urlBuilder.build(), 
+                headers: clonedHeaders, 
+                source: requesterFspId, 
+                destination: destinationFspId, 
+                method: Enums.FspiopRequestMethodsEnum.PUT,
+                payload: Transformer.transformPayloadTransferRequestPut(payload),
+            });
+
+            this._logger.info('_handleTransferCommittedFulfiledEvt -> end');
 
         } catch (error: unknown) {
             this._sendErrorFeedbackToFsp({ 

@@ -35,7 +35,7 @@ import express from "express";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { Constants } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import { TransferPrepareRequestedEvt, TransferPrepareRequestedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { TransferPrepareRequestedEvt, TransferPrepareRequestedEvtPayload, TransferFulfilCommittedRequestedEvt, TransferFulfilCommittedRequestedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IncomingHttpHeaders } from "http";
 import { schemaValidator } from "../ajv";
 import ajv from "ajv";
@@ -53,6 +53,8 @@ export class TransfersRoutes extends BaseRoutes {
         // POST Transfers
         this.router.post("/", this.transferPrepareRequested.bind(this));
 
+        // PUT Transfers
+        this.router.put("/:id", this.transferFulfilCommittedRequested.bind(this));
     }
 
     private async transferPrepareRequested(req: express.Request, res: express.Response): Promise<void> {
@@ -132,4 +134,74 @@ export class TransfersRoutes extends BaseRoutes {
         this.logger.debug("transferPrepareRequested responded");
     }
 
+    private async transferFulfilCommittedRequested(req: express.Request, res: express.Response): Promise<void> {
+        this.logger.debug("Got transferFulfilCommittedRequested request");
+        
+        // const validate = schemaValidator.getSchema("TransfersPostRequest") as ajv.ValidateFunction;
+        // const valid = validate(req.body);
+        
+        // if (!valid) {
+        //     this.logger.error(validate.errors);
+
+        //     this.logger.debug(`transferFulfilCommittedRequested body errors: ${JSON.stringify(validate.errors)}`);
+
+        //     res.status(422).json({
+        //         status: "invalid request body",
+        //         errors: validate.errors
+        //     });
+        //     return;
+        // }
+          
+        // Headers
+        const clonedHeaders = { ...req.headers };
+        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+        
+        // Date Model
+        const transferId = req.params["id"] as string || null;
+        const transferState = req.body["transferState"] || null;
+        const fulfilment = req.body["fulfilment"] || null;
+        const completedTimestamp = req.body["completedTimestamp"] || null;
+        const extensionList = req.body["extensionList"] || null;
+
+
+        if(!transferId || !transferState) {
+            res.status(400).json({
+                status: "not ok"
+            });
+            return;
+        }
+
+        const msgPayload: TransferFulfilCommittedRequestedEvtPayload = {
+            transferId: transferId,
+            transferState: transferState,
+            fulfilment: fulfilment,
+            completedTimestamp: completedTimestamp,
+            extensionList: extensionList
+        };
+
+        const msg =  new TransferFulfilCommittedRequestedEvt(msgPayload);
+
+        // Since we don't export the types of the body (but we validate them in the entrypoint of the route),
+        // we can use the builtin method of validatePayload of the evt messages to make sure consistency 
+        // is shared between both
+        msg.validatePayload();
+
+        // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
+        msg.fspiopOpaqueState = {
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId,
+            headers: getEnabledHeaders(clonedHeaders)
+        };
+
+        await this.kafkaProducer.send(msg);
+
+        this.logger.debug("transferFulfilCommittedRequested sent message");
+
+        res.status(202).json({
+            status: "ok"
+        });
+
+        this.logger.debug("transferFulfilCommittedRequested responded");
+    }
 }
