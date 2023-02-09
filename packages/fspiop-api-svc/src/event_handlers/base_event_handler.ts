@@ -34,13 +34,13 @@ optionally within square brackets <email>.
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumer, MLKafkaJsonConsumerOptions, MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import {ParticipantEndpoint, ParticipantsHttpClient } from "@mojaloop/participants-bc-client-lib";
+import {ParticipantEndpoint } from "@mojaloop/participants-bc-client-lib";
 import { IEventHandler } from "../interfaces/types";
 import { IParticipantService } from "../interfaces/infrastructure";
 import { IncomingHttpHeaders } from "http";
 import { AccountLookUpErrorEvt, QuoteErrorEvt, TransferErrorEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { AxiosError } from "axios";
-import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Request, Enums, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 
 export abstract class BaseEventHandler implements IEventHandler {
     protected _kafkaConsumer: MLKafkaJsonConsumer;
@@ -120,7 +120,7 @@ export abstract class BaseEventHandler implements IEventHandler {
             const err = error as unknown as AxiosError;
             this._logger.error(JSON.stringify(err.response?.data));
             
-            const urlBuilder = new Request.URLBuilder(endpoint.value)
+            const urlBuilder = new Request.URLBuilder(endpoint.value);
             urlBuilder.setEntity(entity);
             urlBuilder.setLocation(id);
             urlBuilder.hasError(true);

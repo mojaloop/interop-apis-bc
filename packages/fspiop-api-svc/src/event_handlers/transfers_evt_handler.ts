@@ -117,7 +117,7 @@ export class TransferEventHandler extends BaseEventHandler {
             switch(message.payload.sourceEvent){
                 case TransferPreparedEvt.name:
                 case TransferCommittedFulfiledEvt.name:
-                    const urlBuilder = new Request.URLBuilder(requestedEndpoint.value)
+                    const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
                     urlBuilder.setEntity(Enums.EntityTypeEnum.TRANSFERS);
                     urlBuilder.setId(payload.transferId);
                     urlBuilder.hasError(true);
@@ -182,7 +182,7 @@ export class TransferEventHandler extends BaseEventHandler {
             // Always validate the payload and headers received
             message.validatePayload();
 
-            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value)
+            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.TRANSFERS);
 
             await Request.sendRequest({
@@ -204,7 +204,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 endpoint: requestedEndpoint,
                 entity: Enums.EntityTypeEnum.TRANSFERS,
                 id: [payload.transferId],
-            })
+            });
         }
 
         return;
@@ -240,7 +240,7 @@ export class TransferEventHandler extends BaseEventHandler {
             // Always validate the payload and headers received
             message.validatePayload();
 
-            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value)
+            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.TRANSFERS);
             urlBuilder.setLocation([payload.transferId]);
 
@@ -263,7 +263,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 endpoint: requestedEndpoint,
                 entity: Enums.EntityTypeEnum.TRANSFERS,
                 id: [payload.transferId],
-            })
+            });
         }
 
         return;

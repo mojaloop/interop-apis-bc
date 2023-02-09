@@ -51,7 +51,6 @@ import {
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { ParticipantsPutId, ParticipantsPutTypeAndId, PartiesPutTypeAndId, PartiesPutTypeAndIdAndSubId } from "../errors";
-import { ParticipantsHttpClient } from "@mojaloop/participants-bc-client-lib";
 import { IncomingHttpHeaders } from "http";
 import { BaseEventHandler } from "./base_event_handler";
 import { AxiosError } from "axios";
@@ -140,7 +139,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
 
             let url;
-            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value)
+            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
 
             switch(message.payload.sourceEvent){
                 case PartyQueryReceivedEvt.name:
@@ -221,9 +220,9 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             message.validatePayload();
             Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
 
-            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value)
+            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
-            urlBuilder.setLocation([partyType, partyId, partySubType])
+            urlBuilder.setLocation([partyType, partyId, partySubType]);
 
             await Request.sendRequest({
                 url: urlBuilder.build(), 
@@ -244,7 +243,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 endpoint: requestedEndpoint,
                 entity: Enums.EntityTypeEnum.PARTIES,
                 id: [partyType, partyId, partySubType],
-            })
+            });
         }
 
         return;
@@ -284,9 +283,9 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
 
 
-            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value)
+            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
-            urlBuilder.setLocation([partyType, partyId, partySubType])
+            urlBuilder.setLocation([partyType, partyId, partySubType]);
 
             await Request.sendRequest({
                 url: urlBuilder.build(), 
@@ -307,7 +306,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 endpoint: requestedEndpoint,
                 entity: Enums.EntityTypeEnum.PARTIES,
                 id: [partyType, partyId, partySubType],
-            })
+            });
         }
 
         return;
@@ -363,9 +362,9 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
             }
 
-            const urlBuilder = new Request.URLBuilder(destinationEndpoint.value)
+            const urlBuilder = new Request.URLBuilder(destinationEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
-            urlBuilder.setLocation([partyType, partyId, partySubType])
+            urlBuilder.setLocation([partyType, partyId, partySubType]);
 
             await Request.sendRequest({
                 url: urlBuilder.build(), 
@@ -386,7 +385,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 endpoint: destinationEndpoint,
                 entity: Enums.EntityTypeEnum.PARTIES,
                 id: [partyType, partyId, partySubType],
-            })
+            });
         }
 
         return;
@@ -450,9 +449,9 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
             }
             
-            const urlBuilder = new Request.URLBuilder(destinationEndpoint.value)
+            const urlBuilder = new Request.URLBuilder(destinationEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
-            urlBuilder.setLocation([partyType, partyId, partySubType])
+            urlBuilder.setLocation([partyType, partyId, partySubType]);
 
             await Request.sendRequest({
                 url: urlBuilder.build(), 
@@ -472,7 +471,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 endpoint: destinationEndpoint,
                 entity: Enums.EntityTypeEnum.PARTIES,
                 id: [partyType, partyId, partySubType],
-            })
+            });
         }
 
         return;
@@ -517,9 +516,9 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             }
             clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
 
-            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value)
+            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
-            urlBuilder.setLocation([partyType, partyId, partySubType])
+            urlBuilder.setLocation([partyType, partyId, partySubType]);
 
             await Request.sendRequest({
                 url: urlBuilder.build(), 
@@ -539,7 +538,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 endpoint: requestedEndpoint,
                 entity: Enums.EntityTypeEnum.PARTICIPANTS,
                 id: [partyType, partyId, partySubType],
-            })
+            });
         }
 
         return;

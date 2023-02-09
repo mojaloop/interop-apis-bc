@@ -217,17 +217,9 @@ export const transformPayloadBulkQuotingResponsePost = (payload: BulkQuoteReceiv
 
 export const transformPayloadBulkQuotingResponsePut = (payload: BulkQuoteAcceptedEvtPayload):any => {
 	const info = {
+		bulkQuoteId: payload.bulkQuoteId,
+		individualQuoteResults: payload.individualQuoteResults,
 		expiration: payload.expiration,
-		// Temporary fix until TTK gives names with the correct pattern
-        individualQuoteResults: payload.individualQuoteResults.map((quote: any) => {
-			quote.payee.personalInfo.complexName = {
-					"middleName": "abvc",
-					"firstName": "abcd",
-					"lastName": "abdn"
-				  }
-				
-			return quote;
-		}),
 		extensionList: payload.extensionList
     };
 		

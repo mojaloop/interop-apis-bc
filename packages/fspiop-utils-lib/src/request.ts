@@ -35,9 +35,8 @@ import request from 'axios';
 import { FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION,FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_CONTENT_TYPE, FSPIOP_HEADERS_ACCEPT, FSPIOP_HEADERS_DATE } from './constants';
 import { FspiopError, PutParticipant, PutParty } from './transformer';
 import {ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload, ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvt, AccountLookUpErrorEvtPayload, AccountLookUpErrorEvt} from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { EntityTypeEnum, FspiopRequestMethodsEnum, ResponseTypeEnum } from './enums';
-import HeaderBuilder from './account-lookup/headers/header_builder';
-import { Enums } from '.';
+import { FspiopRequestMethodsEnum, ResponseTypeEnum } from './enums';
+import HeaderBuilder from './headers/header_builder';
 
 export interface FspiopHttpHeaders {
   [FSPIOP_HEADERS_ACCEPT]: string;
@@ -122,16 +121,6 @@ export const buildEndpoint = (baseUrl: string, templateUrl: string) => {
   return `${baseUrl}${templateUrl}`;
 };
 
-type BuildRequestUrlOptions = {
-  entity: EntityTypeEnum, 
-  // Party & Participants
-  partyType: string | null,
-  partyId: string | null,
-  partySubType: string | null,
-  // Quotes
-  quoteId?: string | null,
-  error?: boolean
-}
 
 export class URLBuilder {
 
@@ -140,7 +129,7 @@ export class URLBuilder {
     private _entity!: string;
     private _id!: string;
     private _location!: string;
-    private _withError: boolean = false;
+    private _withError = false;
 
     constructor(url: string) {
         try {
@@ -203,11 +192,11 @@ export class URLBuilder {
     }
 
     setId(value: string) {
-        this._id = value 
+        this._id = value; 
     }
 
     setLocation(values: string[]) {
-        const filtered = values.filter(x => x != null)
+        const filtered = values.filter(x => x != null);
         
         this._location = filtered.join("/");
     }
@@ -230,7 +219,7 @@ export class URLBuilder {
         return this;
     }
 
-    hasError(value: boolean = true): URLBuilder | void {
+    hasError(value = true): URLBuilder | void {
         this._withError = value;
         
         return this;
@@ -241,7 +230,7 @@ export class URLBuilder {
         const query = this._params.toString();
 
         if(this._entity) {
-            url += `/${this._entity}`
+            url += `/${this._entity}`;
         }
 
         if(this._location) {
@@ -253,7 +242,7 @@ export class URLBuilder {
         }
         
         if(this._withError) {
-            url += `/error`
+            url += `/error`;
         }
 
         if (query !== '') {

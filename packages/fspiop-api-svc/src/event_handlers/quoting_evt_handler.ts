@@ -134,7 +134,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             switch(message.payload.sourceEvent){
                 case QuoteRequestReceivedEvt.name:
                 case QuoteResponseAccepted.name:
-                    const urlBuilder = new Request.URLBuilder(requestedEndpoint.value)
+                    const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
                     urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
                     urlBuilder.setId(payload.quoteId);
                     urlBuilder.hasError(true);
@@ -199,7 +199,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             // Always validate the payload and headers received
             message.validatePayload();
 
-            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value)
+            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
 
             await Request.sendRequest({
@@ -221,7 +221,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 endpoint: requestedEndpoint,
                 entity: Enums.EntityTypeEnum.QUOTES,
                 id: [payload.quoteId],
-            })
+            });
         }
 
         return;
@@ -257,7 +257,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             // Always validate the payload and headers received
             message.validatePayload();
 
-            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value)
+            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
             urlBuilder.setLocation([payload.quoteId]);
 
@@ -280,7 +280,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 endpoint: requestedEndpoint,
                 entity: Enums.EntityTypeEnum.QUOTES,
                 id: [payload.quoteId],
-            })
+            });
         }
 
         return;
@@ -316,7 +316,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             message.validatePayload();
             Validate.validateHeaders(QuotesPost, clonedHeaders);
 
-            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value)
+            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
             urlBuilder.setId(payload.quoteId);
 
@@ -339,7 +339,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 endpoint: requestedEndpoint,
                 entity: Enums.EntityTypeEnum.QUOTES,
                 id: [payload.quoteId],
-            })
+            });
         }
 
         return;
@@ -372,7 +372,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             // Always validate the payload and headers received
             message.validatePayload();
 
-            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value)
+            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);
 
             await Request.sendRequest({
@@ -394,7 +394,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 endpoint: requestedEndpoint,
                 entity: Enums.EntityTypeEnum.BULK_QUOTES,
                 id: [payload.bulkQuoteId],
-            })
+            });
         }
 
         return;
@@ -427,7 +427,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             // Always validate the payload and headers received
             message.validatePayload();
 
-            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value)
+            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);
             urlBuilder.setId(payload.bulkQuoteId);
 
@@ -450,7 +450,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 endpoint: requestedEndpoint,
                 entity: Enums.EntityTypeEnum.BULK_QUOTES,
                 id: [payload.bulkQuoteId],
-            })
+            });
         }
 
         return;
