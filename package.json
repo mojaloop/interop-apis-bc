@@ -56,7 +56,7 @@
     "packages/fspiop-api-svc"
   ],
   "dependencies": {
-    "@mojaloop/platform-shared-lib-public-messages-lib": "~0.1.36",
+    "@mojaloop/platform-shared-lib-public-messages-lib": "~0.1.67",
     "bignumber.js": "^9.1.0"
   }
 }

@@ -37,7 +37,7 @@
     "@mojaloop/account-lookup-bc-client-lib": "~0.1.1",
     "@mojaloop/interop-apis-bc-fspiop-api-svc": "*",
     "@mojaloop/participant-bc-public-types-lib": "~0.0.3",
-    "@mojaloop/participants-bc-client-lib": "~0.0.5"
+    "@mojaloop/participants-bc-client-lib": "~0.1.2"
   },
   "devDependencies": {
     "eslint": "^8.25.0",

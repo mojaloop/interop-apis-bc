@@ -53,8 +53,10 @@ import { TransfersRoutes } from "./http_routes/transfers-bc/transfers_routes";
 import path from "path";
 import { IParticipantService } from "./interfaces/infrastructure";
 import { ParticipantAdapter } from "@mojaloop/interop-apis-bc-implementations";
-// import {AuthorizationClient, LoginHelper} from "@mojaloop/security-bc-client-lib";
-
+import {
+	AuthenticatedHttpRequester,
+	IAuthenticatedHttpRequester
+} from "@mojaloop/security-bc-client-lib";
 
 
 const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
@@ -234,14 +236,20 @@ export async function start(
         auditClient = auditClientParam;
     }
     
+    const participantLogger = logger.createChild("participantLogger");
 
-    // TODO setup login helper
-    //loginHelper = new LoginHelper(AUTH_N_SVC_BASEURL, logger);
-    //loginHelper.init()
+    const AUTH_TOKEN_ENPOINT = "http://localhost:3201/token";
+    const USERNAME = "admin";
+    const PASSWORD = "superMegaPass";
+    const CLIENT_ID = "security-bc-ui";
+    const PARTICIPANTS_BASE_URL: string = "http://localhost:3010";
+    const HTTP_CLIENT_TIMEOUT_MS: number = 10_000;
 
-    const fixedToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Iml2SC1pVUVDRHdTVnVGS0QtRzdWc0MzS0pnLXN4TFgteWNvSjJpOTFmLTgifQ.eyJ0eXAiOiJCZWFyZXIiLCJhenAiOiJzZWN1cml0eS1iYy11aSIsInJvbGVzIjpbIjI2ODBjYTRhLTRhM2EtNGU5YS1iMWZhLTY1MDAyMjkyMTAwOSJdLCJpYXQiOjE2NzExNzUxNDAsImV4cCI6MTY3MTc3OTk0MCwiYXVkIjoibW9qYWxvb3Audm5leHQuZGVmYXVsdF9hdWRpZW5jZSIsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3Q6MzIwMS8iLCJzdWIiOiJ1c2VyOjp1c2VyIiwianRpIjoiNDMwZmFkODUtNTMyNy00MzU5LWEwYTktOTZjMDAyOWZiMmExIn0.RbTr0ZXzLwyJqrTW3KZRxc3hwSIR4WE8t-pJZLc35_ell0kiDx94c3sxNn5mbwzM-x5gzElSBJ8jVjVMl1Q-Bc8_zy9zd62na3cnYnVWLJLBTMtRbg4I3bUAhVdHKiv8sfzZuCFM4MkvSiPC0LlyHEIqLbHsMgqLQL1VTnIwCE4yhONpG9TFzMg0uymGDG5lZ_-haI9lSxQw_f9yqmHia6iFAHyahLRv4By7Y7dglchaDfvx9UkByl6T53VlA3GVLV1CEXlzw_ZohVLiW7if8GWfF-XSRlJlw6WN1whecD7zWsjM0v4tthts_QlIksBM73zSIAYTSzWY8JdXEpd-FA";
+    const authRequester:IAuthenticatedHttpRequester = new AuthenticatedHttpRequester(logger, AUTH_TOKEN_ENPOINT);
 
-    participantService = new ParticipantAdapter(logger, PARTICIPANT_SVC_BASEURL, fixedToken);
+    authRequester.setUserCredentials(CLIENT_ID, USERNAME, PASSWORD);
+    participantLogger.setLogLevel(LogLevel.INFO);
+    participantService = new ParticipantAdapter(participantLogger, PARTICIPANTS_BASE_URL, authRequester, HTTP_CLIENT_TIMEOUT_MS);
 
     await setupEventHandlers();
 

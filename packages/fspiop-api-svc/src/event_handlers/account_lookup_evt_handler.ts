@@ -111,6 +111,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         const partyId = payload.partyId as string;
         const partySubType = payload.partySubType as string;
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+        clonedHeaders.date = "randomdate";
 
         const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
@@ -195,7 +196,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         const partyId = payload.partyId;
         const partySubType = payload.partySubType as string;
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-
+        clonedHeaders.date = "randomdate";
+        
         const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
         if(!requestedEndpoint){
@@ -218,12 +220,11 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             // Always validate the payload and headers received
             message.validatePayload();
-            Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
-            urlBuilder.setLocation([partyType, partyId, partySubType]);
-
+            urlBuilder.setLocation([partyType, partyId]);
+            
             await Request.sendRequest({
                 url: urlBuilder.build(), 
                 headers: clonedHeaders, 
@@ -257,6 +258,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         const partyId = payload.partyId;
         const partySubType = payload.partySubType as string;
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+        clonedHeaders.date = "randomdate";
 
         const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
@@ -321,6 +323,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         const partyId = payload.partyId;
         const partySubType = payload.partySubType as string;
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+        clonedHeaders.date = "randomdate";
 
         // TODO handle the case where destinationFspId is null and remove ! below
 
@@ -395,11 +398,12 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         const { payload } = message;
   
         const requesterFspId = payload.requesterFspId;
-        const destinationFspId = payload.ownerFspId;
+        const destinationFspId = payload.destinationFspId;
         const partyType = payload.partyType ;
         const partyId = payload.partyId;
         const partySubType = payload.partySubType as string;
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+        clonedHeaders.date = "randomdate";
 
         if(!destinationFspId){
             // _validateParticipantAndGetEndpoint already logs the error
@@ -486,6 +490,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         const partySubType = payload.partySubType as string;
         const requesterFspId = payload.requesterFspId;
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+        clonedHeaders.date = "randomdate";
 
         const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 

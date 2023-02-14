@@ -60,6 +60,7 @@ export class ParticipantRoutes extends BaseRoutes {
     private async getParticipantsByTypeAndID(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
         this.logger.debug("Got getParticipantsByTypeAndID request");
 
+        const clonedHeaders = { ...req.headers };
         const type = req.params["type"] as string || null;
         const id = req.params["id"] as string || null;
         const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
@@ -87,6 +88,7 @@ export class ParticipantRoutes extends BaseRoutes {
         msg.fspiopOpaqueState = {
             requesterFspId: requesterFspId,
             destinationFspId: null,
+            headers: clonedHeaders
         };
 
         await this.kafkaProducer.send(msg);
@@ -103,6 +105,7 @@ export class ParticipantRoutes extends BaseRoutes {
     private async getParticipantsByTypeAndIDAndSubId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
         this.logger.debug("Got getParticipantsByTypeAndIDAndSubId request");
 
+        const clonedHeaders = { ...req.headers };
         const type = req.params["type"] as string || null;
         const id = req.params["id"] as string || null;
         const partySubIdOrType = req.params["subid"] as string || null;
@@ -131,6 +134,7 @@ export class ParticipantRoutes extends BaseRoutes {
         msg.fspiopOpaqueState = {
             requesterFspId: requesterFspId,
             destinationFspId: null,
+            headers: clonedHeaders
         };
 
         await this.kafkaProducer.send(msg);
