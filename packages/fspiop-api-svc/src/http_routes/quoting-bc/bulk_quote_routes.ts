@@ -35,7 +35,6 @@ import express from "express";
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {Constants} from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import { IncomingHttpHeaders } from "http";
 import ajv from "ajv";
 import { schemaValidator } from "../ajv";
 import { BulkQuotePendingReceivedEvt, BulkQuotePendingReceivedEvtPayload, BulkQuoteRequestedEvt, BulkQuoteRequestedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";

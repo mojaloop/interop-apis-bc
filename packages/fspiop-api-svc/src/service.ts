@@ -90,9 +90,13 @@ const TRANSFERS_URL_RESOURCE_NAME = "transfers";
 
 const KAFKA_TRANSFERS_TOPIC = process.env["KAFKA_TRANSFERS_TOPIC"] || TransfersBCTopics.DomainEvents;
 
-const PARTICIPANT_SVC_BASEURL = process.env["PARTICIPANT_SVC_BASEURL"] || "http://localhost:3010";
-// const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
-
+// Participant Service
+const AUTH_TOKEN_ENPOINT = "http://localhost:3201/token";
+const USERNAME = "admin";
+const PASSWORD = "superMegaPass";
+const CLIENT_ID = "security-bc-ui";
+const PARTICIPANTS_BASE_URL = "http://localhost:3010";
+const HTTP_CLIENT_TIMEOUT_MS = 10_000;
 
 const kafkaProducerOptions: MLKafkaRawProducerOptions = {
     kafkaBrokerList: KAFKA_URL,
@@ -237,13 +241,6 @@ export async function start(
     }
     
     const participantLogger = logger.createChild("participantLogger");
-
-    const AUTH_TOKEN_ENPOINT = "http://localhost:3201/token";
-    const USERNAME = "admin";
-    const PASSWORD = "superMegaPass";
-    const CLIENT_ID = "security-bc-ui";
-    const PARTICIPANTS_BASE_URL: string = "http://localhost:3010";
-    const HTTP_CLIENT_TIMEOUT_MS: number = 10_000;
 
     const authRequester:IAuthenticatedHttpRequester = new AuthenticatedHttpRequester(logger, AUTH_TOKEN_ENPOINT);
 

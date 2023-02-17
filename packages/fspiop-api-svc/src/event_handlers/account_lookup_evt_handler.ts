@@ -353,7 +353,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
             
             if (clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === '') {
-                clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = destinationFspId
+                clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = destinationFspId;
             }
 
             const urlBuilder = new Request.URLBuilder(destinationEndpoint.value);

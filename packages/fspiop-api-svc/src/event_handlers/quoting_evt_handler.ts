@@ -130,11 +130,12 @@ export class QuotingEventHandler extends BaseEventHandler {
             Validate.validateHeaders(QuotesPost, clonedHeaders);
 
 
-            let url;
+            let url: string;
+            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
+
             switch(message.payload.sourceEvent){
                 case QuoteRequestReceivedEvt.name:
                 case QuoteResponseAccepted.name:
-                    const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
                     urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
                     urlBuilder.setId(payload.quoteId);
                     urlBuilder.hasError(true);

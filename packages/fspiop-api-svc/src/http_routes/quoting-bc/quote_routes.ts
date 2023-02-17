@@ -36,7 +36,6 @@ import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { Constants } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { QuoteRequestReceivedEvt, QuoteRequestReceivedEvtPayload, QuoteResponseReceivedEvt, QuoteResponseReceivedEvtPayload, QuoteQueryReceivedEvt, QuoteQueryReceivedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { IncomingHttpHeaders } from "http";
 import { schemaValidator } from "../ajv";
 import ajv from "ajv";
 import { BaseRoutes } from "../_base_router";

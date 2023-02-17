@@ -78,7 +78,7 @@
         "$ref": "defs#/definitions/ExtensionList"
       }
     }
-}
+};
 
 export const TransfersIDPutResponse = {
     "$id": "TransfersIDPutResponse",
@@ -106,4 +106,4 @@ export const TransfersIDPutResponse = {
           "$ref": "defs#/definitions/ExtensionList"
         }
     }
-}
+};

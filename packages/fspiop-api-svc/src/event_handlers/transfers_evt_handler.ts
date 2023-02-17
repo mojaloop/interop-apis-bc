@@ -113,11 +113,12 @@ export class TransferEventHandler extends BaseEventHandler {
             Validate.validateHeaders(TransfersPost, clonedHeaders);
 
 
-            let url;
+            let url: string;
+            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
+            
             switch(message.payload.sourceEvent){
                 case TransferPreparedEvt.name:
                 case TransferCommittedFulfiledEvt.name:
-                    const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
                     urlBuilder.setEntity(Enums.EntityTypeEnum.TRANSFERS);
                     urlBuilder.setId(payload.transferId);
                     urlBuilder.hasError(true);
