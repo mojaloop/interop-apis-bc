@@ -35,10 +35,15 @@
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import { ParticipantsHttpClient} from "@mojaloop/participants-bc-client-lib";
 import { Participant } from "@mojaloop/participant-bc-public-types-lib";
-import { IParticipantService } from "@mojaloop/interop-apis-bc-fspiop-api-svc";
 import { ILocalCache, LocalCache } from "../local_cache";
 import { IAuthenticatedHttpRequester } from "@mojaloop/security-bc-client-lib";
- 
+
+// TODO: Discuss where to move this due to workspaces dependencies order
+export interface IParticipantService {
+    getParticipantInfo(fspId: string): Promise<Participant| null>;
+    getParticipantsInfo(fspIds: string[]): Promise<Participant[]|null>;
+}
+
 export class ParticipantAdapter implements IParticipantService {
 	private readonly _logger: ILogger;
 	private readonly _localCache: ILocalCache;
