@@ -41,8 +41,6 @@ import { schemaValidator } from "../ajv";
 import ajv from "ajv";
 import { BaseRoutes } from "../_base_router";
 
-const getEnabledHeaders = (headers: IncomingHttpHeaders) => Object.fromEntries(Object.entries(headers).filter(([headerKey]) => Constants.FSPIOP_REQUIRED_HEADERS_LIST.includes(headerKey)));
-
 export class QuoteRoutes extends BaseRoutes {
 
     constructor(producerOptions: MLKafkaJsonProducerOptions, kafkaTopic: string, logger: ILogger) {
@@ -134,7 +132,7 @@ export class QuoteRoutes extends BaseRoutes {
         msg.fspiopOpaqueState = {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId,
-            headers: getEnabledHeaders(clonedHeaders)
+            headers: clonedHeaders
         };
 
         await this.kafkaProducer.send(msg);
@@ -217,7 +215,7 @@ export class QuoteRoutes extends BaseRoutes {
         msg.fspiopOpaqueState = {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId,
-            headers: getEnabledHeaders(clonedHeaders)
+            headers: clonedHeaders
         };
 
         await this.kafkaProducer.send(msg);
@@ -258,7 +256,7 @@ export class QuoteRoutes extends BaseRoutes {
         msg.fspiopOpaqueState = {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId,
-            headers: getEnabledHeaders(clonedHeaders)
+            headers: clonedHeaders
         };
 
         await this.kafkaProducer.send(msg);

@@ -176,7 +176,7 @@ export class QuotingEventHandler extends BaseEventHandler {
         const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
         const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
 
-        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
+        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(payload.payee.partyIdInfo.fspId as string);
 
         if(!requestedEndpoint){
 
@@ -234,7 +234,7 @@ export class QuotingEventHandler extends BaseEventHandler {
         const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
         const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
         
-        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
+        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
         if(!requestedEndpoint){
 
@@ -404,9 +404,10 @@ export class QuotingEventHandler extends BaseEventHandler {
         const { payload } = message;
   
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+        const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
         
-        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
+        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
         if(!requestedEndpoint){
 

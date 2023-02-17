@@ -35,15 +35,13 @@
 "use strict";
 
 import express from "express";
-import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import {Constants} from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import {MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
+import { Constants, Validate } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { PartyQueryReceivedEvt, PartyQueryReceivedEvtPayload, ParticipantDisassociateRequestReceivedEvt, ParticipantAssociationRequestReceivedEvt, ParticipantAssociationRequestReceivedEvtPayload, ParticipantDisassociateRequestReceivedEvtPayload, PartyInfoAvailableEvt, PartyInfoAvailableEvtPayload} from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { IncomingHttpHeaders } from "http";
 import { PutParty } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/transformer";
 import { BaseRoutes } from "../_base_router";
-
-const getEnabledHeaders = (headers: IncomingHttpHeaders) => Object.fromEntries(Object.entries(headers).filter(([headerKey]) => Constants.FSPIOP_REQUIRED_HEADERS_LIST.includes(headerKey)));
+import { PartiesPutTypeAndIdAndSubId } from "../../errors";
 
 export class PartyRoutes extends BaseRoutes {
 
@@ -78,10 +76,16 @@ export class PartyRoutes extends BaseRoutes {
         const id = req.params["id"] as string || null;
         const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
         const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
-
         const currency = req.query["currency"] as string || null;
 
-        if(!type || !id || !requesterFspId){
+        if(clonedHeaders['fspiop-date']) {
+            clonedHeaders.date = clonedHeaders["fspiop-date"] as string;
+            delete clonedHeaders["fspiop-date"];
+        }
+
+        const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.parties, clonedHeaders);
+
+        if(!isValidHeaders || !type || !id || !requesterFspId){
             res.status(400).json({
                 status: "not ok"
             });
@@ -103,7 +107,7 @@ export class PartyRoutes extends BaseRoutes {
         msg.fspiopOpaqueState = {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId,
-            headers: getEnabledHeaders(clonedHeaders)
+            headers: clonedHeaders
         };
 
         await this.kafkaProducer.send(msg);
@@ -126,10 +130,16 @@ export class PartyRoutes extends BaseRoutes {
         const partySubIdOrType = req.params["subid"] as string || null;
         const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
         const destinationFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-
         const currency = req.query["currency"] as string || null;
 
-        if(!type || !id || !requesterFspId){
+        if(clonedHeaders['fspiop-date']) {
+            clonedHeaders.date = clonedHeaders["fspiop-date"] as string;
+            delete clonedHeaders["fspiop-date"];
+        }
+
+        const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.parties, clonedHeaders);
+
+        if(!isValidHeaders || !type || !id || !requesterFspId){
             res.status(400).json({
                 status: "not ok"
             });
@@ -151,7 +161,7 @@ export class PartyRoutes extends BaseRoutes {
         msg.fspiopOpaqueState = {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId,
-            headers: getEnabledHeaders(clonedHeaders)
+            headers: clonedHeaders
         };
 
         await this.kafkaProducer.send(msg);
@@ -170,7 +180,6 @@ export class PartyRoutes extends BaseRoutes {
         console.log(JSON.stringify(req.headers));
 
         const putPartyBody: PutParty = req.body?.party;
-        // TODO validate putPartyBody
 
         const clonedHeaders = { ...req.headers };
         const type = req.params["type"] as string || null;
@@ -178,10 +187,16 @@ export class PartyRoutes extends BaseRoutes {
         const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
         const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
         const ownerFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-
         const currency = req.query["currency"] as string || null;
 
-        if(!type || !id || !requesterFspId || !ownerFspId){
+        if(clonedHeaders['fspiop-date']) {
+            clonedHeaders.date = clonedHeaders["fspiop-date"] as string;
+            delete clonedHeaders["fspiop-date"];
+        }
+
+        const isValidHeaders = Validate.validateHeaders(PartiesPutTypeAndIdAndSubId, clonedHeaders);
+
+        if(!isValidHeaders || !type || !id || !requesterFspId || !ownerFspId){
             res.status(400).json({
                 status: "not ok"
             });
@@ -207,7 +222,7 @@ export class PartyRoutes extends BaseRoutes {
         msg.fspiopOpaqueState = {
             originalRequesterFspId: destinationFspId,
             originalDestination: requesterFspId,
-            headers: getEnabledHeaders(clonedHeaders)
+            headers: clonedHeaders
         };
 
         await this.kafkaProducer.send(msg);
@@ -231,10 +246,16 @@ export class PartyRoutes extends BaseRoutes {
         const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
         const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
         const ownerFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-
         const currency = req.query["currency"] as string || null;
 
-        if(!type || !id || !requesterFspId || !ownerFspId){
+        if(clonedHeaders['fspiop-date']) {
+            clonedHeaders.date = clonedHeaders["fspiop-date"] as string;
+            delete clonedHeaders["fspiop-date"];
+        }
+
+        const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.parties, clonedHeaders);
+
+        if(!isValidHeaders || !type || !id || !requesterFspId || !ownerFspId){
             res.status(400).json({
                 status: "not ok"
             });
@@ -259,7 +280,7 @@ export class PartyRoutes extends BaseRoutes {
         msg.fspiopOpaqueState = {
             originalRequesterFspId: destinationFspId,
             originalDestination: requesterFspId,
-            headers: getEnabledHeaders(clonedHeaders)
+            headers: clonedHeaders
         };
 
         await this.kafkaProducer.send(msg);
@@ -281,8 +302,16 @@ export class PartyRoutes extends BaseRoutes {
         const id = req.params["id"] as string || null;
         const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
         const currency = req.query["currency"] as string || null;
+ 
+        // Currently for admin-ui support
+        if(clonedHeaders['fspiop-date']) {
+            clonedHeaders.date = clonedHeaders["fspiop-date"] as string;
+            delete clonedHeaders["fspiop-date"];
+        }
 
-        if(!type || !id || !requesterFspId){
+        const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.parties, clonedHeaders);
+
+        if(!isValidHeaders || !type || !id || !requesterFspId){
             res.status(400).json({
                 status: "not ok"
             });
@@ -303,7 +332,7 @@ export class PartyRoutes extends BaseRoutes {
         msg.fspiopOpaqueState = {
             requesterFspId: requesterFspId,
             destinationFspId: null,
-            headers: getEnabledHeaders(clonedHeaders)
+            headers: clonedHeaders
 
         };
 
@@ -328,7 +357,14 @@ export class PartyRoutes extends BaseRoutes {
         const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
         const currency = req.query["currency"] as string || null;
 
-        if(!type || !id || !requesterFspId){
+        if(clonedHeaders['fspiop-date']) {
+            clonedHeaders.date = clonedHeaders["fspiop-date"] as string;
+            delete clonedHeaders["fspiop-date"];
+        }
+
+        const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.parties, clonedHeaders);
+
+        if(!isValidHeaders || !type || !id || !requesterFspId){
             res.status(400).json({
                 status: "not ok"
             });
@@ -349,7 +385,7 @@ export class PartyRoutes extends BaseRoutes {
         msg.fspiopOpaqueState = {
             requesterFspId: requesterFspId,
             destinationFspId: null,
-            headers: getEnabledHeaders(clonedHeaders)
+            headers: clonedHeaders
 
         };
 
@@ -373,7 +409,14 @@ export class PartyRoutes extends BaseRoutes {
         const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
         const currency = req.query["currency"] as string || null;
 
-        if(!type || !id || !requesterFspId){
+        if(clonedHeaders['fspiop-date']) {
+            clonedHeaders.date = clonedHeaders["fspiop-date"] as string;
+            delete clonedHeaders["fspiop-date"];
+        }
+
+        const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.parties, clonedHeaders);
+
+        if(!isValidHeaders || !type || !id || !requesterFspId){
             res.status(400).json({
                 status: "not ok"
             });
@@ -394,7 +437,7 @@ export class PartyRoutes extends BaseRoutes {
         msg.fspiopOpaqueState = {
             requesterFspId: requesterFspId,
             destinationFspId: null,
-            headers: getEnabledHeaders(clonedHeaders)
+            headers: clonedHeaders
 
         };
 
@@ -419,7 +462,14 @@ export class PartyRoutes extends BaseRoutes {
         const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
         const currency = req.query["currency"] as string || null;
 
-        if(!type || !id || !requesterFspId){
+        if(clonedHeaders['fspiop-date']) {
+            clonedHeaders.date = clonedHeaders["fspiop-date"] as string;
+            delete clonedHeaders["fspiop-date"];
+        }
+
+        const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.parties, clonedHeaders);
+
+        if(!isValidHeaders || !type || !id || !requesterFspId){
             res.status(400).json({
                 status: "not ok"
             });
@@ -440,7 +490,7 @@ export class PartyRoutes extends BaseRoutes {
         msg.fspiopOpaqueState = {
             requesterFspId: requesterFspId,
             destinationFspId: null,
-            headers: getEnabledHeaders(clonedHeaders)
+            headers: clonedHeaders
         };
 
         await this.kafkaProducer.send(msg);

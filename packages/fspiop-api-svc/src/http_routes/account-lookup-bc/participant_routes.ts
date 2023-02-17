@@ -34,10 +34,10 @@
 
 "use strict";
 import express from "express";
-import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import {Constants} from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
+import { Constants, Validate } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import {ParticipantQueryReceivedEvtPayload, ParticipantQueryReceivedEvt} from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { ParticipantQueryReceivedEvtPayload, ParticipantQueryReceivedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseRoutes } from "../_base_router";
 
 export class ParticipantRoutes extends BaseRoutes {
@@ -67,7 +67,14 @@ export class ParticipantRoutes extends BaseRoutes {
 
         const currency = req.query["currency"] as string || null;
 
-        if(!type || !id || !requesterFspId){
+        if(clonedHeaders['fspiop-date']) {
+            clonedHeaders.date = clonedHeaders["fspiop-date"] as string;
+            delete clonedHeaders["fspiop-date"];
+        }
+
+        const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.participants, clonedHeaders);
+
+        if(!isValidHeaders || !type || !id || !requesterFspId){
             res.status(400).json({
                 status: "not ok"
             });
@@ -113,7 +120,14 @@ export class ParticipantRoutes extends BaseRoutes {
 
         const currency = req.query["currency"] as string || null;
 
-        if(!type || !id || !requesterFspId || !partySubIdOrType){
+        if(clonedHeaders['fspiop-date']) {
+            clonedHeaders.date = clonedHeaders["fspiop-date"] as string;
+            delete clonedHeaders["fspiop-date"];
+        }
+
+        const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.participants, clonedHeaders);
+
+        if(!isValidHeaders || !type || !id || !requesterFspId || !partySubIdOrType){
             res.status(400).json({
                 status: "not ok"
             });

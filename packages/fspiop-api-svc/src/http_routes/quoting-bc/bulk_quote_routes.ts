@@ -40,8 +40,6 @@ import ajv from "ajv";
 import { schemaValidator } from "../ajv";
 import { BulkQuotePendingReceivedEvt, BulkQuotePendingReceivedEvtPayload, BulkQuoteRequestedEvt, BulkQuoteRequestedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseRoutes } from "../_base_router";
-
-const getEnabledHeaders = (headers: IncomingHttpHeaders) => Object.fromEntries(Object.entries(headers).filter(([headerKey]) => Constants.FSPIOP_REQUIRED_HEADERS_LIST.includes(headerKey)));
  
 export class QuoteBulkRoutes extends BaseRoutes {
 
@@ -123,7 +121,7 @@ export class QuoteBulkRoutes extends BaseRoutes {
         msg.fspiopOpaqueState = {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId,
-            headers: getEnabledHeaders(clonedHeaders)
+            headers: clonedHeaders
         };
 
         await this.kafkaProducer.send(msg);
@@ -192,7 +190,7 @@ export class QuoteBulkRoutes extends BaseRoutes {
         msg.fspiopOpaqueState = {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId,
-            headers: getEnabledHeaders(clonedHeaders)
+            headers: clonedHeaders
         };
 
         await this.kafkaProducer.send(msg);

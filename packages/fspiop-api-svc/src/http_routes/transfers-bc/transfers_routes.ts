@@ -36,12 +36,7 @@ import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { Constants } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { TransferPrepareRequestedEvt, TransferPrepareRequestedEvtPayload, TransferFulfilCommittedRequestedEvt, TransferFulfilCommittedRequestedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { IncomingHttpHeaders } from "http";
-import { schemaValidator } from "../ajv";
-import ajv from "ajv";
 import { BaseRoutes } from "../_base_router";
-
-const getEnabledHeaders = (headers: IncomingHttpHeaders) => Object.fromEntries(Object.entries(headers).filter(([headerKey]) => Constants.FSPIOP_REQUIRED_HEADERS_LIST.includes(headerKey)));
 
 export class TransfersRoutes extends BaseRoutes {
 
@@ -120,7 +115,7 @@ export class TransfersRoutes extends BaseRoutes {
         msg.fspiopOpaqueState = {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId,
-            headers: getEnabledHeaders(clonedHeaders)
+            headers: clonedHeaders
         };
 
         await this.kafkaProducer.send(msg);
@@ -191,7 +186,7 @@ export class TransfersRoutes extends BaseRoutes {
         msg.fspiopOpaqueState = {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId,
-            headers: getEnabledHeaders(clonedHeaders)
+            headers: clonedHeaders
         };
 
         await this.kafkaProducer.send(msg);

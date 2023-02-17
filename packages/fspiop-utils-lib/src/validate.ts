@@ -47,9 +47,9 @@ export const validateHeaders = (arr: string[], obj: object) => {
         return hasKey;
     });
 
-    if(!hasAllKeys) {
-        throw Error(`Headers are missing the following keys: ${missingKeysList.toString()}`);
-    }
+    // if(!hasAllKeys) {
+    //     throw Error(`Headers are missing the following keys: ${missingKeysList.toString()}`);
+    // }
 
     return hasAllKeys;
 };

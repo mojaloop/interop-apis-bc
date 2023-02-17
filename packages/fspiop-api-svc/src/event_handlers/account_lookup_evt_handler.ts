@@ -111,7 +111,6 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         const partyId = payload.partyId as string;
         const partySubType = payload.partySubType as string;
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-        clonedHeaders.date = "randomdate";
 
         const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
@@ -196,7 +195,6 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         const partyId = payload.partyId;
         const partySubType = payload.partySubType as string;
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-        clonedHeaders.date = "randomdate";
         
         const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
@@ -258,7 +256,6 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         const partyId = payload.partyId;
         const partySubType = payload.partySubType as string;
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-        clonedHeaders.date = "randomdate";
 
         const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
@@ -323,7 +320,6 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         const partyId = payload.partyId;
         const partySubType = payload.partySubType as string;
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-        clonedHeaders.date = "randomdate";
 
         // TODO handle the case where destinationFspId is null and remove ! below
 
@@ -356,13 +352,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             message.validatePayload();
             Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
             
-
-            if(fspiopOpaqueState) {
-                if (!clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === '') {
-                    clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
-                }
-
-                clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
+            if (clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === '') {
+                clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = destinationFspId
             }
 
             const urlBuilder = new Request.URLBuilder(destinationEndpoint.value);
@@ -403,7 +394,6 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         const partyId = payload.partyId;
         const partySubType = payload.partySubType as string;
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-        clonedHeaders.date = "randomdate";
 
         if(!destinationFspId){
             // _validateParticipantAndGetEndpoint already logs the error
@@ -490,7 +480,6 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         const partySubType = payload.partySubType as string;
         const requesterFspId = payload.requesterFspId;
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-        clonedHeaders.date = "randomdate";
 
         const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 

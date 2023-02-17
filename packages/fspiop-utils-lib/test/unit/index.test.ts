@@ -37,10 +37,11 @@ import { FSPIOP_HEADERS_ACCEPT, FSPIOP_HEADERS_CONTENT_LENGTH, FSPIOP_HEADERS_CO
 import { EntityTypeEnum, ErrorCode, FspiopRequestMethodsEnum } from "../../src/enums";
 import { validateHeaders } from "../../src/validate";
 import axios from "axios";
-import HeaderBuilder from "../../src/account-lookup/headers/header_builder";
+import HeaderBuilder from "../../src/headers/header_builder";
 import { ParticipantsPutTypeAndId } from "../../../fspiop-api-svc/src/errors";
 import { removeEmpty, transformPayloadError, transformPayloadParticipantPut, transformPayloadPartyAssociationPut, transformPayloadPartyDisassociationPut, transformPayloadPartyInfoReceivedPut, transformPayloadPartyInfoRequestedPut } from "../../src/transformer";
 import { ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvtPayload, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { sendRequest } from "../../src/request"
 
 jest.mock('axios');
 
