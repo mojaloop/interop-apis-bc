@@ -40,7 +40,6 @@
 
 "use strict";
 
-export * from "./external_adapters/account_lookup_adapter";
 export * from "./external_adapters/participant_adapter";
 export * from "./local_cache";
 export * from "./errors";
