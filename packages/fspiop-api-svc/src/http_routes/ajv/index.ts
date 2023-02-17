@@ -36,6 +36,7 @@ import defsSchema from "./defs";
 import { ParticipantsIDPutResponse, ParticipantsPostRequest, ParticipantsTypeIDPutResponse, ParticipantsTypeIDSubIDPostRequest } from "./participants";
 import { PartiesTypeIDPutResponse } from "./parties";
 import { QuotesPostRequest, QuotesIDPutResponse } from "./quotes";
+import { TransfersPostRequest, TransfersIDPutResponse } from "./transfers";
 import { BulkQuotesPostRequest, BulkQuotesIDPutResponse } from "./bulkQuotes";
 
 export const schemaValidator = new Ajv({
@@ -44,6 +45,7 @@ export const schemaValidator = new Ajv({
         PartiesTypeIDPutResponse, // Parties
         QuotesPostRequest, QuotesIDPutResponse, // Quotes
         BulkQuotesPostRequest, BulkQuotesIDPutResponse, // BulkQuotes
+        TransfersPostRequest, TransfersIDPutResponse, // Transfers
         defsSchema  // Definitions
     ]
 });

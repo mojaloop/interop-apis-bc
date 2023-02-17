@@ -37,6 +37,8 @@ import { Constants } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { TransferPrepareRequestedEvt, TransferPrepareRequestedEvtPayload, TransferFulfilCommittedRequestedEvt, TransferFulfilCommittedRequestedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseRoutes } from "../_base_router";
+import { schemaValidator } from "../ajv";
+import ajv from "ajv";
 
 export class TransfersRoutes extends BaseRoutes {
 
@@ -55,20 +57,20 @@ export class TransfersRoutes extends BaseRoutes {
     private async transferPrepareRequested(req: express.Request, res: express.Response): Promise<void> {
         this.logger.debug("Got transferPrepareRequested request");
         
-        // const validate = schemaValidator.getSchema("TransfersPostRequest") as ajv.ValidateFunction;
-        // const valid = validate(req.body);
+        const validate = schemaValidator.getSchema("TransfersPostRequest") as ajv.ValidateFunction;
+        const valid = validate(req.body);
         
-        // if (!valid) {
-        //     this.logger.error(validate.errors);
+        if (!valid) {
+            this.logger.error(validate.errors);
 
-        //     this.logger.debug(`transferPrepareRequested body errors: ${JSON.stringify(validate.errors)}`);
+            this.logger.debug(`transferPrepareRequested body errors: ${JSON.stringify(validate.errors)}`);
 
-        //     res.status(422).json({
-        //         status: "invalid request body",
-        //         errors: validate.errors
-        //     });
-        //     return;
-        // }
+            res.status(422).json({
+                status: "invalid request body",
+                errors: validate.errors
+            });
+            return;
+        }
           
         // Headers
         const clonedHeaders = { ...req.headers };
@@ -132,20 +134,20 @@ export class TransfersRoutes extends BaseRoutes {
     private async transferFulfilCommittedRequested(req: express.Request, res: express.Response): Promise<void> {
         this.logger.debug("Got transferFulfilCommittedRequested request");
         
-        // const validate = schemaValidator.getSchema("TransfersPostRequest") as ajv.ValidateFunction;
-        // const valid = validate(req.body);
+        const validate = schemaValidator.getSchema("TransfersIDPutResponse") as ajv.ValidateFunction;
+        const valid = validate(req.body);
         
-        // if (!valid) {
-        //     this.logger.error(validate.errors);
+        if (!valid) {
+            this.logger.error(validate.errors);
 
-        //     this.logger.debug(`transferFulfilCommittedRequested body errors: ${JSON.stringify(validate.errors)}`);
+            this.logger.debug(`transferFulfilCommittedRequested body errors: ${JSON.stringify(validate.errors)}`);
 
-        //     res.status(422).json({
-        //         status: "invalid request body",
-        //         errors: validate.errors
-        //     });
-        //     return;
-        // }
+            res.status(422).json({
+                status: "invalid request body",
+                errors: validate.errors
+            });
+            return;
+        }
           
         // Headers
         const clonedHeaders = { ...req.headers };
