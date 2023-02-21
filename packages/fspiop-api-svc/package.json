@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/interop-apis-bc-fspiop-api-svc",
-  "version": "0.0.1",
+  "version": "0.1.1",
   "description": "Mojaloop vNext FSPIOP API Service",
   "license": "Apache-2.0",
   "homepage": "https://github.com/mojaloop/interop-apis-bc/tree/main/modules/fspiop-api-svc",
@@ -20,7 +20,8 @@
   ],
   "scripts": {
     "start": "npm run service",
-    "service": "tsc && node dist/index.js",
+    "start:dev": "npm run build && AUDIT_KEY_FILE_PATH=./dist/tmp_key_file npm start",
+    "service": "node dist/index.js",
     "build": "tsc",
     "watch": "tsc -w",
     "clean:dist": "rm -Rf dist",
@@ -45,7 +46,8 @@
     "@mojaloop/logging-bc-public-types-lib": "^0.1.14",
     "@mojaloop/participant-bc-public-types-lib": "~0.0.6",
     "@mojaloop/participants-bc-client-lib": "~0.1.2",
-    "@mojaloop/platform-shared-lib-messaging-types-lib": "^0.2.67",
+    "@mojaloop/platform-shared-lib-public-messages-lib": "~0.1.68",
+    "@mojaloop/platform-shared-lib-messaging-types-lib": "~0.2.68",
     "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "~0.3.28",
     "@mojaloop/security-bc-client-lib": "^0.1.11",
     "ajv": "^8.12.0",

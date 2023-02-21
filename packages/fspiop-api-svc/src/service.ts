@@ -40,6 +40,8 @@ import {
     LocalAuditClientCryptoProvider
 } from "@mojaloop/auditing-bc-client-lib";
 import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
+import process from "process";
+import {ParticipantAdapter} from "./implementations/index";
 import {ParticipantRoutes} from "./http_routes/account-lookup-bc/participant_routes";
 import {PartyRoutes} from "./http_routes/account-lookup-bc/party_routes";
 import { MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions, MLKafkaRawProducerOptions, MLKafkaRawProducerPartitioners } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
@@ -52,7 +54,6 @@ import { QuoteBulkRoutes } from "./http_routes/quoting-bc/bulk_quote_routes";
 import { TransfersRoutes } from "./http_routes/transfers-bc/transfers_routes";
 import path from "path";
 import { IParticipantService } from "./interfaces/infrastructure";
-import { ParticipantAdapter } from "@mojaloop/interop-apis-bc-implementations";
 import {
 	AuthenticatedHttpRequester,
 	IAuthenticatedHttpRequester
@@ -64,14 +65,15 @@ const LOGLEVEL:LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG
 
 const BC_NAME = "interop-apis-bc";
 const APP_NAME = "fspiop-api-svc";
-const APP_VERSION = "0.0.1";
+const APP_VERSION = process.env.npm_package_version || "0.0.1";
 
 const SVC_DEFAULT_HTTP_PORT = 4000;
 
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
+
 const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
-const AUDIT_CERT_FILE_PATH = process.env["AUDIT_CERT_FILE_PATH"] || path.join(__dirname, "../dist/tmp_key_file");
+const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || "/app/data/audit_private_key.pem";
 
 // Account Lookup
 const PARTICIPANTS_URL_RESOURCE_NAME = "participants";
@@ -90,12 +92,14 @@ const TRANSFERS_URL_RESOURCE_NAME = "transfers";
 
 const KAFKA_TRANSFERS_TOPIC = process.env["KAFKA_TRANSFERS_TOPIC"] || TransfersBCTopics.DomainEvents;
 
-// Participant Service
-const AUTH_TOKEN_ENPOINT = "http://localhost:3201/token";
-const USERNAME = "admin";
-const PASSWORD = "superMegaPass";
-const CLIENT_ID = "security-bc-ui";
-const PARTICIPANTS_BASE_URL = "http://localhost:3010";
+const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "interop-api-bc-fspiop-api-svc";
+const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_ID"] || "superServiceSecret";
+
+
+const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
+const AUTH_N_SVC_TOKEN_URL = AUTH_N_SVC_BASEURL + "/token"; // TODO this should not be known here, libs that use the base should add the suffix
+
+const PARTICIPANTS_SVC_URL = process.env["PARTICIPANTS_SVC_URL"] || "http://localhost:3010";
 const HTTP_CLIENT_TIMEOUT_MS = 10_000;
 
 const kafkaProducerOptions: MLKafkaRawProducerOptions = {
@@ -119,9 +123,11 @@ let auditClient: IAuditClient;
 export async function setupExpress(loggerParam:ILogger): Promise<Server> {
     const app = express();
     app.use(express.json({
-        limit: '100mb',
+        limit: "100mb",
         type: (req)=>{
-            return req.headers["content-type"]?.startsWith("application/vnd.interoperability.") || false;
+            return req.headers["content-type"]?.toUpperCase()==="application/json".toUpperCase()
+                || req.headers["content-type"]?.startsWith("application/vnd.interoperability.")
+                || false;
         }
     })); // for parsing application/json
     app.use(express.urlencoded({limit: '100mb', extended: true})); // for parsing application/x-www-form-urlencoded
@@ -223,14 +229,14 @@ export async function start(
     }
 
     if(!auditClientParam) {
-        if (!existsSync(AUDIT_CERT_FILE_PATH)) {
+        if (!existsSync(AUDIT_KEY_FILE_PATH)) {
             if (PRODUCTION_MODE) process.exit(9);
 
             // create e tmp file
-            LocalAuditClientCryptoProvider.createRsaPrivateKeyFileSync(AUDIT_CERT_FILE_PATH, 2048);
+            LocalAuditClientCryptoProvider.createRsaPrivateKeyFileSync(AUDIT_KEY_FILE_PATH, 2048);
         }
 
-        const cryptoProvider = new LocalAuditClientCryptoProvider(AUDIT_CERT_FILE_PATH);
+        const cryptoProvider = new LocalAuditClientCryptoProvider(AUDIT_KEY_FILE_PATH);
         const auditDispatcher = new KafkaAuditClientDispatcher(kafkaProducerOptions, KAFKA_AUDITS_TOPIC, logger);
         // NOTE: to pass the same kafka logger to the audit client, make sure the logger is started/initialised already
         auditClient = new AuditClient(BC_NAME, APP_NAME, APP_VERSION, cryptoProvider, auditDispatcher);
@@ -242,11 +248,11 @@ export async function start(
     
     const participantLogger = logger.createChild("participantLogger");
 
-    const authRequester:IAuthenticatedHttpRequester = new AuthenticatedHttpRequester(logger, AUTH_TOKEN_ENPOINT);
+    const authRequester:IAuthenticatedHttpRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
 
-    authRequester.setUserCredentials(CLIENT_ID, USERNAME, PASSWORD);
+    authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
     participantLogger.setLogLevel(LogLevel.INFO);
-    participantService = new ParticipantAdapter(participantLogger, PARTICIPANTS_BASE_URL, authRequester, HTTP_CLIENT_TIMEOUT_MS);
+    participantService = new ParticipantAdapter(participantLogger, PARTICIPANTS_SVC_URL, authRequester, HTTP_CLIENT_TIMEOUT_MS);
 
     await setupEventHandlers();
 
@@ -259,7 +265,7 @@ export async function start(
 
     expressServer = app.listen(portNum, () => {
         console.log(`🚀 Server ready at: http://localhost:${portNum}`);
-        logger.info("Fspiop-api service started");
+        logger.info(`Fspiop-api service v: ${APP_VERSION} started`);
     });
 }
 

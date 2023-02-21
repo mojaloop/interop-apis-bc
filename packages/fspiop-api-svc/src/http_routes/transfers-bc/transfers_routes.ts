@@ -76,12 +76,12 @@ export class TransfersRoutes extends BaseRoutes {
         const clonedHeaders = { ...req.headers };
         const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
         const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
-        
-        // Date Model
+
+        // Data Model
         const transferId = req.body["transferId"] || null;
         const payeeFsp = req.body["payeeFsp"] || null;
         const payerFsp = req.body["payerFsp"] || null;
-        const amount = req.body["amount"] || null;
+        const amount:{currency: string, amount:string} = req.body["amount"] || null;
         const ilpPacket = req.body["ilpPacket"] || null;
         const condition = req.body["condition"] || null;
         const expiration = req.body["expiration"] || null;
@@ -99,7 +99,8 @@ export class TransfersRoutes extends BaseRoutes {
             transferId: transferId,
             payeeFsp: payeeFsp,
             payerFsp: payerFsp,
-            amount: amount,
+            amount: amount.amount,
+            currencyCode: amount.currency,
             ilpPacket: ilpPacket,
             condition: condition,
             expiration: expiration,
