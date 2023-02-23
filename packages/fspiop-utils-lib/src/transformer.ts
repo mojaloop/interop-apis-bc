@@ -233,11 +233,13 @@ export const transformPayloadTransferRequestPost = (payload: TransferPreparedEvt
 		transferId: payload.transferId,
 		payeeFsp: payload.payeeFsp,
 		payerFsp: payload.payerFsp,
-		amount: payload.amount,
+		amount: {
+			amount: payload.amount,
+			currency: payload.currencyCode
+		},
 		ilpPacket: payload.ilpPacket,
 		condition: payload.condition,
 		expiration: payload.expiration,
-		extensionList: payload.extensionList
 	};
 		
 	return removeEmpty(info);
