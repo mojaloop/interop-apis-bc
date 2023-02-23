@@ -22,7 +22,7 @@
 
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
- 
+
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
@@ -32,11 +32,11 @@
 
 "use strict";
 
-import { Participant } from "@mojaloop/participant-bc-public-types-lib";
+import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
 
 export interface IParticipantService {
-    getParticipantInfo(fspId: string): Promise<Participant| null>;
-    getParticipantsInfo(fspIds: string[]): Promise<Participant[]|null>;
+    getParticipantInfo(fspId: string): Promise<IParticipant| null>;
+    getParticipantsInfo(fspIds: string[]): Promise<IParticipant[]|null>;
 }
 
 export interface IAccountLookupService {

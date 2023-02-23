@@ -73,7 +73,7 @@ const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
 
 const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
-const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || "/app/data/audit_private_key.pem";
+const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || "tmp_key_file";
 
 // Account Lookup
 const PARTICIPANTS_URL_RESOURCE_NAME = "participants";
@@ -148,7 +148,7 @@ export async function setupExpress(loggerParam:ILogger): Promise<Server> {
     await quotesRoutes.init();
     await bulkQuotesRoutes.init();
     await transfersRoutes.init();
-    
+
     app.use(`/${QUOTES_URL_RESOURCE_NAME}`, quotesRoutes.router);
     app.use(`/${BULK_QUOTES_URL_RESOURCE_NAME}`, bulkQuotesRoutes.router);
     app.use(`/${TRANSFERS_URL_RESOURCE_NAME}`, transfersRoutes.router);
@@ -245,7 +245,7 @@ export async function start(
     } else{
         auditClient = auditClientParam;
     }
-    
+
     const participantLogger = logger.createChild("participantLogger");
 
     const authRequester:IAuthenticatedHttpRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);

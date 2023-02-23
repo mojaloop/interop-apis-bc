@@ -34,7 +34,7 @@ optionally within square brackets <email>.
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumer, MLKafkaJsonConsumerOptions, MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import {ParticipantEndpoint } from "@mojaloop/participants-bc-client-lib";
+import { IParticipantEndpoint } from "@mojaloop/participants-bc-client-lib";
 import { IEventHandler } from "../interfaces/types";
 import { IParticipantService } from "../interfaces/infrastructure";
 import { IncomingHttpHeaders } from "http";
@@ -76,7 +76,7 @@ export abstract class BaseEventHandler implements IEventHandler {
 
     }
 
-    protected async _validateParticipantAndGetEndpoint(fspId: string):Promise<ParticipantEndpoint | null>{
+    protected async _validateParticipantAndGetEndpoint(fspId: string):Promise<IParticipantEndpoint | null>{
         try {
             const participant = await this._participantService.getParticipantInfo(fspId);
 
@@ -95,7 +95,7 @@ export abstract class BaseEventHandler implements IEventHandler {
         } catch(err: unknown) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const error = err as unknown as any;
-            
+
             this._logger.error(error.stack);
             return null;
         }
@@ -112,24 +112,24 @@ export abstract class BaseEventHandler implements IEventHandler {
         error: unknown,
         headers: Request.FspiopHttpHeaders,
         source: string,
-        endpoint: ParticipantEndpoint,
+        endpoint: IParticipantEndpoint,
         entity: Enums.EntityTypeEnum,
         id: string[],
     }):Promise<void>{
         try {
             const err = error as unknown as AxiosError;
             this._logger.error(JSON.stringify(err.response?.data));
-            
+
             const urlBuilder = new Request.URLBuilder(endpoint.value);
             urlBuilder.setEntity(entity);
             urlBuilder.setLocation(id);
             urlBuilder.hasError(true);
-           
+
             await Request.sendRequest({
-                url: urlBuilder.build(), 
-                headers: headers, 
-                source: source, 
-                destination: headers[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
+                url: urlBuilder.build(),
+                headers: headers,
+                source: source,
+                destination: headers[Constants.FSPIOP_HEADERS_DESTINATION] || null,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: Transformer.transformPayloadError({
                     errorCode: Enums.ErrorCode.BAD_REQUEST,
@@ -139,10 +139,10 @@ export abstract class BaseEventHandler implements IEventHandler {
         } catch(err: unknown) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const error = err as unknown as any;
-            
+
             this._logger.error(error.stack);
         }
-        
+
         return;
     }
 
@@ -151,7 +151,7 @@ export abstract class BaseEventHandler implements IEventHandler {
         await this._kafkaProducer.destroy();
         await this._kafkaConsumer.destroy(true);
     }
-    
+
     abstract processMessage (sourceMessage: IMessage): Promise<void>
 
     abstract _handleErrorReceivedEvt(message: AccountLookUpErrorEvt | QuoteErrorEvt | TransferErrorEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>
