@@ -52,7 +52,6 @@ import { AccountLookupBCTopics, QuotingBCTopics, TransfersBCTopics } from "@moja
 import { QuoteRoutes } from "./http_routes/quoting-bc/quote_routes";
 import { QuoteBulkRoutes } from "./http_routes/quoting-bc/bulk_quote_routes";
 import { TransfersRoutes } from "./http_routes/transfers-bc/transfers_routes";
-import path from "path";
 import { IParticipantService } from "./interfaces/infrastructure";
 import {
 	AuthenticatedHttpRequester,
@@ -223,7 +222,7 @@ export async function start(
                 KAFKA_LOGS_TOPIC,
                 LOGLEVEL
         );
-        await (logger as KafkaLogger).start();
+        await (logger as KafkaLogger).init();
     }else{
         logger = loggerParam;
     }

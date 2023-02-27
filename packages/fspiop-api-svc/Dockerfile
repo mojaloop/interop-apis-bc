@@ -3,7 +3,8 @@ FROM node:18.13.0-alpine AS builder
 # Create the project directory inside the container.
 WORKDIR /app
 
-RUN apk add --no-cache -t build-dependencies git make gcc g++ python3 libtool autoconf pkgconfig automake bash # wget tar xz
+RUN apk add --no-cache -t build-dependencies git make gcc g++ python3 \
+    libtool autoconf pkgconfig automake librdkafka-dev bash # wget tar xz
 
 RUN cd $(npm root -g)/npm
 RUN npm config set unsafe-perm true
@@ -16,7 +17,11 @@ COPY packages/fspiop-api-svc/package*.json ./packages/fspiop-api-svc/
 
 # If you are building your code for production
 #RUN npm ci --only=production
-RUN npm install
+RUN BUILD_LIBRDKAFKA=0 npm install
+
+# Note on BUILD_LIBRDKAFKA:
+#   Use BUILD_LIBRDKAFKA=0 only if we have installed librdkafka-dev in
+#   the builder image and librdkafka in the final image
 
 ########################################
 # Copy code and build
@@ -33,11 +38,10 @@ COPY packages/fspiop-api-svc ./packages/fspiop-api-svc
 # build
 RUN npm run build
 
-RUN ls -la ./packages/fspiop-api-svc/dist
-
 
 FROM node:18.13-alpine
 WORKDIR /app
+RUN apk add librdkafka
 
 COPY --from=builder /app .
 
