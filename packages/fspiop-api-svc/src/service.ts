@@ -131,6 +131,15 @@ export async function setupExpress(loggerParam:ILogger): Promise<Server> {
     })); // for parsing application/json
     app.use(express.urlencoded({limit: '100mb', extended: true})); // for parsing application/x-www-form-urlencoded
 
+    // TODO: find another way around this since it's only a temporary fix for admin-ui date header 
+    app.use((req, res, next) => {
+        if(req.headers['fspiop-date']) {
+            req.headers.date = req.headers["fspiop-date"] as string;
+            delete req.headers["fspiop-date"];
+        }
+        next()
+    })
+
     participantRoutes = new ParticipantRoutes(kafkaProducerOptions, KAFKA_ACCOUNTS_LOOKUP_TOPIC, loggerParam);
     partyRoutes = new PartyRoutes(kafkaProducerOptions, KAFKA_ACCOUNTS_LOOKUP_TOPIC, loggerParam);
 

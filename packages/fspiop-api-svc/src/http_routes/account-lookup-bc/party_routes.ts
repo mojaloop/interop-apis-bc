@@ -78,11 +78,6 @@ export class PartyRoutes extends BaseRoutes {
         const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
         const currency = req.query["currency"] as string || null;
 
-        if(clonedHeaders['fspiop-date']) {
-            clonedHeaders.date = clonedHeaders["fspiop-date"] as string;
-            delete clonedHeaders["fspiop-date"];
-        }
-
         const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.parties, clonedHeaders);
 
         if(!isValidHeaders || !type || !id || !requesterFspId){
@@ -131,11 +126,6 @@ export class PartyRoutes extends BaseRoutes {
         const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
         const destinationFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
         const currency = req.query["currency"] as string || null;
-
-        if(clonedHeaders['fspiop-date']) {
-            clonedHeaders.date = clonedHeaders["fspiop-date"] as string;
-            delete clonedHeaders["fspiop-date"];
-        }
 
         const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.parties, clonedHeaders);
 
@@ -188,11 +178,6 @@ export class PartyRoutes extends BaseRoutes {
         const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
         const ownerFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
         const currency = req.query["currency"] as string || null;
-
-        if(clonedHeaders['fspiop-date']) {
-            clonedHeaders.date = clonedHeaders["fspiop-date"] as string;
-            delete clonedHeaders["fspiop-date"];
-        }
 
         const isValidHeaders = Validate.validateHeaders(PartiesPutTypeAndIdAndSubId, clonedHeaders);
 
@@ -248,11 +233,6 @@ export class PartyRoutes extends BaseRoutes {
         const ownerFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
         const currency = req.query["currency"] as string || null;
 
-        if(clonedHeaders['fspiop-date']) {
-            clonedHeaders.date = clonedHeaders["fspiop-date"] as string;
-            delete clonedHeaders["fspiop-date"];
-        }
-
         const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.parties, clonedHeaders);
 
         if(!isValidHeaders || !type || !id || !requesterFspId || !ownerFspId){
@@ -303,12 +283,6 @@ export class PartyRoutes extends BaseRoutes {
         const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
         const currency = req.query["currency"] as string || null;
  
-        // Currently for admin-ui support
-        if(clonedHeaders['fspiop-date']) {
-            clonedHeaders.date = clonedHeaders["fspiop-date"] as string;
-            delete clonedHeaders["fspiop-date"];
-        }
-
         const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.parties, clonedHeaders);
 
         if(!isValidHeaders || !type || !id || !requesterFspId){
@@ -357,11 +331,6 @@ export class PartyRoutes extends BaseRoutes {
         const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
         const currency = req.query["currency"] as string || null;
 
-        if(clonedHeaders['fspiop-date']) {
-            clonedHeaders.date = clonedHeaders["fspiop-date"] as string;
-            delete clonedHeaders["fspiop-date"];
-        }
-
         const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.parties, clonedHeaders);
 
         if(!isValidHeaders || !type || !id || !requesterFspId){
@@ -408,11 +377,6 @@ export class PartyRoutes extends BaseRoutes {
         const id = req.params["id"] as string || null;
         const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
         const currency = req.query["currency"] as string || null;
-
-        if(clonedHeaders['fspiop-date']) {
-            clonedHeaders.date = clonedHeaders["fspiop-date"] as string;
-            delete clonedHeaders["fspiop-date"];
-        }
 
         const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.parties, clonedHeaders);
 
@@ -461,11 +425,6 @@ export class PartyRoutes extends BaseRoutes {
         const partySubIdOrType = req.params["subid"] as string || null;
         const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
         const currency = req.query["currency"] as string || null;
-
-        if(clonedHeaders['fspiop-date']) {
-            clonedHeaders.date = clonedHeaders["fspiop-date"] as string;
-            delete clonedHeaders["fspiop-date"];
-        }
 
         const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.parties, clonedHeaders);
 

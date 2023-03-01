@@ -67,11 +67,6 @@ export class ParticipantRoutes extends BaseRoutes {
 
         const currency = req.query["currency"] as string || null;
 
-        if(clonedHeaders['fspiop-date']) {
-            clonedHeaders.date = clonedHeaders["fspiop-date"] as string;
-            delete clonedHeaders["fspiop-date"];
-        }
-
         const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.participants, clonedHeaders);
 
         if(!isValidHeaders || !type || !id || !requesterFspId){
@@ -119,11 +114,6 @@ export class ParticipantRoutes extends BaseRoutes {
         const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
 
         const currency = req.query["currency"] as string || null;
-
-        if(clonedHeaders['fspiop-date']) {
-            clonedHeaders.date = clonedHeaders["fspiop-date"] as string;
-            delete clonedHeaders["fspiop-date"];
-        }
 
         const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.participants, clonedHeaders);
 

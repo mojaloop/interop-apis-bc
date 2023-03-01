@@ -87,7 +87,6 @@ export class TransfersRoutes extends BaseRoutes {
         const expiration = req.body["expiration"] || null;
         const extensionList = req.body["extensionList"] || null;
 
-
         if(!transferId || !payeeFsp || !payerFsp || !amount || !ilpPacket || !condition || !expiration) {
             res.status(400).json({
                 status: "not ok"
