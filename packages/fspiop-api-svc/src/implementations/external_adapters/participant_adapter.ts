@@ -64,12 +64,12 @@ export class ParticipantAdapter implements IParticipantService {
 	}
 
 	async getParticipantInfo(fspId: string): Promise<IParticipant| null> {
-		const result = this._localCache.get("getParticipantInfo", fspId) as IParticipant;
-
-		if (result) {
-			this._logger.debug(`getParticipantInfo: returning cached result for fspId: ${fspId}`);
-			return result;
-		}
+		// const result = this._localCache.get("getParticipantInfo", fspId) as IParticipant;
+		//
+		// if (result) {
+		// 	this._logger.debug(`getParticipantInfo: returning cached result for fspId: ${fspId}`);
+		// 	return result;
+		// }
 
 		try {
 			const result = await this._externalParticipantClient.getParticipantById(fspId);
@@ -85,24 +85,24 @@ export class ParticipantAdapter implements IParticipantService {
 
 	async getParticipantsInfo(fspIds: string[]): Promise<IParticipant[]|null> {
 		let result: IParticipant[] = [];
-		const missingFspIds: string[] = [];
-
-		for (const fspId of fspIds) {
-			const cachedResult = this._localCache.get("getParticipantInfo", fspId) as IParticipant;
-			if (cachedResult) {
-				result.push(cachedResult);
-			} else {
-				missingFspIds.push(fspId);
-			}
-		}
-
-		if (missingFspIds.length === 0) {
-			this._logger.debug(`getParticipantsInfo: returning cached result for fspIds: ${fspIds}`);
-			return result;
-		}
+		// const missingFspIds: string[] = [];
+		//
+		// for (const fspId of fspIds) {
+		// 	const cachedResult = this._localCache.get("getParticipantInfo", fspId) as IParticipant;
+		// 	if (cachedResult) {
+		// 		result.push(cachedResult);
+		// 	} else {
+		// 		missingFspIds.push(fspId);
+		// 	}
+		// }
+		//
+		// if (missingFspIds.length === 0) {
+		// 	this._logger.debug(`getParticipantsInfo: returning cached result for fspIds: ${fspIds}`);
+		// 	return result;
+		// }
 
 		try {
-			const participants = await this._externalParticipantClient.getParticipantsByIds(missingFspIds);
+			const participants = await this._externalParticipantClient.getParticipantsByIds(fspIds);
 			if(participants) {
 				participants.forEach((participant:IParticipant) => this._localCache.set(participant, "getParticipantInfo", participant.id));
 				result = result.concat(participants);
