@@ -41,7 +41,7 @@ import { IParticipantService } from "../../interfaces/infrastructure";
 
 export class ParticipantAdapter implements IParticipantService {
 	private readonly _logger: ILogger;
-	private readonly _localCache: ILocalCache;
+	// private readonly _localCache: ILocalCache;
 	private readonly _clientBaseUrl: string;
 	private readonly _externalParticipantClient :ParticipantsHttpClient;
 	private readonly _authRequester :IAuthenticatedHttpRequester;
@@ -60,7 +60,7 @@ export class ParticipantAdapter implements IParticipantService {
 		this._authRequester = authRequester;
 		this._timeoutMs = timeoutMs;
 		this._externalParticipantClient = new ParticipantsHttpClient(this._logger, this._clientBaseUrl, this._authRequester, this._timeoutMs);
-		this._localCache = localCache ?? new LocalCache(logger);
+		// this._localCache = localCache ?? new LocalCache(logger);
 	}
 
 	async getParticipantInfo(fspId: string): Promise<IParticipant| null> {
@@ -73,9 +73,9 @@ export class ParticipantAdapter implements IParticipantService {
 
 		try {
 			const result = await this._externalParticipantClient.getParticipantById(fspId);
-			if(result) {
-				this._localCache.set(result, "getParticipantInfo", fspId);
-			}
+			// if(result) {
+			// 	this._localCache.set(result, "getParticipantInfo", fspId);
+			// }
 			return result;
 		} catch (e: unknown) {
 			this._logger.error(`getParticipantInfo: error getting participant info for fspId: ${fspId} - ${e}`);
@@ -103,11 +103,11 @@ export class ParticipantAdapter implements IParticipantService {
 
 		try {
 			const participants = await this._externalParticipantClient.getParticipantsByIds(fspIds);
-			if(participants) {
-				participants.forEach((participant:IParticipant) => this._localCache.set(participant, "getParticipantInfo", participant.id));
-				result = result.concat(participants);
-			}
-			return result;
+			// if(participants) {
+			// 	participants.forEach((participant:IParticipant) => this._localCache.set(participant, "getParticipantInfo", participant.id));
+			// 	result = result.concat(participants);
+			// }
+			return participants;
 
 		} catch (e: unknown) {
 			this._logger.error(`getParticipantInfo: error getting participants info for fspIds: ${fspIds} - ${e}`);
