@@ -30,7 +30,8 @@
 
 "use strict";
 
-import {start} from "./service";
-start().then(() => ({}));
+import {Service} from "./service";
 
-export * from "./interfaces/infrastructure";
+Service.start().then(() => {
+    console.log("Service start complete");
+});

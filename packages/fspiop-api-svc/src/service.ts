@@ -57,6 +57,7 @@ import {
 	AuthenticatedHttpRequester,
 	IAuthenticatedHttpRequester
 } from "@mojaloop/security-bc-client-lib";
+import path from "path";
 
 
 const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
@@ -72,7 +73,7 @@ const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
 
 const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
-const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || "/app/data/audit_private_key.pem";
+const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || path.join(__dirname, "../dist/tmp_key_file");
 
 // Account Lookup
 const PARTICIPANTS_URL_RESOURCE_NAME = "participants";
@@ -106,187 +107,202 @@ const kafkaProducerOptions: MLKafkaRawProducerOptions = {
     partitioner: MLKafkaRawProducerPartitioners.MURMUR2
 };
 
-// only the vars required outside the start fn
-let logger:ILogger;
-let expressServer: Server;
-let participantRoutes:ParticipantRoutes;
-let partyRoutes:PartyRoutes;
-let quotesRoutes:QuoteRoutes;
-let bulkQuotesRoutes:QuoteBulkRoutes;
-let transfersRoutes:TransfersRoutes;
-let participantService: IParticipantService;
-let auditClient: IAuditClient;
 // let loginHelper:LoginHelper;
 
-
-export async function setupExpress(loggerParam:ILogger): Promise<Server> {
-    const app = express();
-    app.use(express.json({
-        limit: "100mb",
-        type: (req)=>{
-            return req.headers["content-type"]?.toUpperCase()==="application/json".toUpperCase()
-                || req.headers["content-type"]?.startsWith("application/vnd.interoperability.")
-                || false;
-        }
-    })); // for parsing application/json
-    app.use(express.urlencoded({limit: '100mb', extended: true})); // for parsing application/x-www-form-urlencoded
-
-    // TODO: find another way around this since it's only a temporary fix for admin-ui date header 
-    app.use((req, res, next) => {
-        if(req.headers['fspiop-date']) {
-            req.headers.date = req.headers["fspiop-date"] as string;
-            delete req.headers["fspiop-date"];
-        }
-        next()
-    })
-
-    participantRoutes = new ParticipantRoutes(kafkaProducerOptions, KAFKA_ACCOUNTS_LOOKUP_TOPIC, loggerParam);
-    partyRoutes = new PartyRoutes(kafkaProducerOptions, KAFKA_ACCOUNTS_LOOKUP_TOPIC, loggerParam);
-
-    await participantRoutes.init();
-    await partyRoutes.init();
-
-    app.use(`/${PARTICIPANTS_URL_RESOURCE_NAME}`, participantRoutes.router);
-    app.use(`/${PARTIES_URL_RESOURCE_NAME}`, partyRoutes.router);
-
-    quotesRoutes = new QuoteRoutes(kafkaProducerOptions,  KAFKA_QUOTES_LOOKUP_TOPIC, loggerParam);
-    bulkQuotesRoutes = new QuoteBulkRoutes(kafkaProducerOptions, KAFKA_QUOTES_LOOKUP_TOPIC, loggerParam);
-    transfersRoutes = new TransfersRoutes(kafkaProducerOptions,  KAFKA_TRANSFERS_TOPIC, loggerParam);
-
-    await quotesRoutes.init();
-    await bulkQuotesRoutes.init();
-    await transfersRoutes.init();
-
-    app.use(`/${QUOTES_URL_RESOURCE_NAME}`, quotesRoutes.router);
-    app.use(`/${BULK_QUOTES_URL_RESOURCE_NAME}`, bulkQuotesRoutes.router);
-    app.use(`/${TRANSFERS_URL_RESOURCE_NAME}`, transfersRoutes.router);
-
-    app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
-        // catch all
-        loggerParam.warn(`Received unhandled request to url: ${req.url}`);
-        res.sendStatus(404);
-        next();
-    });
-
-    return createServer(app);
-}
 
 let accountEvtHandler:AccountLookupEventHandler;
 let quotingEvtHandler:QuotingEventHandler;
 let transferEvtHandler:TransferEventHandler;
 
-async function setupEventHandlers():Promise<void>{
-    const kafkaJsonConsumerOptions: MLKafkaJsonConsumerOptions = {
-        kafkaBrokerList: KAFKA_URL,
-        kafkaGroupId: `${BC_NAME}_${APP_NAME}`,
-    };
 
-    const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
-        kafkaBrokerList: KAFKA_URL,
-        producerClientId: `${BC_NAME}_${APP_NAME}`,
-        skipAcknowledgements: true,
-    };
+export class Service {
+	static logger: ILogger;
+	static expressServer: Server;
+    static participantRoutes:ParticipantRoutes;
+    static partyRoutes:PartyRoutes;
+    static quotesRoutes:QuoteRoutes;
+    static bulkQuotesRoutes:QuoteBulkRoutes;
+    static transfersRoutes:TransfersRoutes;
+    static participantService: IParticipantService;
+    static auditClient: IAuditClient
+    
+	static async start(
+        logger?:ILogger,
+        expressServer?: Server,
+        participantService?: IParticipantService,
+        auditClient?: IAuditClient
+    ):Promise<void> {
+        console.log(`Fspiop-api-svc - service starting with PID: ${process.pid}`);
 
-    accountEvtHandler = new AccountLookupEventHandler(
-        logger,
-        kafkaJsonConsumerOptions,
-        kafkaJsonProducerOptions,
-        [KAFKA_ACCOUNTS_LOOKUP_TOPIC],
-        participantService
-    );
-    await accountEvtHandler.init();
+        if(!logger) {
+            logger = new KafkaLogger(
+                    BC_NAME,
+                    APP_NAME,
+                    APP_VERSION,
+                    kafkaProducerOptions,
+                    KAFKA_LOGS_TOPIC,
+                    LOGLEVEL
+            );
+            await (logger as KafkaLogger).init();
+        }
+        this.logger = logger;
 
-    quotingEvtHandler = new QuotingEventHandler(
-        logger,
-        kafkaJsonConsumerOptions,
-        kafkaJsonProducerOptions,
-        [KAFKA_QUOTES_LOOKUP_TOPIC],
-        participantService
-    );
-    await quotingEvtHandler.init();
+        if(!auditClient) {
+            if (!existsSync(AUDIT_KEY_FILE_PATH)) {
+                if (PRODUCTION_MODE) process.exit(9);
 
-    transferEvtHandler = new TransferEventHandler(
-        logger,
-        kafkaJsonConsumerOptions,
-        kafkaJsonProducerOptions,
-        [KAFKA_TRANSFERS_TOPIC],
-        participantService
-    );
-    await transferEvtHandler.init();
+                // create e tmp file
+                LocalAuditClientCryptoProvider.createRsaPrivateKeyFileSync(AUDIT_KEY_FILE_PATH, 2048);
+            }
 
-}
+            const cryptoProvider = new LocalAuditClientCryptoProvider(AUDIT_KEY_FILE_PATH);
+            const auditDispatcher = new KafkaAuditClientDispatcher(kafkaProducerOptions, KAFKA_AUDITS_TOPIC, logger);
+            // NOTE: to pass the same kafka logger to the audit client, make sure the logger is started/initialised already
+            auditClient = new AuditClient(BC_NAME, APP_NAME, APP_VERSION, cryptoProvider, auditDispatcher);
+
+            await auditClient.init();
+        }
+        this.auditClient = auditClient;
 
 
-export async function start(
-        loggerParam?:ILogger,
-        auditClientParam?:IAuditClient):Promise<void> {
-    console.log(`Fspiop-api-svc - service starting with PID: ${process.pid}`);
+        const participantLogger = logger.createChild("participantLogger");
 
-    if(!loggerParam) {
-        logger = new KafkaLogger(
-                BC_NAME,
-                APP_NAME,
-                APP_VERSION,
-                kafkaProducerOptions,
-                KAFKA_LOGS_TOPIC,
-                LOGLEVEL
-        );
-        await (logger as KafkaLogger).init();
-    }else{
-        logger = loggerParam;
-    }
+        const authRequester:IAuthenticatedHttpRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
 
-    if(!auditClientParam) {
-        if (!existsSync(AUDIT_KEY_FILE_PATH)) {
-            if (PRODUCTION_MODE) process.exit(9);
+        authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
+        participantLogger.setLogLevel(LogLevel.INFO);
+        participantService = new ParticipantAdapter(participantLogger, PARTICIPANTS_SVC_URL, authRequester, HTTP_CLIENT_TIMEOUT_MS);
+        this.participantService = participantService;
+        
+        await Service.setupEventHandlers();
 
-            // create e tmp file
-            LocalAuditClientCryptoProvider.createRsaPrivateKeyFileSync(AUDIT_KEY_FILE_PATH, 2048);
+        const app = await Service.setupExpress(logger);
+
+        let portNum = SVC_DEFAULT_HTTP_PORT;
+        if(process.env["SVC_HTTP_PORT"] && !isNaN(parseInt(process.env["SVC_HTTP_PORT"]))) {
+            portNum = parseInt(process.env["SVC_HTTP_PORT"]);
         }
 
-        const cryptoProvider = new LocalAuditClientCryptoProvider(AUDIT_KEY_FILE_PATH);
-        const auditDispatcher = new KafkaAuditClientDispatcher(kafkaProducerOptions, KAFKA_AUDITS_TOPIC, logger);
-        // NOTE: to pass the same kafka logger to the audit client, make sure the logger is started/initialised already
-        auditClient = new AuditClient(BC_NAME, APP_NAME, APP_VERSION, cryptoProvider, auditDispatcher);
+        expressServer = app.listen(portNum, () => {
+            console.log(`🚀 Server ready at: http://localhost:${portNum}`);
+            this.logger.info(`Fspiop-api service v: ${APP_VERSION} started`);
+        });
+        this.expressServer = expressServer;
 
-        await auditClient.init();
-    } else{
-        auditClient = auditClientParam;
     }
 
-    const participantLogger = logger.createChild("participantLogger");
-
-    const authRequester:IAuthenticatedHttpRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
-
-    authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
-    participantLogger.setLogLevel(LogLevel.INFO);
-    participantService = new ParticipantAdapter(participantLogger, PARTICIPANTS_SVC_URL, authRequester, HTTP_CLIENT_TIMEOUT_MS);
-
-    await setupEventHandlers();
-
-    const app = await setupExpress(logger);
-
-    let portNum = SVC_DEFAULT_HTTP_PORT;
-    if(process.env["SVC_HTTP_PORT"] && !isNaN(parseInt(process.env["SVC_HTTP_PORT"]))) {
-        portNum = parseInt(process.env["SVC_HTTP_PORT"]);
+    static async setupEventHandlers():Promise<void>{
+        const kafkaJsonConsumerOptions: MLKafkaJsonConsumerOptions = {
+            kafkaBrokerList: KAFKA_URL,
+            kafkaGroupId: `${BC_NAME}_${APP_NAME}`,
+        };
+    
+        const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
+            kafkaBrokerList: KAFKA_URL,
+            producerClientId: `${BC_NAME}_${APP_NAME}`,
+            skipAcknowledgements: true,
+        };
+    
+        accountEvtHandler = new AccountLookupEventHandler(
+            this.logger,
+            kafkaJsonConsumerOptions,
+            kafkaJsonProducerOptions,
+            [KAFKA_ACCOUNTS_LOOKUP_TOPIC],
+            this.participantService
+        );
+        await accountEvtHandler.init();
+    
+        quotingEvtHandler = new QuotingEventHandler(
+            this.logger,
+            kafkaJsonConsumerOptions,
+            kafkaJsonProducerOptions,
+            [KAFKA_QUOTES_LOOKUP_TOPIC],
+            this.participantService
+        );
+        await quotingEvtHandler.init();
+    
+        transferEvtHandler = new TransferEventHandler(
+            this.logger,
+            kafkaJsonConsumerOptions,
+            kafkaJsonProducerOptions,
+            [KAFKA_TRANSFERS_TOPIC],
+            this.participantService
+        );
+        await transferEvtHandler.init();
+    
     }
 
-    expressServer = app.listen(portNum, () => {
-        console.log(`🚀 Server ready at: http://localhost:${portNum}`);
-        logger.info(`Fspiop-api service v: ${APP_VERSION} started`);
-    });
+    static async setupExpress(loggerParam:ILogger): Promise<Server> {
+        const app = express();
+        app.use(express.json({
+            limit: "100mb",
+            type: (req)=>{
+                return req.headers["content-type"]?.toUpperCase()==="application/json".toUpperCase()
+                    || req.headers["content-type"]?.startsWith("application/vnd.interoperability.")
+                    || false;
+            }
+        })); // for parsing application/json
+        app.use(express.urlencoded({limit: '100mb', extended: true})); // for parsing application/x-www-form-urlencoded
+    
+        // TODO: find another way around this since it's only a temporary fix for admin-ui date header 
+        app.use((req, res, next) => {
+            if(req.headers['fspiop-date']) {
+                req.headers.date = req.headers["fspiop-date"] as string;
+                delete req.headers["fspiop-date"];
+            }
+            next()
+        })
+    
+        this.participantRoutes = new ParticipantRoutes(kafkaProducerOptions, KAFKA_ACCOUNTS_LOOKUP_TOPIC, loggerParam);
+        this.partyRoutes = new PartyRoutes(kafkaProducerOptions, KAFKA_ACCOUNTS_LOOKUP_TOPIC, loggerParam);
+    
+        await this.participantRoutes.init();
+        await this.partyRoutes.init();
+    
+        app.use(`/${PARTICIPANTS_URL_RESOURCE_NAME}`, this.participantRoutes.router);
+        app.use(`/${PARTIES_URL_RESOURCE_NAME}`, this.partyRoutes.router);
+    
+        this.quotesRoutes = new QuoteRoutes(kafkaProducerOptions,  KAFKA_QUOTES_LOOKUP_TOPIC, loggerParam);
+        this.bulkQuotesRoutes = new QuoteBulkRoutes(kafkaProducerOptions, KAFKA_QUOTES_LOOKUP_TOPIC, loggerParam);
+        this.transfersRoutes = new TransfersRoutes(kafkaProducerOptions,  KAFKA_TRANSFERS_TOPIC, loggerParam);
+    
+        await this.quotesRoutes.init();
+        await this.bulkQuotesRoutes.init();
+        await this.transfersRoutes.init();
+    
+        app.use(`/${QUOTES_URL_RESOURCE_NAME}`, this.quotesRoutes.router);
+        app.use(`/${BULK_QUOTES_URL_RESOURCE_NAME}`, this.bulkQuotesRoutes.router);
+        app.use(`/${TRANSFERS_URL_RESOURCE_NAME}`, this.transfersRoutes.router);
+    
+        app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+            // catch all
+            loggerParam.warn(`Received unhandled request to url: ${req.url}`);
+            res.sendStatus(404);
+            next();
+        });
+    
+        return createServer(app);
+    }
+
+	static async stop() {
+		// if (this.handler) await this.handler.stop();
+		// if (this.messageConsumer) await this.messageConsumer.destroy(true);
+
+		// if (this.auditClient) await this.auditClient.destroy();
+		// if (this.logger && this.logger instanceof KafkaLogger) await this.logger.destroy();
+
+        await accountEvtHandler.destroy();
+        await quotingEvtHandler.destroy();
+        await transferEvtHandler.destroy();
+        this.expressServer.close();
+        this.auditClient.destroy();
+        setTimeout(async () => {
+            await (this.logger as KafkaLogger).destroy();
+        }, 5000);
+	}
 }
 
-export async function stop(){
-    await accountEvtHandler.destroy();
-    await quotingEvtHandler.destroy();
-    await transferEvtHandler.destroy();
-    expressServer.close();
-    auditClient.destroy();
-    setTimeout(async () => {
-        await (logger as KafkaLogger).destroy();
-    }, 5000);
-}
+
 
 /**
  * process termination and cleanup
@@ -298,7 +314,7 @@ async function _handle_int_and_term_signals(signal: NodeJS.Signals): Promise<voi
     setTimeout(() => { clean_exit || process.abort();}, 5000);
 
     // call graceful stop routine
-    await stop();
+    await Service.stop();
 
     clean_exit = true;
     process.exit();
@@ -311,10 +327,10 @@ process.on("SIGTERM", _handle_int_and_term_signals.bind(this));
 
 //do something when app is closing
 process.on("exit", async () => {
-    logger.info("Microservice - exiting...");
+    console.log("Microservice - exiting...");
 });
 process.on("uncaughtException", (err: Error) => {
-    logger.error(err);
+    console.log(err);
     console.log("UncaughtException - EXITING...");
     process.exit(999);
 });
