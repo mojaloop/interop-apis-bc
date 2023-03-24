@@ -84,7 +84,7 @@ export class ParticipantAdapter implements IParticipantService {
 	}
 
 	async getParticipantsInfo(fspIds: string[]): Promise<IParticipant[]|null> {
-		let result: IParticipant[] = [];
+		const result: IParticipant[] = [];
 		// const missingFspIds: string[] = [];
 		//
 		// for (const fspId of fspIds) {

@@ -1,4 +1,4 @@
-FROM node:18.13.0-alpine AS builder
+FROM --platform=$BUILDPLATFORM node:18.13.0-alpine AS builder
 
 # Create the project directory inside the container.
 WORKDIR /app
@@ -39,13 +39,13 @@ COPY packages/fspiop-api-svc ./packages/fspiop-api-svc
 RUN npm run build
 
 
-FROM node:18.13-alpine
+FROM --platform=$BUILDPLATFORM node:18.13-alpine
 WORKDIR /app
 RUN apk add librdkafka
 
 COPY --from=builder /app .
 
 # kafka handler, no http server yet
-EXPOSE 3202
+EXPOSE 4000
 
 CMD [ "npm", "run", "start:fspiop-api-svc" ]

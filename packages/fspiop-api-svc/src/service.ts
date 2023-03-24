@@ -64,7 +64,7 @@ const LOGLEVEL:LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG
 
 const BC_NAME = "interop-apis-bc";
 const APP_NAME = "fspiop-api-svc";
-const APP_VERSION = process.env.npm_package_version || "0.0.1";
+const APP_VERSION = process.env.npm_package_version || "0.0.0";
 
 const SVC_DEFAULT_HTTP_PORT = 4000;
 
@@ -131,7 +131,7 @@ export async function setupExpress(loggerParam:ILogger): Promise<Server> {
     })); // for parsing application/json
     app.use(express.urlencoded({limit: '100mb', extended: true})); // for parsing application/x-www-form-urlencoded
 
-    // TODO: find another way around this since it's only a temporary fix for admin-ui date header 
+    // TODO: find another way around this since it's only a temporary fix for admin-ui date header
     app.use((req, res, next) => {
         if(req.headers['fspiop-date']) {
             req.headers.date = req.headers["fspiop-date"] as string;
