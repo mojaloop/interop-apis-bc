@@ -36,8 +36,6 @@ import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { Constants } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { QuoteRequestReceivedEvt, QuoteRequestReceivedEvtPayload, QuoteResponseReceivedEvt, QuoteResponseReceivedEvtPayload, QuoteQueryReceivedEvt, QuoteQueryReceivedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { schemaValidator } from "../ajv";
-import ajv from "ajv";
 import { BaseRoutes } from "../_base_router";
 
 export class QuoteRoutes extends BaseRoutes {
@@ -57,24 +55,9 @@ export class QuoteRoutes extends BaseRoutes {
         this.router.put("/:id", this.quoteResponseReceived.bind(this));
     }
 
-    private async quoteRequestReceived(req: express.Request, res: express.Response): Promise<void> {
+    private async quoteRequestReceived(req: express.Request, res: express.Response, next: any): Promise<void> {
         this.logger.debug("Got quoteRequestReceived request");
-        
-        const validate = schemaValidator.getSchema("QuotesPostRequest") as ajv.ValidateFunction;
-        const valid = validate(req.body);
-        
-        if (!valid) {
-            this.logger.error(validate.errors);
 
-            this.logger.debug(`quoteRequestReceived body errors: ${JSON.stringify(validate.errors)}`);
-
-            res.status(422).json({
-                status: "invalid request body",
-                errors: validate.errors
-            });
-            return;
-        }
-          
         // Headers
         const clonedHeaders = { ...req.headers };
         const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
@@ -147,21 +130,6 @@ export class QuoteRoutes extends BaseRoutes {
 
     private async quoteResponseReceived(req: express.Request, res: express.Response): Promise<void> {
         this.logger.debug("Got quoteResponseReceived request");
-        
-        const validate = schemaValidator.getSchema("QuotesIDPutResponse") as ajv.ValidateFunction;
-        const valid = validate(req.body);
-        
-        if (!valid) {
-            this.logger.error(validate.errors);
-
-            this.logger.debug(`quoteResponseReceived body errors: ${JSON.stringify(validate.errors)}`);
-
-            res.status(422).json({
-                status: "invalid request body",
-                errors: validate.errors
-            });
-            return;
-        }
           
         // Headers
         const clonedHeaders = { ...req.headers };

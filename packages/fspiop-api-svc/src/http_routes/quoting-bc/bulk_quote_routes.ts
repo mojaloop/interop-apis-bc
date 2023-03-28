@@ -35,8 +35,6 @@ import express from "express";
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {Constants} from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import ajv from "ajv";
-import { schemaValidator } from "../ajv";
 import { BulkQuotePendingReceivedEvt, BulkQuotePendingReceivedEvtPayload, BulkQuoteRequestedEvt, BulkQuoteRequestedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseRoutes } from "../_base_router";
  
@@ -64,21 +62,6 @@ export class QuoteBulkRoutes extends BaseRoutes {
     
     private async bulkQuoteRequest(req: express.Request, res: express.Response): Promise<void> {
         this.logger.debug("Got bulkQuoteRequest request");
-        
-        const validate = schemaValidator.getSchema("BulkQuotesPostRequest") as ajv.ValidateFunction;
-        const valid = validate(req.body);
-        
-        if (!valid) {
-            this.logger.error(validate.errors);
-
-            this.logger.debug(`bulkQuoteRequest body errors: ${JSON.stringify(validate.errors)}`);
-
-            res.status(422).json({
-                status: "invalid request body",
-                errors: validate.errors
-            });
-            return;
-        }
           
         // Headers
         const clonedHeaders = { ...req.headers };
@@ -137,22 +120,6 @@ export class QuoteBulkRoutes extends BaseRoutes {
     private async bulkQuotePending(req: express.Request, res: express.Response): Promise<void> {
         this.logger.debug("Got bulkQuotePending request");
         
-        const validate = schemaValidator.getSchema("BulkQuotesIDPutResponse") as ajv.ValidateFunction;
-        const valid = validate(req.body);
-        
-        if (!valid) {
-            this.logger.error(validate.errors);
-
-            this.logger.debug(`bulkQuotePending body errors: ${JSON.stringify(validate.errors)}`);
-
-            // TODO: Check what's wrong with the complexName returned from the TTK
-            // res.status(422).json({
-            //     status: "invalid request body",
-            //     errors: validate.errors
-            // });
-            // return;
-        }
-          
         // Headers
         const clonedHeaders = { ...req.headers };
         const bulkQuoteId = req.params["id"] as string || null;

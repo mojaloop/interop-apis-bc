@@ -58,7 +58,15 @@ import {
 	IAuthenticatedHttpRequester
 } from "@mojaloop/security-bc-client-lib";
 import path from "path";
+import Context from "./http_routes/context";
+import { OpenApiValidator } from "express-openapi-validate";
+import jsYaml from "js-yaml";
+import fs from "fs";
 
+const openApiDocument = jsYaml.load(
+    fs.readFileSync(path.join(__dirname, "../dist/api_spec.yaml"), "utf-8"),
+  ) as any;
+const validator = new OpenApiValidator(openApiDocument);
 
 const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
 const LOGLEVEL:LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
@@ -73,7 +81,7 @@ const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
 
 const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
-const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || path.join(__dirname, "../dist/tmp_key_file");
+const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || "/app/data/audit_private_key.pem";
 
 // Account Lookup
 const PARTICIPANTS_URL_RESOURCE_NAME = "participants";
@@ -244,6 +252,9 @@ export class Service {
         })); // for parsing application/json
         app.use(express.urlencoded({limit: '100mb', extended: true})); // for parsing application/x-www-form-urlencoded
     
+        app.use(validator.match());
+
+  
         // TODO: find another way around this since it's only a temporary fix for admin-ui date header 
         app.use((req, res, next) => {
             if(req.headers['fspiop-date']) {
@@ -252,28 +263,59 @@ export class Service {
             }
             next()
         })
-    
+
         this.participantRoutes = new ParticipantRoutes(kafkaProducerOptions, KAFKA_ACCOUNTS_LOOKUP_TOPIC, loggerParam);
         this.partyRoutes = new PartyRoutes(kafkaProducerOptions, KAFKA_ACCOUNTS_LOOKUP_TOPIC, loggerParam);
-    
-        await this.participantRoutes.init();
-        await this.partyRoutes.init();
-    
-        app.use(`/${PARTICIPANTS_URL_RESOURCE_NAME}`, this.participantRoutes.router);
-        app.use(`/${PARTIES_URL_RESOURCE_NAME}`, this.partyRoutes.router);
-    
         this.quotesRoutes = new QuoteRoutes(kafkaProducerOptions,  KAFKA_QUOTES_LOOKUP_TOPIC, loggerParam);
         this.bulkQuotesRoutes = new QuoteBulkRoutes(kafkaProducerOptions, KAFKA_QUOTES_LOOKUP_TOPIC, loggerParam);
         this.transfersRoutes = new TransfersRoutes(kafkaProducerOptions,  KAFKA_TRANSFERS_TOPIC, loggerParam);
-    
+        
+        await this.participantRoutes.init();
+        await this.partyRoutes.init();
         await this.quotesRoutes.init();
         await this.bulkQuotesRoutes.init();
         await this.transfersRoutes.init();
-    
+        
+        app.use(`/${PARTICIPANTS_URL_RESOURCE_NAME}`, this.participantRoutes.router);
+        app.use(`/${PARTIES_URL_RESOURCE_NAME}`, this.partyRoutes.router);
         app.use(`/${QUOTES_URL_RESOURCE_NAME}`, this.quotesRoutes.router);
         app.use(`/${BULK_QUOTES_URL_RESOURCE_NAME}`, this.bulkQuotesRoutes.router);
         app.use(`/${TRANSFERS_URL_RESOURCE_NAME}`, this.transfersRoutes.router);
     
+        // Middleware
+        app.use((req: Request, res: any, next: any) => {
+            Context.bind(req);
+            next();
+        });
+        
+        app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+            const errorResponseBuilder = (errorCode: string, errorDescription: string, additionalProperties = {}) => {
+                return {
+                  errorInformation: {
+                    errorCode,
+                    errorDescription,
+                    ...additionalProperties
+                  }
+                }
+              }
+              
+            const statusCode = err.statusCode || 500;
+
+            const extensionList = [{
+                key: 'keyword',
+                value: err.data[0].keyword
+              },
+              {
+                key: 'instancePath',
+                value: err.data[0].instancePath
+            }]
+            for (const [key, value] of Object.entries(err.data[0].params)) {
+                extensionList.push({ key, value })
+            }
+
+            res.status(statusCode).json(errorResponseBuilder('3100', err.data[0].message, { extensionList }));
+        });
+
         app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
             // catch all
             loggerParam.warn(`Received unhandled request to url: ${req.url}`);
