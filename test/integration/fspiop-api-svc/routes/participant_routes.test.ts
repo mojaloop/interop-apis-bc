@@ -33,7 +33,7 @@
 
  
 import request from "supertest";
-import { start, stop } from "../../../../packages/fspiop-api-svc/src/service";
+import { start, stop } from "@mojaloop/interop-apis-bc-fspiop-api-svc/src/service";
 import { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
 import { AccountLookupBCTopics, ParticipantQueryReceivedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 
