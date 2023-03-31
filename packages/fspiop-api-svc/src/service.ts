@@ -57,16 +57,6 @@ import {
 	AuthenticatedHttpRequester,
 	IAuthenticatedHttpRequester
 } from "@mojaloop/security-bc-client-lib";
-import path from "path";
-import Context from "./http_routes/context";
-import { OpenApiValidator } from "express-openapi-validate";
-import jsYaml from "js-yaml";
-import fs from "fs";
-
-const openApiDocument = jsYaml.load(
-    fs.readFileSync(path.join(__dirname, "../dist/api_spec.yaml"), "utf-8"),
-  ) as any;
-const validator = new OpenApiValidator(openApiDocument);
 
 const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
 const LOGLEVEL:LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
@@ -251,9 +241,6 @@ export class Service {
             }
         })); // for parsing application/json
         app.use(express.urlencoded({limit: '100mb', extended: true})); // for parsing application/x-www-form-urlencoded
-    
-        app.use(validator.match());
-
   
         // TODO: find another way around this since it's only a temporary fix for admin-ui date header 
         app.use((req, res, next) => {
@@ -281,40 +268,6 @@ export class Service {
         app.use(`/${QUOTES_URL_RESOURCE_NAME}`, this.quotesRoutes.router);
         app.use(`/${BULK_QUOTES_URL_RESOURCE_NAME}`, this.bulkQuotesRoutes.router);
         app.use(`/${TRANSFERS_URL_RESOURCE_NAME}`, this.transfersRoutes.router);
-    
-        // Middleware
-        app.use((req: Request, res: any, next: any) => {
-            Context.bind(req);
-            next();
-        });
-        
-        app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-            const errorResponseBuilder = (errorCode: string, errorDescription: string, additionalProperties = {}) => {
-                return {
-                  errorInformation: {
-                    errorCode,
-                    errorDescription,
-                    ...additionalProperties
-                  }
-                }
-              }
-              
-            const statusCode = err.statusCode || 500;
-
-            const extensionList = [{
-                key: 'keyword',
-                value: err.data[0].keyword
-              },
-              {
-                key: 'instancePath',
-                value: err.data[0].instancePath
-            }]
-            for (const [key, value] of Object.entries(err.data[0].params)) {
-                extensionList.push({ key, value })
-            }
-
-            res.status(statusCode).json(errorResponseBuilder('3100', err.data[0].message, { extensionList }));
-        });
 
         app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
             // catch all
