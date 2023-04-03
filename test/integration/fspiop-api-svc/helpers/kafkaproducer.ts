@@ -44,16 +44,20 @@ export const getCurrentKafkaOffset = (topic: string): Promise<kafka.Message> => 
     
     return new Promise((resolve, reject) => offset.fetchLatestOffsets([topic], (error: any, data: any) => {
         const offsetA = JSON.stringify(data[topic][0]) as unknown as number;
+        const partitions:(string | kafka.OffsetFetchRequest)[] = [];
+
+        for (const [key, value] of Object.entries(data[topic])) {
+            partitions.push({
+                topic: topic,
+                partition: parseInt(key),
+                offset: (value as number)-1, // Offset value starts from 0
+            });
+        }
         
         let consumer = new kafka.Consumer(
             client,
-            [
-                {
-                    topic: topic,
-                    partition: 0,
-                    offset: offsetA-1, // Offset value starts from 0
-                }
-            ], {
+            partitions, 
+            {
                 autoCommit: false,
                 fromOffset: true,
             }

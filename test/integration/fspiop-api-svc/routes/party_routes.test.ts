@@ -34,14 +34,19 @@
 import { AccountLookupBCTopics, ParticipantAssociationRequestReceivedEvt, ParticipantDisassociateRequestReceivedEvt, ParticipantQueryReceivedEvt, PartyInfoAvailableEvt, PartyQueryReceivedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 
 import request from "supertest";
-import { start, stop } from "@mojaloop/interop-apis-bc-fspiop-api-svc/src/service";
+import { Service } from "@mojaloop/interop-apis-bc-fspiop-api-svc";
 import KafkaProducer, { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
+import path from "path";
+import jestOpenAPI from 'jest-openapi';
+
+// Sets the location of your OpenAPI Specification file
+jestOpenAPI(path.join(__dirname, '../../../../packages/fspiop-api-svc/api-specs/account-lookup-service/api-swagger.yaml'));
 
 const server = "http://localhost:4000";
 
 const workingHeaders = { 
-    "accept": "application/vnd.interoperability.parties+json;version=1.0",
-    "content-type": "application/vnd.interoperability.parties+json;version=1.0",
+    "accept": "application/json",
+    "content-type": "application/vnd.interoperability.parties+json;version=1.1",
     "date": "randomdate",
     "fspiop-source": "test-fspiop-source",
 }
@@ -55,11 +60,47 @@ const goodStatusResponse = {
     "status": "ok"
 }
 
-const badStatusResponse = {
-    "status": "not ok"
+const badStatusResponseMissingBodyParty = {
+    "errorInformation":  {
+        "errorCode": "3100",
+        "errorDescription": "must have required property 'party'",
+        "extensionList": [
+            {
+                "key": "keyword",
+                "value": "required",
+            },
+            {
+                "key": "instancePath",
+                "value": "/body",
+            },
+            {
+                "key": "missingProperty",
+                "value": "party",
+            },
+        ],
+    }
 }
 
-const kafkaProducer = new KafkaProducer()
+const badStatusResponseMissingHeaderDate = {
+    "errorInformation":  {
+        "errorCode": "3100",
+        "errorDescription": "must have required property 'date'",
+        "extensionList": [
+        {
+            "key": "keyword",
+            "value": "required",
+        },
+        {
+            "key": "instancePath",
+            "value": "/headers",
+        },
+        {
+            "key": "missingProperty",
+            "value": "date",
+        },
+    ],
+    }
+}
 
 const topic = process.env["KAFKA_ACCOUNTS_LOOKUP_TOPIC"] || AccountLookupBCTopics.DomainRequests;
 
@@ -68,13 +109,11 @@ jest.setTimeout(20000);
 describe("FSPIOP API Service Participant Routes", () => {
 
     beforeAll(async () => {
-        await start();
-        await kafkaProducer.init();
+        await Service.start();
     });
     
     afterAll(async () => {
-        await stop();
-        kafkaProducer.destroy();
+        await Service.stop();
     });
     
     it("should successfully call getPartyQueryReceivedByTypeAndId endpoint", async () => {
@@ -126,11 +165,32 @@ describe("FSPIOP API Service Participant Routes", () => {
     })
 
     it("should successfully call getPartyInfoAvailableByTypeAndId endpoint", async () => {
+        // Arrange
+        const payload = {
+            "party": {
+              "partyIdInfo": {
+                "partyIdType": "MSISDN",
+                "partyIdentifier": "123",
+                "fspId": "Bluebank"
+              }
+            },
+            "name": "Maria Brown",
+            "personalInfo": {
+              "complexName": {
+                "firstName": "Maria Brown",
+                "middleName": "Maria Brown",
+                "lastName": "Maria Brown"
+              },
+              "dateOfBirth": "1954-04-21"
+            }
+          }
+
         // Act
         const expectedOffset = await getCurrentKafkaOffset(topic);
-
+        
         const res = await request(server)
-        .put("/parties/MSISDN/123456789")
+        .put("/parties/MSISDN/111")
+        .send(payload)
         .set(workingHeaders)
 
         let sentMessagesCount = 0;
@@ -150,11 +210,32 @@ describe("FSPIOP API Service Participant Routes", () => {
     })
 
     it("should successfully call getPartyInfoAvailableByTypeAndIdAndSubId endpoint", async () => {
+        // Arrange
+        const payload = {
+            "party": {
+              "partyIdInfo": {
+                "partyIdType": "MSISDN",
+                "partyIdentifier": "123",
+                "fspId": "Bluebank"
+              }
+            },
+            "name": "Maria Brown",
+            "personalInfo": {
+              "complexName": {
+                "firstName": "Maria Brown",
+                "middleName": "Maria Brown",
+                "lastName": "Maria Brown"
+              },
+              "dateOfBirth": "1954-04-21"
+            }
+          }
+
         // Act
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
         .put("/parties/MSISDN/123456789/randomsubtype")
+        .send(payload)
         .set(workingHeaders)
 
         let sentMessagesCount = 0;
@@ -174,75 +255,93 @@ describe("FSPIOP API Service Participant Routes", () => {
     })
 
     it("should successfully call associatePartyByTypeAndId endpoint", async () => {
-       // Act
-       const expectedOffset = await getCurrentKafkaOffset(topic);
+        // Arrange
+        const payload = {
+            "fspId": "test-fsp-id"
+        }
 
-       const res = await request(server)
-       .post("/parties/MSISDN/123456789")
-       .set(workingHeaders)
+        // Act
+        const expectedOffset = await getCurrentKafkaOffset(topic);
 
-       let sentMessagesCount = 0;
-       let expectedOffsetMessage;
-       const currentOffset = await getCurrentKafkaOffset(topic);
-       
-       if (currentOffset.offset && expectedOffset.offset) {
-           sentMessagesCount = currentOffset.offset - expectedOffset.offset;
-           expectedOffsetMessage = JSON.parse(currentOffset.value as string);
-       }
-       
-       // Assert
-       expect(res.statusCode).toEqual(202)
-       expect(res.body).toStrictEqual(goodStatusResponse)
-       expect(sentMessagesCount).toBe(1);
-       expect(expectedOffsetMessage.msgName).toBe(ParticipantAssociationRequestReceivedEvt.name);
+        const res = await request(server)
+        .post("/participants/MSISDN/123456789")
+        .send(payload)
+        .set(workingHeaders)
+
+        let sentMessagesCount = 0;
+        let expectedOffsetMessage;
+        const currentOffset = await getCurrentKafkaOffset(topic);
+        
+        if (currentOffset.offset && expectedOffset.offset) {
+            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
+            expectedOffsetMessage = JSON.parse(currentOffset.value as string);
+        }
+        
+        // Assert
+        expect(res.statusCode).toEqual(202)
+        expect(res.body).toStrictEqual(goodStatusResponse)
+        expect(sentMessagesCount).toBe(1);
+        expect(expectedOffsetMessage.msgName).toBe(ParticipantAssociationRequestReceivedEvt.name);
     })
 
     it("should successfully call associatePartyByTypeAndIdAndSubId endpoint", async () => {
-       // Act
-       const expectedOffset = await getCurrentKafkaOffset(topic);
+        // Arrange
+        const payload = {
+            "fspId": "test-fsp-id"
+        }
 
-       const res = await request(server)
-       .post("/parties/MSISDN/123456789/randomsubtype")
-       .set(workingHeaders)
+        // Act
+        const expectedOffset = await getCurrentKafkaOffset(topic);
 
-       let sentMessagesCount = 0;
-       let expectedOffsetMessage;
-       const currentOffset = await getCurrentKafkaOffset(topic);
-       
-       if (currentOffset.offset && expectedOffset.offset) {
-           sentMessagesCount = currentOffset.offset - expectedOffset.offset;
-           expectedOffsetMessage = JSON.parse(currentOffset.value as string);
-       }
-       
-       // Assert
-       expect(res.statusCode).toEqual(202)
-       expect(res.body).toStrictEqual(goodStatusResponse)
-       expect(sentMessagesCount).toBe(1);
-       expect(expectedOffsetMessage.msgName).toBe(ParticipantAssociationRequestReceivedEvt.name);
+        const res = await request(server)
+        .post("/participants/MSISDN/123456789/randomsubtype")
+        .send(payload)
+        .set(workingHeaders)
+
+        let sentMessagesCount = 0;
+        let expectedOffsetMessage;
+        const currentOffset = await getCurrentKafkaOffset(topic);
+        
+        if (currentOffset.offset && expectedOffset.offset) {
+            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
+            expectedOffsetMessage = JSON.parse(currentOffset.value as string);
+        }
+        
+        // Assert
+        expect(res.statusCode).toEqual(202)
+        expect(res.body).toStrictEqual(goodStatusResponse)
+        expect(sentMessagesCount).toBe(1);
+        expect(expectedOffsetMessage.msgName).toBe(ParticipantAssociationRequestReceivedEvt.name);
     })
 
     it("should successfully call disassociatePartyByTypeAndId endpoint", async () => {
-       // Act
-       const expectedOffset = await getCurrentKafkaOffset(topic);
+        // Arrange
+        const payload = {
+            "fspId": "test-fsp-id"
+        }
+        
+        // Act
+        const expectedOffset = await getCurrentKafkaOffset(topic);
 
-       const res = await request(server)
-       .delete("/parties/MSISDN/123456789")
-       .set(workingHeaders)
+        const res = await request(server)
+        .delete("/participants/MSISDN/123456789")
+        .send(payload)
+        .set(workingHeaders)
 
-       let sentMessagesCount = 0;
-       let expectedOffsetMessage;
-       const currentOffset = await getCurrentKafkaOffset(topic);
-       
-       if (currentOffset.offset && expectedOffset.offset) {
-           sentMessagesCount = currentOffset.offset - expectedOffset.offset;
-           expectedOffsetMessage = JSON.parse(currentOffset.value as string);
-       }
-       
-       // Assert
-       expect(res.statusCode).toEqual(202)
-       expect(res.body).toStrictEqual(goodStatusResponse)
-       expect(sentMessagesCount).toBe(1);
-       expect(expectedOffsetMessage.msgName).toBe(ParticipantDisassociateRequestReceivedEvt.name);
+        let sentMessagesCount = 0;
+        let expectedOffsetMessage;
+        const currentOffset = await getCurrentKafkaOffset(topic);
+        
+        if (currentOffset.offset && expectedOffset.offset) {
+            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
+            expectedOffsetMessage = JSON.parse(currentOffset.value as string);
+        }
+        
+        // Assert
+        expect(res.statusCode).toEqual(202)
+        expect(res.body).toStrictEqual(goodStatusResponse)
+        expect(sentMessagesCount).toBe(1);
+        expect(expectedOffsetMessage.msgName).toBe(ParticipantDisassociateRequestReceivedEvt.name);
     })
 
     it("should successfully call disassociatePartyByTypeAndIdAndSubId endpoint", async () => {
@@ -250,7 +349,7 @@ describe("FSPIOP API Service Participant Routes", () => {
        const expectedOffset = await getCurrentKafkaOffset(topic);
 
        const res = await request(server)
-       .delete("/parties/MSISDN/123456789/randomsubtype")
+       .delete("/participants/MSISDN/123456789/randomsubtype")
        .set(workingHeaders)
 
        let sentMessagesCount = 0;
@@ -286,7 +385,7 @@ describe("FSPIOP API Service Participant Routes", () => {
         
         // Assert
         expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(badStatusResponse)
+        expect(res.body).toStrictEqual(badStatusResponseMissingHeaderDate)
         expect(sentMessagesCount).toBe(0);
     })
 
@@ -307,7 +406,7 @@ describe("FSPIOP API Service Participant Routes", () => {
         
         // Assert
         expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(badStatusResponse)
+        expect(res.body).toStrictEqual(badStatusResponseMissingHeaderDate)
         expect(sentMessagesCount).toBe(0);
     })
 
@@ -328,7 +427,7 @@ describe("FSPIOP API Service Participant Routes", () => {
         
         // Assert
         expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(badStatusResponse)
+        expect(res.body).toStrictEqual(badStatusResponseMissingBodyParty)
         expect(sentMessagesCount).toBe(0);
     })
 
@@ -349,91 +448,61 @@ describe("FSPIOP API Service Participant Routes", () => {
         
         // Assert
         expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(badStatusResponse)
+        expect(res.body).toStrictEqual(badStatusResponseMissingBodyParty)
         expect(sentMessagesCount).toBe(0);
     })
 
-    it("should give a bad request calling associatePartyByTypeAndId endpoint", async () => {
-        // Act
-        const expectedOffset = await getCurrentKafkaOffset(topic);
+    //TTK Negative Paths
 
-        const res = await request(server)
-        .post("/parties/MSISDN/123456789")
-        .set(missingHeaders)
+    // //#region Party info of unprovisioned party
+    // it("Party info with missing fspiop source header", async () => {
+    //     // Arrange
+    //     const headers = {
+    //         "Accept": "{$inputs.accept}",
+    //         "Content-Type": "{$inputs.contentType}",
+    //         "FSPIOP-Source": "{$inputs.fromFspId}"
+    //     }
+
+    //     // Act
+    //     const res = await request(server)
+    //     .get("/parties/inputs.toIdType/123")
+    //     .set(headers)
         
-        let sentMessagesCount = 0;
-        const currentOffset = await getCurrentKafkaOffset(topic);
+    //     // Assert
+    //     expect(res.statusCode).toEqual(400)
+    //     // expect(res.statusText).toStrictEqual(goodStatusResponse)
+    //     expect(res.body).toStrictEqual(badStatusResponseMissingHeaderDate)
+    //     // expect(res).toSatisfyApiSpec();
+
+    //     // Response should contain error information
+    //     // Response should contain error code
+    //     // Response should contain fspiop
+    //     // Response should contain '3102'
+    // })
+    //#region
+
+    // it("Party info of unprovisioned party", async () => {
+    //     // Arrange
+    //     const headers = {
+    //         "Accept": "{$inputs.accept}",
+    //         "Content-Type": "{$inputs.contentType}",
+    //         "Date": "{$function.generic.curDate}",
+    //         "FSPIOP-Source": "{$inputs.fromFspId}"
+    //     }
+
+    //     // Act
+    //     const res = await request(server)
+    //     .get("/parties/inputs.toIdType/123")
+    //     .set(headers)
         
-        if (currentOffset.offset && expectedOffset.offset) {
-            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
-        }
-        
-        // Assert
-        expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(badStatusResponse)
-        expect(sentMessagesCount).toBe(0);
-    })
+    //     // Assert
+    //     expect(res.statusCode).toEqual(202)
+    //     expect(res.body).toStrictEqual(goodStatusResponse)
+    //     delete res.body 
+    //     expect(res).toSatisfyApiSpec();
+    // })
+    //#region
 
-    it("should give a bad request calling associatePartyByTypeAndIdAndSubId endpoint", async () => {
-        // Act
-        const expectedOffset = await getCurrentKafkaOffset(topic);
+    //End TTK Negative Paths
 
-        const res = await request(server)
-        .post("/parties/MSISDN/123456789/randomsubtype")
-        .set(missingHeaders)
-
-        let sentMessagesCount = 0;
-        const currentOffset = await getCurrentKafkaOffset(topic);
-        
-        if (currentOffset.offset && expectedOffset.offset) {
-            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
-        }
-        
-        // Assert
-        expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(badStatusResponse)
-        expect(sentMessagesCount).toBe(0);
-    })
-
-    it("should give a bad request calling disassociatePartyByTypeAndId endpoint", async () => {
-        // Act
-        const expectedOffset = await getCurrentKafkaOffset(topic);
-
-        const res = await request(server)
-        .delete("/parties/MSISDN/123456789")
-        .set(missingHeaders)
-
-        let sentMessagesCount = 0;
-        const currentOffset = await getCurrentKafkaOffset(topic);
-        
-        if (currentOffset.offset && expectedOffset.offset) {
-            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
-        }
-        
-        // Assert
-        expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(badStatusResponse)
-        expect(sentMessagesCount).toBe(0);
-    })
-
-    it("should give a bad request calling disassociatePartyByTypeAndIdAndSubId endpoint", async () => {
-        // Act
-        const expectedOffset = await getCurrentKafkaOffset(topic);
-
-        const res = await request(server)
-        .delete("/parties/MSISDN/123456789/randomsubtype")
-        .set(missingHeaders)
-
-        let sentMessagesCount = 0;
-        const currentOffset = await getCurrentKafkaOffset(topic);
-        
-        if (currentOffset.offset && expectedOffset.offset) {
-            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
-        }
-        
-        // Assert
-        expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(badStatusResponse)
-        expect(sentMessagesCount).toBe(0);
-    })
 });

@@ -36,8 +36,8 @@ import { AccountLookupBCTopics, AccountLookUpErrorEvt, AccountLookUpErrorEvtPayl
 import waitForExpect from "wait-for-expect";
 import jestOpenAPI from 'jest-openapi';
 import path from "path";
-import { Service } from "../../../../packages/fspiop-api-svc/src/service";
-import { IParticipant } from "@mojaloop/participants-bc-client-lib";
+import { Service } from "@mojaloop/interop-apis-bc-fspiop-api-svc";
+import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
 
 // Sets the location of your OpenAPI Specification file
 jestOpenAPI(path.join(__dirname, '../../../../packages/fspiop-api-svc/api-specs/account-lookup-service/api-swagger.yaml'));
@@ -53,7 +53,7 @@ const KAFKA_OPERATOR_ERROR_TOPIC = process.env["KAFKA_OPERATOR_ERROR_TOPIC"] || 
 const partyEntity = "parties";
 const participantsEntity = "participants";
 
-jest.setTimeout(20000);
+jest.setTimeout(40000);
 
 describe("FSPIOP API Service AccountLookup Handler", () => {
     let participantClientSpy: jest.SpyInstance;

@@ -32,6 +32,10 @@
 
 import {Service} from "./service";
 
-Service.start().then(() => {
-    console.log("Service start complete");
-});
+if(process.env.JEST_WORKER_ID === undefined) {
+    Service.start().then(() => {
+        console.log("Started interop service");
+    });
+}
+
+export { Service } from "./service";

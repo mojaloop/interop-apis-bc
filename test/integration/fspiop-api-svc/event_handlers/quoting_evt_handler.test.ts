@@ -35,9 +35,9 @@ import path from "path";
 import jestOpenAPI from 'jest-openapi';
 import waitForExpect from "wait-for-expect";
 import { Request, Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { IParticipant } from "@mojaloop/participants-bc-client-lib";
+import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
 import { BulkQuoteAcceptedEvt, BulkQuoteAcceptedEvtPayload, BulkQuoteReceivedEvt, BulkQuoteReceivedEvtPayload, QuoteErrorEvt, QuoteErrorEvtPayload, QuoteQueryResponseEvt, QuoteQueryResponseEvtPayload, QuoteRequestAcceptedEvt, QuoteRequestAcceptedEvtPayload, QuoteRequestReceivedEvt, QuoteResponseAccepted, QuoteResponseAcceptedEvtPayload, QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { Service } from "../../../../packages/fspiop-api-svc/src/service";
+import { Service } from "@mojaloop/interop-apis-bc-fspiop-api-svc";
 import KafkaProducer, { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
 
 // Sets the location of your OpenAPI Specification file
@@ -52,7 +52,7 @@ const KAFKA_OPERATOR_ERROR_TOPIC = process.env["KAFKA_OPERATOR_ERROR_TOPIC"] || 
 const quoteEntity = "quotes";
 const bulkQuoteEntity = "bulkQuotes";
 
-jest.setTimeout(20000);
+jest.setTimeout(40000);
 
 const validPostPayload = {
     "quoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",

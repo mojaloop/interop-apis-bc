@@ -34,8 +34,8 @@
 import { BulkQuoteRequestedEvt, BulkQuotePendingReceivedEvt, QuoteResponseReceivedEvt, QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
  
 import request from "supertest";
-import { start, stop } from "@mojaloop/interop-apis-bc-fspiop-api-svc/src/service";
-import KafkaProducer, { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
+import { Service } from "@mojaloop/interop-apis-bc-fspiop-api-svc";
+import { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
 
 const server = "http://localhost:4000";
 
@@ -122,22 +122,60 @@ const badStatusResponse = {
     "status": "not ok"
 }
 
-const kafkaProducer = new KafkaProducer()
+const badStatusResponseMissingDateHeader = {
+    "errorInformation":  {
+        "errorCode": "3100",
+        "errorDescription": "must have required property 'date'",
+        "extensionList": [
+            {
+                "key": "keyword",
+                "value": "required",
+            },
+            {
+                "key": "instancePath",
+                "value": "/headers",
+            },
+            {
+                "key": "missingProperty",
+                "value": "date",
+            },
+        ],
+    }
+}
 
-const topic = process.env["KAFKA_QUOTING_TOPIC"] || QuotingBCTopics.DomainRequests;
+const badStatusResponseMissingBodyBulkQuoteId = {
+    "errorInformation":  {
+        "errorCode": "3100",
+        "errorDescription": "must have required property 'bulkQuoteId'",
+        "extensionList": [
+            {
+                "key": "keyword",
+                "value": "required",
+            },
+            {
+                "key": "instancePath",
+                "value": "/body",
+            },
+            {
+                "key": "missingProperty",
+                "value": "bulkQuoteId",
+            },
+        ],
+    }
+}
 
 jest.setTimeout(20000);
+
+const topic = process.env["KAFKA_QUOTING_TOPIC"] || QuotingBCTopics.DomainRequests;
 
 describe("FSPIOP API Service Bulk Quotes Routes", () => {
 
     beforeAll(async () => {
-        await start();
-        await kafkaProducer.init();
+        await Service.start();
     });
     
     afterAll(async () => {
-        await stop();
-        kafkaProducer.destroy();
+        await Service.stop();
     });
     
     it("should successfully call bulkQuoteRequest endpoint", async () => {
@@ -206,7 +244,8 @@ describe("FSPIOP API Service Bulk Quotes Routes", () => {
         }
         
         // Assert
-        expect(res.statusCode).toEqual(422)
+        expect(res.statusCode).toEqual(400)
+        expect(res.body).toStrictEqual(badStatusResponseMissingBodyBulkQuoteId)
         expect(sentMessagesCount).toBe(0);
     })
 
@@ -248,7 +287,7 @@ describe("FSPIOP API Service Bulk Quotes Routes", () => {
         
         // Assert
         expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(badStatusResponse)
+        expect(res.body).toStrictEqual(badStatusResponseMissingDateHeader)
         expect(sentMessagesCount).toBe(0);
     })
 
@@ -271,7 +310,7 @@ describe("FSPIOP API Service Bulk Quotes Routes", () => {
         
         // Assert
         expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(badStatusResponse)
+        expect(res.body).toStrictEqual(badStatusResponseMissingDateHeader)
         expect(sentMessagesCount).toBe(0);
     })
 
