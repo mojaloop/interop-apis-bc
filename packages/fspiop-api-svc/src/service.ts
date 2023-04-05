@@ -316,6 +316,14 @@ export class Service {
             for (const [key, value] of Object.entries(err.data[0].params)) {
                 extensionList.push({ key, value })
             }
+            const customFSPIOPHeaders = ["content-type"];
+
+            const customHeaders:any = {};
+            for (let value of customFSPIOPHeaders) {
+                customHeaders[value] = req.headers[value];
+            }
+
+            res.set(customHeaders)
 
             res.status(statusCode).json(errorResponseBuilder('3100', err.data[0].message, { extensionList }));
         });
