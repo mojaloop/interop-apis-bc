@@ -101,9 +101,7 @@ export class PartyRoutes extends BaseRoutes {
 
         this.logger.debug("getPartyQueryReceivedByTypeAndId sent message");
 
-        res.status(202).json({
-            status: "ok"
-        });
+        res.status(202).json(null);
 
         this.logger.debug("getPartyQueryReceivedByTypeAndId responded");
     }
@@ -150,9 +148,7 @@ export class PartyRoutes extends BaseRoutes {
 
         this.logger.debug("getPartyQueryReceivedByTypeAndIdSubId sent message");
 
-        res.status(202).json({
-            status: "ok"
-        });
+        res.status(202).json(null);
 
         this.logger.debug("getPartyQueryReceivedByTypeAndIdSubId responded");
     }
@@ -206,9 +202,7 @@ export class PartyRoutes extends BaseRoutes {
 
         this.logger.debug("getPartyInfoAvailableByTypeAndId sent message");
 
-        res.status(202).json({
-            status: "ok"
-        });
+        res.status(202).json(null);
 
         this.logger.debug("getPartyInfoAvailableByTypeAndId responded");
     }
@@ -259,9 +253,7 @@ export class PartyRoutes extends BaseRoutes {
 
         this.logger.debug("getPartyInfoAvailableByTypeAndIdAndSubId sent message");
 
-        res.status(202).json({
-            status: "ok"
-        });
+        res.status(202).json(null);
 
         this.logger.debug("getPartyInfoAvailableByTypeAndIdAndSubId responded");
     }

@@ -31,17 +31,17 @@
 
 "use strict"
 
-import { AccountLookupBCTopics, ParticipantAssociationRequestReceivedEvt, ParticipantDisassociateRequestReceivedEvt, PartyInfoAvailableEvt, PartyQueryReceivedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { AccountLookupBCTopics, PartyInfoAvailableEvt, PartyQueryReceivedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import request from "supertest";
 import { Service } from "@mojaloop/interop-apis-bc-fspiop-api-svc";
 import { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
 import path from "path";
 import jestOpenAPI from 'jest-openapi';
-import { getHeaders, defaultEntryValidRequest, badStatusResponse } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { getHeaders, defaultEntryValidRequest, missingPropertyResponse, unknownHeaderResponse } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 
 // Sets the location of your OpenAPI Specification file
-jestOpenAPI(path.join(__dirname, '../../../../packages/fspiop-api-svc/api-specs/account-lookup-service/api-swagger.yaml'));
+jestOpenAPI(path.join(__dirname, '../../../../packages/fspiop-api-svc/dist/api_spec.yaml'));
 
 const server = process.env["SVC_DEFAULT_URL"] || "http://localhost:4000";
 
@@ -217,7 +217,7 @@ describe("FSPIOP API Service Participant Routes", () => {
         
         // Assert
         expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(badStatusResponse("date", "headers"))
+        expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"))
         expect(sentMessagesCount).toBe(0);
     })
 
@@ -238,7 +238,7 @@ describe("FSPIOP API Service Participant Routes", () => {
         
         // Assert
         expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(badStatusResponse("date", "headers"))
+        expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"))
         expect(sentMessagesCount).toBe(0);
     })
 
@@ -259,7 +259,7 @@ describe("FSPIOP API Service Participant Routes", () => {
         
         // Assert
         expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(badStatusResponse("party", "body"))
+        expect(res.body).toStrictEqual(missingPropertyResponse("party", "body"))
         expect(sentMessagesCount).toBe(0);
     })
 
@@ -280,228 +280,154 @@ describe("FSPIOP API Service Participant Routes", () => {
         
         // Assert
         expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(badStatusResponse("party", "body"))
+        expect(res.body).toStrictEqual(missingPropertyResponse("party", "body"))
         expect(sentMessagesCount).toBe(0);
+        
     })
 
     //TTK Negative Paths
 
-    //#region Party info of unprovisioned party
+    //#region Party info with missing header
     it("Party info with missing fspiop source header", async () => {
-        // Arrange
-        const headers = {
-            "Accept": "{$inputs.accept}",
-            "Content-Type": "{$inputs.contentType}",
-            "Date": "{$function.generic.curDate}"
-        }
-
         // Act
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(headers)
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["fspiop-source"]))
         
         // Assert
         expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(badStatusResponse("fspiop-source", "headers"))
+        expect(res.body).toStrictEqual(missingPropertyResponse("fspiop-source", "headers"))
+        expect(res).toSatisfyApiSpec();
 
     })
 
     it("Party info with missing date header", async () => {
-        // Arrange
-        const headers = {
-            "Accept": "{$inputs.accept}",
-            "Content-Type": "{$inputs.contentType}",
-            "FSPIOP-Source": "{$inputs.fromFspId}"
-        }
-
         // Act
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(headers)
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["date"]))
         
         // Assert
         expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(badStatusResponse("date", "headers"))
-        
+        expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"))
+        expect(res).toSatisfyApiSpec();
+
     })
     
     it("Party info with missing content header", async () => {
-        // Arrange
-        const headers = {
-            "Accept": "{$inputs.accept}",
-            "Date": "{$function.generic.curDate}",
-            "FSPIOP-Source": "{$inputs.fromFspId}"
-        }
-
         // Act
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(headers)
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["content-type"]))
         
         // Assert
         expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(badStatusResponse("content-type", "headers"))
-        
+        expect(res.body).toStrictEqual(missingPropertyResponse("content-type", "headers"))
+        expect(res).toSatisfyApiSpec();
+
     })
         
     it("Party info with missing accept header", async () => {
-        // Arrange
-        const headers = {
-            "Content-Type": "application/vnd.interoperability.parties+json;version=1.1",
-            "Date": "Wed, 05 Apr 2023 04:24:47 GMT",
-            "FSPIOP-Source": "testingtoolkitdfsp"
-        }
-
         // Act
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(headers)
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["accept"]))
         
         // Assert
         expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(badStatusResponse("accept", "headers"))
-        // expect(res.headers['content-type']).toEqual(headers['Content-Type'])
-        
+        expect(res.body).toStrictEqual(missingPropertyResponse("accept", "headers"))
+        expect(res).toSatisfyApiSpec();
     })
     // #region
 
     //#region Party info of unprovisioned party
     it("Party info of unprovisioned party", async () => {
-        // Arrange
-        const headers = {
-            "Accept": "{$inputs.accept}",
-            "Content-Type": "application/vnd.interoperability.parties+json;version=1.1",
-            "Date": "{$function.generic.curDate}",
-            "FSPIOP-Source": "{$inputs.fromFspId}"
-        }
-
-        // Act
+        // Act        
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(headers)
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES))
         
         // Assert
         expect(res.statusCode).toEqual(202)
         expect(res.body).toStrictEqual(defaultEntryValidRequest)
-        expect(res.header["Content-Type"]).toEqual("application/vnd.interoperability.parties+json;version=1.1")
+        expect(res).toSatisfyApiSpec();
+
     })
     
-    // it("Party info of unused type", async () => {
-    //     // Arrange
-    //     const headers = {
-    //         "Accept": "application/vnd.interoperability.parties+json;version=1.1",
-    //         "Content-Type": "application/vnd.interoperability.parties+json;version=1.1",
-    //         "Date": "Wed, 05 Apr 2023 04:24:47 GMT",
-    //         "FSPIOP-Source": "testingtoolkitdfsp"
-    //     }
-
-    //     // Act
-    //     const res = await request(server)
-    //     .get(pathWithoutSubType)
-    //     .set(headers)
-        
-    //     // Assert
-    //     expect(res.statusCode).toEqual(202)
-    //     expect(res.body).toStrictEqual(defaultEntryValidRequest)
-    // })
-    // #region
-
-     //#region Party info with wrong header values
-    //  it("Party info with wrong date header (BUG)", async () => {
-    //     // Arrange
-    //     const headers = {
-    //         "Accept": "{$inputs.accept}",
-    //         "Content-Type": "{$inputs.contentType}",
-    //         "Date": "{$function.generic.curDate}",
-    //         "FSPIOP-Source": "{$inputs.fromFspId}"
-    //     }
-
-    //     // Act
-    //     const res = await request(server)
-    //     .get(pathWithoutSubType)
-    //     .set(headers)
-        
-    //     // Assert
-    //     expect(res.statusCode).toEqual(202)
-    //     expect(res.body).toStrictEqual(defaultEntryValidRequest)
-    // })
-    
-    // it("Party info with wrong content header(BUG)", async () => {
-    //     // Arrange
-    //     const headers = {
-    //         "Accept": "{$inputs.accept}",
-    //         "Content-Type": "application/vnd.interoperability.parties+json;version=1.1",
-    //         "Date": "{$function.generic.curDate}",
-    //         "FSPIOP-Source": "{$inputs.fromFspId}"
-    //     }
-
-    //     // Act
-    //     const res = await request(server)
-    //     .get(pathWithoutSubType)
-    //     .set(headers)
-        
-    //     // Assert
-    //     expect(res.statusCode).toEqual(202)
-    //     expect(res.body).toStrictEqual(defaultEntryValidRequest)
-    // })
-
-    it("Party info with wrong accept header(BUG)", async () => {
-        // Arrange
-        const headers = {
-            "Accept": "application/vnd.interoperability.parties+json;version=1.0",
-            "Content-Type": "application/vnd.interoperability.parties+xml;version=15.5",
-            "Date": "Wed, 05 Apr 2023 09:26:43 GMT",
-            "FSPIOP-Source": "testingtoolkitdfsp"
-        }
-
+    it("Party info of unused type", async () => {
         // Act
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(headers)
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES))
+        
+        // Assert
+        expect(res.statusCode).toEqual(202);
+        expect(res.body).toStrictEqual(defaultEntryValidRequest);
+        expect(res).toSatisfyApiSpec();
+
+    })
+    // #region
+
+    //#region Party info with wrong header values
+    it("Party info with wrong date header (BUG)", async () => {
+        // Act
+        const res = await request(server)
+        .get(pathWithoutSubType)
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, [], { "date": "thursday" }))
+        
+        // Assert
+        expect(res.statusCode).toEqual(202)
+        expect(res.body).toStrictEqual(defaultEntryValidRequest)
+        expect(res).toSatisfyApiSpec();
+    })
+    
+    it("Party info with wrong content header(BUG)", async () => {
+        // Act
+        const res = await request(server)
+        .get(pathWithoutSubType)
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, [], { "content-type": "application/vnd.interoperability.parties+xml;version=15.5" }))      
+
+        // Assert
+        expect(res.statusCode).toEqual(400)
+        expect(res.body).toStrictEqual(unknownHeaderResponse)
+        expect(res).toSatisfyApiSpec();
+    })
+
+    it("Party info with wrong accept header(BUG)", async () => {
+        // Act
+        const res = await request(server)
+        .get(pathWithoutSubType)
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, [], { "accept": "application/vnd.interoperability.parties+xml;version=3.0" }))      
         
         // Assert
         expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(defaultEntryValidRequest)
+        expect(res.body).toStrictEqual(unknownHeaderResponse)
+        expect(res).toSatisfyApiSpec();
     })
     //#region
     
     //#region Get Party with wrong optional headers
     it("Get party information", async () => {
-        // Arrange
-        const headers = {
-            "Accept": "{$inputs.accept}",
-            "Content-Type": "{$inputs.contentType}",
-            "Date": "{$function.generic.curDate}",
-            "FSPIOP-Source": "{$inputs.fromFspId}"
-        }
-
         // Act
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(headers)
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES))      
         
         // Assert
         expect(res.statusCode).toEqual(202)
         expect(res.body).toStrictEqual(defaultEntryValidRequest)
+        expect(res).toSatisfyApiSpec();
     })
     
-    it("GET /parties/{Type}/{ID}", async () => {
-        // Arrange
-        const headers = {
-            "Accept": "{$inputs.accept}",
-            "Content-Type": "application/vnd.interoperability.parties+json;version=1.1",
-            "Date": "{$function.generic.curDate}",
-            "FSPIOP-Source": "{$inputs.fromFspId}"
-        }
-
-        // Act
+    it("Get party information with wrong optional HTTP header", async () => {
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(headers)
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES))      
         
         // Assert
         expect(res.statusCode).toEqual(202)
         expect(res.body).toStrictEqual(defaultEntryValidRequest)
+        expect(res).toSatisfyApiSpec();
     })
 
     //#region

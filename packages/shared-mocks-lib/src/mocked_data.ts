@@ -36,16 +36,17 @@ type UnknownProperties = { [k: string]: string };
 
 export const getHeaders = (entity: string, remove?: string[], override?: UnknownProperties): UnknownProperties => {
     const minimalWorkingHeaders = { 
-        "accept": "application/json",
+        "accept": `application/vnd.interoperability.${entity}+json;version=1.1`,
         "content-type": `application/vnd.interoperability.${entity}+json;version=1.1`,
-        "date": "Tue Apr 04 2023 15:10:56 GMT+0100 (Western European Summer Time)",
+        "date": "Mon, 10 Apr 2023 04:04:04 GMT",
         "fspiop-source": "testingtoolkitdfsp",
-    }
+        "traceparent": "00-aabb8e170bb7474d09e73aebcdf0b293-0123456789abcdef0-00"
+    };
 
     const result: UnknownProperties  = {
         ...minimalWorkingHeaders,
         ...override
-    }
+    };
 
     if(Array.isArray(remove) && remove.length > 0) {
         for (const key of remove) {
@@ -61,12 +62,12 @@ export const getBody = (remove: string[], override: UnknownProperties): UnknownP
         "content-type": "application/vnd.interoperability.parties+json;version=1.1",
         "date": "Tue Apr 04 2023 15:10:56 GMT+0100 (Western European Summer Time)",
         "fspiop-source": "testingtoolkitdfsp",
-    }
+    };
 
     const result: UnknownProperties  = {
         ...minimalWorkingHeaders,
         ...override
-    }
+    };
 
     for (const [key, value] of Object.entries(remove)) {
         delete result[key];
@@ -75,12 +76,35 @@ export const getBody = (remove: string[], override: UnknownProperties): UnknownP
     return result;
 };
 
-export const badStatusResponse = (field: string, type: string) => {
+export const badStatusResponse = (options: {
+        code: string;
+        description: string;
+        extensionList: {
+            key: string;
+            value: string;
+        }[]
+}) => {
     return {
         "errorInformation":  {
-            "errorCode": "3100",
-            "errorDescription": `must have required property '${field}'`,
-            "extensionList": [
+            "errorCode": options.code,
+            "errorDescription": options.description,
+            "extensionList": {
+                "extension": options.extensionList.map( extension => {
+                    return {
+                        "key": extension.key,
+                        "value": extension.value,
+                    };
+                })
+            }
+        }
+    };
+};
+
+export const missingPropertyResponse = (field: string, type: string) => {
+    return badStatusResponse({
+        "code": "3100",
+        "description": `must have required property '${field}'`,
+        "extensionList": [
                 {
                     "key": "keyword",
                     "value": "required",
@@ -94,10 +118,16 @@ export const badStatusResponse = (field: string, type: string) => {
                     "value": field
                 },
             ]
-        }
+    });
+};
+
+export const unknownHeaderResponse = {
+    "errorInformation": {
+        "errorCode": "3001",
+        "errorDescription": "Unknown Accept header format"
     }
-}
+};
 
 export const defaultEntryValidRequest = {
     "status": "ok"
-}
+};

@@ -122,6 +122,14 @@ let accountEvtHandler:AccountLookupEventHandler;
 let quotingEvtHandler:QuotingEventHandler;
 let transferEvtHandler:TransferEventHandler;
 
+const generateSingleAcceptRegexStr = (resource: string) =>
+  `application/vnd\\.interoperability\\.${resource}\\+json(\\s{0,1};\\s{0,1}version=\\d+(\\.\\d+)?)?`;
+
+const generateSingleAcceptRegex = (resource: string) =>
+  new RegExp(generateSingleAcceptRegexStr(resource));
+
+const generateAcceptRegex = (resource: string) =>
+  new RegExp(`^${generateSingleAcceptRegexStr(resource)}(,${generateSingleAcceptRegexStr(resource)})*$`);
 
 export class Service {
 	static logger: ILogger;
@@ -132,7 +140,7 @@ export class Service {
     static bulkQuotesRoutes:QuoteBulkRoutes;
     static transfersRoutes:TransfersRoutes;
     static participantService: IParticipantService;
-    static auditClient: IAuditClient
+    static auditClient: IAuditClient;
     
 	static async start(
         logger?:ILogger,
@@ -259,12 +267,32 @@ export class Service {
     
         // TODO: find another way around this since it's only a temporary fix for admin-ui date header 
         app.use((req, res, next) => {
+            const customFSPIOPHeaders = ["accept", "content-type"];
+
+            const customHeaders:any = {};
+            for (const value of customFSPIOPHeaders) {
+                const headerValue = req.headers[value] as string;
+
+                if(req.headers[value]) {
+                    if(!generateAcceptRegex("parties").test(headerValue)) {
+                        return res.status(400).json({
+                            "errorInformation": {
+                                "errorCode": "3001",
+                                "errorDescription": "Unknown Accept header format"
+                            }
+                        });
+                    }
+                }
+            }
+            
             if(req.headers['fspiop-date']) {
                 req.headers.date = req.headers["fspiop-date"] as string;
                 delete req.headers["fspiop-date"];
             }
-            next()
-        })
+
+            next();
+            return;
+        });
         
         app.use(validator.match());
 
@@ -300,8 +328,8 @@ export class Service {
                     errorDescription,
                     ...additionalProperties
                   }
-                }
-              }
+                };
+              };
               
             const statusCode = err.statusCode || 500;
 
@@ -312,20 +340,28 @@ export class Service {
               {
                 key: 'instancePath',
                 value: err.data[0].instancePath
-            }]
+            }];
             for (const [key, value] of Object.entries(err.data[0].params)) {
-                extensionList.push({ key, value })
+                extensionList.push({ key, value });
             }
             const customFSPIOPHeaders = ["content-type"];
 
             const customHeaders:any = {};
-            for (let value of customFSPIOPHeaders) {
-                customHeaders[value] = req.headers[value];
+            for (const value of customFSPIOPHeaders) {
+                const headerValue = req.headers[value] as string;
+
+                if(req.headers[value]) {
+                    if(!generateAcceptRegex("parties").test(headerValue)) {
+                        debugger;
+                    }
+
+                    customHeaders[value] = headerValue;
+                }
             }
 
-            res.set(customHeaders)
+            res.set(customHeaders);
 
-            res.status(statusCode).json(errorResponseBuilder('3100', err.data[0].message, { extensionList }));
+            res.status(statusCode).json(errorResponseBuilder('3100', err.data[0].message, { extensionList: { extension: extensionList} }));
         });
 
         app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {

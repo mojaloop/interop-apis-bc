@@ -36,69 +36,15 @@ import request from "supertest";
 import { Service } from "@mojaloop/interop-apis-bc-fspiop-api-svc";
 import { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
 import { AccountLookupBCTopics, ParticipantAssociationRequestReceivedEvt, ParticipantDisassociateRequestReceivedEvt, ParticipantQueryReceivedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { getHeaders, defaultEntryValidRequest, badStatusResponse } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { getHeaders, defaultEntryValidRequest, missingPropertyResponse } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+
+const server = "http://localhost:4000";
 
 const topic = process.env["KAFKA_ACCOUNTS_LOOKUP_TOPIC"] || AccountLookupBCTopics.DomainRequests;
 
-const server = "http://localhost:4000";
-const workingHeaders = { 
-    "accept": "application/vnd.interoperability.parties+json;version=1.0",
-    "content-type": "application/vnd.interoperability.parties+json;version=1.0",
-    "date": "randomdate",
-    "fspiop-source": "test-fspiop-source",
-}
-
-const missingHeaders = { 
-    "accept": "application/vnd.interoperability.parties+json;version=1.0",
-    "content-type": "application/vnd.interoperability.parties+json;version=1.0",
-}
-
-const goodStatusResponse = {
-    "status": "ok"
-}
-
-const badStatusResponseMissingBodyFspId = {
-    "errorInformation":  {
-        "errorCode": "3100",
-        "errorDescription": "must have required property 'fspId'",
-        "extensionList": [
-            {
-                "key": "keyword",
-                "value": "required",
-            },
-            {
-                "key": "instancePath",
-                "value": "/body",
-            },
-            {
-                "key": "missingProperty",
-                "value": "fspId",
-            },
-        ],
-    }
-}
-
-const badStatusResponseMissingDateHeader = {
-    "errorInformation":  {
-        "errorCode": "3100",
-        "errorDescription": "must have required property 'date'",
-        "extensionList": [
-            {
-                "key": "keyword",
-                "value": "required",
-            },
-            {
-                "key": "instancePath",
-                "value": "/headers",
-            },
-            {
-                "key": "missingProperty",
-                "value": "date",
-            },
-        ],
-    }
-}
+const pathWithoutSubType = `/${Enums.EntityTypeEnum.PARTICIPANTS}/MSISDN/123456789`;
+const pathWithSubType = `/${Enums.EntityTypeEnum.PARTICIPANTS}/MSISDN/123456789/123`;
 
 describe("FSPIOP API Service Participant Routes", () => {
     beforeAll(async () => {
@@ -114,8 +60,8 @@ describe("FSPIOP API Service Participant Routes", () => {
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .get("/participants/MSISDN/123456789")
-        .set(workingHeaders)
+        .get(pathWithoutSubType)
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS));
 
         let sentMessagesCount = 0;
         let expectedOffsetMessage;
@@ -128,7 +74,7 @@ describe("FSPIOP API Service Participant Routes", () => {
         
         // Assert
         expect(res.statusCode).toEqual(202)
-        expect(res.body).toStrictEqual(goodStatusResponse)
+        expect(res.body).toStrictEqual(null)
         expect(sentMessagesCount).toBe(1);
         expect(expectedOffsetMessage.msgName).toBe(ParticipantQueryReceivedEvt.name);
     })
@@ -138,8 +84,8 @@ describe("FSPIOP API Service Participant Routes", () => {
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .get("/participants/MSISDN/123456789/randomsubtype")
-        .set(workingHeaders)
+        .get(pathWithSubType)
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS));
 
         let sentMessagesCount = 0;
         let expectedOffsetMessage;
@@ -152,7 +98,7 @@ describe("FSPIOP API Service Participant Routes", () => {
         
         // Assert
         expect(res.statusCode).toEqual(202)
-        expect(res.body).toStrictEqual(goodStatusResponse)
+        expect(res.body).toStrictEqual(null)
         expect(sentMessagesCount).toBe(1);
         expect(expectedOffsetMessage.msgName).toBe(ParticipantQueryReceivedEvt.name);
     })
@@ -163,8 +109,9 @@ describe("FSPIOP API Service Participant Routes", () => {
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .get("/participants/MSISDN/123456789")
-        .set(missingHeaders)
+        .get(pathWithoutSubType)
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, ["accept", "content-type"]))
+
 
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
@@ -175,7 +122,7 @@ describe("FSPIOP API Service Participant Routes", () => {
         
         // Assert
         expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(badStatusResponseMissingDateHeader)
+        expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"))
         expect(sentMessagesCount).toBe(0);
     })
  
@@ -184,8 +131,9 @@ describe("FSPIOP API Service Participant Routes", () => {
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .get("/participants/MSISDN/123456789/randomsubtype")
-        .set(missingHeaders)
+        .get(pathWithSubType)
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, ["accept", "content-type"]))
+
 
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
@@ -196,7 +144,7 @@ describe("FSPIOP API Service Participant Routes", () => {
         
         // Assert
         expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(badStatusResponseMissingDateHeader)
+        expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"))
         expect(sentMessagesCount).toBe(0);
 
     })
@@ -206,8 +154,9 @@ describe("FSPIOP API Service Participant Routes", () => {
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .post("/participants/MSISDN/123456789")
-        .set(missingHeaders)
+        .post(pathWithoutSubType)
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, ["accept", "content-type"]))
+
         
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
@@ -218,7 +167,7 @@ describe("FSPIOP API Service Participant Routes", () => {
         
         // Assert
         expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(badStatusResponseMissingDateHeader)
+        expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"))
         expect(sentMessagesCount).toBe(0);
     })
 
@@ -227,8 +176,9 @@ describe("FSPIOP API Service Participant Routes", () => {
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .post("/participants/MSISDN/123456789/randomsubtype")
-        .set(missingHeaders)
+        .post(pathWithSubType)
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, ["accept", "content-type"]))
+
 
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
@@ -239,7 +189,7 @@ describe("FSPIOP API Service Participant Routes", () => {
         
         // Assert
         expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(badStatusResponseMissingDateHeader)
+        expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"))
         expect(sentMessagesCount).toBe(0);
     })
 
@@ -248,8 +198,9 @@ describe("FSPIOP API Service Participant Routes", () => {
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .delete("/participants/MSISDN/123456789")
-        .set(missingHeaders)
+        .delete(pathWithoutSubType)
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, ["accept", "content-type"]))
+
 
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
@@ -260,7 +211,7 @@ describe("FSPIOP API Service Participant Routes", () => {
         
         // Assert
         expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(badStatusResponseMissingDateHeader)
+        expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"))
         expect(sentMessagesCount).toBe(0);
     })
 
@@ -269,8 +220,9 @@ describe("FSPIOP API Service Participant Routes", () => {
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .delete("/participants/MSISDN/123456789/randomsubtype")
-        .set(missingHeaders)
+        .delete(pathWithSubType)
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, ["accept", "content-type"]))
+
 
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
@@ -281,7 +233,7 @@ describe("FSPIOP API Service Participant Routes", () => {
         
         // Assert
         expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(badStatusResponseMissingDateHeader)
+        expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"))
         expect(sentMessagesCount).toBe(0);
     })
 
@@ -295,9 +247,9 @@ describe("FSPIOP API Service Participant Routes", () => {
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .post("/participants/MSISDN/123456789")
+        .post(pathWithoutSubType)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES))
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS))
 
         let sentMessagesCount = 0;
         let expectedOffsetMessage;
@@ -325,9 +277,9 @@ describe("FSPIOP API Service Participant Routes", () => {
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .post("/participants/MSISDN/123456789/randomsubtype")
+        .post(pathWithSubType)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES))
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS))
 
         let sentMessagesCount = 0;
         let expectedOffsetMessage;
@@ -355,9 +307,9 @@ describe("FSPIOP API Service Participant Routes", () => {
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .delete("/participants/MSISDN/123456789")
+        .delete(pathWithoutSubType)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES))
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS))
 
         let sentMessagesCount = 0;
         let expectedOffsetMessage;
@@ -380,8 +332,8 @@ describe("FSPIOP API Service Participant Routes", () => {
        const expectedOffset = await getCurrentKafkaOffset(topic);
 
        const res = await request(server)
-       .delete("/participants/MSISDN/123456789/randomsubtype")
-       .set(getHeaders(Enums.EntityTypeEnum.PARTIES))
+       .delete(pathWithSubType)
+       .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS))
 
        let sentMessagesCount = 0;
        let expectedOffsetMessage;
