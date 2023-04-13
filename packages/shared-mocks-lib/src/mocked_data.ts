@@ -29,9 +29,6 @@
 
 "use strict";
 
-const partyType = "MSISDN";
-const partyId = "123";
-
 type UnknownProperties = { [k: string]: string };
 
 export const getHeaders = (entity: string, remove?: string[], override?: UnknownProperties): UnknownProperties => {
@@ -128,6 +125,4 @@ export const unknownHeaderResponse = {
     }
 };
 
-export const defaultEntryValidRequest = {
-    "status": "ok"
-};
+export const defaultEntryValidRequest = null

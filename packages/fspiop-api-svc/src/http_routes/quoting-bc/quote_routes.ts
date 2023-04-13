@@ -121,9 +121,7 @@ export class QuoteRoutes extends BaseRoutes {
 
         this.logger.debug("quoteRequestReceived sent message");
 
-        res.status(202).json({
-            status: "ok"
-        });
+        res.status(202).json(null);
 
         this.logger.debug("quoteRequestReceived responded");
     }
@@ -189,9 +187,7 @@ export class QuoteRoutes extends BaseRoutes {
 
         this.logger.debug("quoteResponseReceived sent message");
 
-        res.status(202).json({
-            status: "ok"
-        });
+        res.status(200).json(null);
 
         this.logger.debug("quoteResponseReceived responded");
     }
@@ -230,9 +226,7 @@ export class QuoteRoutes extends BaseRoutes {
 
         this.logger.debug("quoteQueryReceived sent message");
 
-        res.status(202).json({
-            status: "ok"
-        });
+        res.status(202).json(null);
 
         this.logger.debug("quoteQueryReceived responded");
     }

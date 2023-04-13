@@ -45,10 +45,10 @@ jestOpenAPI(path.join(__dirname, '../../../../packages/fspiop-api-svc/dist/api_s
 
 const server = process.env["SVC_DEFAULT_URL"] || "http://localhost:4000";
 
+const topic = process.env["KAFKA_ACCOUNTS_LOOKUP_TOPIC"] || AccountLookupBCTopics.DomainRequests;
+
 const pathWithoutSubType = `/${Enums.EntityTypeEnum.PARTIES}/MSISDN/123456789`;
 const pathWithSubType = `/${Enums.EntityTypeEnum.PARTIES}/MSISDN/123456789/123`;
-
-const topic = process.env["KAFKA_ACCOUNTS_LOOKUP_TOPIC"] || AccountLookupBCTopics.DomainRequests;
 
 jest.setTimeout(20000);
 

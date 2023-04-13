@@ -29,10 +29,6 @@
     "lint": "eslint ./src",
     "lint:fix": "eslint ./src --fix"
   },
-  "dependencies": {
-    "@mojaloop/participant-bc-public-types-lib": "~0.0.7",
-    "@mojaloop/platform-shared-lib-messaging-types-lib": "^0.2.70"
-  },
   "devDependencies": {
     "eslint": "^8.34.0",
     "npm-check-updates": "^16.7.9",

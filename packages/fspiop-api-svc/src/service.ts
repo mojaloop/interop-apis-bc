@@ -272,9 +272,9 @@ export class Service {
             const customHeaders:any = {};
             for (const value of customFSPIOPHeaders) {
                 const headerValue = req.headers[value] as string;
-
+                const resource = req.originalUrl.split('/')[1];
                 if(req.headers[value]) {
-                    if(!generateAcceptRegex("parties").test(headerValue)) {
+                    if(!generateAcceptRegex(resource).test(headerValue)) {
                         return res.status(400).json({
                             "errorInformation": {
                                 "errorCode": "3001",
@@ -351,10 +351,6 @@ export class Service {
                 const headerValue = req.headers[value] as string;
 
                 if(req.headers[value]) {
-                    if(!generateAcceptRegex("parties").test(headerValue)) {
-                        debugger;
-                    }
-
                     customHeaders[value] = headerValue;
                 }
             }

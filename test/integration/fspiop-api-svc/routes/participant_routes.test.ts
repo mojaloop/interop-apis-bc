@@ -39,7 +39,9 @@ import { AccountLookupBCTopics, ParticipantAssociationRequestReceivedEvt, Partic
 import { getHeaders, defaultEntryValidRequest, missingPropertyResponse } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 
-const server = "http://localhost:4000";
+const SVC_DEFAULT_HTTP_PORT = process.env["SVC_DEFAULT_HTTP_PORT"] || 4000;
+
+const server = `http://localhost:${SVC_DEFAULT_HTTP_PORT}`;
 
 const topic = process.env["KAFKA_ACCOUNTS_LOOKUP_TOPIC"] || AccountLookupBCTopics.DomainRequests;
 
@@ -110,7 +112,7 @@ describe("FSPIOP API Service Participant Routes", () => {
 
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, ["accept", "content-type"]))
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, ["date"]))
 
 
         let sentMessagesCount = 0;
@@ -132,7 +134,7 @@ describe("FSPIOP API Service Participant Routes", () => {
 
         const res = await request(server)
         .get(pathWithSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, ["accept", "content-type"]))
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, ["accept"]))
 
 
         let sentMessagesCount = 0;
@@ -144,18 +146,24 @@ describe("FSPIOP API Service Participant Routes", () => {
         
         // Assert
         expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"))
+        expect(res.body).toStrictEqual(missingPropertyResponse("accept", "headers"))
         expect(sentMessagesCount).toBe(0);
 
     })
 
     it("should give a bad request calling associatePartyByTypeAndId endpoint", async () => {
+        // Arrange
+        const payload = {
+            "fspId": "test-fsp-id"
+        }
+        
         // Act
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
         .post(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, ["accept", "content-type"]))
+        .send(payload)
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, ["accept"]))
 
         
         let sentMessagesCount = 0;
@@ -167,17 +175,23 @@ describe("FSPIOP API Service Participant Routes", () => {
         
         // Assert
         expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"))
+        expect(res.body).toStrictEqual(missingPropertyResponse("accept", "headers"))
         expect(sentMessagesCount).toBe(0);
     })
 
     it("should give a bad request calling associatePartyByTypeAndIdAndSubId endpoint", async () => {
+        // Arrange
+        const payload = {
+            "fspId": "test-fsp-id"
+        }
+        
         // Act
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
         .post(pathWithSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, ["accept", "content-type"]))
+        .send(payload)
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, ["date"]))
 
 
         let sentMessagesCount = 0;
@@ -199,7 +213,7 @@ describe("FSPIOP API Service Participant Routes", () => {
 
         const res = await request(server)
         .delete(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, ["accept", "content-type"]))
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, ["content-type"]))
 
 
         let sentMessagesCount = 0;
@@ -211,7 +225,7 @@ describe("FSPIOP API Service Participant Routes", () => {
         
         // Assert
         expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"))
+        expect(res.body).toStrictEqual(missingPropertyResponse("content-type", "headers"))
         expect(sentMessagesCount).toBe(0);
     })
 
@@ -221,7 +235,7 @@ describe("FSPIOP API Service Participant Routes", () => {
 
         const res = await request(server)
         .delete(pathWithSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, ["accept", "content-type"]))
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, ["content-type"]))
 
 
         let sentMessagesCount = 0;
@@ -233,7 +247,7 @@ describe("FSPIOP API Service Participant Routes", () => {
         
         // Assert
         expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"))
+        expect(res.body).toStrictEqual(missingPropertyResponse("content-type", "headers"))
         expect(sentMessagesCount).toBe(0);
     })
 

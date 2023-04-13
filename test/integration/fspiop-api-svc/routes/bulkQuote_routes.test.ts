@@ -36,6 +36,8 @@ import { BulkQuoteRequestedEvt, BulkQuotePendingReceivedEvt, QuoteResponseReceiv
 import request from "supertest";
 import { Service } from "@mojaloop/interop-apis-bc-fspiop-api-svc";
 import { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
+import { getHeaders, missingPropertyResponse } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 
 const server = "http://localhost:4000";
 
@@ -168,6 +170,9 @@ jest.setTimeout(20000);
 
 const topic = process.env["KAFKA_QUOTING_TOPIC"] || QuotingBCTopics.DomainRequests;
 
+const pathWithoutBulkQuoteId = `/${Enums.EntityTypeEnum.BULK_QUOTES}`;
+const pathWithBulkQuoteId = `/${Enums.EntityTypeEnum.BULK_QUOTES}/123456789`;
+
 describe("FSPIOP API Service Bulk Quotes Routes", () => {
 
     beforeAll(async () => {
@@ -183,9 +188,9 @@ describe("FSPIOP API Service Bulk Quotes Routes", () => {
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .post("/bulkQuotes")
+        .post(pathWithoutBulkQuoteId)
         .send(validPostPayload)
-        .set(workingHeaders)
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES));
 
         let sentMessagesCount = 0;
         let expectedOffsetMessage;
@@ -208,9 +213,9 @@ describe("FSPIOP API Service Bulk Quotes Routes", () => {
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .put("/bulkQuotes/123456789")
+        .put(pathWithBulkQuoteId)
         .send(validPutPayload)
-        .set(workingHeaders)
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES));
 
         let sentMessagesCount = 0;
         let expectedOffsetMessage;
@@ -233,8 +238,8 @@ describe("FSPIOP API Service Bulk Quotes Routes", () => {
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .post("/bulkQuotes")
-        .set(missingHeaders)
+        .post(pathWithoutBulkQuoteId)
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES));
 
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
@@ -244,39 +249,19 @@ describe("FSPIOP API Service Bulk Quotes Routes", () => {
         }
         
         // Assert
-        expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(badStatusResponseMissingBodyBulkQuoteId)
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toStrictEqual(missingPropertyResponse("bulkQuoteId", "body"));
         expect(sentMessagesCount).toBe(0);
     })
-
-    // it("should throw with an unprocessable entity error code calling bulkQuotePending endpoint", async () => {
-    //     // Act
-    //     const expectedOffset = await getCurrentKafkaOffset(topic);
-
-    //     const res = await request(server)
-    //     .put("/bulkQuotes/123456789")
-    //     .set(missingHeaders)
-
-    //     let sentMessagesCount = 0;
-    //     const currentOffset = await getCurrentKafkaOffset(topic);
-        
-    //     if (currentOffset.offset && expectedOffset.offset) {
-    //         sentMessagesCount = currentOffset.offset - expectedOffset.offset;
-    //     }
-        
-    //     // Assert
-    //     expect(res.statusCode).toEqual(422)
-    //     expect(sentMessagesCount).toBe(0);
-    // })
 
     it("should give a bad request calling bulkQuoteRequest endpoint", async () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .post("/bulkQuotes")
+        .post(pathWithoutBulkQuoteId)
         .send(validPostPayload)
-        .set(missingHeaders)
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, ["date"]))
 
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
@@ -287,7 +272,7 @@ describe("FSPIOP API Service Bulk Quotes Routes", () => {
         
         // Assert
         expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(badStatusResponseMissingDateHeader)
+        expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"))
         expect(sentMessagesCount).toBe(0);
     })
 
@@ -297,9 +282,9 @@ describe("FSPIOP API Service Bulk Quotes Routes", () => {
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .put("/bulkQuotes/123456789")
+        .put(pathWithBulkQuoteId)
         .send(validPutPayload)
-        .set(missingHeaders)
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, ["date"]))
 
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
@@ -310,7 +295,7 @@ describe("FSPIOP API Service Bulk Quotes Routes", () => {
         
         // Assert
         expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(badStatusResponseMissingDateHeader)
+        expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"))
         expect(sentMessagesCount).toBe(0);
     })
 
