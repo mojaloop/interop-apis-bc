@@ -32,7 +32,7 @@
  "use strict"
 
 import { Request } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { AccountLookupBCTopics, AccountLookUpErrorEvt, AccountLookUpErrorEvtPayload, ParticipantAssociationCreatedEvt, ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvt, ParticipantAssociationRemovedEvtPayload, ParticipantAssociationRequestReceivedEvt, ParticipantQueryResponseEvt, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvt, PartyInfoRequestedEvtPayload, PartyQueryReceivedEvt, PartyQueryResponseEvt, PartyQueryResponseEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { AccountLookupBCTopics, AccountLookUpUnknownErrorEvent, AccountLookUpUnknownErrorPayload, ParticipantAssociationCreatedEvt, ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvt, ParticipantAssociationRemovedEvtPayload, ParticipantAssociationRequestReceivedEvt, ParticipantQueryResponseEvt, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvt, PartyInfoRequestedEvtPayload, PartyQueryReceivedEvt, PartyQueryResponseEvt, PartyQueryResponseEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import waitForExpect from "wait-for-expect";
 import jestOpenAPI from 'jest-openapi';
 import path from "path";
@@ -84,19 +84,18 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         await kafkaProducer.destroy();
     });
 
-    //#region AccountLookUpErrorEvt
-    it("should successful treat AccountLookUpErrorEvt for Party type event", async () => {
+    //#region AccountLookUpUnknownErrorEvent
+    it("should successful treat AccountLookUpUnknownErrorEvent for Party type event", async () => {
         // Arrange
-        const payload : AccountLookUpErrorEvtPayload = {
+        const payload : AccountLookUpUnknownErrorPayload = {
             requesterFspId: "test-fspiop-source",
             partyId: "123456789",
             partyType: "MSISDN",
             partySubType: null,
-            errorMsg: "test error message",
-            sourceEvent: PartyQueryReceivedEvt.name,
+            errorDescription: "test error message"
         };
 
-        const event = new AccountLookUpErrorEvt(payload);
+        const event = new AccountLookUpUnknownErrorEvent(payload);
 
         event.fspiopOpaqueState = { 
             "requesterFspId":"test-fspiop-source",
@@ -131,18 +130,17 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         expect(await res()).toSatisfyApiSpec();
     })
 
-    it("should successful treat AccountLookUpErrorEvt for IParticipant type event", async () => {
+    it("should successful treat AccountLookUpUnknownErrorEvent for IParticipant type event", async () => {
         // Arrange
-        const payload : AccountLookUpErrorEvtPayload = {
+        const payload : AccountLookUpUnknownErrorPayload = {
             requesterFspId: "test-fspiop-source",
             partyId: "123456789",
             partyType: "MSISDN",
             partySubType: null,
-            errorMsg: "test error message",
-            sourceEvent: ParticipantAssociationRequestReceivedEvt.name,
+            errorDescription: "test error message"
         };
 
-        const event = new AccountLookUpErrorEvt(payload);
+        const event = new AccountLookUpUnknownErrorEvent(payload);
 
         event.fspiopOpaqueState = { 
             "requesterFspId":"test-fspiop-source",
@@ -178,18 +176,17 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
     })
 
 
-    it("should log error when AccountLookUpErrorEvt finds no participant endpoint", async () => {
+    it("should log error when AccountLookUpUnknownErrorEvent finds no participant endpoint", async () => {
         // Arrange
-        const payload : AccountLookUpErrorEvtPayload = {
+        const payload : AccountLookUpUnknownErrorPayload = {
             requesterFspId: "non-existing-requester-id",
             partyId: "123456789",
             partyType: "MSISDN",
             partySubType: null,
-            errorMsg: "test error message",
-            sourceEvent: "non-existing-source-event",
+            errorDescription: "test error message"
         };
 
-        const event = new AccountLookUpErrorEvt(payload);
+        const event = new AccountLookUpUnknownErrorEvent(payload);
 
         event.fspiopOpaqueState = { 
             "requesterFspId":"non-existing-requester-id",
@@ -223,22 +220,21 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Assert        
         await waitForExpect(() => {
             expect(sentMessagesCount).toBe(1);
-            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpErrorEvt.name);
+            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpUnknownErrorEvent.name);
         });
     })
 
-    it("should log when AccountLookUpErrorEvt throws an error", async () => {
+    it("should log when AccountLookUpUnknownErrorEvent throws an error", async () => {
         // Arrange
-        const payload : AccountLookUpErrorEvtPayload = {
+        const payload : AccountLookUpUnknownErrorPayload = {
             requesterFspId: "test-fspiop-source",
             partyId: "123456789",
             partyType: "MSISDN",
             partySubType: null,
-            errorMsg: "test error message",
-            sourceEvent: "non-existing-source-event",
+            errorDescription: "test error message"
         };
 
-        const event = new AccountLookUpErrorEvt(payload);
+        const event = new AccountLookUpUnknownErrorEvent(payload);
 
         event.fspiopOpaqueState = { 
             "requesterFspId":"test-fspiop-source",
@@ -265,18 +261,17 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         });
     })
 
-    it("should use default case when AccountLookUpErrorEvt has no correct name", async () => {
+    it("should use default case when AccountLookUpUnknownErrorEvent has no correct name", async () => {
         // Arrange
-        const payload : AccountLookUpErrorEvtPayload = {
+        const payload : AccountLookUpUnknownErrorPayload = {
             requesterFspId: "test-fspiop-source",
             partyId: "123456789",
             partyType: "MSISDN",
             partySubType: null,
-            errorMsg: "test error message",
-            sourceEvent: "non-existing-source-event",
+            errorDescription: "test error message"
         };
 
-        const event = new AccountLookUpErrorEvt(payload);
+        const event = new AccountLookUpUnknownErrorEvent(payload);
 
         event.msgName = "non-existing-message-name";
 

@@ -35,7 +35,7 @@ import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {
-    QuoteErrorEvt,
+    QuotingBCInvalidIdErrorEvent,
     QuoteRequestAcceptedEvt,
     QuoteRequestReceivedEvt,
     QuoteResponseAccepted,
@@ -67,8 +67,8 @@ export class QuotingEventHandler extends BaseEventHandler {
         const message: IDomainMessage = sourceMessage as IDomainMessage;
 
         switch(message.msgName){
-            case QuoteErrorEvt.name:
-                await this._handleErrorReceivedEvt(new QuoteErrorEvt(message.payload), message.fspiopOpaqueState);
+            case QuotingBCInvalidIdErrorEvent.name:
+                await this._handleErrorReceivedEvt(new QuotingBCInvalidIdErrorEvent(message.payload), message.fspiopOpaqueState);
                 break;
             case QuoteRequestAcceptedEvt.name:
                 await this._handleQuotingCreatedRequestReceivedEvt(new QuoteRequestAcceptedEvt(message.payload), message.fspiopOpaqueState);
@@ -97,7 +97,7 @@ export class QuotingEventHandler extends BaseEventHandler {
         return;
     }
 
-    async _handleErrorReceivedEvt(message: QuoteErrorEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
+    async _handleErrorReceivedEvt(message: QuotingBCInvalidIdErrorEvent, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
         const { payload } = message;
   
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
@@ -112,7 +112,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             
             // TODO discuss about having the specific event for overall errors so we dont have
             // to change an existing event to use the generic topic
-            const msg = new QuoteErrorEvt(payload);
+            const msg = new QuotingBCInvalidIdErrorEvent(payload);
     
             msg.msgTopic = KAFKA_OPERATOR_ERROR_TOPIC;
 
@@ -124,16 +124,13 @@ export class QuotingEventHandler extends BaseEventHandler {
         try {
             this._logger.info('_handleErrorReceivedEvt -> start');
 
-
-            // Always validate the payload and headers received
-            message.validatePayload();
             Validate.validateHeaders(QuotesPost, clonedHeaders);
 
 
             let url: string;
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
 
-            switch(message.payload.sourceEvent){
+            switch(message.payload.sourceEvent) {
                 case QuoteRequestReceivedEvt.name:
                 case QuoteResponseAccepted.name:
                     urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
@@ -156,7 +153,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: Transformer.transformPayloadError({
                     errorCode: Enums.ErrorCode.NOT_FOUND, // TODO: find proper error code
-                    errorDescription: payload.errorMsg
+                    errorDescription: payload.errorMessage
                 }),
             });
 

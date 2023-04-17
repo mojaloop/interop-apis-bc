@@ -82,10 +82,10 @@ export class PartyRoutes extends BaseRoutes {
         const msgPayload: PartyQueryReceivedEvtPayload = {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId,
-            partyType: type,
+            partyType: "MSISDN",
             partyId: id,
             partySubType: null,
-            currency: currency,
+            currency: "USD",
         };
 
         const msg =  new PartyQueryReceivedEvt(msgPayload);
@@ -163,7 +163,7 @@ export class PartyRoutes extends BaseRoutes {
         const type = req.params["type"] as string || null;
         const id = req.params["id"] as string || null;
         const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
         const ownerFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
         const currency = req.query["currency"] as string || null;
 

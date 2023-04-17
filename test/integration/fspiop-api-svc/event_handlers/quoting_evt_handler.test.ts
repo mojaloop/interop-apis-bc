@@ -36,7 +36,7 @@ import jestOpenAPI from 'jest-openapi';
 import waitForExpect from "wait-for-expect";
 import { Request, Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
-import { BulkQuoteAcceptedEvt, BulkQuoteAcceptedEvtPayload, BulkQuoteReceivedEvt, BulkQuoteReceivedEvtPayload, QuoteErrorEvt, QuoteErrorEvtPayload, QuoteQueryResponseEvt, QuoteQueryResponseEvtPayload, QuoteRequestAcceptedEvt, QuoteRequestAcceptedEvtPayload, QuoteRequestReceivedEvt, QuoteResponseAccepted, QuoteResponseAcceptedEvtPayload, QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { BulkQuoteAcceptedEvt, BulkQuoteAcceptedEvtPayload, BulkQuoteReceivedEvt, BulkQuoteReceivedEvtPayload, QuotingBCInvalidIdErrorEvent, QuoteErrorPayload, QuoteQueryResponseEvt, QuoteQueryResponseEvtPayload, QuoteRequestAcceptedEvt, QuoteRequestAcceptedEvtPayload, QuoteRequestReceivedEvt, QuoteResponseAccepted, QuoteResponseAcceptedEvtPayload, QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Service } from "@mojaloop/interop-apis-bc-fspiop-api-svc";
 import KafkaProducer, { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
 
@@ -275,18 +275,18 @@ describe("FSPIOP API Service Quoting Handler", () => {
         await kafkaProducer.destroy();
     });
 
-    //#region QuoteErrorEvt
-    it("should successful treat QuoteErrorEvt for Quote type event", async () => {
+    //#region QuotingBCInvalidIdErrorEvent
+    it("should successful treat QuotingBCInvalidIdErrorEvent for Quote type event", async () => {
         // Arrange
-        const payload: QuoteErrorEvtPayload = {
+        const payload: QuoteErrorPayload = {
             requesterFspId: "test-fspiop-source",
             destinationFspId: "test-fspiop-destination",
             quoteId: '2243fdbe-5dea-3abd-a210-3780e7f2f1f4',
-            errorMsg: "test error message",
+            errorMessage: "test error message",
             sourceEvent: QuoteRequestReceivedEvt.name,
         };
 
-        const event = new QuoteErrorEvt(payload);
+        const event = new QuotingBCInvalidIdErrorEvent(payload);
 
         event.fspiopOpaqueState = { 
             "requesterFspId":"test-fspiop-source",
@@ -321,17 +321,17 @@ describe("FSPIOP API Service Quoting Handler", () => {
         expect(await res()).toSatisfyApiSpec();
     })
 
-    it("should log error when QuoteErrorEvt finds no participant endpoint", async () => {
+    it("should log error when QuotingBCInvalidIdErrorEvent finds no participant endpoint", async () => {
         // Arrange
-        const payload: QuoteErrorEvtPayload = {
+        const payload: QuoteErrorPayload = {
             requesterFspId: "test-fspiop-source",
             destinationFspId: "test-fspiop-destination",
             quoteId: '2243fdbe-5dea-3abd-a210-3780e7f2f1f4',
-            errorMsg: "test error message",
+            errorMessage: "test error message",
             sourceEvent: "non-existing-source-event",
         };
 
-        const event = new QuoteErrorEvt(payload);
+        const event = new QuotingBCInvalidIdErrorEvent(payload);
 
         event.fspiopOpaqueState = { 
             "requesterFspId":"non-existing-requester-id",
@@ -365,22 +365,22 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Assert        
         await waitForExpect(() => {
             expect(sentMessagesCount).toBe(1);
-            expect(expectedOffsetMessage.msgName).toBe(QuoteErrorEvt.name);
+            expect(expectedOffsetMessage.msgName).toBe(QuotingBCInvalidIdErrorEvent.name);
         });
     })
 
-    it("should log when QuoteErrorEvt throws an error", async () => {
+    it("should log when QuotingBCInvalidIdErrorEvent throws an error", async () => {
         // Arrange
-        const payload: QuoteErrorEvtPayload = {
+        const payload: QuoteErrorPayload = {
             requesterFspId: "test-fspiop-source",
             destinationFspId: "test-fspiop-destination",
             quoteId: '2243fdbe-5dea-3abd-a210-3780e7f2f1f4',
-            errorMsg: "test error message",
+            errorMessage: "test error message",
             sourceEvent: "non-existing-source-event",
             ...validPutPayload
         };
 
-        const event = new QuoteErrorEvt(payload);
+        const event = new QuotingBCInvalidIdErrorEvent(payload);
 
         event.fspiopOpaqueState = { 
             "requesterFspId":"test-fspiop-source",
@@ -407,18 +407,18 @@ describe("FSPIOP API Service Quoting Handler", () => {
         });
     })
 
-    it("should use default case when QuoteErrorEvt has no correct name", async () => {
+    it("should use default case when QuotingBCInvalidIdErrorEvent has no correct name", async () => {
         // Arrange
-        const payload: QuoteErrorEvtPayload = {
+        const payload: QuoteErrorPayload = {
             requesterFspId: "test-fspiop-source",
             destinationFspId: "test-fspiop-destination",
             quoteId: '2243fdbe-5dea-3abd-a210-3780e7f2f1f4',
-            errorMsg: "test error message",
+            errorMessage: "test error message",
             sourceEvent: "non-existing-source-event",
             ...validPutPayload
         };
 
-        const event = new QuoteErrorEvt(payload);
+        const event = new QuotingBCInvalidIdErrorEvent(payload);
 
         event.msgName = "non-existing-message-name";
 

@@ -38,6 +38,7 @@
   },
   "devDependencies": {
     "@mojaloop/interop-apis-bc-shared-mocks-lib": "*",
+    "@mojaloop/ml-testing-toolkit-client-lib": "^1.2.0",
     "@types/jest": "^29.2.3",
     "@types/js-yaml": "^4.0.5",
     "@types/node": "^18.11.9",
@@ -58,7 +59,6 @@
     "packages/fspiop-utils-lib",
     "packages/fspiop-api-svc",
     "packages/shared-mocks-lib"
-
   ],
   "dependencies": {
     "@mojaloop/platform-shared-lib-public-messages-lib": "~0.1.78",

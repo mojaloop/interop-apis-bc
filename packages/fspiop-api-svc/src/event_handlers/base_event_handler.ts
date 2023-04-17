@@ -38,9 +38,10 @@ import { IParticipantEndpoint } from "@mojaloop/participants-bc-client-lib";
 import { IEventHandler } from "../interfaces/types";
 import { IParticipantService } from "../interfaces/infrastructure";
 import { IncomingHttpHeaders } from "http";
-import { AccountLookUpErrorEvt, QuoteErrorEvt, TransferErrorEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { AccountLookUpUnknownErrorEvent, QuotingBCInvalidIdErrorEvent, TransferErrorEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { AxiosError } from "axios";
 import { Constants, Request, Enums, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { AccountLookupEventHandler } from "./account_lookup_evt_handler";
 
 export abstract class BaseEventHandler implements IEventHandler {
     protected _kafkaConsumer: MLKafkaJsonConsumer;
@@ -50,6 +51,7 @@ export abstract class BaseEventHandler implements IEventHandler {
     protected _producerOptions: MLKafkaJsonProducerOptions;
     protected _kafkaProducer: MLKafkaJsonProducer;
     protected _participantService: IParticipantService;
+    protected readonly _errorTopicName: string;
 
     constructor(
             logger: ILogger,
@@ -125,6 +127,7 @@ export abstract class BaseEventHandler implements IEventHandler {
             urlBuilder.setLocation(id);
             urlBuilder.hasError(true);
 
+            throw Error("test error")
             await Request.sendRequest({
                 url: urlBuilder.build(),
                 headers: headers,
@@ -141,6 +144,26 @@ export abstract class BaseEventHandler implements IEventHandler {
             const error = err as unknown as any;
 
             this._logger.error(error.stack);
+
+            const test = this.constructor.name;
+            
+            this._logger.error("Cannot get requestedEndpoint at _handleAccountLookUpErrorReceivedEvt()");
+            
+            let msg:IMessage;
+            
+            switch(this.constructor.name) {
+                case AccountLookupEventHandler.name: {
+                    // const msg =  new AccountLookUpUnknownErrorEvent(payload);
+
+                    // msg.msgTopic = this._errorTopicName;
+                    break;
+                }
+            }
+    
+
+            // await this._kafkaProducer.send(msg);
+            
+            return;
         }
 
         return;
@@ -154,6 +177,6 @@ export abstract class BaseEventHandler implements IEventHandler {
 
     abstract processMessage (sourceMessage: IMessage): Promise<void>
 
-    abstract _handleErrorReceivedEvt(message: AccountLookUpErrorEvt | QuoteErrorEvt | TransferErrorEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>
+    abstract _handleErrorReceivedEvt(message: AccountLookUpUnknownErrorEvent | QuotingBCInvalidIdErrorEvent | TransferErrorEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>
 
 }
