@@ -219,6 +219,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 endpoint: requestedEndpoint,
                 entity: Enums.EntityTypeEnum.QUOTES,
                 id: [payload.quoteId],
+                errorCode: ""
             });
         }
 
@@ -278,6 +279,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 endpoint: requestedEndpoint,
                 entity: Enums.EntityTypeEnum.QUOTES,
                 id: [payload.quoteId],
+                errorCode: ""
             });
         }
 
@@ -337,6 +339,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 endpoint: requestedEndpoint,
                 entity: Enums.EntityTypeEnum.QUOTES,
                 id: [payload.quoteId],
+                errorCode: ""
             });
         }
 
@@ -392,6 +395,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 endpoint: requestedEndpoint,
                 entity: Enums.EntityTypeEnum.BULK_QUOTES,
                 id: [payload.bulkQuoteId],
+                errorCode: ""
             });
         }
 
@@ -449,6 +453,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 endpoint: requestedEndpoint,
                 entity: Enums.EntityTypeEnum.BULK_QUOTES,
                 id: [payload.bulkQuoteId],
+                errorCode: ""
             });
         }
 

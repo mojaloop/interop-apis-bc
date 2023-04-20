@@ -205,6 +205,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 endpoint: requestedEndpoint,
                 entity: Enums.EntityTypeEnum.TRANSFERS,
                 id: [payload.transferId],
+                errorCode: ""
             });
         }
 
@@ -264,6 +265,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 endpoint: requestedEndpoint,
                 entity: Enums.EntityTypeEnum.TRANSFERS,
                 id: [payload.transferId],
+                errorCode: ""
             });
         }
 

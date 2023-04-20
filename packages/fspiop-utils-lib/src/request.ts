@@ -57,7 +57,7 @@ type RequestOptions = {
   source: string, 
   destination: string | null, 
   method: FspiopRequestMethodsEnum, 
-  payload: EventPayload, 
+  payload: any, 
   responseType?: ResponseTypeEnum, 
   protocolVersions?: { 
     content: typeof FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION; 
