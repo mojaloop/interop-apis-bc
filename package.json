@@ -19,7 +19,6 @@
     "start": "npm -ws --parallel -v run start",
     "start:fspiop-api-svc": "npm -w @mojaloop/interop-apis-bc-fspiop-api-svc run start",
     "build": "npm -ws run build",
-    "docker:build": "npm run build && docker build . -t \"mojaloop/interop-apis-bc-fspiop-api-svc\"",
     "watch": "npm -ws --parallel  run watch",
     "clean": "npm run clean:dist; npm run clean:npm",
     "clean:npm": "rm -Rf node_modules; npm -ws run clean:npm",
