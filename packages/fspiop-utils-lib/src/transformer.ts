@@ -172,7 +172,7 @@ export const transformPayloadError = ({
 				errorCode: errorCode,
 				errorDescription: errorDescription,
 			}
-		}
+		};
 
 		if(extensionList) {
 			payload.errorInformation.extensionList = extensionList;

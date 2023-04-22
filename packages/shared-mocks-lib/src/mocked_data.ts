@@ -125,4 +125,4 @@ export const unknownHeaderResponse = {
     }
 };
 
-export const defaultEntryValidRequest = null
+export const defaultEntryValidRequest = null;

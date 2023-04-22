@@ -48,7 +48,7 @@ const kafkaProducer = new KafkaProducer()
 
 const localhostUrl = 'http://127.0.0.1:4040';
 const KAFKA_ACCOUNTS_LOOKUP_TOPIC = process.env["KAFKA_ACCOUNTS_LOOKUP_TOPIC"] || AccountLookupBCTopics.DomainEvents;
-const KAFKA_OPERATOR_ERROR_TOPIC = process.env["KAFKA_OPERATOR_ERROR_TOPIC"] || 'OperatorBcErrors';
+const KAFKA_OPERATOR_ERROR_TOPIC = process.env["KAFKA_OPERATOR_ERROR_TOPIC"] || AccountLookupBCTopics.DomainErrors;
 
 const partyEntity = "parties";
 const participantsEntity = "participants";
@@ -88,7 +88,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
     it("should successful treat AccountLookUpUnknownErrorEvent for Party type event", async () => {
         // Arrange
         const payload : AccountLookUpUnknownErrorPayload = {
-            requesterFspId: "test-fspiop-source",
+            fspId: "test-fspiop-source",
             partyId: "123456789",
             partyType: "MSISDN",
             partySubType: null,
@@ -133,7 +133,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
     it("should successful treat AccountLookUpUnknownErrorEvent for IParticipant type event", async () => {
         // Arrange
         const payload : AccountLookUpUnknownErrorPayload = {
-            requesterFspId: "test-fspiop-source",
+            fspId: "test-fspiop-source",
             partyId: "123456789",
             partyType: "MSISDN",
             partySubType: null,
@@ -179,7 +179,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
     it("should log error when AccountLookUpUnknownErrorEvent finds no participant endpoint", async () => {
         // Arrange
         const payload : AccountLookUpUnknownErrorPayload = {
-            requesterFspId: "non-existing-requester-id",
+            fspId: "non-existing-requester-id",
             partyId: "123456789",
             partyType: "MSISDN",
             partySubType: null,
@@ -206,7 +206,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         
         kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
 
-        await new Promise((r) => setTimeout(r, 2000));
+        await new Promise((r) => setTimeout(r, 5000));
 
         let sentMessagesCount = 0;
         let expectedOffsetMessage: any;
@@ -224,10 +224,10 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         });
     })
 
-    it("should log when AccountLookUpUnknownErrorEvent throws an error", async () => {
+    it("should send an error request when AccountLookUpUnknownErrorEvent is handled successfully", async () => {
         // Arrange
         const payload : AccountLookUpUnknownErrorPayload = {
-            requesterFspId: "test-fspiop-source",
+            fspId: "test-fspiop-source",
             partyId: "123456789",
             partyType: "MSISDN",
             partySubType: null,
@@ -253,18 +253,21 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
 
         jest.spyOn(Request, "sendRequest");
             
-        await new Promise((r) => setTimeout(r, 2000));
+        await new Promise((r) => setTimeout(r, 5000));
 
         // Assert        
         await waitForExpect(() => {
-            expect(Request.sendRequest).toHaveBeenCalledTimes(0)
+            expect(Request.sendRequest).toHaveBeenCalled()
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                url: `${localhostUrl}/${partyEntity}/${payload.partyType}/${payload.partyId}/error`
+            }));
         });
     })
 
     it("should use default case when AccountLookUpUnknownErrorEvent has no correct name", async () => {
         // Arrange
         const payload : AccountLookUpUnknownErrorPayload = {
-            requesterFspId: "test-fspiop-source",
+            fspId: "test-fspiop-source",
             partyId: "123456789",
             partyType: "MSISDN",
             partySubType: null,
@@ -319,7 +322,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         
         kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
 
-        await new Promise((r) => setTimeout(r, 2000));
+        await new Promise((r) => setTimeout(r, 5000));
 
         let sentMessagesCount = 0;
         let expectedOffsetMessage: any;

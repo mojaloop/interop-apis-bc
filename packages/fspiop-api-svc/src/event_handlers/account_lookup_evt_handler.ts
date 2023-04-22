@@ -113,7 +113,23 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                     break;
             }
         } catch (e: unknown) {
-            throw Error("overall error from accountevthandler")
+            const message: IDomainMessage = sourceMessage as IDomainMessage;
+
+            const clonedHeaders = { ...message.fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+            const requesterFspId = clonedHeaders["fspiop-source"] as string;
+            const partyType = message.payload.partyType as string;
+            const partyId = message.payload.partyId as string;
+            const partySubType = message.payload.partySubType as string;
+
+            this._sendErrorFeedbackToFsp({
+                message: message,
+                error: message.msgName,
+                errorCode: "errorCode",
+                headers: message.fspiopOpaqueState.headers,
+                source: requesterFspId,
+                endpoint: {} as any,
+                id: [partyType, partyId, partySubType]
+            });
         }
 
         // make sure we only return from the processMessage/handler after completing the request,
@@ -133,7 +149,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         const partyId = payload.partyId as string;
         const partySubType = payload.partySubType as string;
 
-        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
+        const requestedEndpoint = (await this._validateParticipantAndGetEndpoint(requesterFspId))!;
 
         // Always validate the payload and headers received
         Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
@@ -144,14 +160,14 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         urlBuilder.setLocation([partyType, partyId, partySubType]);
         urlBuilder.hasError(true);
         
-        let extensionList = [];
+        const extensionList = [];
         let list: any[] = [];
-        let errorCode: string = "1000"; // Default error code
+        let errorCode = "1000"; // Default error code
 
         switch(message.msgName){
             case AccountLookupBCUnableToAssociateParticipantErrorEvent.name:
             case AccountLookupBCUnableToDisassociateParticipantErrorEvent.name: {
-                list = ["partyType", "partyId", "partySubType", "fspId"]
+                list = ["partyType", "partyId", "partySubType", "fspId"];
                 errorCode = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR;
 
                 break;
@@ -159,7 +175,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             case AccountLookupBCNoSuchParticipantErrorEvent.name:
             case AccountLookupBCUnableToGetParticipantFspIdErrorEvent.name: 
             case AccountLookupBCNoSuchParticipantFspIdErrorEvent.name: {
-                list = ["partyType", "partyId", "partySubType", "fspId"]
+                list = ["partyType", "partyId", "partySubType", "fspId"];
 
                 if(clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === message.payload.fspId) {
                     errorCode = Enums.ClientErrorCodes.PAYER_FSP_ID_NOT_FOUND;
@@ -170,7 +186,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 break;
             }
             case AccountLookupBCInvalidParticipantIdErrorEvent.name: {
-                list = ["partyType", "partyId", "partySubType", "fspId"]
+                list = ["partyType", "partyId", "partySubType", "fspId"];
 
                 if(clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === message.payload.fspId) {
                     errorCode = Enums.ClientErrorCodes.GENERIC_CLIENT_ERROR;
@@ -186,13 +202,13 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             case AccountLookupBCNoSuchOracleErrorEvent.name: 
             case AccountLookupBCNoSuchOracleAdapterErrorEvent.name: {
                 
-                list = ["partyType", "partyId", "partySubType", "fspId"]
+                list = ["partyType", "partyId", "partySubType", "fspId"];
                 errorCode = Enums.ClientErrorCodes.GENERIC_CLIENT_ERROR;
 
                 break;
             }
             case AccountLookUpUnknownErrorEvent.name: {
-                list = ["partyType", "partyId", "partySubType", "fspId"]
+                list = ["partyType", "partyId", "partySubType", "fspId"];
                 errorCode = Enums.ServerErrorCodes.INTERNAL_SERVER_ERROR;
 
                 break;
@@ -208,7 +224,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 extensionList.push({
                     key: list[i],
                     value: payload[list[i]]
-                })
+                });
             }
         } 
 
@@ -229,17 +245,17 @@ export class AccountLookupEventHandler extends BaseEventHandler {
     }
 
     private async _handleParticipantAssociationRequestReceivedEvt(message: ParticipantAssociationCreatedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
-        const { payload } = message;
-  
-        const requesterFspId = payload.ownerFspId;
-        const partyType = payload.partyType;
-        const partyId = payload.partyId;
-        const partySubType = payload.partySubType as string;
-        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-        
-        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
-
         try {
+            const { payload } = message;
+    
+            const requesterFspId = payload.ownerFspId;
+            const partyType = payload.partyType;
+            const partyId = payload.partyId;
+            const partySubType = payload.partySubType as string;
+            const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+            
+            const requestedEndpoint = (await this._validateParticipantAndGetEndpoint(requesterFspId))!;
+
             this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> start');
 
             // Always validate the payload and headers received
@@ -261,32 +277,25 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> end');
 
         } catch (error: unknown) {
-            this._sendErrorFeedbackToFsp({ 
-                error: error,
-                headers: clonedHeaders,
-                source: requesterFspId,
-                endpoint: requestedEndpoint,
-                entity: Enums.EntityTypeEnum.PARTIES,
-                id: [partyType, partyId, partySubType],
-                errorCode: ""
-            });
+            this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> error');
+            throw Error("_handleParticipantAssociationRequestReceivedEvt -> error")
         }
 
         return;
     }
     
     private async _handleParticipantDisassociateRequestReceivedEvt(message: ParticipantAssociationRemovedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
-        const { payload } = message;
-  
-        const requesterFspId = payload.ownerFspId;
-        const partyType = payload.partyType;
-        const partyId = payload.partyId;
-        const partySubType = payload.partySubType as string;
-        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-
-        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
-
         try {
+            const { payload } = message;
+    
+            const requesterFspId = payload.ownerFspId;
+            const partyType = payload.partyType;
+            const partyId = payload.partyId;
+            const partySubType = payload.partySubType as string;
+            const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+
+            const requestedEndpoint = (await this._validateParticipantAndGetEndpoint(requesterFspId))!;
+
             this._logger.info('_handleParticipantDisassociateRequestReceivedEvt -> start');
 
             // Always validate the payload and headers received
@@ -310,40 +319,34 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             this._logger.info('_handleParticipantDisassociateRequestReceivedEvt -> end');
 
         } catch (error: unknown) {
-            this._sendErrorFeedbackToFsp({ 
-                error: error,
-                headers: clonedHeaders,
-                source: requesterFspId,
-                endpoint: requestedEndpoint,
-                entity: Enums.EntityTypeEnum.PARTIES,
-                id: [partyType, partyId, partySubType],
-                errorCode: ""
-            });
+            this._logger.info('_handleParticipantDisassociateRequestReceivedEvt -> error');
+            throw Error("_handleParticipantDisassociateRequestReceivedEvt -> error")
         }
 
         return;
     }
 
     private async _handlePartyInfoRequestedEvt(message: PartyInfoRequestedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
-        const { payload } = message;
-  
-        const requesterFspId = payload.requesterFspId;
-        const destinationFspId = payload.destinationFspId;
-        const partyType = payload.partyType;
-        const partyId = payload.partyId;
-        const partySubType = payload.partySubType as string;
-        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-
-        // TODO handle the case where destinationFspId is null and remove ! below
-
-        if(!destinationFspId){
-            // TODO this must send an error that can be forwarded to the operator - to a special topic
-            return;
-        }
-
-        const destinationEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
-
         try {
+
+            const { payload } = message;
+    
+            const requesterFspId = payload.requesterFspId;
+            const destinationFspId = payload.destinationFspId;
+            const partyType = payload.partyType;
+            const partyId = payload.partyId;
+            const partySubType = payload.partySubType as string;
+            const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+
+            // TODO handle the case where destinationFspId is null and remove ! below
+
+            if(!destinationFspId){
+                // TODO this must send an error that can be forwarded to the operator - to a special topic
+                return;
+            }
+
+            const destinationEndpoint = (await this._validateParticipantAndGetEndpoint(destinationFspId))!;
+
             this._logger.info('_handlePartyInfoRequestedEvt -> start');
             
             // Always validate the payload and headers received
@@ -370,15 +373,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             this._logger.info('_handlePartyInfoRequestedEvt -> end');
     
         } catch (error: unknown) {
-            this._sendErrorFeedbackToFsp({ 
-                error: error,
-                headers: clonedHeaders,
-                source: requesterFspId,
-                endpoint: destinationEndpoint,
-                entity: Enums.EntityTypeEnum.PARTIES,
-                id: [partyType, partyId, partySubType],
-                errorCode: ""
-            });
+            this._logger.info('_handlePartyInfoRequestedEvt -> error');
+            throw Error("_handlePartyInfoRequestedEvt -> error")
         }
 
         return;
@@ -394,7 +390,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         const partySubType = payload.partySubType as string;
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
 
-        const destinationEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
+        const destinationEndpoint = (await this._validateParticipantAndGetEndpoint(destinationFspId))!;
 
         try {
             this._logger.info('_handlePartyQueryResponseEvt -> start');
@@ -443,17 +439,17 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
 
     private async _handleParticipantQueryResponseEvt(message: ParticipantQueryResponseEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
-        const { payload } = message;
-  
-        const partyType = payload.partyType;
-        const partyId = payload.partyId;
-        const partySubType = payload.partySubType as string;
-        const requesterFspId = payload.requesterFspId;
-        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-
-        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
-
         try {
+            const { payload } = message;
+    
+            const partyType = payload.partyType;
+            const partyId = payload.partyId;
+            const partySubType = payload.partySubType as string;
+            const requesterFspId = payload.requesterFspId;
+            const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+
+            const requestedEndpoint = (await this._validateParticipantAndGetEndpoint(requesterFspId))!;
+
             this._logger.info('_handleParticipantQueryResponseEvt -> start');
     
             // Always validate the payload and headers received
@@ -480,15 +476,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             this._logger.info('_handleParticipantQueryResponseEvt -> end');
         } catch (error: unknown) {
-            this._sendErrorFeedbackToFsp({ 
-                error: error,
-                headers: clonedHeaders,
-                source: requesterFspId,
-                endpoint: requestedEndpoint,
-                entity: Enums.EntityTypeEnum.PARTICIPANTS,
-                id: [partyType, partyId, partySubType],
-                errorCode: ""
-            });
+            this._logger.info('_handleParticipantQueryResponseEvt -> error');
+            throw Error("_handleParticipantQueryResponseEvt -> error")
         }
 
         return;

@@ -38,10 +38,12 @@ import { IParticipantEndpoint } from "@mojaloop/participants-bc-client-lib";
 import { IEventHandler } from "../interfaces/types";
 import { IParticipantService } from "../interfaces/infrastructure";
 import { IncomingHttpHeaders } from "http";
-import { AccountLookUpUnknownErrorEvent, QuotingBCInvalidIdErrorEvent, TransferErrorEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { AccountLookUpUnknownErrorEvent, QuotingBCInvalidIdErrorEvent, TransferErrorEvt, AccountLookUpOperatorErrorEvent, AccountLookUpOperatorErrorPayload, AccountLookupBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { AxiosError } from "axios";
 import { Constants, Request, Enums, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { AccountLookupEventHandler } from "./account_lookup_evt_handler";
+
+const KAFKA_OPERATOR_ERROR_TOPIC = process.env["KAFKA_OPERATOR_ERROR_TOPIC"] || AccountLookupBCTopics.DomainErrors;
 
 export abstract class BaseEventHandler implements IEventHandler {
     protected _kafkaConsumer: MLKafkaJsonConsumer;
@@ -76,26 +78,30 @@ export abstract class BaseEventHandler implements IEventHandler {
         await this._kafkaProducer.connect();
     }
 
-    protected async _validateParticipantAndGetEndpoint(fspId: string):Promise<IParticipantEndpoint>{
-        const participant = await this._participantService.getParticipantInfo(fspId);
+    protected async _validateParticipantAndGetEndpoint(fspId: string):Promise<IParticipantEndpoint|null>{
+        try {
+            const participant = await this._participantService.getParticipantInfo(fspId);
 
-        if (!participant) {
-            const errorMessage = `_validateParticipantAndGetEndpoint could not get participant with id: "${fspId}"`;
+            if (!participant) {
+                const errorMessage = `_validateParticipantAndGetEndpoint could not get participant with id: "${fspId}"`;
 
-            this._logger.error(errorMessage);
-            throw Error(errorMessage);
+                this._logger.error(errorMessage);
+                throw Error(errorMessage);
+            }
+
+            const endpoint = participant.participantEndpoints.find(endpoint => endpoint.type==="FSPIOP");
+
+            if (!endpoint) {
+                const errorMessage = `_validateParticipantAndGetEndpoint could not get "FSPIOP" endpoint from participant with id: "${fspId}"`;
+
+                this._logger.error(errorMessage);
+                throw Error(errorMessage);
+            }
+
+            return endpoint;
+        }catch(error: unknown) {
+            throw Error((error as Error).message)
         }
-
-        const endpoint = participant.participantEndpoints.find(endpoint => endpoint.type==="FSPIOP");
-
-        if (!endpoint) {
-            const errorMessage = `_validateParticipantAndGetEndpoint could not get "FSPIOP" endpoint from participant with id: "${fspId}"`;
-
-            this._logger.error(errorMessage);
-            throw Error(errorMessage);
-        }
-
-        return endpoint;
     }
 
     protected async _sendErrorFeedbackToFsp({
@@ -156,28 +162,27 @@ export abstract class BaseEventHandler implements IEventHandler {
                 })
             });
         } catch(err: unknown) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const error = err as unknown as any;
+            const error = (err as Error).message;
 
-            this._logger.error(error.stack);
-
-            this._logger.error("Cannot get requestedEndpoint at _handleAccountLookUpErrorReceivedEvt()");
+            this._logger.error(error);
+         
             
-            const payload = {
-                partyId: message?.payload.partyId,
-                partyType: message?.payload.partyId,
-                requesterFspId: message?.payload.partyId,
-                partySubType: message?.payload.partyId,
-                errorDescription: error
-            }
-
             
             switch(this.constructor.name) {
-                case AccountLookupEventHandler.name: {
-                    const msg =  new AccountLookUpUnknownErrorEvent(payload);
+                case AccountLookUpOperatorErrorEvent.name: {
+                    const payload:AccountLookUpOperatorErrorPayload = {
+                        partyId: message?.payload.partyId,
+                        partyType: message?.payload.partyId,
+                        fspId: message?.payload.partyId,
+                        partySubType: message?.payload.partyId,
+                        errorDescription: error
+                    };
 
+                    const msg = new AccountLookUpOperatorErrorEvent(payload);
+    
+                    msg.msgTopic = KAFKA_OPERATOR_ERROR_TOPIC;
+        
                     await this._kafkaProducer.send(msg);
-
                     break;
                 }
                 default:
