@@ -86,7 +86,7 @@ class KafkaProducer {
 
     }
 
-    public sendMessage(topic, message) {
+    public sendMessage(topic: string, message: {[key: string]: string}) {
         const payload = { topic, messages: Buffer.from(JSON.stringify(message)), attributes: 0, partition: 0, key: message.partyId };
         return new Promise((resolve, reject) => {
             this.producer.send([payload], function (err, data: kafka.Message) {
