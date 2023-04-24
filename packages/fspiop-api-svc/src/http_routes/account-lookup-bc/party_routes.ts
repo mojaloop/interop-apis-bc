@@ -38,7 +38,7 @@ import express from "express";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { Constants, Validate } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import { PartyQueryReceivedEvt, PartyQueryReceivedEvtPayload, ParticipantDisassociateRequestReceivedEvt, ParticipantAssociationRequestReceivedEvt, ParticipantAssociationRequestReceivedEvtPayload, ParticipantDisassociateRequestReceivedEvtPayload, PartyInfoAvailableEvt, PartyInfoAvailableEvtPayload} from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { PartyQueryReceivedEvt, PartyQueryReceivedEvtPayload, PartyInfoAvailableEvt, PartyInfoAvailableEvtPayload} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { PutParty } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/transformer";
 import { BaseRoutes } from "../_base_router";
 import { PartiesPutTypeAndIdAndSubId } from "../../errors";
@@ -82,10 +82,10 @@ export class PartyRoutes extends BaseRoutes {
         const msgPayload: PartyQueryReceivedEvtPayload = {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId,
-            partyType: "MSISDN",
+            partyType: type,
             partyId: id,
             partySubType: null,
-            currency: "USD",
+            currency: currency,
         };
 
         const msg =  new PartyQueryReceivedEvt(msgPayload);

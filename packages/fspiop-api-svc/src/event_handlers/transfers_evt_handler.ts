@@ -202,7 +202,6 @@ export class TransferEventHandler extends BaseEventHandler {
                 error: error,
                 headers: clonedHeaders,
                 source: requesterFspId,
-                endpoint: requestedEndpoint,
                 entity: Enums.EntityTypeEnum.TRANSFERS,
                 id: [payload.transferId],
                 errorCode: ""
@@ -262,7 +261,6 @@ export class TransferEventHandler extends BaseEventHandler {
                 error: error,
                 headers: clonedHeaders,
                 source: requesterFspId,
-                endpoint: requestedEndpoint,
                 entity: Enums.EntityTypeEnum.TRANSFERS,
                 id: [payload.transferId],
                 errorCode: ""

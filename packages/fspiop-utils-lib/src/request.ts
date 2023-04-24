@@ -49,6 +49,7 @@ export interface FspiopHttpHeaders {
 
 }
 
+// eslint-disable-next-line
 type EventPayload = AccountLookUpUnknownErrorEvent | FspiopError | PutParticipant | ParticipantQueryResponseEvtPayload | PartyInfoRequestedEvtPayload | PartyQueryResponseEvtPayload  | ParticipantAssociationCreatedEvtPayload | ParticipantAssociationRemovedEvt | AccountLookUpUnknownErrorPayload | PutParty | Pick<PutParty, "party"> | null;
 
 type RequestOptions = {
@@ -57,6 +58,7 @@ type RequestOptions = {
   source: string, 
   destination: string | null, 
   method: FspiopRequestMethodsEnum, 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   payload: any, 
   responseType?: ResponseTypeEnum, 
   protocolVersions?: { 

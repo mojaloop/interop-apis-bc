@@ -64,35 +64,54 @@ export class QuotingEventHandler extends BaseEventHandler {
     }
 
     async processMessage (sourceMessage: IMessage) : Promise<void> {
-        const message: IDomainMessage = sourceMessage as IDomainMessage;
+        try {
+            const message: IDomainMessage = sourceMessage as IDomainMessage;
 
-        switch(message.msgName){
-            case QuotingBCInvalidIdErrorEvent.name:
-                await this._handleErrorReceivedEvt(new QuotingBCInvalidIdErrorEvent(message.payload), message.fspiopOpaqueState);
-                break;
-            case QuoteRequestAcceptedEvt.name:
-                await this._handleQuotingCreatedRequestReceivedEvt(new QuoteRequestAcceptedEvt(message.payload), message.fspiopOpaqueState);
-                break;
-            case QuoteResponseAccepted.name:
-                await this._handleQuotingResponseAcceptedEvt(new QuoteResponseAccepted(message.payload), message.fspiopOpaqueState);
-                break;
-            case QuoteQueryResponseEvt.name:
-                await this._handleQuotingQueryResponseEvt(new QuoteQueryResponseEvt(message.payload), message.fspiopOpaqueState);
-                break;
-            case BulkQuoteReceivedEvt.name:
-                await this._handleBulkQuotingRequestReceivedEvt(new BulkQuoteReceivedEvt(message.payload), message.fspiopOpaqueState);
-                break;
-            case BulkQuoteAcceptedEvt.name:
-                await this._handleBulkQuoteAcceptedResponseEvt(new BulkQuoteAcceptedEvt(message.payload), message.fspiopOpaqueState);
-                break;
-            default:
-                this._logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
-                break;
+            switch(message.msgName){
+                case QuotingBCInvalidIdErrorEvent.name:
+                    await this._handleErrorReceivedEvt(new QuotingBCInvalidIdErrorEvent(message.payload), message.fspiopOpaqueState);
+                    break;
+                case QuoteRequestAcceptedEvt.name:
+                    await this._handleQuotingCreatedRequestReceivedEvt(new QuoteRequestAcceptedEvt(message.payload), message.fspiopOpaqueState);
+                    break;
+                case QuoteResponseAccepted.name:
+                    await this._handleQuotingResponseAcceptedEvt(new QuoteResponseAccepted(message.payload), message.fspiopOpaqueState);
+                    break;
+                case QuoteQueryResponseEvt.name:
+                    await this._handleQuotingQueryResponseEvt(new QuoteQueryResponseEvt(message.payload), message.fspiopOpaqueState);
+                    break;
+                case BulkQuoteReceivedEvt.name:
+                    await this._handleBulkQuotingRequestReceivedEvt(new BulkQuoteReceivedEvt(message.payload), message.fspiopOpaqueState);
+                    break;
+                case BulkQuoteAcceptedEvt.name:
+                    await this._handleBulkQuoteAcceptedResponseEvt(new BulkQuoteAcceptedEvt(message.payload), message.fspiopOpaqueState);
+                    break;
+                default:
+                    this._logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
+                    break;
+            }
+
+        } catch (e: unknown) {
+            const message: IDomainMessage = sourceMessage as IDomainMessage;
+
+            const clonedHeaders = { ...message.fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+            const requesterFspId = clonedHeaders["fspiop-source"] as string;
+            const partyType = message.payload.partyType as string;
+            const partyId = message.payload.partyId as string;
+            const partySubType = message.payload.partySubType as string;
+
+            this._sendErrorFeedbackToFsp({
+                message: message,
+                error: message.msgName,
+                errorCode: "2100",
+                headers: message.fspiopOpaqueState.headers,
+                source: requesterFspId,
+                id: [partyType, partyId, partySubType]
+            });
         }
 
         // make sure we only return from the processMessage/handler after completing the request,
         // otherwise this will commit the event and will be lost
-
 
         return;
     }
@@ -213,7 +232,7 @@ export class QuotingEventHandler extends BaseEventHandler {
 
         } catch (error: unknown) {
             this._logger.info('_handleQuotingCreatedRequestReceivedEvt -> error');
-            throw Error("_handleQuotingCreatedRequestReceivedEvt -> error")
+            throw Error("_handleQuotingCreatedRequestReceivedEvt -> error");
         }
 
         return;
@@ -266,7 +285,7 @@ export class QuotingEventHandler extends BaseEventHandler {
 
         } catch (error: unknown) {
             this._logger.info('_handleQuotingResponseAcceptedEvt -> error');
-            throw Error("_handleQuotingResponseAcceptedEvt -> error")
+            throw Error("_handleQuotingResponseAcceptedEvt -> error");
         }
 
         return;
@@ -319,7 +338,7 @@ export class QuotingEventHandler extends BaseEventHandler {
 
         } catch (error: unknown) {
             this._logger.info('_handleQuotingQueryResponseEvt -> error');
-            throw Error("_handleQuotingQueryResponseEvt -> error")
+            throw Error("_handleQuotingQueryResponseEvt -> error");
         }
 
         return;
@@ -368,7 +387,7 @@ export class QuotingEventHandler extends BaseEventHandler {
 
         } catch (error: unknown) {
             this._logger.info('_handleBulkQuotingRequestReceivedEvt -> error');
-            throw Error("_handleBulkQuotingRequestReceivedEvt -> error")
+            throw Error("_handleBulkQuotingRequestReceivedEvt -> error");
         }
 
         return;
@@ -419,7 +438,7 @@ export class QuotingEventHandler extends BaseEventHandler {
 
         } catch (error: unknown) {
             this._logger.info('_handleBulkQuoteAcceptedResponseEvt -> error');
-            throw Error("_handleBulkQuoteAcceptedResponseEvt -> error")
+            throw Error("_handleBulkQuoteAcceptedResponseEvt -> error");
         }
 
         return;

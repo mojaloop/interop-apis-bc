@@ -55,7 +55,7 @@ export class QuoteRoutes extends BaseRoutes {
         this.router.put("/:id", this.quoteResponseReceived.bind(this));
     }
 
-    private async quoteRequestReceived(req: express.Request, res: express.Response, next: any): Promise<void> {
+    private async quoteRequestReceived(req: express.Request, res: express.Response): Promise<void> {
         this.logger.debug("Got quoteRequestReceived request");
 
         // Headers

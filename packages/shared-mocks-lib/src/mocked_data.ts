@@ -66,7 +66,7 @@ export const getBody = (remove: string[], override: UnknownProperties): UnknownP
         ...override
     };
 
-    for (const [key, value] of Object.entries(remove)) {
+    for (const [key] of Object.entries(remove)) {
         delete result[key];
     }
 

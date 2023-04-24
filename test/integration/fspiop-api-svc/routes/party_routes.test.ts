@@ -29,7 +29,7 @@
  --------------
  ******/
 
-"use strict"
+"use strict";
 
 import { AccountLookupBCTopics, PartyInfoAvailableEvt, PartyQueryReceivedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import request from "supertest";
@@ -68,7 +68,7 @@ describe("FSPIOP API Service Participant Routes", () => {
 
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES))
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
 
         let sentMessagesCount = 0;
         let expectedOffsetMessage;
@@ -80,11 +80,11 @@ describe("FSPIOP API Service Participant Routes", () => {
         }
         
         // Assert
-        expect(res.statusCode).toEqual(202)
-        expect(res.body).toStrictEqual(defaultEntryValidRequest)
+        expect(res.statusCode).toEqual(202);
+        expect(res.body).toStrictEqual(defaultEntryValidRequest);
         expect(sentMessagesCount).toBe(1);
         expect(expectedOffsetMessage.msgName).toBe(PartyQueryReceivedEvt.name);
-    })
+    });
 
     it("should successfully call getPartyQueryReceivedByTypeAndIdSubId endpoint", async () => {
         // Act
@@ -92,7 +92,7 @@ describe("FSPIOP API Service Participant Routes", () => {
 
         const res = await request(server)
         .get(pathWithSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES))
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
 
         let sentMessagesCount = 0;
         let expectedOffsetMessage;
@@ -104,11 +104,11 @@ describe("FSPIOP API Service Participant Routes", () => {
         }
         
         // Assert
-        expect(res.statusCode).toEqual(202)
-        expect(res.body).toStrictEqual(defaultEntryValidRequest)
+        expect(res.statusCode).toEqual(202);
+        expect(res.body).toStrictEqual(defaultEntryValidRequest);
         expect(sentMessagesCount).toBe(1);
         expect(expectedOffsetMessage.msgName).toBe(PartyQueryReceivedEvt.name);
-    })
+    });
 
     it("should successfully call getPartyInfoAvailableByTypeAndId endpoint", async () => {
         // Arrange
@@ -129,7 +129,7 @@ describe("FSPIOP API Service Participant Routes", () => {
               },
               "dateOfBirth": "1954-04-21"
             }
-          }
+          };
 
         // Act
         const expectedOffset = await getCurrentKafkaOffset(topic);
@@ -137,7 +137,7 @@ describe("FSPIOP API Service Participant Routes", () => {
         const res = await request(server)
         .put(pathWithoutSubType)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES))
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
 
         let sentMessagesCount = 0;
         let expectedOffsetMessage;
@@ -149,11 +149,11 @@ describe("FSPIOP API Service Participant Routes", () => {
         }
         
         // Assert
-        expect(res.statusCode).toEqual(202)
-        expect(res.body).toStrictEqual(defaultEntryValidRequest)
+        expect(res.statusCode).toEqual(202);
+        expect(res.body).toStrictEqual(defaultEntryValidRequest);
         expect(sentMessagesCount).toBe(1);
         expect(expectedOffsetMessage.msgName).toBe(PartyInfoAvailableEvt.name);
-    })
+    });
 
     it("should successfully call getPartyInfoAvailableByTypeAndIdAndSubId endpoint", async () => {
         // Arrange
@@ -174,7 +174,7 @@ describe("FSPIOP API Service Participant Routes", () => {
               },
               "dateOfBirth": "1954-04-21"
             }
-        }
+        };
 
         // Act
         const expectedOffset = await getCurrentKafkaOffset(topic);
@@ -182,7 +182,7 @@ describe("FSPIOP API Service Participant Routes", () => {
         const res = await request(server)
         .put(pathWithSubType)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES))
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
 
         let sentMessagesCount = 0;
         let expectedOffsetMessage;
@@ -194,11 +194,11 @@ describe("FSPIOP API Service Participant Routes", () => {
         }
         
         // Assert
-        expect(res.statusCode).toEqual(202)
-        expect(res.body).toStrictEqual(defaultEntryValidRequest)
+        expect(res.statusCode).toEqual(202);
+        expect(res.body).toStrictEqual(defaultEntryValidRequest);
         expect(sentMessagesCount).toBe(1);
         expect(expectedOffsetMessage.msgName).toBe(PartyInfoAvailableEvt.name);
-    })
+    });
 
     it("should give a bad request calling getPartyQueryReceivedByTypeAndId endpoint", async () => {
         // Act
@@ -206,7 +206,7 @@ describe("FSPIOP API Service Participant Routes", () => {
 
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["date"]))
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["date"]));
 
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
@@ -216,10 +216,10 @@ describe("FSPIOP API Service Participant Routes", () => {
         }
         
         // Assert
-        expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"))
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"));
         expect(sentMessagesCount).toBe(0);
-    })
+    });
 
     it("should give a bad request calling getPartyQueryReceivedByTypeAndIdSubId endpoint", async () => {
         // Act
@@ -227,7 +227,7 @@ describe("FSPIOP API Service Participant Routes", () => {
 
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["date"]))
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["date"]));
 
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
@@ -237,10 +237,10 @@ describe("FSPIOP API Service Participant Routes", () => {
         }
         
         // Assert
-        expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"))
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"));
         expect(sentMessagesCount).toBe(0);
-    })
+    });
 
     it("should give a bad request calling getPartyInfoAvailableByTypeAndId endpoint", async () => {
         // Act
@@ -248,7 +248,7 @@ describe("FSPIOP API Service Participant Routes", () => {
 
         const res = await request(server)
         .put(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["date"]))
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["date"]));
 
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
@@ -258,10 +258,10 @@ describe("FSPIOP API Service Participant Routes", () => {
         }
         
         // Assert
-        expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(missingPropertyResponse("party", "body"))
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toStrictEqual(missingPropertyResponse("party", "body"));
         expect(sentMessagesCount).toBe(0);
-    })
+    });
 
     it("should give a bad request calling getPartyInfoAvailableByTypeAndIdAndSubId endpoint", async () => {
         // Act
@@ -269,7 +269,7 @@ describe("FSPIOP API Service Participant Routes", () => {
 
         const res = await request(server)
         .put(pathWithSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["date"]))
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["date"]));
 
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
@@ -279,11 +279,11 @@ describe("FSPIOP API Service Participant Routes", () => {
         }
         
         // Assert
-        expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(missingPropertyResponse("party", "body"))
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toStrictEqual(missingPropertyResponse("party", "body"));
         expect(sentMessagesCount).toBe(0);
         
-    })
+    });
 
     //TTK Negative Paths
 
@@ -292,52 +292,52 @@ describe("FSPIOP API Service Participant Routes", () => {
         // Act
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["fspiop-source"]))
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["fspiop-source"]));
         
         // Assert
-        expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(missingPropertyResponse("fspiop-source", "headers"))
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toStrictEqual(missingPropertyResponse("fspiop-source", "headers"));
         expect(res).toSatisfyApiSpec();
 
-    })
+    });
 
     it("Party info with missing date header", async () => {
         // Act
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["date"]))
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["date"]));
         
         // Assert
-        expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"))
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"));
         expect(res).toSatisfyApiSpec();
 
-    })
+    });
     
     it("Party info with missing content header", async () => {
         // Act
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["content-type"]))
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["content-type"]));
         
         // Assert
-        expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(missingPropertyResponse("content-type", "headers"))
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toStrictEqual(missingPropertyResponse("content-type", "headers"));
         expect(res).toSatisfyApiSpec();
 
-    })
+    });
         
     it("Party info with missing accept header", async () => {
         // Act
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["accept"]))
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["accept"]));
         
         // Assert
-        expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(missingPropertyResponse("accept", "headers"))
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toStrictEqual(missingPropertyResponse("accept", "headers"));
         expect(res).toSatisfyApiSpec();
-    })
+    });
     // #region
 
     //#region Party info of unprovisioned party
@@ -345,27 +345,27 @@ describe("FSPIOP API Service Participant Routes", () => {
         // Act        
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES))
-        
-        // Assert
-        expect(res.statusCode).toEqual(202)
-        expect(res.body).toStrictEqual(defaultEntryValidRequest)
-        expect(res).toSatisfyApiSpec();
-
-    })
-    
-    it("Party info of unused type", async () => {
-        // Act
-        const res = await request(server)
-        .get(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES))
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
         
         // Assert
         expect(res.statusCode).toEqual(202);
         expect(res.body).toStrictEqual(defaultEntryValidRequest);
         expect(res).toSatisfyApiSpec();
 
-    })
+    });
+    
+    it("Party info of unused type", async () => {
+        // Act
+        const res = await request(server)
+        .get(pathWithoutSubType)
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
+        
+        // Assert
+        expect(res.statusCode).toEqual(202);
+        expect(res.body).toStrictEqual(defaultEntryValidRequest);
+        expect(res).toSatisfyApiSpec();
+
+    });
     // #region
 
     //#region Party info with wrong header values
@@ -373,37 +373,37 @@ describe("FSPIOP API Service Participant Routes", () => {
         // Act
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, [], { "date": "thursday" }))
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, [], { "date": "thursday" }));
         
         // Assert
-        expect(res.statusCode).toEqual(202)
-        expect(res.body).toStrictEqual(defaultEntryValidRequest)
+        expect(res.statusCode).toEqual(202);
+        expect(res.body).toStrictEqual(defaultEntryValidRequest);
         expect(res).toSatisfyApiSpec();
-    })
+    });
     
     it("Party info with wrong content header(BUG)", async () => {
         // Act
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, [], { "content-type": "application/vnd.interoperability.parties+xml;version=15.5" }))      
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, [], { "content-type": "application/vnd.interoperability.parties+xml;version=15.5" }));      
 
         // Assert
-        expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(unknownHeaderResponse)
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toStrictEqual(unknownHeaderResponse);
         expect(res).toSatisfyApiSpec();
-    })
+    });
 
     it("Party info with wrong accept header(BUG)", async () => {
         // Act
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, [], { "accept": "application/vnd.interoperability.parties+xml;version=3.0" }))      
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, [], { "accept": "application/vnd.interoperability.parties+xml;version=3.0" }));      
         
         // Assert
-        expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(unknownHeaderResponse)
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toStrictEqual(unknownHeaderResponse);
         expect(res).toSatisfyApiSpec();
-    })
+    });
     //#region
     
     //#region Get Party with wrong optional headers
@@ -411,24 +411,24 @@ describe("FSPIOP API Service Participant Routes", () => {
         // Act
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES))      
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));      
         
         // Assert
-        expect(res.statusCode).toEqual(202)
-        expect(res.body).toStrictEqual(defaultEntryValidRequest)
+        expect(res.statusCode).toEqual(202);
+        expect(res.body).toStrictEqual(defaultEntryValidRequest);
         expect(res).toSatisfyApiSpec();
-    })
+    });
     
     it("Get party information with wrong optional HTTP header", async () => {
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES))      
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));      
         
         // Assert
-        expect(res.statusCode).toEqual(202)
-        expect(res.body).toStrictEqual(defaultEntryValidRequest)
+        expect(res.statusCode).toEqual(202);
+        expect(res.body).toStrictEqual(defaultEntryValidRequest);
         expect(res).toSatisfyApiSpec();
-    })
+    });
 
     //#region
     //End TTK Negative Paths

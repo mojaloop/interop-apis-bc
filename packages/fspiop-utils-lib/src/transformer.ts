@@ -32,7 +32,6 @@
  'use strict';
 
 import { BulkQuoteReceivedEvtPayload, BulkQuoteAcceptedEvtPayload, ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvtPayload, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload, QuoteRequestAcceptedEvtPayload, QuoteResponseAcceptedEvtPayload, TransferPreparedEvtPayload, TransferCommittedFulfiledEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { ErrorCode } from "./enums";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 

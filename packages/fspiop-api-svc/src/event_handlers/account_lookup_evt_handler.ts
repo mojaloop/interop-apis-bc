@@ -124,10 +124,9 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             this._sendErrorFeedbackToFsp({
                 message: message,
                 error: message.msgName,
-                errorCode: "errorCode",
+                errorCode: "2100",
                 headers: message.fspiopOpaqueState.headers,
                 source: requesterFspId,
-                endpoint: {} as any,
                 id: [partyType, partyId, partySubType]
             });
         }
@@ -149,7 +148,11 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         const partyId = payload.partyId as string;
         const partySubType = payload.partySubType as string;
 
-        const requestedEndpoint = (await this._validateParticipantAndGetEndpoint(requesterFspId))!;
+        const requestedEndpoint = (await this._validateParticipantAndGetEndpoint(requesterFspId));
+
+        if(!requestedEndpoint) {
+            throw Error(`fspId ${requesterFspId} has no valid participant associated`);
+        }
 
         // Always validate the payload and headers received
         Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
@@ -161,7 +164,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         urlBuilder.hasError(true);
         
         const extensionList = [];
-        let list: any[] = [];
+        let list: string[] = [];
         let errorCode = "1000"; // Default error code
 
         switch(message.msgName){
@@ -234,7 +237,6 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             errorCode: errorCode,
             headers: clonedHeaders,
             source: requesterFspId,
-            endpoint: requestedEndpoint,
             id: [partyType, partyId, partySubType],
             extensionList: extensionList
         });
@@ -245,6 +247,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
     }
 
     private async _handleParticipantAssociationRequestReceivedEvt(message: ParticipantAssociationCreatedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
+        this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> start');
+        
         try {
             const { payload } = message;
     
@@ -254,16 +258,19 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             const partySubType = payload.partySubType as string;
             const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
             
-            const requestedEndpoint = (await this._validateParticipantAndGetEndpoint(requesterFspId))!;
+            const requestedEndpoint = (await this._validateParticipantAndGetEndpoint(requesterFspId));
 
-            this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> start');
+            if(!requestedEndpoint) {
+                throw Error(`fspId ${requesterFspId} has no valid participant associated`);
+            }
+            
 
             // Always validate the payload and headers received
             message.validatePayload();
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
-            urlBuilder.setLocation([partyType, partyId]);
+            urlBuilder.setLocation([partyType, partyId, partySubType]);
             
             await Request.sendRequest({
                 url: urlBuilder.build(), 
@@ -278,13 +285,15 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
         } catch (error: unknown) {
             this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> error');
-            throw Error("_handleParticipantAssociationRequestReceivedEvt -> error")
+            throw Error("_handleParticipantAssociationRequestReceivedEvt -> error");
         }
 
         return;
     }
     
     private async _handleParticipantDisassociateRequestReceivedEvt(message: ParticipantAssociationRemovedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
+        this._logger.info('_handleParticipantDisassociateRequestReceivedEvt -> start');
+        
         try {
             const { payload } = message;
     
@@ -294,9 +303,12 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             const partySubType = payload.partySubType as string;
             const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
 
-            const requestedEndpoint = (await this._validateParticipantAndGetEndpoint(requesterFspId))!;
+            const requestedEndpoint = (await this._validateParticipantAndGetEndpoint(requesterFspId));
 
-            this._logger.info('_handleParticipantDisassociateRequestReceivedEvt -> start');
+            if(!requestedEndpoint) {
+                throw Error(`fspId ${requesterFspId} has no valid participant associated`);
+            }
+            
 
             // Always validate the payload and headers received
             message.validatePayload();
@@ -320,13 +332,15 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
         } catch (error: unknown) {
             this._logger.info('_handleParticipantDisassociateRequestReceivedEvt -> error');
-            throw Error("_handleParticipantDisassociateRequestReceivedEvt -> error")
+            throw Error("_handleParticipantDisassociateRequestReceivedEvt -> error");
         }
 
         return;
     }
 
     private async _handlePartyInfoRequestedEvt(message: PartyInfoRequestedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
+        this._logger.info('_handlePartyInfoRequestedEvt -> start');
+        
         try {
 
             const { payload } = message;
@@ -341,13 +355,15 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             // TODO handle the case where destinationFspId is null and remove ! below
 
             if(!destinationFspId){
-                // TODO this must send an error that can be forwarded to the operator - to a special topic
-                return;
+                throw Error(`required destination fspId is missing from the header`);
             }
 
-            const destinationEndpoint = (await this._validateParticipantAndGetEndpoint(destinationFspId))!;
+            const destinationEndpoint = (await this._validateParticipantAndGetEndpoint(destinationFspId));
 
-            this._logger.info('_handlePartyInfoRequestedEvt -> start');
+            if(!destinationEndpoint) {
+                throw Error(`fspId ${destinationFspId} has no valid participant associated`);
+            }
+            
             
             // Always validate the payload and headers received
             message.validatePayload();
@@ -374,27 +390,31 @@ export class AccountLookupEventHandler extends BaseEventHandler {
     
         } catch (error: unknown) {
             this._logger.info('_handlePartyInfoRequestedEvt -> error');
-            throw Error("_handlePartyInfoRequestedEvt -> error")
+            throw Error("_handlePartyInfoRequestedEvt -> error");
         }
 
         return;
     }
 
     private async _handlePartyQueryResponseEvt(message: PartyQueryResponseEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
-        const { payload } = message;
-  
-        const requesterFspId = payload.requesterFspId;
-        const destinationFspId = payload.destinationFspId;
-        const partyType = payload.partyType ;
-        const partyId = payload.partyId;
-        const partySubType = payload.partySubType as string;
-        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-
-        const destinationEndpoint = (await this._validateParticipantAndGetEndpoint(destinationFspId))!;
-
+        this._logger.info('_handlePartyQueryResponseEvt -> start');
+        
         try {
-            this._logger.info('_handlePartyQueryResponseEvt -> start');
-            
+            const { payload } = message;
+    
+            const requesterFspId = payload.requesterFspId;
+            const destinationFspId = payload.destinationFspId;
+            const partyType = payload.partyType ;
+            const partyId = payload.partyId;
+            const partySubType = payload.partySubType as string;
+            const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+
+            const destinationEndpoint = (await this._validateParticipantAndGetEndpoint(destinationFspId));
+
+            if(!destinationEndpoint) {
+                throw Error(`fspId ${destinationFspId} has no valid participant associated`);
+            }
+
             // Always validate the payload and headers received
             message.validatePayload();
             Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
@@ -423,15 +443,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             this._logger.info('_handlePartyQueryResponseEvt -> end');
         } catch (error: unknown) {
-            this._sendErrorFeedbackToFsp({ 
-                error: error,
-                headers: clonedHeaders,
-                source: requesterFspId,
-                endpoint: destinationEndpoint,
-                entity: Enums.EntityTypeEnum.PARTIES,
-                id: [partyType, partyId, partySubType],
-                errorCode: ""
-            });
+            this._logger.info('_handlePartyQueryResponseEvt -> error');
+            throw Error("_handlePartyQueryResponseEvt -> error");
         }
 
         return;
@@ -439,6 +452,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
 
     private async _handleParticipantQueryResponseEvt(message: ParticipantQueryResponseEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
+        this._logger.info('_handleParticipantQueryResponseEvt -> start');
+        
         try {
             const { payload } = message;
     
@@ -448,10 +463,12 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             const requesterFspId = payload.requesterFspId;
             const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
 
-            const requestedEndpoint = (await this._validateParticipantAndGetEndpoint(requesterFspId))!;
+            const requestedEndpoint = (await this._validateParticipantAndGetEndpoint(requesterFspId));
 
-            this._logger.info('_handleParticipantQueryResponseEvt -> start');
-    
+            if(!requestedEndpoint) {
+                throw Error(`fspId ${requesterFspId} has no valid participant associated`);
+            }
+
             // Always validate the payload and headers received
             message.validatePayload();
             Validate.validateHeaders(partySubType ? ParticipantsPutTypeAndId : ParticipantsPutId, clonedHeaders);
@@ -477,7 +494,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             this._logger.info('_handleParticipantQueryResponseEvt -> end');
         } catch (error: unknown) {
             this._logger.info('_handleParticipantQueryResponseEvt -> error');
-            throw Error("_handleParticipantQueryResponseEvt -> error")
+            throw Error("_handleParticipantQueryResponseEvt -> error");
         }
 
         return;

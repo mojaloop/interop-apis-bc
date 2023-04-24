@@ -29,29 +29,20 @@
  --------------
  ******/
 
-"use strict"
+"use strict";
 
-import { BulkQuoteRequestedEvt, BulkQuotePendingReceivedEvt, QuoteResponseReceivedEvt, QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
- 
 import request from "supertest";
+import { 
+    BulkQuoteRequestedEvt, 
+    BulkQuotePendingReceivedEvt, 
+    QuotingBCTopics 
+} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Service } from "@mojaloop/interop-apis-bc-fspiop-api-svc";
 import { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
 import { getHeaders, missingPropertyResponse } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 
 const server = "http://localhost:4000";
-
-const workingHeaders = { 
-    "accept": "application/vnd.interoperability.quotes+json;version=1.0",
-    "content-type": "application/vnd.interoperability.quotes+json;version=1.0",
-    "date": "randomdate",
-    "fspiop-source": "test-fspiop-source",
-}
-
-const missingHeaders = { 
-    "accept": "application/vnd.interoperability.quotes+json;version=1.0",
-    "content-type": "application/vnd.interoperability.quotes+json;version=1.0",
-}
 
 const validPostPayload = {
     "bulkQuoteId": "9999fdbe-5dea-3abd-a210-3780e7f2f1f4",
@@ -88,7 +79,7 @@ const validPostPayload = {
             }
         }
     ]
-}
+};
 
 const validPutPayload = {
     "expiration": "2023-01-04T22:49:25.375Z",
@@ -114,57 +105,14 @@ const validPutPayload = {
             }
         }
     ]
-}
+};
 
 const goodStatusResponse = {
     "status": "ok"
-}
+};
 
-const badStatusResponse = {
-    "status": "not ok"
-}
 
-const badStatusResponseMissingDateHeader = {
-    "errorInformation":  {
-        "errorCode": "3100",
-        "errorDescription": "must have required property 'date'",
-        "extensionList": [
-            {
-                "key": "keyword",
-                "value": "required",
-            },
-            {
-                "key": "instancePath",
-                "value": "/headers",
-            },
-            {
-                "key": "missingProperty",
-                "value": "date",
-            },
-        ],
-    }
-}
 
-const badStatusResponseMissingBodyBulkQuoteId = {
-    "errorInformation":  {
-        "errorCode": "3100",
-        "errorDescription": "must have required property 'bulkQuoteId'",
-        "extensionList": [
-            {
-                "key": "keyword",
-                "value": "required",
-            },
-            {
-                "key": "instancePath",
-                "value": "/body",
-            },
-            {
-                "key": "missingProperty",
-                "value": "bulkQuoteId",
-            },
-        ],
-    }
-}
 
 jest.setTimeout(20000);
 
@@ -202,11 +150,11 @@ describe("FSPIOP API Service Bulk Quotes Routes", () => {
         }
         
         // Assert
-        expect(res.statusCode).toEqual(202)
-        expect(res.body).toStrictEqual(goodStatusResponse)
+        expect(res.statusCode).toEqual(202);
+        expect(res.body).toStrictEqual(goodStatusResponse);
         expect(sentMessagesCount).toBe(1);
         expect(expectedOffsetMessage.msgName).toBe(BulkQuoteRequestedEvt.name);
-    })
+    });
 
     it("should successfully call bulkQuotePending endpoint", async () => {
         // Act
@@ -227,11 +175,11 @@ describe("FSPIOP API Service Bulk Quotes Routes", () => {
         }
         
         // Assert
-        expect(res.statusCode).toEqual(202)
-        expect(res.body).toStrictEqual(goodStatusResponse)
+        expect(res.statusCode).toEqual(202);
+        expect(res.body).toStrictEqual(goodStatusResponse);
         expect(sentMessagesCount).toBe(1);
         expect(expectedOffsetMessage.msgName).toBe(BulkQuotePendingReceivedEvt.name);
-    })
+    });
 
     it("should throw with an unprocessable entity error code calling bulkQuoteRequest endpoint", async () => {
         // Act
@@ -252,7 +200,7 @@ describe("FSPIOP API Service Bulk Quotes Routes", () => {
         expect(res.statusCode).toEqual(400);
         expect(res.body).toStrictEqual(missingPropertyResponse("bulkQuoteId", "body"));
         expect(sentMessagesCount).toBe(0);
-    })
+    });
 
     it("should give a bad request calling bulkQuoteRequest endpoint", async () => {
         // Act
@@ -261,7 +209,7 @@ describe("FSPIOP API Service Bulk Quotes Routes", () => {
         const res = await request(server)
         .post(pathWithoutBulkQuoteId)
         .send(validPostPayload)
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, ["date"]))
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, ["date"]));
 
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
@@ -271,10 +219,10 @@ describe("FSPIOP API Service Bulk Quotes Routes", () => {
         }
         
         // Assert
-        expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"))
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"));
         expect(sentMessagesCount).toBe(0);
-    })
+    });
 
 
     it("should give a bad request calling bulkQuotePending endpoint", async () => {
@@ -284,7 +232,7 @@ describe("FSPIOP API Service Bulk Quotes Routes", () => {
         const res = await request(server)
         .put(pathWithBulkQuoteId)
         .send(validPutPayload)
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, ["date"]))
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, ["date"]));
 
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
@@ -294,10 +242,10 @@ describe("FSPIOP API Service Bulk Quotes Routes", () => {
         }
         
         // Assert
-        expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"))
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"));
         expect(sentMessagesCount).toBe(0);
-    })
+    });
 
 
 });

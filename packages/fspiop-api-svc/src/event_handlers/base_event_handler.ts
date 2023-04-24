@@ -39,7 +39,6 @@ import { IEventHandler } from "../interfaces/types";
 import { IParticipantService } from "../interfaces/infrastructure";
 import { IncomingHttpHeaders } from "http";
 import { AccountLookUpUnknownErrorEvent, QuotingBCInvalidIdErrorEvent, TransferErrorEvt, AccountLookUpOperatorErrorEvent, AccountLookUpOperatorErrorPayload, AccountLookupBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { AxiosError } from "axios";
 import { Constants, Request, Enums, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { AccountLookupEventHandler } from "./account_lookup_evt_handler";
 
@@ -100,7 +99,7 @@ export abstract class BaseEventHandler implements IEventHandler {
 
             return endpoint;
         }catch(error: unknown) {
-            throw Error((error as Error).message)
+            throw Error((error as Error).message);
         }
     }
 
@@ -109,7 +108,6 @@ export abstract class BaseEventHandler implements IEventHandler {
         error,
         headers,
         source,
-        endpoint,
         id,
         extensionList,
         errorCode
@@ -118,15 +116,27 @@ export abstract class BaseEventHandler implements IEventHandler {
         error: unknown;
         headers: Request.FspiopHttpHeaders;
         source: string;
-        endpoint: IParticipantEndpoint;
         id: string[];
-        extensionList?: any[];
+        extensionList?: {
+            key: string;
+            value: string;
+        }[];
         errorCode: string;
         entity?: Enums.EntityTypeEnum;
     }):Promise<void>{
         try {
+            // This might be an AxiosError as well
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const err = error as unknown as any;
-            this._logger.error(JSON.stringify(err.response?.data));
+            this._logger.error(err.response?.data ? JSON.stringify(err.response?.data) : err.message);
+
+            const requesterFspId = headers["fspiop-source"] as string;
+
+            const endpoint = (await this._validateParticipantAndGetEndpoint(requesterFspId));
+
+            if(!endpoint) {
+                throw Error(`fspId ${requesterFspId} has no valid participant associated`);
+            }
 
             const urlBuilder = new Request.URLBuilder(endpoint.value);
             
@@ -141,6 +151,14 @@ export abstract class BaseEventHandler implements IEventHandler {
                 }
                 case header.includes("parties"): {
                     urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
+                    break;
+                }
+                case header.includes("quotes"): {
+                    urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
+                    break;
+                }
+                case header.includes("bulkQuotes"): {
+                    urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);
                     break;
                 }
                 default:
@@ -169,7 +187,7 @@ export abstract class BaseEventHandler implements IEventHandler {
             
             
             switch(this.constructor.name) {
-                case AccountLookUpOperatorErrorEvent.name: {
+                case AccountLookupEventHandler.name: {
                     const payload:AccountLookUpOperatorErrorPayload = {
                         partyId: message?.payload.partyId,
                         partyType: message?.payload.partyId,
