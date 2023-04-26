@@ -179,7 +179,7 @@ export class ParticipantRoutes extends BaseRoutes {
             partyId: id,
             partyType: type,
             partySubType: null,
-            currency: currency
+            currency: currency,
         };
 
         const msg = new ParticipantAssociationRequestReceivedEvt(msgPayload);

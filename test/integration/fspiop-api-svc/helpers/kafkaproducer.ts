@@ -45,11 +45,11 @@ export const getCurrentKafkaOffset = (topic: string): Promise<kafka.Message> => 
     return new Promise((resolve, reject) => offset.fetchLatestOffsets([topic], (error, data) => {
         const partitions:(string | kafka.OffsetFetchRequest)[] = [];
 
-        for (const [key] of Object.entries(data[topic])) {
+        for (const [key, value] of Object.entries(data[topic])) {
             partitions.push({
                 topic: topic,
                 partition: parseInt(key),
-                offset: 0, // Offset value starts from 0
+                offset: (value as number)-1, // Offset value starts from 0
             });
         }
         
@@ -86,7 +86,7 @@ class KafkaProducer {
 
     }
 
-    public sendMessage(topic: string, message: {[key: string]: string}) {
+    public sendMessage(topic: string, message: any) {
         const payload = { topic, messages: Buffer.from(JSON.stringify(message)), attributes: 0, partition: 0, key: message.partyId };
         return new Promise((resolve, reject) => {
             this.producer.send([payload], function (err, data: kafka.Message) {

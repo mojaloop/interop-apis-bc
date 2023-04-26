@@ -50,10 +50,13 @@ export class PartyRoutes extends BaseRoutes {
 
         // bind routes
 
+        // Requests
         // GET Party by Type & ID
         this.router.get("/:type/:id/", this.getPartyQueryReceivedByTypeAndId.bind(this));
         // GET Parties by Type, ID & SubId
         this.router.get("/:type/:id/:subid", this.getPartyQueryReceivedByTypeAndIdSubId.bind(this));
+
+        // Callbacks
         // PUT Party by Type & ID
         this.router.put("/:type/:id/", this.getPartyInfoAvailableByTypeAndId.bind(this));
         // PUT Parties by Type, ID & SubId

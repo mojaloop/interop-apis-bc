@@ -321,7 +321,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         jest.spyOn(Request, "sendRequest");
 
         const res = async () => {
-            return await requestSpy.mock.results[0].value;
+            return await requestSpy.mock.results[requestSpy.mock.results.length].value;
         };
                     
         // Assert
@@ -368,7 +368,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         await new Promise((r) => setTimeout(r, 5000));
 
         let sentMessagesCount = 0;
-        let expectedOffsetMessage;
+        let expectedOffsetMessage:any;
         const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
         
         if (currentOffset.offset && expectedOffset.offset) {
@@ -481,7 +481,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         await new Promise((r) => setTimeout(r, 2000));
 
         let sentMessagesCount = 0;
-        let expectedOffsetMessage;
+        let expectedOffsetMessage:any;
         const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
         
         if (currentOffset.offset && expectedOffset.offset) {
@@ -571,7 +571,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         jest.spyOn(Request, "sendRequest");
 
         const res = async () => {
-            return await requestSpy.mock.results[0].value;
+            return await requestSpy.mock.results[requestSpy.mock.results.length].value;
         };
                     
         // Assert
@@ -614,7 +614,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         await new Promise((r) => setTimeout(r, 2000));
 
         let sentMessagesCount = 0;
-        let expectedOffsetMessage;
+        let expectedOffsetMessage:any;
         const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
         
         if (currentOffset.offset && expectedOffset.offset) {
@@ -705,7 +705,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         jest.spyOn(Request, "sendRequest");
 
         const res = async () => {
-            return await requestSpy.mock.results[0].value;
+            return await requestSpy.mock.results[requestSpy.mock.results.length].value;
         };
                     
         // Assert
@@ -748,7 +748,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         await new Promise((r) => setTimeout(r, 2000));
 
         let sentMessagesCount = 0;
-        let expectedOffsetMessage;
+        let expectedOffsetMessage:any;
         const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
         
         if (currentOffset.offset && expectedOffset.offset) {
@@ -810,142 +810,8 @@ describe("FSPIOP API Service Quoting Handler", () => {
     });
     //#endregion
 
-    //#region QuoteQueryResponseEvt
-    it("should successful treat QuoteQueryResponseEvt", async () => {
-        // Arrange
-        const payload: QuoteQueryResponseEvtPayload = {
-            "quoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
-            ...validPutPayload
-        };
-
-        const event = new QuoteQueryResponseEvt(payload);
-
-        event.fspiopOpaqueState = { 
-            "requesterFspId":"test-fspiop-source",
-            "destinationFspId": null,
-            "headers":{
-                "accept":`application/vnd.interoperability.${quoteEntity}+json;version=1.0`,
-                "content-type":`application/vnd.interoperability.${quoteEntity}+json;version=1.0`,
-                "date":"randomdate",
-                "fspiop-source":"test-fspiop-source"
-            }
-        };
-            
-        const requestSpy = jest.spyOn(Request, "sendRequest");
-
-        // Act
-        kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
-
-        jest.spyOn(Request, "sendRequest");
-
-        const res = async () => {
-            return await requestSpy.mock.results[0].value;
-        };
-                    
-        // Assert
-        await waitForExpect(() => {
-            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
-                url: expect.stringContaining(`/${quoteEntity}/${payload.quoteId}`)
-            }));
-        });
-
-        expect(await res()).toSatisfyApiSpec();
-    });
-
-    it("should log error when QuoteQueryResponseEvt finds no participant endpoint", async () => {
-        // Arrange
-        const payload: QuoteQueryResponseEvtPayload = {
-            "quoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
-            ...validPutPayload
-        };
-
-        const event = new QuoteQueryResponseEvt(payload);
-
-        event.fspiopOpaqueState = { 
-            "requesterFspId":"non-existing-requester-id",
-            "destinationFspId": null,
-            "headers":{
-                "accept":`application/vnd.interoperability.${quoteEntity}+json;version=1.0`,
-                "content-type":`application/vnd.interoperability.${quoteEntity}+json;version=1.0`,
-                "date":"randomdate",
-                "fspiop-source":"test-fspiop-source"
-            }
-        };
-            
-        participantClientSpy.mockResolvedValueOnce(null);
-
-        // Act
-        const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
-        
-        kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
-
-        await new Promise((r) => setTimeout(r, 2000));
-
-        let sentMessagesCount = 0;
-        let expectedOffsetMessage;
-        const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
-        
-        if (currentOffset.offset && expectedOffset.offset) {
-            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
-            expectedOffsetMessage = JSON.parse(currentOffset.value as string);
-        }
-        
-        // Assert        
-        await waitForExpect(() => {
-            expect(sentMessagesCount).toBe(1);
-            expect(expectedOffsetMessage.msgName).toBe(QuoteQueryResponseEvt.name);
-        });
-    });
-
-    it("should throw error QuoteQueryResponseEvt due to failing to sendRequest", async () => {
-        // Arrange
-        const payload: QuoteQueryResponseEvtPayload = {
-            "quoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
-            ...validPutPayload
-        };
-
-        const event = new QuoteQueryResponseEvt(payload);
-
-        event.fspiopOpaqueState = { 
-            "requesterFspId":"test-fspiop-source",
-            "destinationFspId": null,
-            "headers":{
-                "accept":`application/vnd.interoperability.${quoteEntity}+json;version=1.0`,
-                "content-type":`application/vnd.interoperability.${quoteEntity}+json;version=1.0`,
-                "date":"randomdate",
-                "fspiop-source":"test-fspiop-source"
-            }
-        };
-
-        const requestSpyOn = jest.spyOn(Request, "sendRequest");
-
-        requestSpyOn.mockImplementationOnce(() => {
-            throw new Error("test error");
-        });
-        
-        // Act
-        kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
-
-
-        const apiSpy = jest.spyOn(Request, "sendRequest");
-        const res = async () => {
-            return await apiSpy.mock.results[apiSpy.mock.results.length-1].value;
-        };
-
-        // Assert        
-        await waitForExpect(() => {
-            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
-                url: expect.stringContaining(`/${quoteEntity}/${payload.quoteId}/error`)
-            }));
-        });
-
-        expect(await res()).toSatisfyApiSpec();
-
-    });
-    //#endregion
-
-    //#region BulkQuoteReceivedEvtPayload
-    it("should successful treat _handleQuotingQueryResponseEvt", async () => {
+    //#region BulkQuoteReceivedEvt
+    it("should successful treat BulkQuoteReceivedEvt", async () => {
         // Arrange
         const payload: BulkQuoteReceivedEvtPayload = {
             ...validBulkPostPayload,
@@ -973,7 +839,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         jest.spyOn(Request, "sendRequest");
 
         const res = async () => {
-            return await requestSpy.mock.results[0].value;
+            return await requestSpy.mock.results[requestSpy.mock.results.length].value;
         };
                     
         // Assert
@@ -986,7 +852,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         expect(await res()).toSatisfyApiSpec();
     });
 
-    it("should log error when _handleQuotingQueryResponseEvt finds no participant endpoint", async () => {
+    it("should log error when BulkQuoteReceivedEvt finds no participant endpoint", async () => {
         // Arrange
         const payload: BulkQuoteReceivedEvtPayload = {
             ...validBulkPostPayload,
@@ -1016,7 +882,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         await new Promise((r) => setTimeout(r, 2000));
 
         let sentMessagesCount = 0;
-        let expectedOffsetMessage;
+        let expectedOffsetMessage:any;
         const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
         
         if (currentOffset.offset && expectedOffset.offset) {
@@ -1031,7 +897,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         });
     });
 
-    it("should throw error _handleQuotingQueryResponseEvt due to failing to sendRequest", async () => {
+    it("should throw error BulkQuoteReceivedEvt due to failing to sendRequest", async () => {
         // Arrange
         const payload: BulkQuoteReceivedEvtPayload = {
             ...validBulkPostPayload,
@@ -1078,8 +944,8 @@ describe("FSPIOP API Service Quoting Handler", () => {
     });
     //#endregion
 
-    //#region BulkQuoteAcceptedEvtPayload
-    it("should successful treat _handleQuotingQueryResponseEvt", async () => {
+    //#region BulkQuoteAcceptedEvt
+    it("should successful treat BulkQuoteAcceptedEvt", async () => {
         // Arrange
         const payload: BulkQuoteAcceptedEvtPayload = {
             "bulkQuoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
@@ -1107,7 +973,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         jest.spyOn(Request, "sendRequest");
 
         const res = async () => {
-            return await requestSpy.mock.results[0].value;
+            return await requestSpy.mock.results[requestSpy.mock.results.length].value;
         };
                     
         // Assert
@@ -1120,7 +986,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         expect(await res()).toSatisfyApiSpec();
     });
 
-    it("should log error when _handleQuotingQueryResponseEvt finds no participant endpoint", async () => {
+    it("should log error when BulkQuoteAcceptedEvt finds no participant endpoint", async () => {
         // Arrange
         const payload: BulkQuoteAcceptedEvtPayload = {
             "bulkQuoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
@@ -1150,7 +1016,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         await new Promise((r) => setTimeout(r, 2000));
 
         let sentMessagesCount = 0;
-        let expectedOffsetMessage;
+        let expectedOffsetMessage:any;
         const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
         
         if (currentOffset.offset && expectedOffset.offset) {
@@ -1165,7 +1031,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         });
     });
 
-    it("should throw error _handleQuotingQueryResponseEvt due to failing to sendRequest", async () => {
+    it("should throw error BulkQuoteAcceptedEvt due to failing to sendRequest", async () => {
         // Arrange
         const payload: BulkQuoteAcceptedEvtPayload = {
             "bulkQuoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",

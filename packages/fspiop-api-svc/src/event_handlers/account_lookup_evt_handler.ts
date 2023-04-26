@@ -77,7 +77,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
     async processMessage (sourceMessage: IMessage) : Promise<void> {
         try {
             const message: IDomainMessage = sourceMessage as IDomainMessage;
-
+            
             switch(message.msgName){
                 case AccountLookUpUnknownErrorEvent.name:
                 case AccountLookupBCInvalidMessagePayloadErrorEvent.name:
@@ -124,7 +124,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             this._sendErrorFeedbackToFsp({
                 message: message,
                 error: message.msgName,
-                errorCode: "2100",
+                errorCode: Enums.ServerErrorCodes.GENERIC_SERVER_ERROR,
                 headers: message.fspiopOpaqueState.headers,
                 source: requesterFspId,
                 id: [partyType, partyId, partySubType]
@@ -137,8 +137,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         return;
     }
 
-    async _handleErrorReceivedEvt(message: IDomainMessage, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
-        this._logger.info('_handleErrorReceivedEvt -> start');
+    async _handleErrorReceivedEvt(message: IDomainMessage, fspiopOpaqueState: IncomingHttpHeaders):Promise<void> {
+        this._logger.info('_handleAccountLookupErrorReceivedEvt -> start');
 
         const { payload } = message;
   
@@ -233,7 +233,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
         this._sendErrorFeedbackToFsp({
             message: message,
-            error: message.msgName,
+            error: message.payload.errorDescription,
             errorCode: errorCode,
             headers: clonedHeaders,
             source: requesterFspId,
@@ -241,7 +241,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             extensionList: extensionList
         });
 
-        this._logger.info('_handleErrorReceivedEvt -> end');
+        this._logger.info('_handleAccountLookupErrorReceivedEvt -> end');
 
         return;
     }
@@ -263,10 +263,6 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             if(!requestedEndpoint) {
                 throw Error(`fspId ${requesterFspId} has no valid participant associated`);
             }
-            
-
-            // Always validate the payload and headers received
-            message.validatePayload();
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);

@@ -76,6 +76,10 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         await kafkaProducer.init();
     });
 
+    afterEach(() => {    
+        jest.clearAllMocks();
+    });
+
     afterAll(async () => {
         await Service.stop();
         await kafkaProducer.destroy();
@@ -204,7 +208,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         await new Promise((r) => setTimeout(r, 5000));
 
         let sentMessagesCount = 0;
-        let expectedOffsetMessage;
+        let expectedOffsetMessage: any;
         const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
         
         if (currentOffset.offset && expectedOffset.offset) {
@@ -318,7 +322,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         await new Promise((r) => setTimeout(r, 5000));
 
         let sentMessagesCount = 0;
-        let expectedOffsetMessage;
+        let expectedOffsetMessage: any;
         const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
         
         if (currentOffset.offset && expectedOffset.offset) {
@@ -369,7 +373,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         await new Promise((r) => setTimeout(r, 5000));
 
         let sentMessagesCount = 0;
-        let expectedOffsetMessage;
+        let expectedOffsetMessage: any;
         const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
         
         if (currentOffset.offset && expectedOffset.offset) {
@@ -412,12 +416,12 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         const requestSpy = jest.spyOn(Request, "sendRequest");
 
         // Act
+
         kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
 
-        jest.spyOn(Request, "sendRequest");
 
         const res = async () => {
-            return await requestSpy.mock.results[0].value;
+            return await requestSpy.mock.results[requestSpy.mock.results.length-1].value;
         };
                     
         // Assert
@@ -460,7 +464,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         await new Promise((r) => setTimeout(r, 5000));
 
         let sentMessagesCount = 0;
-        let expectedOffsetMessage;
+        let expectedOffsetMessage: any;
         const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
         
         if (currentOffset.offset && expectedOffset.offset) {
@@ -511,7 +515,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         await new Promise((r) => setTimeout(r, 5000));
 
         let sentMessagesCount = 0;
-        let expectedOffsetMessage;
+        let expectedOffsetMessage: any;
         const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
         
         if (currentOffset.offset && expectedOffset.offset) {
@@ -558,10 +562,8 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Act
         kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
 
-        jest.spyOn(Request, "sendRequest");
-
         const res = async () => {
-            return await requestSpy.mock.results[0].value;
+            return await requestSpy.mock.results[requestSpy.mock.results.length-1].value;
         };
                     
         // Assert
@@ -606,7 +608,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         await new Promise((r) => setTimeout(r, 5000));
 
         let sentMessagesCount = 0;
-        let expectedOffsetMessage;
+        let expectedOffsetMessage: any;
         const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
         
         if (currentOffset.offset && expectedOffset.offset) {
@@ -625,7 +627,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Arrange
         const payload : PartyInfoRequestedEvtPayload = {
             requesterFspId: "test-fspiop-source",
-            destinationFspId: "Bluebank",
+            destinationFspId: "test-fspiop-destination",
             partyId: "123456789",
             partyType: "MSISDN",
             partySubType: null,
@@ -651,10 +653,10 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         
         kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
 
-        await new Promise((r) => setTimeout(r, 5000));
+        await new Promise((r) => setTimeout(r, 10000));
 
         let sentMessagesCount = 0;
-        let expectedOffsetMessage;
+        let expectedOffsetMessage: any;
         const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
         
         if (currentOffset.offset && expectedOffset.offset) {
@@ -755,7 +757,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         await new Promise((r) => setTimeout(r, 5000));
 
         let sentMessagesCount = 0;
-        let expectedOffsetMessage;
+        let expectedOffsetMessage: any;
         const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
         
         if (currentOffset.offset && expectedOffset.offset) {
@@ -774,7 +776,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Arrange
         const payload : PartyQueryResponseEvtPayload = {
             requesterFspId: "test-fspiop-source",
-            destinationFspId: "Bluebank",
+            destinationFspId: "test-fspiop-destination",
             ownerFspId: "test-fspiop-owner",
             partyId: "123456789",
             partyType: "MSISDN",
@@ -802,10 +804,11 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         
         kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
 
-        await new Promise((r) => setTimeout(r, 5000));
+        await new Promise((r) => setTimeout(r, 10000));
 
         let sentMessagesCount = 0;
-        let expectedOffsetMessage;
+        let expectedOffsetMessage: any;
+        
         const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
         
         if (currentOffset.offset && expectedOffset.offset) {
@@ -900,7 +903,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         await new Promise((r) => setTimeout(r, 5000));
 
         let sentMessagesCount = 0;
-        let expectedOffsetMessage;
+        let expectedOffsetMessage: any;
         const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
         
         if (currentOffset.offset && expectedOffset.offset) {
@@ -953,7 +956,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         await new Promise((r) => setTimeout(r, 5000));
 
         let sentMessagesCount = 0;
-        let expectedOffsetMessage;
+        let expectedOffsetMessage: any;
         const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
         
         if (currentOffset.offset && expectedOffset.offset) {

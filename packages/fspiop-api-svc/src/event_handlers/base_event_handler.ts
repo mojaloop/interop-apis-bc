@@ -41,8 +41,10 @@ import { IncomingHttpHeaders } from "http";
 import { AccountLookUpUnknownErrorEvent, QuotingBCInvalidIdErrorEvent, TransferErrorEvt, AccountLookUpOperatorErrorEvent, AccountLookUpOperatorErrorPayload, AccountLookupBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { AccountLookupEventHandler } from "./account_lookup_evt_handler";
+import { QuotingEventHandler } from "./quoting_evt_handler";
 
-const KAFKA_OPERATOR_ERROR_TOPIC = process.env["KAFKA_OPERATOR_ERROR_TOPIC"] || AccountLookupBCTopics.DomainErrors;
+const KAFKA_ACCOUNT_LOOKUP_OPERATOR_ERROR_TOPIC = process.env["KAFKA_OPERATOR_ERROR_TOPIC"] || AccountLookupBCTopics.DomainErrors;
+const KAFKA_QUOTING_OPERATOR_ERROR_TOPIC = process.env["KAFKA_OPERATOR_ERROR_TOPIC"] || QuotingBCTopics.DomainErrors;
 
 export abstract class BaseEventHandler implements IEventHandler {
     protected _kafkaConsumer: MLKafkaJsonConsumer;
@@ -198,13 +200,30 @@ export abstract class BaseEventHandler implements IEventHandler {
 
                     const msg = new AccountLookUpOperatorErrorEvent(payload);
     
-                    msg.msgTopic = KAFKA_OPERATOR_ERROR_TOPIC;
+                    msg.msgTopic = KAFKA_ACCOUNT_LOOKUP_OPERATOR_ERROR_TOPIC;
         
                     await this._kafkaProducer.send(msg);
                     break;
                 }
-                default:
+                case QuotingEventHandler.name: {
+                    const payload:QuotingBCOperatorErrorPayload = {
+                        quoteId: message?.payload.quoteId,
+                        bulkQuoteId: message?.payload.bulkQuoteId,
+                        fspId: message?.payload.quoteId,
+                        errorDescription: error
+                    };
+
+                    const msg = new QuotingBCOperatorErrorEvent(payload);
+    
+                    msg.msgTopic = KAFKA_QUOTING_OPERATOR_ERROR_TOPIC;
+        
+                    await this._kafkaProducer.send(msg);
                     break;
+                }
+                default: {
+                    this._logger.error(`not possible to send message ${message?.msgName} event untreated error to corresponding operator error topic`);
+                    break;
+                }
             }
         }
 
