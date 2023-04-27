@@ -37,7 +37,6 @@ import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/
 import {
     QuotingBCInvalidIdErrorEvent,
     QuoteRequestAcceptedEvt,
-    QuoteRequestReceivedEvt,
     QuoteResponseAccepted,
     QuoteQueryResponseEvt,
     BulkQuoteReceivedEvt,
@@ -59,11 +58,8 @@ import {
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { IncomingHttpHeaders } from "http";
 import { BaseEventHandler } from "./base_event_handler";
-import { AxiosError } from "axios";
 import { QuotesPost } from "../errors";
 import { IParticipantService } from "../interfaces/infrastructure";
-
-const KAFKA_OPERATOR_ERROR_TOPIC = process.env["KAFKA_OPERATOR_ERROR_TOPIC"] || 'OperatorBcErrors';
 
 export class QuotingEventHandler extends BaseEventHandler {
     constructor(

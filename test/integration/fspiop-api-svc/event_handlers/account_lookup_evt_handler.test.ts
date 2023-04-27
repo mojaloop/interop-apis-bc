@@ -34,7 +34,7 @@
 import { Request } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { 
     AccountLookupBCTopics,
-    AccountLookUpOperatorErrorEvent,
+    AccountLookUpBCOperatorErrorEvent,
     AccountLookUpUnknownErrorEvent,
     AccountLookUpUnknownErrorPayload,
     ParticipantAssociationCreatedEvt,
@@ -177,7 +177,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
     });
 
 
-    it("should log error when AccountLookUpOperatorErrorEvent finds no participant endpoint1", async () => {
+    it("should log error when AccountLookUpBCOperatorErrorEvent finds no participant endpoint1", async () => {
         // Arrange
         const payload : AccountLookUpUnknownErrorPayload = {
             fspId: "non-existing-requester-id",
@@ -219,7 +219,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Assert        
         await waitForExpect(() => {
             expect(sentMessagesCount).toBe(1);
-            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpOperatorErrorEvent.name);
+            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpBCOperatorErrorEvent.name);
         });
     });
 
@@ -292,7 +292,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
     // #endregion
 
     // #region ParticipantAssociationCreatedEvt
-    it("should log error when AccountLookUpOperatorErrorEvent finds no participant endpoint", async () => {
+    it("should log error when AccountLookUpBCOperatorErrorEvent finds no participant endpoint", async () => {
         // Arrange
         const payload : ParticipantAssociationCreatedEvtPayload = {
             ownerFspId: "non-existing-owner-id",
@@ -333,7 +333,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Assert        
         await waitForExpect(() => {
             expect(sentMessagesCount).toBe(1);
-            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpOperatorErrorEvent.name);
+            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpBCOperatorErrorEvent.name);
         });
     });
 
@@ -384,7 +384,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Assert        
         await waitForExpect(() => {
             expect(sentMessagesCount).toBe(1);
-            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpOperatorErrorEvent.name);
+            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpBCOperatorErrorEvent.name);
         });
 
     });
@@ -475,7 +475,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Assert        
         await waitForExpect(() => {
             expect(sentMessagesCount).toBe(1);
-            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpOperatorErrorEvent.name);
+            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpBCOperatorErrorEvent.name);
         });
     });
 
@@ -526,7 +526,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Assert        
         await waitForExpect(() => {
             expect(sentMessagesCount).toBe(1);
-            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpOperatorErrorEvent.name);
+            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpBCOperatorErrorEvent.name);
         });
 
     });
@@ -619,7 +619,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Assert        
         await waitForExpect(() => {
             expect(sentMessagesCount).toBe(1);
-            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpOperatorErrorEvent.name);
+            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpBCOperatorErrorEvent.name);
         });
     });
 
@@ -667,7 +667,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Assert        
         await waitForExpect(() => {
             expect(sentMessagesCount).toBe(1);
-            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpOperatorErrorEvent.name);
+            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpBCOperatorErrorEvent.name);
         });
 
     });
@@ -768,7 +768,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Assert        
         await waitForExpect(() => {
             expect(sentMessagesCount).toBe(1);
-            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpOperatorErrorEvent.name);
+            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpBCOperatorErrorEvent.name);
         });
     });
 
@@ -819,7 +819,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Assert        
         await waitForExpect(() => {
             expect(sentMessagesCount).toBe(1);
-            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpOperatorErrorEvent.name);
+            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpBCOperatorErrorEvent.name);
         });
 
     });
@@ -914,7 +914,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Assert        
         await waitForExpect(() => {
             expect(sentMessagesCount).toBe(1);
-            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpOperatorErrorEvent.name);
+            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpBCOperatorErrorEvent.name);
         });
     });
 
@@ -967,7 +967,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Assert        
         await waitForExpect(() => {
             expect(sentMessagesCount).toBe(1);
-            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpOperatorErrorEvent.name);
+            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpBCOperatorErrorEvent.name);
         });
 
     });

@@ -276,10 +276,9 @@ export class Service {
         })); // for parsing application/json
         app.use(express.urlencoded({limit: '100mb', extended: true})); // for parsing application/x-www-form-urlencoded
     
-        // TODO: find another way around this since it's only a temporary fix for admin-ui date header 
         app.use((req, res, next) => {
             const customFSPIOPHeaders = ["accept", "content-type"];
-
+            
             for (const value of customFSPIOPHeaders) {
                 const headerValue = req.headers[value] as string;
                 const resource = req.originalUrl.split('/')[1];
@@ -295,6 +294,7 @@ export class Service {
                 }
             }
             
+            // TODO: find another way around this since it's only a temporary fix for admin-ui date header 
             if(req.headers['fspiop-date']) {
                 req.headers.date = req.headers["fspiop-date"] as string;
                 delete req.headers["fspiop-date"];

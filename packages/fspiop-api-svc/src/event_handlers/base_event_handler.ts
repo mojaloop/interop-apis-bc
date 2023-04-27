@@ -38,7 +38,7 @@ import { IParticipantEndpoint } from "@mojaloop/participants-bc-client-lib";
 import { IEventHandler } from "../interfaces/types";
 import { IParticipantService } from "../interfaces/infrastructure";
 import { IncomingHttpHeaders } from "http";
-import { AccountLookUpUnknownErrorEvent, QuotingBCInvalidIdErrorEvent, TransferErrorEvt, AccountLookUpOperatorErrorEvent, AccountLookUpOperatorErrorPayload, AccountLookupBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { AccountLookUpUnknownErrorEvent, QuotingBCInvalidIdErrorEvent, TransferErrorEvt, AccountLookUpBCOperatorErrorEvent, AccountLookUpBCOperatorErrorPayload, AccountLookupBCTopics, QuotingBCTopics, QuotingBCOperatorErrorPayload, QuotingBCOperatorErrorEvent } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { AccountLookupEventHandler } from "./account_lookup_evt_handler";
 import { QuotingEventHandler } from "./quoting_evt_handler";
@@ -190,7 +190,7 @@ export abstract class BaseEventHandler implements IEventHandler {
             
             switch(this.constructor.name) {
                 case AccountLookupEventHandler.name: {
-                    const payload:AccountLookUpOperatorErrorPayload = {
+                    const payload:AccountLookUpBCOperatorErrorPayload = {
                         partyId: message?.payload.partyId,
                         partyType: message?.payload.partyId,
                         fspId: message?.payload.partyId,
@@ -198,28 +198,28 @@ export abstract class BaseEventHandler implements IEventHandler {
                         errorDescription: error
                     };
 
-                    const msg = new AccountLookUpOperatorErrorEvent(payload);
+                    const msg = new AccountLookUpBCOperatorErrorEvent(payload);
     
                     msg.msgTopic = KAFKA_ACCOUNT_LOOKUP_OPERATOR_ERROR_TOPIC;
         
                     await this._kafkaProducer.send(msg);
                     break;
                 }
-                case QuotingEventHandler.name: {
-                    const payload:QuotingBCOperatorErrorPayload = {
-                        quoteId: message?.payload.quoteId,
-                        bulkQuoteId: message?.payload.bulkQuoteId,
-                        fspId: message?.payload.quoteId,
-                        errorDescription: error
-                    };
+                // case QuotingEventHandler.name: {
+                //     const payload:QuotingBCOperatorErrorPayload = {
+                //         quoteId: message?.payload.quoteId,
+                //         bulkQuoteId: message?.payload.bulkQuoteId,
+                //         fspId: message?.payload.quoteId,
+                //         errorDescription: error
+                //     };
 
-                    const msg = new QuotingBCOperatorErrorEvent(payload);
+                //     const msg = new QuotingBCOperatorErrorEvent(payload);
     
-                    msg.msgTopic = KAFKA_QUOTING_OPERATOR_ERROR_TOPIC;
+                //     msg.msgTopic = KAFKA_QUOTING_OPERATOR_ERROR_TOPIC;
         
-                    await this._kafkaProducer.send(msg);
-                    break;
-                }
+                //     await this._kafkaProducer.send(msg);
+                //     break;
+                // }
                 default: {
                     this._logger.error(`not possible to send message ${message?.msgName} event untreated error to corresponding operator error topic`);
                     break;
