@@ -61,7 +61,6 @@
     "packages/shared-mocks-lib"
   ],
   "dependencies": {
-    "@mojaloop/platform-shared-lib-public-messages-lib": "~0.1.78",
     "bignumber.js": "^9.1.0",
     "express-openapi-validate": "^0.6.1",
     "js-yaml": "^4.1.0"
