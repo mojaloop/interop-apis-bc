@@ -47,10 +47,10 @@ import {
     AccountLookupBCInvalidMessagePayloadErrorEvent,
     AccountLookupBCInvalidMessageTypeErrorEvent,
     AccountLookupBCInvalidParticipantIdErrorEvent,
-    AccountLookupBCNoSuchOracleAdapterErrorEvent,
-    AccountLookupBCNoSuchOracleErrorEvent,
-    AccountLookupBCNoSuchParticipantErrorEvent,
-    AccountLookupBCNoSuchParticipantFspIdErrorEvent,
+    AccountLookupBCOracleAdapterNotFoundErrorEvent,
+    AccountLookupBCOracleNotFoundErrorEvent,
+    AccountLookupBCParticipantNotFoundErrorEvent,
+    AccountLookupBCParticipantFspIdNotFoundErrorEvent,
     AccountLookupBCUnableToAssociateParticipantErrorEvent,
     AccountLookupBCUnableToDisassociateParticipantErrorEvent,
     AccountLookupBCUnableToGetOracleFromOracleFinderErrorEvent,
@@ -84,13 +84,13 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 case AccountLookupBCInvalidMessageTypeErrorEvent.name:
                 case AccountLookupBCUnableToAssociateParticipantErrorEvent.name:
                 case AccountLookupBCUnableToDisassociateParticipantErrorEvent.name:
-                case AccountLookupBCNoSuchParticipantErrorEvent.name:
+                case AccountLookupBCParticipantNotFoundErrorEvent.name:
                 case AccountLookupBCInvalidParticipantIdErrorEvent.name:
                 case AccountLookupBCUnableToGetOracleFromOracleFinderErrorEvent.name:
-                case AccountLookupBCNoSuchOracleErrorEvent.name:
-                case AccountLookupBCNoSuchOracleAdapterErrorEvent.name:
+                case AccountLookupBCOracleNotFoundErrorEvent.name:
+                case AccountLookupBCOracleAdapterNotFoundErrorEvent.name:
                 case AccountLookupBCUnableToGetParticipantFspIdErrorEvent.name:
-                case AccountLookupBCNoSuchParticipantFspIdErrorEvent.name:
+                case AccountLookupBCParticipantFspIdNotFoundErrorEvent.name:
                     await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState);
                     break;
                 case ParticipantAssociationCreatedEvt.name:
@@ -175,9 +175,9 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
                 break;
             }
-            case AccountLookupBCNoSuchParticipantErrorEvent.name:
+            case AccountLookupBCParticipantNotFoundErrorEvent.name:
             case AccountLookupBCUnableToGetParticipantFspIdErrorEvent.name: 
-            case AccountLookupBCNoSuchParticipantFspIdErrorEvent.name: {
+            case AccountLookupBCParticipantFspIdNotFoundErrorEvent.name: {
                 list = ["partyType", "partyId", "partySubType", "fspId"];
 
                 if(clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === message.payload.fspId) {
@@ -202,8 +202,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             case AccountLookupBCInvalidMessagePayloadErrorEvent.name:
             case AccountLookupBCInvalidMessageTypeErrorEvent.name:
             case AccountLookupBCUnableToGetOracleFromOracleFinderErrorEvent.name: 
-            case AccountLookupBCNoSuchOracleErrorEvent.name: 
-            case AccountLookupBCNoSuchOracleAdapterErrorEvent.name: {
+            case AccountLookupBCOracleNotFoundErrorEvent.name: 
+            case AccountLookupBCOracleAdapterNotFoundErrorEvent.name: {
                 
                 list = ["partyType", "partyId", "partySubType", "fspId"];
                 errorCode = Enums.ClientErrorCodes.GENERIC_CLIENT_ERROR;

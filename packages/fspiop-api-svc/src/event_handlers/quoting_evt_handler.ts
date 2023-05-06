@@ -35,25 +35,24 @@ import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {
-    QuotingBCInvalidIdErrorEvent,
+    QuoteBCInvalidIdErrorEvent,
     QuoteRequestAcceptedEvt,
     QuoteResponseAccepted,
     QuoteQueryResponseEvt,
     BulkQuoteReceivedEvt,
     BulkQuoteAcceptedEvt,
-    QuotingBCDuplicateQuoteErrorEvent,
-    QuotingBCInvalidMessagePayloadErrorEvent,
-    QuotingBCNoSuchBulkQuoteErrorEvent,
-    QuotingBCNoSuchQuoteErrorEvent,
-    QuotingBCInvalidMessageTypeErrorEvent,
-    QuotingBCUnableToProcessMessageErrorEvent,
-    QuotingBCNoSuchParticipantErrorEvent,
-    QuotingBCRequiredParticipantIsNotActiveErrorEvent,
-    QuotingBCInvalidParticipantIdErrorEvent,
-    QuotingBCInvalidRequesterFspIdErrorEvent,
-    QuotingBCInvalidDestinationFspIdErrorEvent,
-    QuotingBCInvalidDestinationPartyInformationErrorEvent,
-    QuotingBCUnknownErrorEvent
+    QuoteBCDuplicateQuoteErrorEvent,
+    QuoteBCInvalidMessageErrorEvent,
+    QuoteBCBulkQuoteNotFoundErrorEvent,
+    QuoteBCQuoteNotFoundErrorEvent,
+    QuoteBCInvalidMessageTypeErrorEvent,
+    QuoteBCParticipantNotFoundErrorEvent,
+    QuoteBCRequiredParticipantIsNotActiveErrorEvent,
+    QuoteBCInvalidParticipantIdErrorEvent,
+    QuoteBCInvalidRequesterFspIdErrorEvent,
+    QuoteBCInvalidDestinationFspIdErrorEvent,
+    QuoteBCInvalidDestinationPartyInformationErrorEvent,
+    QuoteBCUnknownErrorEvent
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { IncomingHttpHeaders } from "http";
@@ -77,8 +76,8 @@ export class QuotingEventHandler extends BaseEventHandler {
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
             switch(message.msgName){
-                case QuotingBCInvalidIdErrorEvent.name:
-                    await this._handleErrorReceivedEvt(new QuotingBCInvalidIdErrorEvent(message.payload), message.fspiopOpaqueState);
+                case QuoteBCInvalidIdErrorEvent.name:
+                    await this._handleErrorReceivedEvt(new QuoteBCInvalidIdErrorEvent(message.payload), message.fspiopOpaqueState);
                     break;
                 case QuoteRequestAcceptedEvt.name:
                     await this._handleQuotingCreatedRequestReceivedEvt(new QuoteRequestAcceptedEvt(message.payload), message.fspiopOpaqueState);
@@ -152,19 +151,18 @@ export class QuotingEventHandler extends BaseEventHandler {
         let errorCode = "1000"; // Default error code
 
         switch(message.msgName){
-            case QuotingBCInvalidIdErrorEvent.name:
-            case QuotingBCDuplicateQuoteErrorEvent.name:
-            case QuotingBCNoSuchQuoteErrorEvent.name:
-            case QuotingBCNoSuchBulkQuoteErrorEvent.name: 
-            case QuotingBCInvalidMessagePayloadErrorEvent.name:
-            case QuotingBCInvalidMessageTypeErrorEvent.name:
-            case QuotingBCUnableToProcessMessageErrorEvent.name:
-            case QuotingBCNoSuchParticipantErrorEvent.name:
-            case QuotingBCInvalidParticipantIdErrorEvent.name: 
-            case QuotingBCRequiredParticipantIsNotActiveErrorEvent.name: 
-            case QuotingBCInvalidRequesterFspIdErrorEvent.name:
-            case QuotingBCInvalidDestinationFspIdErrorEvent.name: 
-            case QuotingBCInvalidDestinationPartyInformationErrorEvent.name: {
+            case QuoteBCInvalidIdErrorEvent.name:
+            case QuoteBCDuplicateQuoteErrorEvent.name:
+            case QuoteBCQuoteNotFoundErrorEvent.name:
+            case QuoteBCBulkQuoteNotFoundErrorEvent.name: 
+            case QuoteBCInvalidMessageErrorEvent.name:
+            case QuoteBCInvalidMessageTypeErrorEvent.name:
+            case QuoteBCParticipantNotFoundErrorEvent.name:
+            case QuoteBCInvalidParticipantIdErrorEvent.name: 
+            case QuoteBCRequiredParticipantIsNotActiveErrorEvent.name: 
+            case QuoteBCInvalidRequesterFspIdErrorEvent.name:
+            case QuoteBCInvalidDestinationFspIdErrorEvent.name: 
+            case QuoteBCInvalidDestinationPartyInformationErrorEvent.name: {
                 if(quoteId) {
                     list = ["quoteId", "fspId"]
                 } else {
@@ -175,7 +173,7 @@ export class QuotingEventHandler extends BaseEventHandler {
 
                 break;
             }
-            case QuotingBCUnknownErrorEvent.name: {
+            case QuoteBCUnknownErrorEvent.name: {
                 if(quoteId) {
                     list = ["quoteId", "fspId"]
                 } else {

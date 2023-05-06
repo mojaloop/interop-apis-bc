@@ -328,11 +328,11 @@ export class Service {
         app.use((err: FspiopHttpRequestError, req: express.Request, res: express.Response, next: express.NextFunction) => {
             const errorResponseBuilder = (errorCode: string, errorDescription: string, additionalProperties = {}) => {
                 return {
-                errorInformation: {
-                    errorCode,
-                    errorDescription,
-                    ...additionalProperties
-                }
+                    errorInformation: {
+                        errorCode,
+                        errorDescription,
+                        ...additionalProperties
+                    }
                 };
             };
             
@@ -363,8 +363,6 @@ export class Service {
             res.set(customHeaders);
 
             res.status(statusCode).json(errorResponseBuilder('3100', err.data[0].message, { extensionList: { extension: extensionList} }));
-
-            next();
         });
 
         app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
