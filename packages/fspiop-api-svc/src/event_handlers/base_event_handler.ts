@@ -175,6 +175,10 @@ export abstract class BaseEventHandler implements IEventHandler {
                     urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);
                     break;
                 }
+                case header.includes("transfers"): {
+                    urlBuilder.setEntity(Enums.EntityTypeEnum.TRANSFERS);
+                    break;
+                }
                 default:
                     throw Error();
             }
@@ -201,7 +205,7 @@ export abstract class BaseEventHandler implements IEventHandler {
             
             
             switch(this.constructor.name) {
-                case AccountLookupEventHandler.name: {
+                case "AccountLookupEventHandler": {
                     const payload:AccountLookUpBCOperatorErrorPayload = {
                         partyId: message?.payload.partyId,
                         partyType: message?.payload.partyId,
@@ -217,7 +221,7 @@ export abstract class BaseEventHandler implements IEventHandler {
                     await this._kafkaProducer.send(msg);
                     break;
                 }
-                case QuotingEventHandler.name: {
+                case "QuotingEventHandler": {
                     const payload:QuoteBCOperatorErrorPayload = {
                         quoteId: message?.payload.quoteId,
                         bulkQuoteId: message?.payload.bulkQuoteId,
@@ -232,7 +236,7 @@ export abstract class BaseEventHandler implements IEventHandler {
                     await this._kafkaProducer.send(msg);
                     break;
                 }
-                case TransferEventHandler.name: {
+                case "TransferEventHandler": {
                     const payload:TransfersBCOperatorErrorPayload = {
                         transferId: message?.payload.transferId,
                         fspId: message?.payload.quoteId,

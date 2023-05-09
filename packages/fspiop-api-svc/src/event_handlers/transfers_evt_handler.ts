@@ -118,10 +118,16 @@ export class TransferEventHandler extends BaseEventHandler {
 
         switch(message.msgName){
             case TransferPrepareInvalidPayerCheckFailedEvt.name:
-            case TransferPrepareInvalidPayeeCheckFailedEvt.name:
+            case TransferPrepareInvalidPayeeCheckFailedEvt.name: {
+                list = ["transferId", "fspId"];
+                errorCode = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR;
+
+                break;
+            }
+                
             case TransferPrepareLiquidityCheckFailedEvt.name:
             case TransferPrepareDuplicateCheckFailedEvt.name:
-            case TransfersBCUnknownErrorEvent.name:{
+            case TransfersBCUnknownErrorEvent.name: {
                 list = ["transferId", "fspId"];
                 errorCode = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR;
 

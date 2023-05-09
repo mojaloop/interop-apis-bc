@@ -132,7 +132,44 @@ const generateSingleAcceptRegexStr = (resource: string) =>
 const generateAcceptRegex = (resource: string) =>
 new RegExp(`^${generateSingleAcceptRegexStr(resource)}(,${generateSingleAcceptRegexStr(resource)})*$`);
 
+const protocolVersions = {
+    anyVersion: Symbol('Any'),
+    ONE: ['1', '1.0', '1.1']
+  }
+
+  
+const protocolVersionsMap = [
+    { key: '1', value: '0' },
+    { key: '1', value: '1' }
+]
+
+const parseAcceptHeader = (resource: string, header: string) => {
+    // assert(typeof header === 'string')
+  
+    // Create the validation regex
+    const r = generateAcceptRegex(resource)
+  
+    // Test the header
+    if (header.match(r) === null) {
+      return { valid: false }
+    }
+  
+    // The header contains a comma-delimited set of versions, extract these
+    const versions = new Set(header
+      .split(',')
+      // @ts-ignore
+      .map(verStr => verStr.match(generateSingleAcceptRegex(resource))[1])
+      .map(match => match === undefined ? protocolVersions.anyVersion : match.split('=')[1])
+    )
+  
+    return {
+      valid: true,
+      versions
+    }
+  }
+
 type FspiopHttpRequestError = { 
+    name: string;
     statusCode: number;
     data: { 
         keyword: string; 
@@ -286,14 +323,27 @@ export class Service {
                     if(!generateAcceptRegex(resource).test(headerValue)) {
                         return res.status(400).json({
                             "errorInformation": {
-                                "errorCode": "3001",
-                                "errorDescription": "Unknown Accept header format"
+                                "errorCode": "3102",
+                                "errorDescription": "Missing or wrong header/body format"
                             }
                         });
                     }
                 }
             }
             
+            if(req.headers["date"]) {
+                // Determine which library to use to validate dates
+                const headerDate = new Date(req.headers["date"]);
+                if(headerDate.toDateString() === "Invalid Date") {
+                    return res.status(400).json({
+                        "errorInformation": {
+                            "errorCode": "3102",
+                            "errorDescription": "Invalid date-type"
+                        }
+                    });
+                }
+            }
+
             // TODO: find another way around this since it's only a temporary fix for admin-ui date header 
             if(req.headers['fspiop-date']) {
                 req.headers.date = req.headers["fspiop-date"] as string;
@@ -304,6 +354,7 @@ export class Service {
             return;
         });
         
+        // Call the request validator in every request
         app.use(validator.match());
 
         this.participantRoutes = new ParticipantRoutes(kafkaProducerOptions, KAFKA_ACCOUNTS_LOOKUP_TOPIC, loggerParam);
@@ -362,7 +413,23 @@ export class Service {
 
             res.set(customHeaders);
 
-            res.status(statusCode).json(errorResponseBuilder('3100', err.data[0].message, { extensionList: { extension: extensionList} }));
+            let errorCode:string;
+            let errorType = err.data[0].instancePath;
+
+            switch(true) {
+                case errorType.includes("body"): {
+                    errorCode = "3100";
+                    break;
+                }
+                case !errorType.includes("body"): {
+                    errorCode = "3102";
+                    break;
+                }
+                default: 
+                    errorCode = "3100";
+            }
+
+            res.status(statusCode).json(errorResponseBuilder(errorCode, `${err.data[0].message} - path: ${err.data[0].instancePath}`, { extensionList: { extension: extensionList} }));
         });
 
         app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
