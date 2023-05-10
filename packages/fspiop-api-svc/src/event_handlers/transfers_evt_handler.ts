@@ -41,6 +41,7 @@ import {
     TransferPrepareInvalidPayeeCheckFailedEvt,
     TransferPrepareLiquidityCheckFailedEvt,
     TransferPrepareDuplicateCheckFailedEvt,
+    TransferRejectRequestProcessedEvt,
     TransfersBCUnknownErrorEvent 
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
@@ -69,6 +70,7 @@ export class TransferEventHandler extends BaseEventHandler {
             case TransferPrepareInvalidPayeeCheckFailedEvt.name:
             case TransferPrepareLiquidityCheckFailedEvt.name:
             case TransferPrepareDuplicateCheckFailedEvt.name:
+            case TransferRejectRequestProcessedEvt.name:
             case TransfersBCUnknownErrorEvent.name:
                 await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState);
                 break;
@@ -98,19 +100,6 @@ export class TransferEventHandler extends BaseEventHandler {
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
         const requesterFspId = clonedHeaders["fspiop-source"] as string;
         const transferId = payload.transferId as string;
-
-        const requestedEndpoint = (await this._validateParticipantAndGetEndpoint(requesterFspId));
-
-        if(!requestedEndpoint) {
-            throw Error(`fspId ${requesterFspId} has no valid participant associated`);
-        }
-
-
-        const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
-        
-        urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
-        urlBuilder.setLocation([transferId]);
-        urlBuilder.hasError(true);
         
         const extensionList = [];
         let list: string[] = [];
@@ -128,6 +117,12 @@ export class TransferEventHandler extends BaseEventHandler {
             case TransferPrepareLiquidityCheckFailedEvt.name:
             case TransferPrepareDuplicateCheckFailedEvt.name:
             case TransfersBCUnknownErrorEvent.name: {
+                list = ["transferId", "fspId"];
+                errorCode = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR;
+
+                break;
+            }
+            case TransferRejectRequestProcessedEvt.name: {
                 list = ["transferId", "fspId"];
                 errorCode = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR;
 
@@ -151,7 +146,7 @@ export class TransferEventHandler extends BaseEventHandler {
 
         this._sendErrorFeedbackToFsp({
             message: message,
-            error: message.payload.errorDescription,
+            error: message.payload.errorInformation.errorDescription,
             errorCode: errorCode,
             headers: clonedHeaders,
             source: requesterFspId,

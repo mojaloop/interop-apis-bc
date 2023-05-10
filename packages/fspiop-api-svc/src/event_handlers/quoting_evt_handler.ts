@@ -201,7 +201,7 @@ export class QuotingEventHandler extends BaseEventHandler {
 
         this._sendErrorFeedbackToFsp({
             message: message,
-            error: message.payload.errorDescription,
+            error: message.payload.errorInformation.errorDescription,
             errorCode: errorCode,
             headers: clonedHeaders,
             source: requesterFspId,

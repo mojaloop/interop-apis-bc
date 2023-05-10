@@ -124,7 +124,7 @@ export abstract class BaseEventHandler implements IEventHandler {
         source,
         id,
         extensionList,
-        errorCode
+        errorCode,
     }: {
         message?: IDomainMessage;
         error: unknown;
@@ -142,7 +142,7 @@ export abstract class BaseEventHandler implements IEventHandler {
             // This might be an AxiosError as well
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const err = error as unknown as any;
-            this._logger.error(err.response?.data ? JSON.stringify(err.response?.data) : err.message);
+            // this._logger.error(err.response?.data ? JSON.stringify(err.response?.data) : err.message);
 
             const requesterFspId = headers["fspiop-source"] as string;
 
@@ -157,7 +157,7 @@ export abstract class BaseEventHandler implements IEventHandler {
             urlBuilder.setLocation(id);
             urlBuilder.hasError(true);
 
-            const header = message?.fspiopOpaqueState.headers.accept;
+            const header = message?.fspiopOpaqueState.headers["content-type"];
             switch(true) {
                 case header.includes("participants"): {
                     urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
