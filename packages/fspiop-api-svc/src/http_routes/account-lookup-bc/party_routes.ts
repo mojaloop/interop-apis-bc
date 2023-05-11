@@ -107,6 +107,8 @@ export class PartyRoutes extends BaseRoutes {
 
         await this.kafkaProducer.send(msg);
 
+        this.logger.debug("Logging payload...")
+        this.logger.debug(JSON.stringify(msgPayload));
         this.logger.debug("getPartyQueryReceivedByTypeAndId sent message");
 
         res.status(202).json({
