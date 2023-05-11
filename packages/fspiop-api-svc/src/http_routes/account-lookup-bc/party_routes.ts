@@ -144,7 +144,7 @@ export class PartyRoutes extends BaseRoutes {
             partyType: type,
             partyId: id,
             partySubType: partySubIdOrType,
-            currency: currency
+            currency: "EUR"
         };
 
         const msg =  new PartyQueryReceivedEvt(msgPayload);
