@@ -42,6 +42,7 @@ import {
     TransferPrepareLiquidityCheckFailedEvt,
     TransferPrepareDuplicateCheckFailedEvt,
     TransferRejectRequestProcessedEvt,
+    TransferPrepareRequestTimedoutEvt,
     TransfersBCUnknownErrorEvent 
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
@@ -71,6 +72,7 @@ export class TransferEventHandler extends BaseEventHandler {
             case TransferPrepareLiquidityCheckFailedEvt.name:
             case TransferPrepareDuplicateCheckFailedEvt.name:
             case TransferRejectRequestProcessedEvt.name:
+            case TransferPrepareRequestTimedoutEvt.name:
             case TransfersBCUnknownErrorEvent.name:
                 await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState);
                 break;
@@ -93,7 +95,7 @@ export class TransferEventHandler extends BaseEventHandler {
     }
 
     async _handleErrorReceivedEvt(message: IDomainMessage, fspiopOpaqueState: IncomingHttpHeaders):Promise<void> {
-        this._logger.info('_handleAccountLookupErrorReceivedEvt -> start');
+        this._logger.info('_handleTransferErrorReceivedEvt -> start');
 
         const { payload } = message;
   
@@ -104,27 +106,32 @@ export class TransferEventHandler extends BaseEventHandler {
         const extensionList = [];
         let list: string[] = [];
         let errorCode = "1000"; // Default error code
+        let errorDescription = "";
 
         switch(message.msgName){
             case TransferPrepareInvalidPayerCheckFailedEvt.name:
             case TransferPrepareInvalidPayeeCheckFailedEvt.name: {
                 list = ["transferId", "fspId"];
                 errorCode = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR;
+                errorDescription = message.payload.errorDescription;
 
                 break;
             }
                 
             case TransferPrepareLiquidityCheckFailedEvt.name:
             case TransferPrepareDuplicateCheckFailedEvt.name:
+            case TransferPrepareRequestTimedoutEvt.name:
             case TransfersBCUnknownErrorEvent.name: {
                 list = ["transferId", "fspId"];
                 errorCode = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR;
+                errorDescription = message.payload.errorDescription;
 
                 break;
             }
             case TransferRejectRequestProcessedEvt.name: {
                 list = ["transferId", "fspId"];
                 errorCode = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR;
+                errorDescription = message.payload.errorInformation.errorDescription;
 
                 break;
             }
@@ -146,7 +153,7 @@ export class TransferEventHandler extends BaseEventHandler {
 
         this._sendErrorFeedbackToFsp({
             message: message,
-            error: message.payload.errorInformation.errorDescription,
+            error: errorDescription,
             errorCode: errorCode,
             headers: clonedHeaders,
             source: requesterFspId,
@@ -154,7 +161,7 @@ export class TransferEventHandler extends BaseEventHandler {
             extensionList: extensionList
         });
 
-        this._logger.info('_handleAccountLookupErrorReceivedEvt -> end');
+        this._logger.info('_handleTransferErrorReceivedEvt -> end');
 
         return;
     }

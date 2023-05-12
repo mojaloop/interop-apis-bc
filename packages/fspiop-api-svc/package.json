@@ -62,5 +62,13 @@
     "jest-openapi": "^0.14.2",
     "kafka-node": "^5.0.0",
     "wait-for-expect": "^3.0.2"
+  },
+  "peerDependencies": {
+    "@mojaloop/central-services-error-handling": "12.x.x"
+  },
+  "peerDependenciesMeta": {
+    "@mojaloop/central-services-error-handling": {
+      "optional": false
+    }
   }
 }
