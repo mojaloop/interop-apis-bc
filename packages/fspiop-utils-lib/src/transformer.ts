@@ -31,13 +31,27 @@
 
  'use strict';
 
-import { BulkQuoteReceivedEvtPayload, BulkQuoteAcceptedEvtPayload, ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvtPayload, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload, QuoteRequestAcceptedEvtPayload, QuoteResponseAcceptedEvtPayload, TransferPreparedEvtPayload, TransferCommittedFulfiledEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { 
+	BulkQuoteReceivedEvtPayload, 
+	BulkQuoteAcceptedEvtPayload, 
+	ParticipantAssociationCreatedEvtPayload, 
+	ParticipantAssociationRemovedEvtPayload, 
+	ParticipantQueryResponseEvtPayload, 
+	PartyInfoRequestedEvtPayload,
+	PartyQueryResponseEvtPayload,
+	QuoteRequestAcceptedEvtPayload,
+	QuoteResponseAcceptedEvtPayload,
+	TransferPreparedEvtPayload,
+	TransferCommittedFulfiledEvtPayload,
+	TransferQueryResponseEvtPayload
+} from "@mojaloop/platform-shared-lib-public-messages-lib";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface ExtensionList {
 	extension: {
 		key: string,
+
 		value: string
 	}[]
 }
@@ -261,6 +275,16 @@ export const transformPayloadTransferRequestPut = (payload: TransferCommittedFul
 		transferId: payload.transferId,
 		transferState: payload.transferState,
 		fulfilment: payload.fulfilment,
+		completedTimestamp: payload.completedTimestamp,
+		extensionList: payload.extensionList
+	};
+		
+	return removeEmpty(info);
+};
+
+export const transformPayloadTransferRequestGet = (payload: TransferQueryResponseEvtPayload):any => {
+	const info = {
+		transferState: payload.transferState,
 		completedTimestamp: payload.completedTimestamp,
 		extensionList: payload.extensionList
 	};

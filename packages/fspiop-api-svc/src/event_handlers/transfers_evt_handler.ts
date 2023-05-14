@@ -43,7 +43,8 @@ import {
     TransferPrepareDuplicateCheckFailedEvt,
     TransferRejectRequestProcessedEvt,
     TransferPrepareRequestTimedoutEvt,
-    TransfersBCUnknownErrorEvent 
+    TransfersBCUnknownErrorEvent,
+    TransferQueryResponseEvt
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { IncomingHttpHeaders } from "http";
@@ -81,6 +82,9 @@ export class TransferEventHandler extends BaseEventHandler {
                 break;
             case TransferCommittedFulfiledEvt.name:
                 await this._handleTransferCommittedFulfiledEvt(new TransferCommittedFulfiledEvt(message.payload), message.fspiopOpaqueState);
+                break;
+            case TransferQueryResponseEvt.name:
+                await this._handleTransferQueryResponseEvt(new TransferQueryResponseEvt(message.payload), message.fspiopOpaqueState);
                 break;
             default:
                 this._logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
@@ -283,4 +287,45 @@ export class TransferEventHandler extends BaseEventHandler {
         return;
     }
 
+    private async _handleTransferQueryResponseEvt(message: TransferQueryResponseEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void> {
+        try {
+            const { payload } = message;
+    
+            const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+            
+            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
+
+            if(!requestedEndpoint) {
+                throw Error(`fspId ${requesterFspId} has no valid participant associated`);
+            }
+
+            this._logger.info('_handleTransferQueryResponseEvt -> start');
+
+            // Always validate the payload and headers received
+            message.validatePayload();
+            // Validate.validateHeaders(QuotesPost, clonedHeaders);
+
+            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
+            urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
+            urlBuilder.setId(payload.transferId);
+
+            await Request.sendRequest({
+                url: urlBuilder.build(), 
+                headers: clonedHeaders, 
+                source: requesterFspId, 
+                destination: requesterFspId, 
+                method: Enums.FspiopRequestMethodsEnum.GET,
+                payload: Transformer.transformPayloadTransferRequestGet(payload),
+            });
+
+            this._logger.info('_handleTransferQueryResponseEvt -> end');
+
+        } catch (error: unknown) {
+            this._logger.info('_handleTransferQueryResponseEvt -> error');
+            throw Error("_handleTransferQueryResponseEvt -> error");
+        }
+
+        return;
+    }
 }

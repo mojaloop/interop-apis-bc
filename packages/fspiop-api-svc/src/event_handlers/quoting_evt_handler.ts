@@ -297,7 +297,7 @@ export class QuotingEventHandler extends BaseEventHandler {
         return;
     }
 
-    private async _handleQuotingQueryResponseEvt(message: QuoteQueryResponseEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
+    private async _handleQuotingQueryResponseEvt(message: QuoteQueryResponseEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void> {
         try {
             const { payload } = message;
     

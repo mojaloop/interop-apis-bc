@@ -41,7 +41,9 @@ import {
     TransferFulfilCommittedRequestedEvt, 
     TransferFulfilCommittedRequestedEvtPayload,
     TransferRejectRequestedEvt,
-    TransferRejectRequestedEvtPayload 
+    TransferRejectRequestedEvtPayload,
+    TransferQueryReceivedEvt,
+    TransferQueryReceivedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseRoutes } from "../_base_router";
 
@@ -51,6 +53,9 @@ export class TransfersRoutes extends BaseRoutes {
         super(producerOptions, kafkaTopic, logger);
 
         // bind routes
+        
+        // GET Transfer by ID
+        this.router.get("/:id/", this.transferQueryReceived.bind(this));
         
         // POST Transfers
         this.router.post("/", this.transferPrepareRequested.bind(this));
@@ -227,5 +232,44 @@ export class TransfersRoutes extends BaseRoutes {
         });
 
         this.logger.debug("transferRejectRequested responded");
+    }
+
+    private async transferQueryReceived(req: express.Request, res: express.Response): Promise<void> {
+        this.logger.debug("Got transferQueryReceived request");
+
+        const clonedHeaders = { ...req.headers };
+        const transferId = req.params["id"] as string || null;
+        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+
+        if(!transferId || !requesterFspId) {
+            res.status(400).json({
+                status: "not ok"
+            });
+            return;
+        }
+
+        const msgPayload: TransferQueryReceivedEvtPayload = {
+            transferId: transferId,
+        };
+
+        const msg =  new TransferQueryReceivedEvt(msgPayload);
+
+        msg.validatePayload();
+
+        // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
+        msg.fspiopOpaqueState = {
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId,
+            headers: clonedHeaders
+        };
+
+        await this.kafkaProducer.send(msg);
+
+        this.logger.debug("transferQueryReceived sent message");
+
+        res.status(202).json(null);
+
+        this.logger.debug("transferQueryReceived responded");
     }
 }
