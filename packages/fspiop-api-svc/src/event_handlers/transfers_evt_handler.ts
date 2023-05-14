@@ -44,7 +44,14 @@ import {
     TransferRejectRequestProcessedEvt,
     TransferPrepareRequestTimedoutEvt,
     TransfersBCUnknownErrorEvent,
-    TransferQueryResponseEvt
+    TransferQueryResponseEvt,
+    TransferQueryInvalidPayeeCheckFailedEvt,
+    TransferQueryPayerNotFoundFailedEvt,
+    TransferQueryPayeeNotFoundFailedEvt,
+    TransferQueryInvalidPayerCheckFailedEvt,
+    TransferQueryInvalidPayeeParticipantIdEvt,
+    TransferUnableToGetTransferByIdEvt,
+    TransferNotFoundEvt
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { IncomingHttpHeaders } from "http";
@@ -74,6 +81,13 @@ export class TransferEventHandler extends BaseEventHandler {
             case TransferPrepareDuplicateCheckFailedEvt.name:
             case TransferRejectRequestProcessedEvt.name:
             case TransferPrepareRequestTimedoutEvt.name:
+            case TransferQueryInvalidPayerCheckFailedEvt.name:
+            case TransferQueryInvalidPayeeCheckFailedEvt.name:
+            case TransferQueryPayerNotFoundFailedEvt.name:
+            case TransferQueryPayeeNotFoundFailedEvt.name:
+            case TransferQueryInvalidPayeeParticipantIdEvt.name:
+            case TransferUnableToGetTransferByIdEvt.name:
+            case TransferNotFoundEvt.name:
             case TransfersBCUnknownErrorEvent.name:
                 await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState);
                 break;
@@ -114,7 +128,15 @@ export class TransferEventHandler extends BaseEventHandler {
 
         switch(message.msgName){
             case TransferPrepareInvalidPayerCheckFailedEvt.name:
-            case TransferPrepareInvalidPayeeCheckFailedEvt.name: {
+            case TransferPrepareInvalidPayeeCheckFailedEvt.name: 
+            case TransferQueryInvalidPayerCheckFailedEvt.name:
+            case TransferQueryInvalidPayeeCheckFailedEvt.name:
+            case TransferQueryPayerNotFoundFailedEvt.name:
+            case TransferQueryPayeeNotFoundFailedEvt.name:
+            case TransferQueryInvalidPayerCheckFailedEvt.name:
+            case TransferQueryInvalidPayeeParticipantIdEvt.name:
+            case TransferUnableToGetTransferByIdEvt.name:
+            case TransferNotFoundEvt.name: {
                 list = ["transferId", "fspId"];
                 errorCode = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR;
                 errorDescription = message.payload.errorDescription;
@@ -304,10 +326,9 @@ export class TransferEventHandler extends BaseEventHandler {
 
             // Always validate the payload and headers received
             message.validatePayload();
-            // Validate.validateHeaders(QuotesPost, clonedHeaders);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
-            urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
+            urlBuilder.setEntity(Enums.EntityTypeEnum.TRANSFERS);
             urlBuilder.setId(payload.transferId);
 
             await Request.sendRequest({
@@ -315,7 +336,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 headers: clonedHeaders, 
                 source: requesterFspId, 
                 destination: requesterFspId, 
-                method: Enums.FspiopRequestMethodsEnum.GET,
+                method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: Transformer.transformPayloadTransferRequestGet(payload),
             });
 

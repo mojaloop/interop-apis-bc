@@ -239,7 +239,7 @@ export abstract class BaseEventHandler implements IEventHandler {
                 case "TransferEventHandler": {
                     const payload:TransfersBCOperatorErrorPayload = {
                         transferId: message?.payload.transferId,
-                        fspId: message?.payload.quoteId,
+                        fspId: message?.payload.transferId,
                         errorDescription: error
                     };
 
