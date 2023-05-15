@@ -51,7 +51,11 @@ import {
     TransferQueryInvalidPayerCheckFailedEvt,
     TransferQueryInvalidPayeeParticipantIdEvt,
     TransferUnableToGetTransferByIdEvt,
-    TransferNotFoundEvt
+    TransferNotFoundEvt,
+    TransferUnableToAddEvt,
+    TransferUnableToUpdateEvt,
+    TransferFulfilCommittedRequestedTimedoutEvt,
+    TransferFulfilPostCommittedRequestedTimedoutEvt,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { IncomingHttpHeaders } from "http";
@@ -75,6 +79,10 @@ export class TransferEventHandler extends BaseEventHandler {
         const message: IDomainMessage = sourceMessage as IDomainMessage;
 
         switch(message.msgName){
+            case TransferInvalidMessagePayloadEvt.name:
+            case TransferInvalidMessagePayloadEvtPayload.name:
+            case TransferInvalidMessageTypeEvt.name:
+            case TransferInvalidMessageTypeEvtPayload.name:
             case TransferPrepareInvalidPayerCheckFailedEvt.name:
             case TransferPrepareInvalidPayeeCheckFailedEvt.name:
             case TransferPrepareLiquidityCheckFailedEvt.name:
@@ -88,6 +96,10 @@ export class TransferEventHandler extends BaseEventHandler {
             case TransferQueryInvalidPayeeParticipantIdEvt.name:
             case TransferUnableToGetTransferByIdEvt.name:
             case TransferNotFoundEvt.name:
+            case TransferUnableToAddEvt.name:
+            case TransferUnableToUpdateEvt.name:
+            case TransferFulfilCommittedRequestedTimedoutEvt.name:
+            case TransferFulfilPostCommittedRequestedTimedoutEvt.name:
             case TransfersBCUnknownErrorEvent.name:
                 await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState);
                 break;
@@ -127,6 +139,10 @@ export class TransferEventHandler extends BaseEventHandler {
         let errorDescription = "";
 
         switch(message.msgName){
+            case TransferInvalidMessagePayloadEvt.name:
+            case TransferInvalidMessagePayloadEvtPayload.name:
+            case TransferInvalidMessageTypeEvt.name:
+            case TransferInvalidMessageTypeEvtPayload.name:
             case TransferPrepareInvalidPayerCheckFailedEvt.name:
             case TransferPrepareInvalidPayeeCheckFailedEvt.name: 
             case TransferQueryInvalidPayerCheckFailedEvt.name:
@@ -136,18 +152,23 @@ export class TransferEventHandler extends BaseEventHandler {
             case TransferQueryInvalidPayerCheckFailedEvt.name:
             case TransferQueryInvalidPayeeParticipantIdEvt.name:
             case TransferUnableToGetTransferByIdEvt.name:
-            case TransferNotFoundEvt.name: {
+            case TransferNotFoundEvt.name:
+            case TransferUnableToAddEvt.name:
+            case TransferUnableToUpdateEvt.name:
+            case TransferFulfilCommittedRequestedTimedoutEvt.name:
+            case TransferFulfilPostCommittedRequestedTimedoutEvt.name:
+            case TransferNotFoundEvt.name:
+            case TransferPrepareLiquidityCheckFailedEvt.name:
+            case TransferPrepareDuplicateCheckFailedEvt.name:
+            case TransferPrepareRequestTimedoutEvt.name:
+            case TransfersBCUnknownErrorEvent.name:  {
                 list = ["transferId", "fspId"];
                 errorCode = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR;
                 errorDescription = message.payload.errorDescription;
 
                 break;
             }
-                
-            case TransferPrepareLiquidityCheckFailedEvt.name:
-            case TransferPrepareDuplicateCheckFailedEvt.name:
-            case TransferPrepareRequestTimedoutEvt.name:
-            case TransfersBCUnknownErrorEvent.name: {
+            case TransferFulfilPostCommittedRequestedTimedoutEvt.name: {
                 list = ["transferId", "fspId"];
                 errorCode = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR;
                 errorDescription = message.payload.errorDescription;
