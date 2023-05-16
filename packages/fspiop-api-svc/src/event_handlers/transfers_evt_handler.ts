@@ -56,6 +56,8 @@ import {
     TransferUnableToUpdateEvt,
     TransferFulfilCommittedRequestedTimedoutEvt,
     TransferFulfilPostCommittedRequestedTimedoutEvt,
+    TransferInvalidMessagePayloadEvt,
+    TransferInvalidMessageTypeEvt
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { IncomingHttpHeaders } from "http";
@@ -80,9 +82,7 @@ export class TransferEventHandler extends BaseEventHandler {
 
         switch(message.msgName){
             case TransferInvalidMessagePayloadEvt.name:
-            case TransferInvalidMessagePayloadEvtPayload.name:
             case TransferInvalidMessageTypeEvt.name:
-            case TransferInvalidMessageTypeEvtPayload.name:
             case TransferPrepareInvalidPayerCheckFailedEvt.name:
             case TransferPrepareInvalidPayeeCheckFailedEvt.name:
             case TransferPrepareLiquidityCheckFailedEvt.name:
@@ -140,9 +140,7 @@ export class TransferEventHandler extends BaseEventHandler {
 
         switch(message.msgName){
             case TransferInvalidMessagePayloadEvt.name:
-            case TransferInvalidMessagePayloadEvtPayload.name:
             case TransferInvalidMessageTypeEvt.name:
-            case TransferInvalidMessageTypeEvtPayload.name:
             case TransferPrepareInvalidPayerCheckFailedEvt.name:
             case TransferPrepareInvalidPayeeCheckFailedEvt.name: 
             case TransferQueryInvalidPayerCheckFailedEvt.name:

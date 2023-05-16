@@ -284,6 +284,7 @@ export const transformPayloadTransferRequestPut = (payload: TransferCommittedFul
 
 export const transformPayloadTransferRequestGet = (payload: TransferQueryResponseEvtPayload):any => {
 	const info = {
+		transferId: payload.transferId,
 		transferState: payload.transferState,
 		completedTimestamp: payload.completedTimestamp,
 		extensionList: payload.extensionList

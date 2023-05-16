@@ -515,11 +515,11 @@ export class Service {
                 }
             }
 
-            // // TODO: find another way around this since it's only a temporary fix for admin-ui date header 
-            // if(req.headers['fspiop-date']) {
-            //     req.headers.date = req.headers["fspiop-date"] as string;
-            //     delete req.headers["fspiop-date"];
-            // }
+            // TODO: find another way around this since it's only a temporary fix for admin-ui date header 
+            if(req.headers['fspiop-date']) {
+                req.headers.date = req.headers["fspiop-date"] as string;
+                delete req.headers["fspiop-date"];
+            }
 
             next();
             return;
