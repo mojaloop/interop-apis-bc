@@ -53,7 +53,11 @@ import {
 import { AccountLookupEventHandler } from "./event_handlers/account_lookup_evt_handler";
 import { QuotingEventHandler } from "./event_handlers/quoting_evt_handler";
 import { TransferEventHandler } from "./event_handlers/transfers_evt_handler";
-import { AccountLookupBCTopics, QuotingBCTopics, TransfersBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { 
+    AccountLookupBCTopics, 
+    QuotingBCTopics, 
+    TransfersBCTopics 
+} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { QuoteRoutes } from "./http_routes/quoting-bc/quote_routes";
 import { QuoteBulkRoutes } from "./http_routes/quoting-bc/bulk_quote_routes";
 import { TransfersRoutes } from "./http_routes/transfers-bc/transfers_routes";
@@ -66,10 +70,7 @@ import path from "path";
 import { OpenApiDocument, OpenApiValidator } from "express-openapi-validate";
 import jsYaml from "js-yaml";
 import fs from "fs";
-const assert = require('assert').strict
-const { Factory: { createFSPIOPError, createInternalServerFSPIOPError }, Enums } = require('@mojaloop/central-services-error-handling')
-const _ = require('lodash')
-const RC = require('rc')('LIB')
+import { validateHeaders } from "./headerValidation";
 
 const openApiDocument = jsYaml.load(
     fs.readFileSync(path.join(__dirname, "../dist/api_spec.yaml"), "utf-8"),
@@ -129,112 +130,6 @@ const kafkaProducerOptions: MLKafkaRawProducerOptions = {
 let accountEvtHandler:AccountLookupEventHandler;
 let quotingEvtHandler:QuotingEventHandler;
 let transferEvtHandler:TransferEventHandler;
-
-// const generateSingleAcceptRegexStr = (resource: string) =>
-// `application/vnd\\.interoperability\\.${resource}\\+json(\\s{0,1};\\s{0,1}version=\\d+(\\.\\d+)?)?`;
-
-// const generateAcceptRegex = (resource: string) =>
-// new RegExp(`^${generateSingleAcceptRegexStr(resource)}(,${generateSingleAcceptRegexStr(resource)})*$`);
-
-const protocolVersions = {
-    anyVersion: Symbol('Any'),
-    ONE: ['1', '1.0', '1.1']
-  }
-  
-  const protocolVersionsMap = [
-    { key: '1', value: '0' },
-    { key: '1', value: '1' }
-  ]
-  
-  // Some convenience functions for generating regexes for header matching
-  
-  const generateContentTypeRegex = (resource:any) =>
-    new RegExp(`^application/vnd\\.interoperability\\.${resource}\\+json\\s{0,1};\\s{0,1}version=(\\d+\\.\\d+)$`)
-  
-  const generateAcceptRegex = (resource:any) =>
-    new RegExp(`^${generateSingleAcceptRegexStr(resource)}(,${generateSingleAcceptRegexStr(resource)})*$`)
-  
-  const generateSingleAcceptRegex = (resource:any) =>
-    new RegExp(generateSingleAcceptRegexStr(resource))
-  
-  const generateSingleAcceptRegexStr = (resource:any) =>
-    `application/vnd\\.interoperability\\.${resource}\\+json(\\s{0,1};\\s{0,1}version=\\d+(\\.\\d+)?)?`
-  
-  const parseContentTypeHeader = (resource:any, header:any) => {
-    assert(typeof header === 'string')
-  
-    // Create the validation regex
-    const r = generateContentTypeRegex(resource)
-  
-    // Test the header
-    const match = header.match(r)
-    if (match === null) {
-      return { valid: false }
-    }
-  
-    return {
-      valid: true,
-      version: match[1]
-    }
-  }
-  
-  const parseAcceptHeader = (resource:any, header:any) => {
-    assert(typeof header === 'string')
-  
-    // Create the validation regex
-    const r = generateAcceptRegex(resource)
-  
-    // Test the header
-    if (header.match(r) === null) {
-      return { valid: false }
-    }
-  
-    // The header contains a comma-delimited set of versions, extract these
-    const versions = new Set(header
-      .split(',')
-      // @ts-ignore
-      .map(verStr => verStr.match(generateSingleAcceptRegex(resource))[1])
-      .map((match:any) => match === undefined ? protocolVersions.anyVersion : match.split('=')[1])
-    )
-  
-    return {
-      valid: true,
-      versions
-    }
-  }
-  
-  const convertSupportedVersionToExtensionList = (supportedVersions:any) => {
-    const supportedVersionsExtensionListMap = []
-    for (const version of supportedVersions) {
-      const versionList = version.toString().split('.').filter((num:any) => num !== '')
-      if (versionList != null && versionList.length === 2) {
-        const versionMap:any = {}
-        versionMap.key = versionList[0]
-        versionMap.value = versionList[1]
-        supportedVersionsExtensionListMap.push(versionMap)
-      } else if (versionList != null && versionList.length === 1 && version !== protocolVersions.anyVersion) {
-        const versionMap:any = {}
-        versionMap.key = versionList[0]
-        versionMap.value = '0'
-        supportedVersionsExtensionListMap.push(versionMap)
-      }
-    }
-    return _.uniqWith(supportedVersionsExtensionListMap, _.isEqual)
-  }
-
-const errorMessages = {
-    REQUESTED_VERSION_NOT_SUPPORTED: 'The Client requested an unsupported version, see extension list for supported version(s).',
-    INVALID_ACCEPT_HEADER: 'Invalid accept header',
-    INVALID_CONTENT_TYPE_HEADER: 'Invalid content-type header',
-    REQUIRE_ACCEPT_HEADER: 'Accept is required',
-    REQUIRE_CONTENT_TYPE_HEADER: 'Content-type is required',
-    SUPPLIED_VERSION_NOT_SUPPORTED: 'Client supplied a protocol version which is not supported by the server'
-  }
-
-  const defaultProtocolVersions = [
-    ...protocolVersions.ONE,
-    protocolVersions.anyVersion
-  ]
 
 type FspiopHttpRequestError = { 
     name: string;
@@ -381,149 +276,8 @@ export class Service {
         })); // for parsing application/json
         app.use(express.urlencoded({limit: '100mb', extended: true})); // for parsing application/x-www-form-urlencoded
     
-        app.use((req, res, next) => {
-            const resources = [
-                'parties',
-                'participants',
-                'quotes',
-                'transfers',
-                'bulkTransfers',
-                'bulkQuotes',
-                'transactionRequests',
-                'authorizations'
-              ]
-
-            const resource = req.path.replace(/^\//, '').split('/')[0]
-
-            // Only validate requests for the requested resources
-            if (!resources.includes(resource)) {
-              debugger
-            }
-
-            const supportedProtocolAcceptVersions = defaultProtocolVersions;
-            // Always validate the accept header for a get request, or optionally if it has been
-            // supplied
-            if (req.method.toLowerCase() === 'get' || req.headers.accept) {
-                if (req.headers["content-type"] === undefined || !req.headers["content-type"] || req.headers["content-type"] === "application/json") {
-                    return res.status(400).json({
-                        errorInformation: {
-                            errorCode: "3102",
-                            errorDescription: "Missing content-type or wrong header/body format"
-                        }
-                    });
-                }
-                const contentType:any = parseContentTypeHeader(resource, req.headers["content-type"])
-                if (!contentType.valid) {
-                    return res.status(400).json({
-                        errorInformation: {
-                            errorCode: Enums.FSPIOPErrorCodes.MALFORMED_SYNTAX,
-                            errorDescription: errorMessages.INVALID_CONTENT_TYPE_HEADER
-                        }
-                    });
-                }
-
-                if (req.headers.accept === undefined) {
-                    return res.status(400).json({
-                        errorInformation: {
-                            errorCode: Enums.FSPIOPErrorCodes.MISSING_ELEMENT,
-                            errorDescription: errorMessages.REQUIRE_ACCEPT_HEADER
-                        }
-                    });
-                }
-                
-                const accept:any = parseAcceptHeader(resource, req.headers.accept)
-                if (!accept.valid) {
-                    return res.status(400).json({
-                        errorInformation: {
-                            errorCode: Enums.FSPIOPErrorCodes.MALFORMED_SYNTAX,
-                            errorDescription: errorMessages.INVALID_ACCEPT_HEADER
-                        }
-                    });
-                }
-                if (!supportedProtocolAcceptVersions.some(supportedVer => accept.versions.has(supportedVer))) {
-                    const supportedVersionExtensionListMap = convertSupportedVersionToExtensionList(supportedProtocolAcceptVersions)
-                    throw createFSPIOPError(
-                        Enums.FSPIOPErrorCodes.UNACCEPTABLE_VERSION,
-                        errorMessages.REQUESTED_VERSION_NOT_SUPPORTED,
-                        null,
-                        null,
-                        supportedVersionExtensionListMap
-                    )
-                }
-                const getVersionFromConfig = (resourceString:any) => {
-                    const resourceVersionMap:any = {}
-                    resourceString
-                      .split(',')
-                      .forEach((e:any) => e.split('=')
-                        .reduce((p:any, c:any) => {
-                          resourceVersionMap[p] = {
-                            contentVersion: c,
-                            acceptVersion: c.split('.')[0]
-                          }
-                          return null
-                        }))
-                    return resourceVersionMap
-                  }
-                const acceptVersion = getVersionFromConfig(req.headers['accept'])
-                  
-                if(!acceptVersion) {
-                    debugger
-                }
-
-                const date:any = req.headers['date']
-                let tempDate:any;
-                if (typeof date === 'object' && date instanceof Date) {
-                    tempDate = date.toUTCString()
-                  } else {
-                    try {
-                      tempDate = (new Date(date)).toUTCString()
-                      if (tempDate === 'Invalid Date') {
-                        throw createInternalServerFSPIOPError('Invalid Date')
-                      }
-                    } catch (err) {
-                      tempDate = date
-                    }
-                  }
-            }
-
-            
-            // for (const value of customFSPIOPHeaders) {
-            //     const headerValue = req.headers[value] as string;
-            //     const resource = req.originalUrl.split('/')[1];
-            //     if(req.headers[value]) {
-            //         if(!generateAcceptRegex(resource).test(headerValue)) {
-            //             return res.status(400).json({
-            //                 "errorInformation": {
-            //                     "errorCode": "3102",
-            //                     "errorDescription": "Missing or wrong header/body format"
-            //                 }
-            //             });
-            //         }
-            //     }
-            // }
-            
-            if(req.headers["date"]) {
-                // Determine which library to use to validate dates
-                const headerDate = new Date(req.headers["date"]);
-                if(headerDate.toDateString() === "Invalid Date") {
-                    return res.status(400).json({
-                        "errorInformation": {
-                            "errorCode": "3102",
-                            "errorDescription": "Invalid date-type"
-                        }
-                    });
-                }
-            }
-
-            // TODO: find another way around this since it's only a temporary fix for admin-ui date header 
-            if(req.headers['fspiop-date']) {
-                req.headers.date = req.headers["fspiop-date"] as string;
-                delete req.headers["fspiop-date"];
-            }
-
-            next();
-            return;
-        });
+        // Call header validation
+        app.use(validateHeaders);
         
         // Call the request validator in every request
         app.use(validator.match());

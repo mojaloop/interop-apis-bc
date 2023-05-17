@@ -159,24 +159,11 @@ export class TransferEventHandler extends BaseEventHandler {
             case TransferPrepareLiquidityCheckFailedEvt.name:
             case TransferPrepareDuplicateCheckFailedEvt.name:
             case TransferPrepareRequestTimedoutEvt.name:
+            case TransferRejectRequestProcessedEvt.name:
             case TransfersBCUnknownErrorEvent.name:  {
                 list = ["transferId", "fspId"];
                 errorCode = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR;
                 errorDescription = message.payload.errorDescription;
-
-                break;
-            }
-            case TransferFulfilPostCommittedRequestedTimedoutEvt.name: {
-                list = ["transferId", "fspId"];
-                errorCode = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR;
-                errorDescription = message.payload.errorDescription;
-
-                break;
-            }
-            case TransferRejectRequestProcessedEvt.name: {
-                list = ["transferId", "fspId"];
-                errorCode = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR;
-                errorDescription = message.payload.errorInformation.errorDescription;
 
                 break;
             }
