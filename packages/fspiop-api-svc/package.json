@@ -22,7 +22,7 @@
     "start": "npm run service",
     "start:dev": "npm run build && AUDIT_KEY_FILE_PATH=./dist/tmp_key_file npm start",
     "service": "node dist/index.js",
-    "build": "tsc",
+    "build": "tsc && cp api-specs/api_spec.yaml dist",
     "watch": "tsc -w",
     "clean": "npm run clean:npm; npm run clean:dist",
     "clean:dist": "rm -rf dist",
