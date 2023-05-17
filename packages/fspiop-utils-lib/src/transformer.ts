@@ -31,24 +31,35 @@
 
  'use strict';
 
-import { BulkQuoteReceivedEvtPayload, BulkQuoteAcceptedEvtPayload, ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvtPayload, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload, QuoteRequestAcceptedEvtPayload, QuoteResponseAcceptedEvtPayload, TransferPreparedEvtPayload, TransferCommittedFulfiledEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { ErrorCode } from "./enums";
+import { 
+	BulkQuoteReceivedEvtPayload, 
+	BulkQuoteAcceptedEvtPayload, 
+	ParticipantAssociationCreatedEvtPayload, 
+	ParticipantAssociationRemovedEvtPayload, 
+	ParticipantQueryResponseEvtPayload, 
+	PartyInfoRequestedEvtPayload,
+	PartyQueryResponseEvtPayload,
+	QuoteRequestAcceptedEvtPayload,
+	QuoteResponseAcceptedEvtPayload,
+	TransferPreparedEvtPayload,
+	TransferCommittedFulfiledEvtPayload,
+	TransferQueryResponseEvtPayload
+} from "@mojaloop/platform-shared-lib-public-messages-lib";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface ExtensionList {
-	extension: [
-		{
-			key: string,
-			value: string
-		}
-	]
+	extension: {
+		key: string,
+
+		value: string
+	}[]
 }
 export interface FspiopError {
 	errorInformation: {
-		errorCode: ErrorCode,
+		errorCode: string,
 		errorDescription: string,
-		extensionList?: ExtensionList
+		extensionList?: ExtensionList | null
 	}
 }
 
@@ -160,14 +171,28 @@ export const transformPayloadPartyInfoReceivedPut = (payload: PartyQueryResponse
 	return removeEmpty(correctPayload);
 };
 
-export const transformPayloadError = ({errorCode, errorDescription }:{ errorCode: ErrorCode, errorDescription: string}):FspiopError => {
-	return {
-		errorInformation: {
-			errorCode: errorCode,
-			errorDescription: errorDescription,
+export const transformPayloadError = ({
+		errorCode, 
+		errorDescription,
+		extensionList = null
+	}:{ 
+		errorCode: string, 
+		errorDescription: string, 
+		extensionList?: ExtensionList | null
+	}):FspiopError => {
+		const payload:FspiopError = {
+			errorInformation: {
+				errorCode: errorCode,
+				errorDescription: errorDescription,
+			}
+		};
+
+		if(extensionList) {
+			payload.errorInformation.extensionList = extensionList;
 		}
+
+		return payload;
 	};
-};
 
 // Quoting
 
@@ -250,6 +275,17 @@ export const transformPayloadTransferRequestPut = (payload: TransferCommittedFul
 		transferId: payload.transferId,
 		transferState: payload.transferState,
 		fulfilment: payload.fulfilment,
+		completedTimestamp: payload.completedTimestamp,
+		extensionList: payload.extensionList
+	};
+		
+	return removeEmpty(info);
+};
+
+export const transformPayloadTransferRequestGet = (payload: TransferQueryResponseEvtPayload):any => {
+	const info = {
+		transferId: payload.transferId,
+		transferState: payload.transferState,
 		completedTimestamp: payload.completedTimestamp,
 		extensionList: payload.extensionList
 	};

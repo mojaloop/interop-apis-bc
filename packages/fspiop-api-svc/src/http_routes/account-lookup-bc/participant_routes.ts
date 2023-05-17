@@ -37,7 +37,7 @@ import express from "express";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { Constants, Validate } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import { ParticipantQueryReceivedEvtPayload, ParticipantQueryReceivedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { ParticipantQueryReceivedEvtPayload, ParticipantQueryReceivedEvt, ParticipantDisassociateRequestReceivedEvt, ParticipantDisassociateRequestReceivedEvtPayload, ParticipantAssociationRequestReceivedEvt, ParticipantAssociationRequestReceivedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseRoutes } from "../_base_router";
 
 export class ParticipantRoutes extends BaseRoutes {
@@ -51,6 +51,14 @@ export class ParticipantRoutes extends BaseRoutes {
         this.router.get("/:type/:id/", this.getParticipantsByTypeAndID.bind(this));
         // GET Participants by Type, ID & SubId
         this.router.get("/:type/:id/:subid", this.getParticipantsByTypeAndIDAndSubId.bind(this));
+        // POST Associate Party Party by Type & ID
+        this.router.post("/:type/:id/", this.associatePartyByTypeAndId.bind(this));
+        // POST Associate Party Party by Type, ID & SubId
+        this.router.post("/:type/:id/:subid", this.associatePartyByTypeAndIdAndSubId.bind(this));
+        // DELETE Disassociate Party Party by Type & ID
+        this.router.delete("/:type/:id/", this.disassociatePartyByTypeAndId.bind(this));
+        // DELETE Disassociate Party Party by Type, ID & SubId
+        this.router.delete("/:type/:id/:subid", this.disassociatePartyByTypeAndIdAndSubId.bind(this));
     }
 
     get Router(): express.Router {
@@ -97,9 +105,7 @@ export class ParticipantRoutes extends BaseRoutes {
 
         this.logger.debug("getParticipantsByTypeAndID sent message");
 
-        res.status(202).json({
-            status: "ok"
-        });
+        res.status(202).json(null);
 
         this.logger.debug("getParticipantsByTypeAndID responded");
     }
@@ -145,13 +151,192 @@ export class ParticipantRoutes extends BaseRoutes {
 
         this.logger.debug("getParticipantsByTypeAndIDAndSubId sent message");
 
-        res.status(202).json({
-            status: "ok"
-        });
+        res.status(202).json(null);
 
         this.logger.debug("getParticipantsByTypeAndIDAndSubId responded");
     }
 
+    private async associatePartyByTypeAndId(req: express.Request, res: express.Response): Promise<void> {
+        this.logger.debug("Got associatePartyByTypeAndId request");
+
+        const clonedHeaders = { ...req.headers };
+        const type = req.params["type"] as string || null;
+        const id = req.params["id"] as string || null;
+        const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const currency = req.query["currency"] as string || null;
+ 
+        const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.parties, clonedHeaders);
+
+        if(!isValidHeaders || !type || !id || !requesterFspId){
+            res.status(400).json({
+                status: "not ok"
+            });
+            return;
+        }
+
+        const msgPayload: ParticipantAssociationRequestReceivedEvtPayload = {
+            ownerFspId: requesterFspId,
+            partyId: id,
+            partyType: type,
+            partySubType: null,
+            currency: currency,
+        };
+
+        const msg = new ParticipantAssociationRequestReceivedEvt(msgPayload);
+
+        // this is an entry request (1st in the sequence), so carry over the fspiopOpaqueState to the next event
+        msg.fspiopOpaqueState = {
+            requesterFspId: requesterFspId,
+            destinationFspId: null,
+            headers: clonedHeaders
+
+        };
+
+        await this.kafkaProducer.send(msg);
+
+        this.logger.debug("associatePartyByTypeAndId sent message");
+
+        res.status(202).json(null);
+
+        this.logger.debug("associatePartyByTypeAndId responded");
+    }
+
+    private async associatePartyByTypeAndIdAndSubId(req: express.Request, res: express.Response): Promise<void> {
+        this.logger.debug("Got associatePartyByTypeAndId request");
+
+        const clonedHeaders = { ...req.headers };
+        const type = req.params["type"] as string || null;
+        const id = req.params["id"] as string || null;
+        const partySubIdOrType = req.params["subid"] as string || null;
+        const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const currency = req.query["currency"] as string || null;
+
+        const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.parties, clonedHeaders);
+
+        if(!isValidHeaders || !type || !id || !requesterFspId){
+            res.status(400).json({
+                status: "not ok"
+            });
+            return;
+        }
+
+        const msgPayload: ParticipantAssociationRequestReceivedEvtPayload = {
+            ownerFspId: requesterFspId,
+            partyId: id,
+            partyType: type,
+            partySubType: partySubIdOrType,
+            currency: currency
+        };
+
+        const msg = new ParticipantAssociationRequestReceivedEvt(msgPayload);
+
+        // this is an entry request (1st in the sequence), so carry over the fspiopOpaqueState to the next event
+        msg.fspiopOpaqueState = {
+            requesterFspId: requesterFspId,
+            destinationFspId: null,
+            headers: clonedHeaders
+
+        };
+
+        await this.kafkaProducer.send(msg);
+
+        this.logger.debug("associatePartyByTypeAndId sent message");
+
+        res.status(202).json(null);
+
+        this.logger.debug("associatePartyByTypeAndId responded");
+    }
+    
+    private async disassociatePartyByTypeAndId(req: express.Request, res: express.Response): Promise<void> {
+        this.logger.debug("Got disassociatePartyByTypeAndId request");
+
+        const clonedHeaders = { ...req.headers };
+        const type = req.params["type"] as string || null;
+        const id = req.params["id"] as string || null;
+        const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const currency = req.query["currency"] as string || null;
+
+        const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.parties, clonedHeaders);
+
+        if(!isValidHeaders || !type || !id || !requesterFspId){
+            res.status(400).json({
+                status: "not ok"
+            });
+            return;
+        }
+
+        const msgPayload: ParticipantDisassociateRequestReceivedEvtPayload = {
+            ownerFspId: requesterFspId,
+            partyId: id,
+            partyType: type,
+            partySubType: null,
+            currency: currency
+        };
+
+        const msg = new ParticipantDisassociateRequestReceivedEvt(msgPayload);
+
+        // this is an entry request (1st in the sequence), so carry over the fspiopOpaqueState to the next event
+        msg.fspiopOpaqueState = {
+            requesterFspId: requesterFspId,
+            destinationFspId: null,
+            headers: clonedHeaders
+
+        };
+
+        await this.kafkaProducer.send(msg);
+
+        this.logger.debug("disassociatePartyByTypeAndId sent message");
+
+        res.status(202).json(null);
+
+        this.logger.debug("disassociatePartyByTypeAndId responded");
+    }
+
+    private async disassociatePartyByTypeAndIdAndSubId(req: express.Request, res: express.Response): Promise<void> {
+        this.logger.debug("Got disassociatePartyByTypeAndIdAndSubId request");
+
+        const clonedHeaders = { ...req.headers };
+        const type = req.params["type"] as string || null;
+        const id = req.params["id"] as string || null;
+        const partySubIdOrType = req.params["subid"] as string || null;
+        const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const currency = req.query["currency"] as string || null;
+
+        const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.parties, clonedHeaders);
+
+        if(!isValidHeaders || !type || !id || !requesterFspId){
+            res.status(400).json({
+                status: "not ok"
+            });
+            return;
+        }
+
+        const msgPayload: ParticipantDisassociateRequestReceivedEvtPayload = {
+            ownerFspId: requesterFspId,
+            partyId: id,
+            partyType: type,
+            partySubType: partySubIdOrType,
+            currency: currency
+        };
+
+        const msg = new ParticipantDisassociateRequestReceivedEvt(msgPayload);
+
+        // this is an entry request (1st in the sequence), so carry over the fspiopOpaqueState to the next event
+        msg.fspiopOpaqueState = {
+            requesterFspId: requesterFspId,
+            destinationFspId: null,
+            headers: clonedHeaders
+        };
+
+        await this.kafkaProducer.send(msg);
+
+        this.logger.debug("disassociatePartyByTypeAndIdAndSubId sent message");
+
+        res.status(202).json(null);
+
+        this.logger.debug("disassociatePartyByTypeAndIdAndSubId responded");
+    }
+    
     async init(): Promise<void>{
         await this.kafkaProducer.connect();
     }

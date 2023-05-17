@@ -23,6 +23,7 @@
     "clean": "npm run clean:dist; npm run clean:npm",
     "clean:npm": "rm -Rf node_modules; npm -ws run clean:npm",
     "clean:dist": "rm -Rf dist; npm -ws run clean:dist",
+    "docker:build": "npm run build && docker build . -t \"mojaloop/interop-apis-bc-fspiop-api-svc\"",
     "pretest": "echo 'FIX ME'",
     "standard": "npm run --no-progress --stream lint'",
     "lint": "npm -ws run lint",
@@ -40,7 +41,9 @@
     "dep:update": "ncu -e 2 -u; npm -ws run dep:update"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.0",
+    "@mojaloop/interop-apis-bc-shared-mocks-lib": "*",
+    "@mojaloop/ml-testing-toolkit-client-lib": "^1.2.0",
+    "@types/jest": "^29.2.3",
     "@types/js-yaml": "^4.0.5",
     "@types/node": "^18.15.3",
     "@typescript-eslint/eslint-plugin": "^5.55.0",
@@ -50,18 +53,20 @@
     "jest": "^29.5.0",
     "nyc": "^15.1.0",
     "jest-openapi": "^0.14.2",
-    "npm-check-updates": "^16.7.12",
-    "supertest": "^6.3.3",
-    "ts-jest": "^29.0.5",
-    "typescript": "^5.0.2"
+    "kafkajs": "^2.2.4",
+    "npm-check-updates": "^16.4.1",
+    "supertest": "^6.3.1",
+    "ts-jest": "^29.0.3",
+    "typescript": "^4.9.3"
   },
   "workspaces": [
+    "packages/implementations",
     "packages/fspiop-utils-lib",
     "packages/fspiop-api-svc",
-    "packages/*"
+    "packages/shared-mocks-lib"
   ],
   "dependencies": {
-    "bignumber.js": "^9.1.1",
+    "bignumber.js": "^9.1.0",
     "express-openapi-validate": "^0.6.1",
     "js-yaml": "^4.1.0"
   }

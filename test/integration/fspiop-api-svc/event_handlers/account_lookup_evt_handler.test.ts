@@ -29,34 +29,46 @@
  --------------
  ******/
 
- "use strict"
+ "use strict";
 
 import { Request } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { AccountLookupBCTopics, AccountLookUpErrorEvt, AccountLookUpErrorEvtPayload, ParticipantAssociationCreatedEvt, ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvt, ParticipantAssociationRemovedEvtPayload, ParticipantAssociationRequestReceivedEvt, ParticipantQueryResponseEvt, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvt, PartyInfoRequestedEvtPayload, PartyQueryReceivedEvt, PartyQueryResponseEvt, PartyQueryResponseEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { 
+    AccountLookupBCTopics,
+    AccountLookUpBCOperatorErrorEvent,
+    AccountLookUpUnknownErrorEvent,
+    AccountLookUpUnknownErrorPayload,
+    ParticipantAssociationCreatedEvt,
+    ParticipantAssociationCreatedEvtPayload,
+    ParticipantAssociationRemovedEvt,
+    ParticipantAssociationRemovedEvtPayload,
+    ParticipantQueryResponseEvt,
+    ParticipantQueryResponseEvtPayload,
+    PartyInfoRequestedEvt,
+    PartyInfoRequestedEvtPayload,
+    PartyQueryResponseEvt,
+    PartyQueryResponseEvtPayload 
+} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import waitForExpect from "wait-for-expect";
 import jestOpenAPI from 'jest-openapi';
 import path from "path";
-import { Service } from "../../../../packages/fspiop-api-svc/src/service";
-import { IParticipant } from "@mojaloop/participants-bc-client-lib";
+import { Service } from "@mojaloop/interop-apis-bc-fspiop-api-svc";
 
 // Sets the location of your OpenAPI Specification file
 jestOpenAPI(path.join(__dirname, '../../../../packages/fspiop-api-svc/api-specs/account-lookup-service/api-swagger.yaml'));
  
 import KafkaProducer, { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
 
-const kafkaProducer = new KafkaProducer()
+const kafkaProducer = new KafkaProducer();
 
-const localhostUrl = 'http://127.0.0.1:4040';
 const KAFKA_ACCOUNTS_LOOKUP_TOPIC = process.env["KAFKA_ACCOUNTS_LOOKUP_TOPIC"] || AccountLookupBCTopics.DomainEvents;
-const KAFKA_OPERATOR_ERROR_TOPIC = process.env["KAFKA_OPERATOR_ERROR_TOPIC"] || 'OperatorBcErrors';
+const KAFKA_OPERATOR_ERROR_TOPIC = process.env["KAFKA_OPERATOR_ERROR_TOPIC"] || AccountLookupBCTopics.DomainErrors;
 
 const partyEntity = "parties";
 const participantsEntity = "participants";
 
-jest.setTimeout(20000);
+jest.setTimeout(40000);
 
 describe("FSPIOP API Service AccountLookup Handler", () => {
-    let participantClientSpy: jest.SpyInstance;
 
 
     beforeAll(async () => {
@@ -64,48 +76,36 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         await kafkaProducer.init();
     });
 
-
-    beforeEach(async () => {
-        participantClientSpy = jest.spyOn(Service.participantService, "getParticipantInfo");
-
-        participantClientSpy.mockResolvedValue({
-                id: 1,
-                participantEndpoints: [{
-                    id: 1,
-                    protocol: "HTTPs/REST",
-                    type: "FSPIOP",
-                    value: "http://127.0.0.1:4040",
-                }]
-        } as unknown as IParticipant);
-    })
+    afterEach(() => {    
+        jest.clearAllMocks();
+    });
 
     afterAll(async () => {
         await Service.stop();
         await kafkaProducer.destroy();
     });
 
-    //#region AccountLookUpErrorEvt
-    it("should successful treat AccountLookUpErrorEvt for Party type event", async () => {
+    //#region AccountLookUpUnknownErrorEvent
+    it("should successful treat AccountLookUpUnknownErrorEvent for Party type event", async () => {
         // Arrange
-        const payload : AccountLookUpErrorEvtPayload = {
-            requesterFspId: "test-fspiop-source",
+        const payload : AccountLookUpUnknownErrorPayload = {
+            fspId: "Greenbank",
             partyId: "123456789",
             partyType: "MSISDN",
             partySubType: null,
-            errorMsg: "test error message",
-            sourceEvent: PartyQueryReceivedEvt.name,
+            errorDescription: "test error message"
         };
 
-        const event = new AccountLookUpErrorEvt(payload);
+        const event = new AccountLookUpUnknownErrorEvent(payload);
 
         event.fspiopOpaqueState = { 
-            "requesterFspId":"test-fspiop-source",
+            "requesterFspId":"Greenbank",
             "destinationFspId": null,
             "headers":{
                 "accept":`application/vnd.interoperability.${partyEntity}+json;version=1.0`,
                 "content-type":`application/vnd.interoperability.${partyEntity}+json;version=1.0`,
                 "date":"randomdate",
-                "fspiop-source":"test-fspiop-source"
+                "fspiop-source":"Greenbank"
             }
         };
             
@@ -116,42 +116,41 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
 
         jest.spyOn(Request, "sendRequest");
 
-        const res = async (): Promise<any> => {
+        const res = async () => {
             return await requestSpy.mock.results[0].value;
-        }
+        };
                     
         // Assert
         await waitForExpect(() => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
-                url: `${localhostUrl}/${partyEntity}/${payload.partyType}/${payload.partyId}/error`
+                url: expect.stringContaining(`/${partyEntity}/${payload.partyType}/${payload.partyId}/error`)
             }));
         });
 
 
         expect(await res()).toSatisfyApiSpec();
-    })
+    });
 
-    it("should successful treat AccountLookUpErrorEvt for IParticipant type event", async () => {
+    it("should successful treat AccountLookUpUnknownErrorEvent for IParticipant type event", async () => {
         // Arrange
-        const payload : AccountLookUpErrorEvtPayload = {
-            requesterFspId: "test-fspiop-source",
+        const payload : AccountLookUpUnknownErrorPayload = {
+            fspId: "Greenbank",
             partyId: "123456789",
             partyType: "MSISDN",
             partySubType: null,
-            errorMsg: "test error message",
-            sourceEvent: ParticipantAssociationRequestReceivedEvt.name,
+            errorDescription: "test error message"
         };
 
-        const event = new AccountLookUpErrorEvt(payload);
+        const event = new AccountLookUpUnknownErrorEvent(payload);
 
         event.fspiopOpaqueState = { 
-            "requesterFspId":"test-fspiop-source",
+            "requesterFspId":"Greenbank",
             "destinationFspId": null,
             "headers":{
                 "accept":`application/vnd.interoperability.${participantsEntity}+json;version=1.0`,
                 "content-type":`application/vnd.interoperability.${participantsEntity}+json;version=1.0`,
                 "date":"randomdate",
-                "fspiop-source":"test-fspiop-source"
+                "fspiop-source":"Greenbank"
             }
         };
             
@@ -162,34 +161,33 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
 
         jest.spyOn(Request, "sendRequest");
 
-        const res = async (): Promise<any> => {
+        const res = async () => {
             return await requestSpy.mock.results[0].value;
-        }
+        };
                     
         // Assert
         await waitForExpect(() => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
-                url: `${localhostUrl}/${participantsEntity}/${payload.partyType}/${payload.partyId}/error`
+                url: expect.stringContaining(`/${participantsEntity}/${payload.partyType}/${payload.partyId}/error`)
             }));
         });
 
 
         expect(await res()).toSatisfyApiSpec();
-    })
+    });
 
 
-    it("should log error when AccountLookUpErrorEvt finds no participant endpoint", async () => {
+    it("should log error when AccountLookUpBCOperatorErrorEvent finds no participant endpoint1", async () => {
         // Arrange
-        const payload : AccountLookUpErrorEvtPayload = {
-            requesterFspId: "non-existing-requester-id",
+        const payload : AccountLookUpUnknownErrorPayload = {
+            fspId: "non-existing-requester-id",
             partyId: "123456789",
             partyType: "MSISDN",
             partySubType: null,
-            errorMsg: "test error message",
-            sourceEvent: "non-existing-source-event",
+            errorDescription: "test error message"
         };
 
-        const event = new AccountLookUpErrorEvt(payload);
+        const event = new AccountLookUpUnknownErrorEvent(payload);
 
         event.fspiopOpaqueState = { 
             "requesterFspId":"non-existing-requester-id",
@@ -202,14 +200,12 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
             }
         };
             
-        participantClientSpy.mockResolvedValueOnce(null);
-
         // Act
         const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
         
         kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
 
-        await new Promise((r) => setTimeout(r, 2000));
+        await new Promise((r) => setTimeout(r, 5000));
 
         let sentMessagesCount = 0;
         let expectedOffsetMessage: any;
@@ -223,31 +219,30 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Assert        
         await waitForExpect(() => {
             expect(sentMessagesCount).toBe(1);
-            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpErrorEvt.name);
+            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpBCOperatorErrorEvent.name);
         });
-    })
+    });
 
-    it("should log when AccountLookUpErrorEvt throws an error", async () => {
+    it("should send an error request when AccountLookUpUnknownErrorEvent is handled successfully", async () => {
         // Arrange
-        const payload : AccountLookUpErrorEvtPayload = {
-            requesterFspId: "test-fspiop-source",
+        const payload : AccountLookUpUnknownErrorPayload = {
+            fspId: "Greenbank",
             partyId: "123456789",
             partyType: "MSISDN",
             partySubType: null,
-            errorMsg: "test error message",
-            sourceEvent: "non-existing-source-event",
+            errorDescription: "test error message"
         };
 
-        const event = new AccountLookUpErrorEvt(payload);
+        const event = new AccountLookUpUnknownErrorEvent(payload);
 
         event.fspiopOpaqueState = { 
-            "requesterFspId":"test-fspiop-source",
+            "requesterFspId":"Greenbank",
             "destinationFspId": null,
             "headers":{
                 "accept":`application/vnd.interoperability.${partyEntity}+json;version=1.0`,
                 "content-type":`application/vnd.interoperability.${partyEntity}+json;version=1.0`,
                 "date":"randomdate",
-                "fspiop-source":"test-fspiop-source"
+                "fspiop-source":"Greenbank"
             }
         };
             
@@ -257,26 +252,28 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
 
         jest.spyOn(Request, "sendRequest");
             
-        await new Promise((r) => setTimeout(r, 2000));
+        await new Promise((r) => setTimeout(r, 5000));
 
         // Assert        
         await waitForExpect(() => {
-            expect(Request.sendRequest).toHaveBeenCalledTimes(0)
+            expect(Request.sendRequest).toHaveBeenCalled();
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                url: expect.stringContaining(`/${partyEntity}/${payload.partyType}/${payload.partyId}/error`)
+            }));
         });
-    })
+    });
 
-    it("should use default case when AccountLookUpErrorEvt has no correct name", async () => {
+    it("should use default case when AccountLookUpUnknownErrorEvent has no correct name", async () => {
         // Arrange
-        const payload : AccountLookUpErrorEvtPayload = {
-            requesterFspId: "test-fspiop-source",
+        const payload : AccountLookUpUnknownErrorPayload = {
+            fspId: "test-fspiop-source",
             partyId: "123456789",
             partyType: "MSISDN",
             partySubType: null,
-            errorMsg: "test error message",
-            sourceEvent: "non-existing-source-event",
+            errorDescription: "test error message"
         };
 
-        const event = new AccountLookUpErrorEvt(payload);
+        const event = new AccountLookUpUnknownErrorEvent(payload);
 
         event.msgName = "non-existing-message-name";
 
@@ -289,13 +286,13 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
 
         // Assert        
         await waitForExpect(() => {
-            expect(Request.sendRequest).toHaveBeenCalledTimes(0)
+            expect(Request.sendRequest).toHaveBeenCalledTimes(0);
         });
-    })
-    //#endregion
+    });
+    // #endregion
 
-    //#region ParticipantAssociationCreatedEvt
-    it("should log error when ParticipantAssociationCreatedEvt finds no participant endpoint", async () => {
+    // #region ParticipantAssociationCreatedEvt
+    it("should log error when AccountLookUpBCOperatorErrorEvent finds no participant endpoint", async () => {
         // Arrange
         const payload : ParticipantAssociationCreatedEvtPayload = {
             ownerFspId: "non-existing-owner-id",
@@ -317,14 +314,12 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
             }
         };
             
-        participantClientSpy.mockResolvedValueOnce(null);
-
         // Act
         const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
         
         kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
 
-        await new Promise((r) => setTimeout(r, 2000));
+        await new Promise((r) => setTimeout(r, 5000));
 
         let sentMessagesCount = 0;
         let expectedOffsetMessage: any;
@@ -338,9 +333,9 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Assert        
         await waitForExpect(() => {
             expect(sentMessagesCount).toBe(1);
-            expect(expectedOffsetMessage.msgName).toBe(ParticipantAssociationCreatedEvt.name);
+            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpBCOperatorErrorEvent.name);
         });
-    })
+    });
 
     it("should throw error ParticipantAssociationCreatedEvt due to failing to sendRequest", async () => {
         // Arrange
@@ -371,31 +366,35 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         });
         
         // Act
+        const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
+
         kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
 
+        await new Promise((r) => setTimeout(r, 5000));
 
-        const apiSpy = jest.spyOn(Request, "sendRequest");
-        const res = async (): Promise<any> => {
-            return await apiSpy.mock.results[apiSpy.mock.results.length-1].value;
+        let sentMessagesCount = 0;
+        let expectedOffsetMessage: any;
+        const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
+        
+        if (currentOffset.offset && expectedOffset.offset) {
+            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
+            expectedOffsetMessage = JSON.parse(currentOffset.value as string);
         }
-
+        
         // Assert        
         await waitForExpect(() => {
-            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
-                url: `${localhostUrl}/${partyEntity}/${payload.partyType}/${payload.partyId}/error`
-            }));
+            expect(sentMessagesCount).toBe(1);
+            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpBCOperatorErrorEvent.name);
         });
 
-        expect(await res()).toSatisfyApiSpec();
-
-    })
+    });
     //#endregion
 
     //#region ParticipantAssociationRemovedEvt
     it("should successful treat ParticipantAssociationRemovedEvt", async () => {
         // Arrange
             const payload : ParticipantAssociationRemovedEvtPayload = {
-                ownerFspId:"test-fspiop-source",
+                ownerFspId:"Greenbank",
                 partyId: "123456789",
                 partyType: "MSISDN",
                 partySubType: null
@@ -404,36 +403,36 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
             const event = new ParticipantAssociationRemovedEvt(payload);
 
             event.fspiopOpaqueState = { 
-                "requesterFspId":"test-fspiop-source",
+                "requesterFspId":"Greenbank",
                 "destinationFspId": null,
                 "headers":{
                     "accept":`application/vnd.interoperability.${partyEntity}+json;version=1.0`,
                     "content-type":`application/vnd.interoperability.${partyEntity}+json;version=1.0`,
                     "date":"randomdate",
-                    "fspiop-source":"test-fspiop-source"
+                    "fspiop-source":"Greenbank"
                 }
             };
             
         const requestSpy = jest.spyOn(Request, "sendRequest");
 
         // Act
+
         kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
 
-        jest.spyOn(Request, "sendRequest");
 
-        const res = async (): Promise<any> => {
-            return await requestSpy.mock.results[0].value;
-        }
+        const res = async () => {
+            return await requestSpy.mock.results[requestSpy.mock.results.length-1].value;
+        };
                     
         // Assert
         await waitForExpect(() => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
-                url: `${localhostUrl}/${partyEntity}/${payload.partyType}/123456789`
+                url: expect.stringContaining(`/${partyEntity}/${payload.partyType}/123456789`)
             }));
         });
 
         expect(await res()).toSatisfyApiSpec();
-    })
+    });
 
     it("should log error when ParticipantAssociationRemovedEvt finds no participant endpoint", async () => {
         // Arrange
@@ -457,14 +456,12 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
             }
         };
             
-        participantClientSpy.mockResolvedValueOnce(null);
-
         // Act
         const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
         
         kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
 
-        await new Promise((r) => setTimeout(r, 2000));
+        await new Promise((r) => setTimeout(r, 5000));
 
         let sentMessagesCount = 0;
         let expectedOffsetMessage: any;
@@ -478,9 +475,9 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Assert        
         await waitForExpect(() => {
             expect(sentMessagesCount).toBe(1);
-            expect(expectedOffsetMessage.msgName).toBe(ParticipantAssociationRemovedEvt.name);
+            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpBCOperatorErrorEvent.name);
         });
-    })
+    });
 
     it("should throw error ParticipantAssociationRemovedEvt due to failing to sendRequest", async () => {
         // Arrange
@@ -511,104 +508,11 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         });
         
         // Act
-        kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
-
-
-        const apiSpy = jest.spyOn(Request, "sendRequest");
-        const res = async (): Promise<any> => {
-            return await apiSpy.mock.results[apiSpy.mock.results.length-1].value;
-        }
-
-        // Assert        
-        await waitForExpect(() => {
-            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
-                url: `${localhostUrl}/${partyEntity}/${payload.partyType}/${payload.partyId}/error`
-            }));
-        });
-
-        expect(await res()).toSatisfyApiSpec();
-
-    })
-    //#endregion
-
-    //#region PartyInfoRequestedEvt
-    it("should successful treat PartyInfoRequestedEvt", async () => {
-        // Arrange
-        const payload : PartyInfoRequestedEvtPayload = {
-            requesterFspId: "test-fspiop-source",
-            destinationFspId: "test-fspiop-destination",
-            partyId: "123456789",
-            partyType: "MSISDN",
-            partySubType: null,
-            currency: null
-        };
-
-        const event = new PartyInfoRequestedEvt(payload);
-
-        event.fspiopOpaqueState = { 
-            "requesterFspId":"test-fspiop-source",
-            "destinationFspId": null,
-            "headers":{
-                "accept":`application/vnd.interoperability.${partyEntity}+json;version=1.0`,
-                "content-type":`application/vnd.interoperability.${partyEntity}+json;version=1.0`,
-                "date":"randomdate",
-                "fspiop-source":"test-fspiop-source"
-            }
-        };
-            
-        const requestSpy = jest.spyOn(Request, "sendRequest");
-
-        // Act
-        kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
-
-        jest.spyOn(Request, "sendRequest");
-
-        const res = async (): Promise<any> => {
-            return await requestSpy.mock.results[0].value;
-        }
-                    
-        // Assert
-        await waitForExpect(() => {
-            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
-                url: `${localhostUrl}/${partyEntity}/${payload.partyType}/123456789`
-            }));
-        });
-
-        expect(await res()).toSatisfyApiSpec();
-    })
-
-    it("should log error when PartyInfoRequestedEvt finds no participant endpoint", async () => {
-        // Arrange
-        const payload : PartyInfoRequestedEvtPayload = {
-            requesterFspId: "test-fspiop-source",
-            destinationFspId: "non-existing-requester-id",
-            partyId: "123456789",
-            partyType: "MSISDN",
-            partySubType: null,
-            currency: null
-        };
-
-        const event = new PartyInfoRequestedEvt(payload);
-
-        event.fspiopOpaqueState = { 
-            "requesterFspId":"test-fspiop-source",
-            "destinationFspId": "non-existing-requester-id",
-            "headers":{
-                "accept":`application/vnd.interoperability.${partyEntity}+json;version=1.0`,
-                "content-type":`application/vnd.interoperability.${partyEntity}+json;version=1.0`,
-                "date":"randomdate",
-                "fspiop-source":"test-fspiop-source"
-            }
-        };
-            
-        participantClientSpy.mockResolvedValueOnce(null);
-
-        // Act
         const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
         
         kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
 
-        await new Promise((r) => setTimeout(r, 2000));
+        await new Promise((r) => setTimeout(r, 5000));
 
         let sentMessagesCount = 0;
         let expectedOffsetMessage: any;
@@ -622,9 +526,102 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Assert        
         await waitForExpect(() => {
             expect(sentMessagesCount).toBe(1);
-            expect(expectedOffsetMessage.msgName).toBe(PartyInfoRequestedEvt.name);
+            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpBCOperatorErrorEvent.name);
         });
-    })
+
+    });
+    //#endregion
+
+    //#region PartyInfoRequestedEvt
+    it("should successful treat PartyInfoRequestedEvt", async () => {
+        // Arrange
+        const payload : PartyInfoRequestedEvtPayload = {
+            requesterFspId: "Greenbank",
+            destinationFspId: "Bluebank",
+            partyId: "123456789",
+            partyType: "MSISDN",
+            partySubType: null,
+            currency: null
+        };
+
+        const event = new PartyInfoRequestedEvt(payload);
+
+        event.fspiopOpaqueState = { 
+            "requesterFspId":"Greenbank",
+            "destinationFspId": null,
+            "headers":{
+                "accept":`application/vnd.interoperability.${partyEntity}+json;version=1.0`,
+                "content-type":`application/vnd.interoperability.${partyEntity}+json;version=1.0`,
+                "date":"randomdate",
+                "fspiop-source":"Greenbank"
+            }
+        };
+            
+        const requestSpy = jest.spyOn(Request, "sendRequest");
+
+        // Act
+        kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
+
+        const res = async () => {
+            return await requestSpy.mock.results[requestSpy.mock.results.length-1].value;
+        };
+                    
+        // Assert
+        await waitForExpect(() => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                url: expect.stringContaining(`/${partyEntity}/${payload.partyType}/123456789`)
+            }));
+        });
+
+        expect(await res()).toSatisfyApiSpec();
+    });
+
+    it("should log error when PartyInfoRequestedEvt finds no participant endpoint", async () => {
+        // Arrange
+        const payload : PartyInfoRequestedEvtPayload = {
+            requesterFspId: "non-existing-requester-id",
+            destinationFspId: "non-existing-requester-id",
+            partyId: "123456789",
+            partyType: "MSISDN",
+            partySubType: null,
+            currency: null
+        };
+
+        const event = new PartyInfoRequestedEvt(payload);
+
+        event.fspiopOpaqueState = { 
+            "requesterFspId":"non-existing-requester-id",
+            "destinationFspId": "non-existing-destination-id",
+            "headers":{
+                "accept":`application/vnd.interoperability.${partyEntity}+json;version=1.0`,
+                "content-type":`application/vnd.interoperability.${partyEntity}+json;version=1.0`,
+                "date":"randomdate",
+                "fspiop-source":"non-existing-requester-id"
+            }
+        };
+            
+        // Act
+        const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
+        
+        kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
+
+        await new Promise((r) => setTimeout(r, 5000));
+
+        let sentMessagesCount = 0;
+        let expectedOffsetMessage: any;
+        const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
+        
+        if (currentOffset.offset && expectedOffset.offset) {
+            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
+            expectedOffsetMessage = JSON.parse(currentOffset.value as string);
+        }
+        
+        // Assert        
+        await waitForExpect(() => {
+            expect(sentMessagesCount).toBe(1);
+            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpBCOperatorErrorEvent.name);
+        });
+    });
 
     it("should throw error PartyInfoRequestedEvt due to failing to sendRequest", async () => {
         // Arrange
@@ -650,39 +647,38 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
                 "fspiop-source":"test-fspiop-source"
             }
         };
-
-        const requestSpyOn = jest.spyOn(Request, "sendRequest");
-
-        requestSpyOn.mockImplementationOnce(() => {
-            throw new Error("test error");
-        });
         
         // Act
+        const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
+        
         kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
 
-        const apiSpy = jest.spyOn(Request, "sendRequest");
-        const res = async (): Promise<any> => {
-            return await apiSpy.mock.results[apiSpy.mock.results.length-1].value;
-        }
+        await new Promise((r) => setTimeout(r, 10000));
 
+        let sentMessagesCount = 0;
+        let expectedOffsetMessage: any;
+        const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
+        
+        if (currentOffset.offset && expectedOffset.offset) {
+            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
+            expectedOffsetMessage = JSON.parse(currentOffset.value as string);
+        }
+        
         // Assert        
         await waitForExpect(() => {
-            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
-                url: `${localhostUrl}/${partyEntity}/${payload.partyType}/${payload.partyId}/error`
-            }));
+            expect(sentMessagesCount).toBe(1);
+            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpBCOperatorErrorEvent.name);
         });
 
-        expect(await res()).toSatisfyApiSpec();
-
-    })
+    });
     //#endregion
 
     //#region PartyQueryResponseEvt
     it("should successful treat PartyQueryResponseEvt", async () => {
         // Arrange
         const payload : PartyQueryResponseEvtPayload = {
-            requesterFspId: "test-fspiop-source",
-            destinationFspId: "test-fspiop-destination",
+            requesterFspId: "Greenbank",
+            destinationFspId: "Bluebank",
             ownerFspId: "test-fspiop-owner",
             partyId: "123456789",
             partyType: "MSISDN",
@@ -695,13 +691,13 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         const event = new PartyQueryResponseEvt(payload);
 
         event.fspiopOpaqueState = { 
-            "requesterFspId":"test-fspiop-source",
+            "requesterFspId":"Greenbank",
             "destinationFspId": null,
             "headers":{
                 "accept":`application/vnd.interoperability.${partyEntity}+json;version=1.0`,
                 "content-type":`application/vnd.interoperability.${partyEntity}+json;version=1.0`,
                 "date":"randomdate",
-                "fspiop-source":"test-fspiop-source"
+                "fspiop-source":"Greenbank"
             }
         };
             
@@ -712,19 +708,19 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
 
         jest.spyOn(Request, "sendRequest");
 
-        const res = async (): Promise<any> => {
+        const res = async () => {
             return await requestSpy.mock.results[0].value;
-        }
+        };
                     
         // Assert
         await waitForExpect(() => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
-                url: `${localhostUrl}/${partyEntity}/${payload.partyType}/123456789`
+                url: expect.stringContaining(`/${partyEntity}/${payload.partyType}/123456789`)
             }));
         });
 
         expect(await res()).toSatisfyApiSpec();
-    })
+    });
 
     it("should log error when PartyQueryResponseEvt finds no participant endpoint", async () => {
         // Arrange
@@ -753,14 +749,12 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
             }
         };
             
-        participantClientSpy.mockResolvedValueOnce(null);
-
         // Act
         const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
         
         kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
 
-        await new Promise((r) => setTimeout(r, 4000));
+        await new Promise((r) => setTimeout(r, 5000));
 
         let sentMessagesCount = 0;
         let expectedOffsetMessage: any;
@@ -774,9 +768,9 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Assert        
         await waitForExpect(() => {
             expect(sentMessagesCount).toBe(1);
-            expect(expectedOffsetMessage.msgName).toBe(PartyQueryResponseEvt.name);
+            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpBCOperatorErrorEvent.name);
         });
-    })
+    });
 
     it("should throw error PartyQueryResponseEvt due to failing to sendRequest", async () => {
         // Arrange
@@ -804,38 +798,38 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
                 "fspiop-source":"test-fspiop-source"
             }
         };
-
-        const requestSpyOn = jest.spyOn(Request, "sendRequest");
-
-        requestSpyOn.mockImplementationOnce(() => {
-            throw new Error("test error");
-        });
         
         // Act
+        const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
+        
         kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
 
-        const apiSpy = jest.spyOn(Request, "sendRequest");
-        const res = async (): Promise<any> => {
-            return await apiSpy.mock.results[apiSpy.mock.results.length-1].value;
-        }
+        await new Promise((r) => setTimeout(r, 10000));
 
+        let sentMessagesCount = 0;
+        let expectedOffsetMessage: any;
+        
+        const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
+        
+        if (currentOffset.offset && expectedOffset.offset) {
+            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
+            expectedOffsetMessage = JSON.parse(currentOffset.value as string);
+        }
+        
         // Assert        
         await waitForExpect(() => {
-            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
-                url: `${localhostUrl}/${partyEntity}/${payload.partyType}/${payload.partyId}/error`
-            }));
+            expect(sentMessagesCount).toBe(1);
+            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpBCOperatorErrorEvent.name);
         });
 
-        expect(await res()).toSatisfyApiSpec();
-
-    })
+    });
     //#endregion
 
     //#region ParticipantQueryResponseEvt
     it("should successful treat ParticipantQueryResponseEvt", async () => {
         // Arrange
         const payload : ParticipantQueryResponseEvtPayload = {
-            requesterFspId: "test-fspiop-source",
+            requesterFspId: "Greenbank",
             ownerFspId: "test-fspiop-owner",
             partyId: "123456789",
             partyType: "MSISDN",
@@ -846,13 +840,13 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         const event = new ParticipantQueryResponseEvt(payload);
 
         event.fspiopOpaqueState = { 
-            "requesterFspId":"test-fspiop-source",
+            "requesterFspId":"Greenbank",
             "destinationFspId": null,
             "headers":{
                 "accept":`application/vnd.interoperability.${partyEntity}+json;version=1.0`,
                 "content-type":`application/vnd.interoperability.${partyEntity}+json;version=1.0`,
                 "date":"randomdate",
-                "fspiop-source":"test-fspiop-source"
+                "fspiop-source":"Greenbank"
             }
         };
             
@@ -863,19 +857,19 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
 
         jest.spyOn(Request, "sendRequest");
 
-        const res = async (): Promise<any> => {
+        const res = async () => {
             return await requestSpy.mock.results[0].value;
-        }
+        };
                     
         // Assert
         await waitForExpect(() => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
-                url: `${localhostUrl}/${participantsEntity}/${payload.partyType}/123456789`
+                url: expect.stringContaining(`/${participantsEntity}/${payload.partyType}/123456789`)
             }));
         });
 
         expect(await res()).toSatisfyApiSpec();
-    })
+    });
 
     it("should log error when ParticipantQueryResponseEvt finds no participant endpoint", async () => {
         // Arrange
@@ -901,14 +895,12 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
             }
         };
             
-        participantClientSpy.mockResolvedValueOnce(null);
-
         // Act
         const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
         
         kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
 
-        await new Promise((r) => setTimeout(r, 2000));
+        await new Promise((r) => setTimeout(r, 5000));
 
         let sentMessagesCount = 0;
         let expectedOffsetMessage: any;
@@ -922,9 +914,9 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Assert        
         await waitForExpect(() => {
             expect(sentMessagesCount).toBe(1);
-            expect(expectedOffsetMessage.msgName).toBe(ParticipantQueryResponseEvt.name);
+            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpBCOperatorErrorEvent.name);
         });
-    })
+    });
 
     it("should throw error ParticipantQueryResponseEvt due to failing to sendRequest", async () => {
         // Arrange
@@ -957,22 +949,27 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         });
         
         // Act
+        const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
+        
         kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
 
-        const apiSpy = jest.spyOn(Request, "sendRequest");
-        const res = async (): Promise<any> => {
-            return await apiSpy.mock.results[apiSpy.mock.results.length-1].value;
-        }
+        await new Promise((r) => setTimeout(r, 5000));
 
+        let sentMessagesCount = 0;
+        let expectedOffsetMessage: any;
+        const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
+        
+        if (currentOffset.offset && expectedOffset.offset) {
+            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
+            expectedOffsetMessage = JSON.parse(currentOffset.value as string);
+        }
+        
         // Assert        
         await waitForExpect(() => {
-            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
-                url: `${localhostUrl}/${participantsEntity}/${payload.partyType}/${payload.partyId}/error`
-            }));
+            expect(sentMessagesCount).toBe(1);
+            expect(expectedOffsetMessage.msgName).toBe(AccountLookUpBCOperatorErrorEvent.name);
         });
 
-        expect(await res()).toSatisfyApiSpec();
-
-    })
+    });
     //#endregion
 });

@@ -32,6 +32,7 @@
 
  "use strict";
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import { ParticipantsHttpClient} from "@mojaloop/participants-bc-client-lib";
 import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";

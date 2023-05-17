@@ -29,27 +29,23 @@
  --------------
  ******/
 
-"use strict"
+"use strict";
 
-import { QuoteQueryReceivedEvt, QuoteRequestReceivedEvt, QuoteResponseReceivedEvt, QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
- 
+import path from "path";
 import request from "supertest";
-import { start, stop } from "@mojaloop/interop-apis-bc-fspiop-api-svc/src/service";
-import KafkaProducer, { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
+import jestOpenAPI from 'jest-openapi';
+import { QuoteQueryReceivedEvt, QuoteRequestReceivedEvt, QuoteResponseReceivedEvt, QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { Service } from "@mojaloop/interop-apis-bc-fspiop-api-svc";
+import { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
+import { getHeaders, missingPropertyResponse } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 
-const server = "http://localhost:4000";
+// Sets the location of your OpenAPI Specification file
+jestOpenAPI(path.join(__dirname, '../../../../packages/fspiop-api-svc/dist/api_spec.yaml'));
 
-const workingHeaders = { 
-    "accept": "application/vnd.interoperability.quotes+json;version=1.0",
-    "content-type": "application/vnd.interoperability.quotes+json;version=1.0",
-    "date": "randomdate",
-    "fspiop-source": "test-fspiop-source",
-}
+const SVC_DEFAULT_HTTP_PORT = process.env["SVC_DEFAULT_HTTP_PORT"] || 4000;
 
-const missingHeaders = { 
-    "accept": "application/vnd.interoperability.quotes+json;version=1.0",
-    "content-type": "application/vnd.interoperability.quotes+json;version=1.0",
-}
+const server = `http://localhost:${SVC_DEFAULT_HTTP_PORT}`;
 
 const validPostPayload = {
     "quoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
@@ -76,7 +72,7 @@ const validPostPayload = {
       "initiator": "PAYER",
       "initiatorType": "BUSINESS"
     }
-}
+};
 
 const validPutPayload = {
     "transferAmount": {
@@ -102,32 +98,23 @@ const validPutPayload = {
         "currency": "EUR",
         "amount": "0.2"
     }
-}
+};
 
-const goodStatusResponse = {
-    "status": "ok"
-}
-
-const badStatusResponse = {
-    "status": "not ok"
-}
-
-const kafkaProducer = new KafkaProducer()
+jest.setTimeout(20000);
 
 const topic = process.env["KAFKA_QUOTING_TOPIC"] || QuotingBCTopics.DomainRequests;
 
-jest.setTimeout(20000);
+const pathWithoutQuoteId = `/${Enums.EntityTypeEnum.QUOTES}`;
+const pathWithQuoteId = `/${Enums.EntityTypeEnum.QUOTES}/123456789`;
 
 describe("FSPIOP API Service Quote Routes", () => {
 
     beforeAll(async () => {
-        await start();
-        await kafkaProducer.init();
+        await Service.start();
     });
     
     afterAll(async () => {
-        await stop();
-        kafkaProducer.destroy();
+        await Service.stop();
     });
     
     it("should successfully call quoteQueryReceived endpoint", async () => {
@@ -135,8 +122,9 @@ describe("FSPIOP API Service Quote Routes", () => {
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .get("/quotes/123456789")
-        .set(workingHeaders)
+        .get(pathWithQuoteId)
+        .set(getHeaders(Enums.EntityTypeEnum.QUOTES));
+
 
         let sentMessagesCount = 0;
         let expectedOffsetMessage;
@@ -148,20 +136,22 @@ describe("FSPIOP API Service Quote Routes", () => {
         }
         
         // Assert
-        expect(res.statusCode).toEqual(202)
-        expect(res.body).toStrictEqual(goodStatusResponse)
+        expect(res.statusCode).toEqual(202);
+        expect(res.body).toStrictEqual(null);
         expect(sentMessagesCount).toBe(1);
         expect(expectedOffsetMessage.msgName).toBe(QuoteQueryReceivedEvt.name);
-    })
+        expect(res).toSatisfyApiSpec();
+    });
 
     it("should successfully call quoteRequestReceived endpoint", async () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .post("/quotes")
+        .post(pathWithoutQuoteId)
         .send(validPostPayload)
-        .set(workingHeaders)
+        .set(getHeaders(Enums.EntityTypeEnum.QUOTES));
+
 
         let sentMessagesCount = 0;
         let expectedOffsetMessage;
@@ -173,20 +163,22 @@ describe("FSPIOP API Service Quote Routes", () => {
         }
         
         // Assert
-        expect(res.statusCode).toEqual(202)
-        expect(res.body).toStrictEqual(goodStatusResponse)
+        expect(res.statusCode).toEqual(202);
+        expect(res.body).toStrictEqual(null);
         expect(sentMessagesCount).toBe(1);
         expect(expectedOffsetMessage.msgName).toBe(QuoteRequestReceivedEvt.name);
-    })
+        expect(res).toSatisfyApiSpec();
+    });
 
     it("should successfully call quoteResponseReceived endpoint", async () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .put("/quotes/123456789")
+        .put(pathWithQuoteId)
         .send(validPutPayload)
-        .set(workingHeaders)
+        .set(getHeaders(Enums.EntityTypeEnum.QUOTES));
+
 
         let sentMessagesCount = 0;
         let expectedOffsetMessage;
@@ -198,19 +190,20 @@ describe("FSPIOP API Service Quote Routes", () => {
         }
         
         // Assert
-        expect(res.statusCode).toEqual(202)
-        expect(res.body).toStrictEqual(goodStatusResponse)
+        expect(res.statusCode).toEqual(200);
+        expect(res.body).toStrictEqual(null);
         expect(sentMessagesCount).toBe(1);
         expect(expectedOffsetMessage.msgName).toBe(QuoteResponseReceivedEvt.name);
-    })
+        expect(res).toSatisfyApiSpec();
+    });
 
     it("should throw with an unprocessable entity error code calling quoteRequestReceived endpoint", async () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .post("/quotes")
-        .set(missingHeaders)
+        .post(pathWithoutQuoteId)
+        .set(getHeaders(Enums.EntityTypeEnum.QUOTES, ["date"]));
 
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
@@ -220,17 +213,18 @@ describe("FSPIOP API Service Quote Routes", () => {
         }
         
         // Assert
-        expect(res.statusCode).toEqual(422)
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toStrictEqual(missingPropertyResponse("quoteId", "body"));
         expect(sentMessagesCount).toBe(0);
-    })
+    });
 
     it("should throw with an unprocessable entity error code calling quoteResponseReceived endpoint", async () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .put("/quotes/123456789")
-        .set(missingHeaders)
+        .put(pathWithQuoteId)
+        .set(getHeaders(Enums.EntityTypeEnum.QUOTES, ["date"]));
 
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
@@ -240,17 +234,18 @@ describe("FSPIOP API Service Quote Routes", () => {
         }
         
         // Assert
-        expect(res.statusCode).toEqual(422)
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toStrictEqual(missingPropertyResponse("transferAmount", "body"));
         expect(sentMessagesCount).toBe(0);
-    })
+    });
 
     it("should give a bad request calling quoteQueryReceived endpoint", async () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .get("/quotes/123456789")
-        .set(missingHeaders)
+        .get(pathWithQuoteId)
+        .set(getHeaders(Enums.EntityTypeEnum.QUOTES, ["date"]));
 
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
@@ -260,10 +255,10 @@ describe("FSPIOP API Service Quote Routes", () => {
         }
         
         // Assert
-        expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(badStatusResponse)
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"));
         expect(sentMessagesCount).toBe(0);
-    })
+    });
 
 
     it("should give a bad request calling quoteRequestReceived endpoint", async () => {
@@ -271,9 +266,9 @@ describe("FSPIOP API Service Quote Routes", () => {
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .post("/quotes")
+        .post(pathWithoutQuoteId)
         .send(validPostPayload)
-        .set(missingHeaders)
+        .set(getHeaders(Enums.EntityTypeEnum.QUOTES, ["date"]));
 
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
@@ -283,19 +278,19 @@ describe("FSPIOP API Service Quote Routes", () => {
         }
         
         // Assert
-        expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(badStatusResponse)
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"));
         expect(sentMessagesCount).toBe(0);
-    })
+    });
 
     it("should give a bad request calling quoteResponseReceived endpoint", async () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(topic);
 
         const res = await request(server)
-        .put("/quotes/123456789")
+        .put(pathWithQuoteId)
         .send(validPutPayload)
-        .set(missingHeaders)
+        .set(getHeaders(Enums.EntityTypeEnum.QUOTES, ["date"]));
 
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
@@ -305,8 +300,8 @@ describe("FSPIOP API Service Quote Routes", () => {
         }
         
         // Assert
-        expect(res.statusCode).toEqual(400)
-        expect(res.body).toStrictEqual(badStatusResponse)
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"));
         expect(sentMessagesCount).toBe(0);
-    })
+    });
 });

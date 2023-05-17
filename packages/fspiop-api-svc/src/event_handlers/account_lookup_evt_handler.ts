@@ -38,27 +38,32 @@ import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {
-    AccountLookUpErrorEvt,
+    AccountLookUpUnknownErrorEvent,
     PartyInfoRequestedEvt,
     PartyQueryResponseEvt,
     ParticipantAssociationCreatedEvt,
     ParticipantAssociationRemovedEvt,
     ParticipantQueryResponseEvt,
-    ParticipantQueryReceivedEvt,
-    ParticipantDisassociateRequestReceivedEvt,
-    ParticipantAssociationRequestReceivedEvt,
-    PartyInfoAvailableEvt, PartyQueryReceivedEvt
+    AccountLookupBCInvalidMessagePayloadErrorEvent,
+    AccountLookupBCInvalidMessageTypeErrorEvent,
+    AccountLookupBCInvalidParticipantIdErrorEvent,
+    AccountLookupBCOracleAdapterNotFoundErrorEvent,
+    AccountLookupBCOracleNotFoundErrorEvent,
+    AccountLookupBCParticipantNotFoundErrorEvent,
+    AccountLookupBCParticipantFspIdNotFoundErrorEvent,
+    AccountLookupBCUnableToAssociateParticipantErrorEvent,
+    AccountLookupBCUnableToDisassociateParticipantErrorEvent,
+    AccountLookupBCUnableToGetOracleFromOracleFinderErrorEvent,
+    AccountLookupBCUnableToGetParticipantFspIdErrorEvent
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { ParticipantsPutId, ParticipantsPutTypeAndId, PartiesPutTypeAndId, PartiesPutTypeAndIdAndSubId } from "../errors";
 import { IncomingHttpHeaders } from "http";
 import { BaseEventHandler } from "./base_event_handler";
-import { AxiosError } from "axios";
 import { IParticipantService } from "../interfaces/infrastructure";
 
-const KAFKA_OPERATOR_ERROR_TOPIC = process.env["KAFKA_OPERATOR_ERROR_TOPIC"] || 'OperatorBcErrors';
-
 export class AccountLookupEventHandler extends BaseEventHandler {
+ 
     constructor(
             logger: ILogger,
             consumerOptions: MLKafkaJsonConsumerOptions,
@@ -70,158 +75,198 @@ export class AccountLookupEventHandler extends BaseEventHandler {
     }
 
     async processMessage (sourceMessage: IMessage) : Promise<void> {
-        const message: IDomainMessage = sourceMessage as IDomainMessage;
+        try {
+            const message: IDomainMessage = sourceMessage as IDomainMessage;
+            
+            switch(message.msgName){
+                case AccountLookUpUnknownErrorEvent.name:
+                case AccountLookupBCInvalidMessagePayloadErrorEvent.name:
+                case AccountLookupBCInvalidMessageTypeErrorEvent.name:
+                case AccountLookupBCUnableToAssociateParticipantErrorEvent.name:
+                case AccountLookupBCUnableToDisassociateParticipantErrorEvent.name:
+                case AccountLookupBCParticipantNotFoundErrorEvent.name:
+                case AccountLookupBCInvalidParticipantIdErrorEvent.name:
+                case AccountLookupBCUnableToGetOracleFromOracleFinderErrorEvent.name:
+                case AccountLookupBCOracleNotFoundErrorEvent.name:
+                case AccountLookupBCOracleAdapterNotFoundErrorEvent.name:
+                case AccountLookupBCUnableToGetParticipantFspIdErrorEvent.name:
+                case AccountLookupBCParticipantFspIdNotFoundErrorEvent.name:
+                    await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState);
+                    break;
+                case ParticipantAssociationCreatedEvt.name:
+                    await this._handleParticipantAssociationRequestReceivedEvt(new ParticipantAssociationCreatedEvt(message.payload), message.fspiopOpaqueState);
+                    break;
+                case ParticipantAssociationRemovedEvt.name:
+                    await this._handleParticipantDisassociateRequestReceivedEvt(new ParticipantAssociationRemovedEvt(message.payload), message.fspiopOpaqueState);
+                    break;
+                case PartyInfoRequestedEvt.name:
+                    await this._handlePartyInfoRequestedEvt(new PartyInfoRequestedEvt(message.payload), message.fspiopOpaqueState);
+                    break;
+                case PartyQueryResponseEvt.name:
+                    await this._handlePartyQueryResponseEvt(new PartyQueryResponseEvt(message.payload), message.fspiopOpaqueState);
+                    break;
+                case ParticipantQueryResponseEvt.name:
+                    await this._handleParticipantQueryResponseEvt(new ParticipantQueryResponseEvt(message.payload), message.fspiopOpaqueState);
+                    break;
+                default:
+                    this._logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
+                    break;
+            }
+        } catch (e: unknown) {
+            const message: IDomainMessage = sourceMessage as IDomainMessage;
 
-        switch(message.msgName){
-            case AccountLookUpErrorEvt.name:
-                await this._handleErrorReceivedEvt(new AccountLookUpErrorEvt(message.payload), message.fspiopOpaqueState);
-                break;
-            case ParticipantAssociationCreatedEvt.name:
-                await this._handleParticipantAssociationRequestReceivedEvt(new ParticipantAssociationCreatedEvt(message.payload), message.fspiopOpaqueState);
-                break;
-            case ParticipantAssociationRemovedEvt.name:
-                await this._handleParticipantDisassociateRequestReceivedEvt(new ParticipantAssociationRemovedEvt(message.payload), message.fspiopOpaqueState);
-                break;
-            case PartyInfoRequestedEvt.name:
-                await this._handlePartyInfoRequestedEvt(new PartyInfoRequestedEvt(message.payload), message.fspiopOpaqueState);
-                break;
-            case PartyQueryResponseEvt.name:
-                await this._handlePartyQueryResponseEvt(new PartyQueryResponseEvt(message.payload), message.fspiopOpaqueState);
-                break;
-            case ParticipantQueryResponseEvt.name:
-                await this._handleParticipantQueryResponseEvt(new ParticipantQueryResponseEvt(message.payload), message.fspiopOpaqueState);
-                break;
-            default:
-                this._logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
-                break;
+            const clonedHeaders = { ...message.fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+            const requesterFspId = clonedHeaders["fspiop-source"] as string;
+            const partyType = message.payload.partyType as string;
+            const partyId = message.payload.partyId as string;
+            const partySubType = message.payload.partySubType as string;
+
+            this._sendErrorFeedbackToFsp({
+                message: message,
+                error: message.msgName,
+                errorCode: Enums.ServerErrorCodes.GENERIC_SERVER_ERROR,
+                headers: message.fspiopOpaqueState.headers,
+                source: requesterFspId,
+                id: [partyType, partyId, partySubType]
+            });
         }
 
         // make sure we only return from the processMessage/handler after completing the request,
         // otherwise this will commit the event and will be lost
 
-
         return;
     }
 
-    async _handleErrorReceivedEvt(message: AccountLookUpErrorEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
+    async _handleErrorReceivedEvt(message: IDomainMessage, fspiopOpaqueState: IncomingHttpHeaders):Promise<void> {
+        this._logger.info('_handleAccountLookupErrorReceivedEvt -> start');
+
         const { payload } = message;
   
-        const requesterFspId = payload.requesterFspId as string;
+        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+        const requesterFspId = clonedHeaders["fspiop-source"] as string;
         const partyType = payload.partyType as string;
         const partyId = payload.partyId as string;
         const partySubType = payload.partySubType as string;
-        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
 
-        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
+        const requestedEndpoint = (await this._validateParticipantAndGetEndpoint(requesterFspId));
 
-        if(!requestedEndpoint){
-            // _validateParticipantAndGetEndpoint already logs the error
-            this._logger.error("Cannot get requestedEndpoint at _handleAccountLookUpErrorReceivedEvt()");
-            
-            // TODO discuss about having the specific event for overall errors so we dont have
-            // to change an existing event to use the generic topic
-            const msg =  new AccountLookUpErrorEvt(payload);
-    
-            msg.msgTopic = KAFKA_OPERATOR_ERROR_TOPIC;
-
-            await this._kafkaProducer.send(msg);
-            
-            return;
+        if(!requestedEndpoint) {
+            throw Error(`fspId ${requesterFspId} has no valid participant associated`);
         }
 
-        try {
-            this._logger.info('_handleErrorReceivedEvt -> start');
+        // Always validate the payload and headers received
+        Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
 
+        const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
+        
+        urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
+        urlBuilder.setLocation([partyType, partyId, partySubType]);
+        urlBuilder.hasError(true);
+        
+        const extensionList = [];
+        let list: string[] = [];
+        let errorCode = "1000"; // Default error code
 
-            // Always validate the payload and headers received
-            message.validatePayload();
-            Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
+        switch(message.msgName){
+            case AccountLookupBCUnableToAssociateParticipantErrorEvent.name:
+            case AccountLookupBCUnableToDisassociateParticipantErrorEvent.name: {
+                list = ["partyType", "partyId", "partySubType", "fspId"];
+                errorCode = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR;
 
-
-            let url;
-            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
-
-            switch(message.payload.sourceEvent){
-                case PartyQueryReceivedEvt.name:
-                case PartyInfoAvailableEvt.name:
-                case PartyInfoRequestedEvt.name:
-                    urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
-                    urlBuilder.setLocation([partyType, partyId, partySubType]);
-                    urlBuilder.hasError(true);
-
-                    url = urlBuilder.build();
-                    break;
-                case ParticipantAssociationRequestReceivedEvt.name:
-                case ParticipantDisassociateRequestReceivedEvt.name:
-                case ParticipantQueryReceivedEvt.name:
-                    urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
-                    urlBuilder.setLocation([partyType, partyId, partySubType]);
-                    urlBuilder.hasError(true);
-
-                    url = urlBuilder.build();
-                    break;
-                default:
-                    throw new Error("Unhandled message source event on AccountLookupEventHandler_handleAccountLookUpErrorReceivedEvt()");
+                break;
             }
+            case AccountLookupBCParticipantNotFoundErrorEvent.name:
+            case AccountLookupBCUnableToGetParticipantFspIdErrorEvent.name: 
+            case AccountLookupBCParticipantFspIdNotFoundErrorEvent.name: {
+                list = ["partyType", "partyId", "partySubType", "fspId"];
 
-           
-            await Request.sendRequest({
-                url: url, 
-                headers: clonedHeaders, 
-                source: requesterFspId, 
-                destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null, 
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadError({
-                    errorCode: Enums.ErrorCode.NOT_FOUND, // TODO: find proper error code
-                    errorDescription: payload.errorMsg
-                }),
-            });
+                if(clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === message.payload.fspId) {
+                    errorCode = Enums.ClientErrorCodes.PAYER_FSP_ID_NOT_FOUND;
+                } else {
+                    errorCode = Enums.ClientErrorCodes.PAYEE_FSP_ID_NOT_FOUND;
+                }
 
-            this._logger.info('_handleErrorReceivedEvt -> end');
+                break;
+            }
+            case AccountLookupBCInvalidParticipantIdErrorEvent.name: {
+                list = ["partyType", "partyId", "partySubType", "fspId"];
 
-        } catch (err: unknown) {
-            const error = err as unknown as AxiosError;
-            this._logger.error(JSON.stringify(error.response?.data));
+                if(clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === message.payload.fspId) {
+                    errorCode = Enums.ClientErrorCodes.GENERIC_CLIENT_ERROR;
+                } else {
+                    errorCode = Enums.ClientErrorCodes.DESTINATION_FSP_ERROR;
+                }
+
+                break;
+            }
+            case AccountLookupBCInvalidMessagePayloadErrorEvent.name:
+            case AccountLookupBCInvalidMessageTypeErrorEvent.name:
+            case AccountLookupBCUnableToGetOracleFromOracleFinderErrorEvent.name: 
+            case AccountLookupBCOracleNotFoundErrorEvent.name: 
+            case AccountLookupBCOracleAdapterNotFoundErrorEvent.name: {
+                
+                list = ["partyType", "partyId", "partySubType", "fspId"];
+                errorCode = Enums.ClientErrorCodes.GENERIC_CLIENT_ERROR;
+
+                break;
+            }
+            case AccountLookUpUnknownErrorEvent.name: {
+                list = ["partyType", "partyId", "partySubType", "fspId"];
+                errorCode = Enums.ServerErrorCodes.INTERNAL_SERVER_ERROR;
+
+                break;
+            }
+            default: {
+                this._logger.warn(`Cannot handle error message of type: ${message.msgName}, ignoring`);
+                break;
+            }
         }
+                
+        for(let i=0 ; i<list.length ; i+=1){
+            if(payload[list[i]]) {
+                extensionList.push({
+                    key: list[i],
+                    value: payload[list[i]]
+                });
+            }
+        } 
+
+        this._sendErrorFeedbackToFsp({
+            message: message,
+            error: message.payload.errorInformation.errorDescription,
+            errorCode: errorCode,
+            headers: clonedHeaders,
+            source: requesterFspId,
+            id: [partyType, partyId, partySubType],
+            extensionList: extensionList
+        });
+
+        this._logger.info('_handleAccountLookupErrorReceivedEvt -> end');
 
         return;
     }
 
     private async _handleParticipantAssociationRequestReceivedEvt(message: ParticipantAssociationCreatedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
-        const { payload } = message;
-  
-        const requesterFspId = payload.ownerFspId;
-        const partyType = payload.partyType;
-        const partyId = payload.partyId;
-        const partySubType = payload.partySubType as string;
-        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+        this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> start');
         
-        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
-
-        if(!requestedEndpoint){
-
-            this._logger.error("Cannot get requestedEndpoint at _handleParticipantAssociationRequestReceivedEvt()");
-
-            // TODO discuss about having the specific event for overall errors so we dont have
-            // to change an existing event to use the generic topic
-            const msg =  new ParticipantAssociationCreatedEvt(payload);
-    
-            msg.msgTopic = KAFKA_OPERATOR_ERROR_TOPIC;
-
-            await this._kafkaProducer.send(msg);
-
-            return;
-        }
-
         try {
-            this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> start');
+            const { payload } = message;
+    
+            const requesterFspId = payload.ownerFspId;
+            const partyType = payload.partyType;
+            const partyId = payload.partyId;
+            const partySubType = payload.partySubType as string;
+            const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+            
+            const requestedEndpoint = (await this._validateParticipantAndGetEndpoint(requesterFspId));
 
-            // Always validate the payload and headers received
-            message.validatePayload();
+            if(!requestedEndpoint) {
+                throw Error(`fspId ${requesterFspId} has no valid participant associated`);
+            }
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
-            urlBuilder.setLocation([partyType, partyId]);
+            urlBuilder.setLocation([partyType, partyId, partySubType]);
             
             await Request.sendRequest({
                 url: urlBuilder.build(), 
@@ -235,47 +280,31 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> end');
 
         } catch (error: unknown) {
-            this._sendErrorFeedbackToFsp({ 
-                error: error,
-                headers: clonedHeaders,
-                source: requesterFspId,
-                endpoint: requestedEndpoint,
-                entity: Enums.EntityTypeEnum.PARTIES,
-                id: [partyType, partyId, partySubType],
-            });
+            this._logger.info('_handleParticipantAssociationRequestReceivedEvt -> error');
+            throw Error("_handleParticipantAssociationRequestReceivedEvt -> error");
         }
 
         return;
     }
     
     private async _handleParticipantDisassociateRequestReceivedEvt(message: ParticipantAssociationRemovedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
-        const { payload } = message;
-  
-        const requesterFspId = payload.ownerFspId;
-        const partyType = payload.partyType;
-        const partyId = payload.partyId;
-        const partySubType = payload.partySubType as string;
-        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-
-        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
-
-        if(!requestedEndpoint){
-            // _validateParticipantAndGetEndpoint already logs the error
-            this._logger.error("Cannot get requestedEndpoint at _handleParticipantDisassociateRequestReceivedEvt()");
-
-            // TODO discuss about having the specific event for overall errors so we dont have
-            // to change an existing event to use the generic topic
-            const msg =  new ParticipantAssociationRemovedEvt(payload);
-    
-            msg.msgTopic = KAFKA_OPERATOR_ERROR_TOPIC;
-
-            await this._kafkaProducer.send(msg);
-
-            return;
-        }
-
+        this._logger.info('_handleParticipantDisassociateRequestReceivedEvt -> start');
+        
         try {
-            this._logger.info('_handleParticipantDisassociateRequestReceivedEvt -> start');
+            const { payload } = message;
+    
+            const requesterFspId = payload.ownerFspId;
+            const partyType = payload.partyType;
+            const partyId = payload.partyId;
+            const partySubType = payload.partySubType as string;
+            const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+
+            const requestedEndpoint = (await this._validateParticipantAndGetEndpoint(requesterFspId));
+
+            if(!requestedEndpoint) {
+                throw Error(`fspId ${requesterFspId} has no valid participant associated`);
+            }
+            
 
             // Always validate the payload and headers received
             message.validatePayload();
@@ -298,55 +327,39 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             this._logger.info('_handleParticipantDisassociateRequestReceivedEvt -> end');
 
         } catch (error: unknown) {
-            this._sendErrorFeedbackToFsp({ 
-                error: error,
-                headers: clonedHeaders,
-                source: requesterFspId,
-                endpoint: requestedEndpoint,
-                entity: Enums.EntityTypeEnum.PARTIES,
-                id: [partyType, partyId, partySubType],
-            });
+            this._logger.info('_handleParticipantDisassociateRequestReceivedEvt -> error');
+            throw Error("_handleParticipantDisassociateRequestReceivedEvt -> error");
         }
 
         return;
     }
 
     private async _handlePartyInfoRequestedEvt(message: PartyInfoRequestedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
-        const { payload } = message;
-  
-        const requesterFspId = payload.requesterFspId;
-        const destinationFspId = payload.destinationFspId;
-        const partyType = payload.partyType;
-        const partyId = payload.partyId;
-        const partySubType = payload.partySubType as string;
-        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-
-        // TODO handle the case where destinationFspId is null and remove ! below
-
-        if(!destinationFspId){
-            // TODO this must send an error that can be forwarded to the operator - to a special topic
-            return;
-        }
-
-        const destinationEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
-
-        if(!destinationEndpoint){
-            // _validateParticipantAndGetEndpoint already logs the error
-            this._logger.error("Cannot get destinationEndpoint at _handlePartyInfoRequestedEvt()");
-
-            // TODO discuss about having the specific event for overall errors so we dont have
-            // to change an existing event to use the generic topic
-            const msg =  new PartyInfoRequestedEvt(payload);
-    
-            msg.msgTopic = KAFKA_OPERATOR_ERROR_TOPIC;
-
-            await this._kafkaProducer.send(msg);
-
-            return;
-        }
-
+        this._logger.info('_handlePartyInfoRequestedEvt -> start');
+        
         try {
-            this._logger.info('_handlePartyInfoRequestedEvt -> start');
+
+            const { payload } = message;
+    
+            const requesterFspId = payload.requesterFspId;
+            const destinationFspId = payload.destinationFspId;
+            const partyType = payload.partyType;
+            const partyId = payload.partyId;
+            const partySubType = payload.partySubType as string;
+            const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+
+            // TODO handle the case where destinationFspId is null and remove ! below
+
+            if(!destinationFspId){
+                throw Error(`required destination fspId is missing from the header`);
+            }
+
+            const destinationEndpoint = (await this._validateParticipantAndGetEndpoint(destinationFspId));
+
+            if(!destinationEndpoint) {
+                throw Error(`fspId ${destinationFspId} has no valid participant associated`);
+            }
+            
             
             // Always validate the payload and headers received
             message.validatePayload();
@@ -372,64 +385,32 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             this._logger.info('_handlePartyInfoRequestedEvt -> end');
     
         } catch (error: unknown) {
-            this._sendErrorFeedbackToFsp({ 
-                error: error,
-                headers: clonedHeaders,
-                source: requesterFspId,
-                endpoint: destinationEndpoint,
-                entity: Enums.EntityTypeEnum.PARTIES,
-                id: [partyType, partyId, partySubType],
-            });
+            this._logger.info('_handlePartyInfoRequestedEvt -> error');
+            throw Error("_handlePartyInfoRequestedEvt -> error");
         }
 
         return;
     }
 
     private async _handlePartyQueryResponseEvt(message: PartyQueryResponseEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
-        const { payload } = message;
-  
-        const requesterFspId = payload.requesterFspId;
-        const destinationFspId = payload.destinationFspId;
-        const partyType = payload.partyType ;
-        const partyId = payload.partyId;
-        const partySubType = payload.partySubType as string;
-        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-
-        if(!destinationFspId){
-            // _validateParticipantAndGetEndpoint already logs the error
-            this._logger.error("Cannot get destinationFspId at _handlePartyInfoRequestedEvt()");
-            
-            // TODO discuss about having the specific event for overall errors so we dont have
-            // to change an existing event to use the generic topic
-            const msg = new PartyQueryResponseEvt(payload);
-    
-            msg.msgTopic = KAFKA_OPERATOR_ERROR_TOPIC;
-
-            await this._kafkaProducer.send(msg);
-            
-            return;
-        }
-
-        const destinationEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
-
-        if(!destinationEndpoint){
-            // _validateParticipantAndGetEndpoint already logs the error
-            this._logger.error("Cannot get destinationEndpoint at _handlePartyQueryResponseEvt()");
-
-            // TODO discuss about having the specific event for overall errors so we dont have
-            // to change an existing event to use the generic topic
-            const msg =  new PartyQueryResponseEvt(payload);
-    
-            msg.msgTopic = KAFKA_OPERATOR_ERROR_TOPIC;
-
-            await this._kafkaProducer.send(msg);
-
-            return;
-        }
-
+        this._logger.info('_handlePartyQueryResponseEvt -> start');
+        
         try {
-            this._logger.info('_handlePartyQueryResponseEvt -> start');
-            
+            const { payload } = message;
+    
+            const requesterFspId = payload.requesterFspId;
+            const destinationFspId = payload.destinationFspId;
+            const partyType = payload.partyType ;
+            const partyId = payload.partyId;
+            const partySubType = payload.partySubType as string;
+            const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+
+            const destinationEndpoint = (await this._validateParticipantAndGetEndpoint(destinationFspId));
+
+            if(!destinationEndpoint) {
+                throw Error(`fspId ${destinationFspId} has no valid participant associated`);
+            }
+
             // Always validate the payload and headers received
             message.validatePayload();
             Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
@@ -439,8 +420,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 if (!clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === '') {
                     clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
                 }
+                clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
 
-                clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
             }
             
             const urlBuilder = new Request.URLBuilder(destinationEndpoint.value);
@@ -458,14 +439,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             this._logger.info('_handlePartyQueryResponseEvt -> end');
         } catch (error: unknown) {
-            this._sendErrorFeedbackToFsp({ 
-                error: error,
-                headers: clonedHeaders,
-                source: requesterFspId,
-                endpoint: destinationEndpoint,
-                entity: Enums.EntityTypeEnum.PARTIES,
-                id: [partyType, partyId, partySubType],
-            });
+            this._logger.info('_handlePartyQueryResponseEvt -> error');
+            throw Error("_handlePartyQueryResponseEvt -> error");
         }
 
         return;
@@ -473,34 +448,23 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
 
     private async _handleParticipantQueryResponseEvt(message: ParticipantQueryResponseEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
-        const { payload } = message;
-  
-        const partyType = payload.partyType;
-        const partyId = payload.partyId;
-        const partySubType = payload.partySubType as string;
-        const requesterFspId = payload.requesterFspId;
-        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-
-        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
-
-        if(!requestedEndpoint){
-            // _validateParticipantAndGetEndpoint already logs the error
-            this._logger.error("Cannot get requestedEndpoint at _handleParticipantQueryResponseEvt()");
-
-            // TODO discuss about having the specific event for overall errors so we dont have
-            // to change an existing event to use the generic topic
-            const msg =  new ParticipantQueryResponseEvt(payload);
-    
-            msg.msgTopic = KAFKA_OPERATOR_ERROR_TOPIC;
-
-            await this._kafkaProducer.send(msg);
-
-            return;
-        }
-
+        this._logger.info('_handleParticipantQueryResponseEvt -> start');
+        
         try {
-            this._logger.info('_handleParticipantQueryResponseEvt -> start');
+            const { payload } = message;
     
+            const partyType = payload.partyType;
+            const partyId = payload.partyId;
+            const partySubType = payload.partySubType as string;
+            const requesterFspId = payload.requesterFspId;
+            const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+
+            const requestedEndpoint = (await this._validateParticipantAndGetEndpoint(requesterFspId));
+
+            if(!requestedEndpoint) {
+                throw Error(`fspId ${requesterFspId} has no valid participant associated`);
+            }
+
             // Always validate the payload and headers received
             message.validatePayload();
             Validate.validateHeaders(partySubType ? ParticipantsPutTypeAndId : ParticipantsPutId, clonedHeaders);
@@ -525,14 +489,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             this._logger.info('_handleParticipantQueryResponseEvt -> end');
         } catch (error: unknown) {
-            this._sendErrorFeedbackToFsp({ 
-                error: error,
-                headers: clonedHeaders,
-                source: requesterFspId,
-                endpoint: requestedEndpoint,
-                entity: Enums.EntityTypeEnum.PARTICIPANTS,
-                id: [partyType, partyId, partySubType],
-            });
+            this._logger.info('_handleParticipantQueryResponseEvt -> error');
+            throw Error("_handleParticipantQueryResponseEvt -> error");
         }
 
         return;

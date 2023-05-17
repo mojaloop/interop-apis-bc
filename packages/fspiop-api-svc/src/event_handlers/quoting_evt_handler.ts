@@ -35,22 +35,30 @@ import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {
-    QuoteErrorEvt,
+    QuoteBCInvalidIdErrorEvent,
     QuoteRequestAcceptedEvt,
-    QuoteRequestReceivedEvt,
     QuoteResponseAccepted,
     QuoteQueryResponseEvt,
     BulkQuoteReceivedEvt,
-    BulkQuoteAcceptedEvt
+    BulkQuoteAcceptedEvt,
+    QuoteBCDuplicateQuoteErrorEvent,
+    QuoteBCInvalidMessageErrorEvent,
+    QuoteBCBulkQuoteNotFoundErrorEvent,
+    QuoteBCQuoteNotFoundErrorEvent,
+    QuoteBCInvalidMessageTypeErrorEvent,
+    QuoteBCParticipantNotFoundErrorEvent,
+    QuoteBCRequiredParticipantIsNotActiveErrorEvent,
+    QuoteBCInvalidParticipantIdErrorEvent,
+    QuoteBCInvalidRequesterFspIdErrorEvent,
+    QuoteBCInvalidDestinationFspIdErrorEvent,
+    QuoteBCInvalidDestinationPartyInformationErrorEvent,
+    QuoteBCUnknownErrorEvent
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { IncomingHttpHeaders } from "http";
 import { BaseEventHandler } from "./base_event_handler";
-import { AxiosError } from "axios";
 import { QuotesPost } from "../errors";
 import { IParticipantService } from "../interfaces/infrastructure";
-
-const KAFKA_OPERATOR_ERROR_TOPIC = process.env["KAFKA_OPERATOR_ERROR_TOPIC"] || 'OperatorBcErrors';
 
 export class QuotingEventHandler extends BaseEventHandler {
     constructor(
@@ -64,137 +72,162 @@ export class QuotingEventHandler extends BaseEventHandler {
     }
 
     async processMessage (sourceMessage: IMessage) : Promise<void> {
-        const message: IDomainMessage = sourceMessage as IDomainMessage;
+        try {
+            const message: IDomainMessage = sourceMessage as IDomainMessage;
 
-        switch(message.msgName){
-            case QuoteErrorEvt.name:
-                await this._handleErrorReceivedEvt(new QuoteErrorEvt(message.payload), message.fspiopOpaqueState);
-                break;
-            case QuoteRequestAcceptedEvt.name:
-                await this._handleQuotingCreatedRequestReceivedEvt(new QuoteRequestAcceptedEvt(message.payload), message.fspiopOpaqueState);
-                break;
-            case QuoteResponseAccepted.name:
-                await this._handleQuotingResponseAcceptedEvt(new QuoteResponseAccepted(message.payload), message.fspiopOpaqueState);
-                break;
-            case QuoteQueryResponseEvt.name:
-                await this._handleQuotingQueryResponseEvt(new QuoteQueryResponseEvt(message.payload), message.fspiopOpaqueState);
-                break;
-            case BulkQuoteReceivedEvt.name:
-                await this._handleBulkQuotingRequestReceivedEvt(new BulkQuoteReceivedEvt(message.payload), message.fspiopOpaqueState);
-                break;
-            case BulkQuoteAcceptedEvt.name:
-                await this._handleBulkQuoteAcceptedResponseEvt(new BulkQuoteAcceptedEvt(message.payload), message.fspiopOpaqueState);
-                break;
-            default:
-                this._logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
-                break;
+            switch(message.msgName){
+                case QuoteBCInvalidIdErrorEvent.name:
+                    await this._handleErrorReceivedEvt(new QuoteBCInvalidIdErrorEvent(message.payload), message.fspiopOpaqueState);
+                    break;
+                case QuoteRequestAcceptedEvt.name:
+                    await this._handleQuotingCreatedRequestReceivedEvt(new QuoteRequestAcceptedEvt(message.payload), message.fspiopOpaqueState);
+                    break;
+                case QuoteResponseAccepted.name:
+                    await this._handleQuotingResponseAcceptedEvt(new QuoteResponseAccepted(message.payload), message.fspiopOpaqueState);
+                    break;
+                case QuoteQueryResponseEvt.name:
+                    await this._handleQuotingQueryResponseEvt(new QuoteQueryResponseEvt(message.payload), message.fspiopOpaqueState);
+                    break;
+                case BulkQuoteReceivedEvt.name:
+                    await this._handleBulkQuotingRequestReceivedEvt(new BulkQuoteReceivedEvt(message.payload), message.fspiopOpaqueState);
+                    break;
+                case BulkQuoteAcceptedEvt.name:
+                    await this._handleBulkQuoteAcceptedResponseEvt(new BulkQuoteAcceptedEvt(message.payload), message.fspiopOpaqueState);
+                    break;
+                default:
+                    this._logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
+                    break;
+            }
+
+        } catch (e: unknown) {
+            const message: IDomainMessage = sourceMessage as IDomainMessage;
+
+            const clonedHeaders = { ...message.fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+            const requesterFspId = clonedHeaders["fspiop-source"] as string;
+            const partyType = message.payload.partyType as string;
+            const partyId = message.payload.partyId as string;
+            const partySubType = message.payload.partySubType as string;
+
+            this._sendErrorFeedbackToFsp({
+                message: message,
+                error: message.msgName,
+                errorCode: "2100",
+                headers: message.fspiopOpaqueState.headers,
+                source: requesterFspId,
+                id: [partyType, partyId, partySubType]
+            });
         }
 
         // make sure we only return from the processMessage/handler after completing the request,
         // otherwise this will commit the event and will be lost
 
-
         return;
     }
 
-    async _handleErrorReceivedEvt(message: QuoteErrorEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
+    async _handleErrorReceivedEvt(message: IDomainMessage, fspiopOpaqueState: IncomingHttpHeaders):Promise<void> {
+        this._logger.info('_handleQuotingErrorReceivedEvt -> start');
+
         const { payload } = message;
   
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+        const requesterFspId = clonedHeaders["fspiop-source"] as string;
+        const quoteId = payload.quoteId as string;
+        const bulkQuoteId = payload.bulkQuoteId as string;
 
-        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
+        const requestedEndpoint = (await this._validateParticipantAndGetEndpoint(requesterFspId));
 
-        if(!requestedEndpoint){
-            // _validateParticipantAndGetEndpoint already logs the error
-            this._logger.error("Cannot get requestedEndpoint at _handleAccountLookUpErrorReceivedEvt()");
-            
-            // TODO discuss about having the specific event for overall errors so we dont have
-            // to change an existing event to use the generic topic
-            const msg = new QuoteErrorEvt(payload);
-    
-            msg.msgTopic = KAFKA_OPERATOR_ERROR_TOPIC;
-
-            await this._kafkaProducer.send(msg);
-            
-            return;
+        if(!requestedEndpoint) {
+            throw Error(`fspId ${requesterFspId} has no valid participant associated`);
         }
 
-        try {
-            this._logger.info('_handleErrorReceivedEvt -> start');
-
-
-            // Always validate the payload and headers received
-            message.validatePayload();
-            Validate.validateHeaders(QuotesPost, clonedHeaders);
-
-
-            let url: string;
-            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
-
-            switch(message.payload.sourceEvent){
-                case QuoteRequestReceivedEvt.name:
-                case QuoteResponseAccepted.name:
-                    urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
-                    urlBuilder.setId(payload.quoteId);
-                    urlBuilder.hasError(true);
-
-                    url = urlBuilder.build();
+        const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
         
-                    break;
-                default:
-                    throw new Error("Unhandled message source event on QuotingEventHandler_handleQuotingErrorReceivedEvt()");
+        urlBuilder.setEntity(quoteId ? Enums.EntityTypeEnum.QUOTES : Enums.EntityTypeEnum.BULK_QUOTES);
+        urlBuilder.setLocation(quoteId ? [quoteId] : [bulkQuoteId]);
+        urlBuilder.hasError(true);
+        
+        const extensionList = [];
+        let list: string[] = [];
+        let errorCode = "1000"; // Default error code
+
+        switch(message.msgName){
+            case QuoteBCInvalidIdErrorEvent.name:
+            case QuoteBCDuplicateQuoteErrorEvent.name:
+            case QuoteBCQuoteNotFoundErrorEvent.name:
+            case QuoteBCBulkQuoteNotFoundErrorEvent.name: 
+            case QuoteBCInvalidMessageErrorEvent.name:
+            case QuoteBCInvalidMessageTypeErrorEvent.name:
+            case QuoteBCParticipantNotFoundErrorEvent.name:
+            case QuoteBCInvalidParticipantIdErrorEvent.name: 
+            case QuoteBCRequiredParticipantIsNotActiveErrorEvent.name: 
+            case QuoteBCInvalidRequesterFspIdErrorEvent.name:
+            case QuoteBCInvalidDestinationFspIdErrorEvent.name: 
+            case QuoteBCInvalidDestinationPartyInformationErrorEvent.name: {
+                if(quoteId) {
+                    list = ["quoteId", "fspId"]
+                } else {
+                    list = ["bulkQuoteId", "fspId"];
+                }
+
+                errorCode = Enums.ClientErrorCodes.GENERIC_CLIENT_ERROR;
+
+                break;
             }
+            case QuoteBCUnknownErrorEvent.name: {
+                if(quoteId) {
+                    list = ["quoteId", "fspId"]
+                } else {
+                    list = ["bulkQuoteId", "fspId"];
+                }
 
-           
-            await Request.sendRequest({
-                url: url, 
-                headers: clonedHeaders, 
-                source: requesterFspId, 
-                destination: destinationFspId, 
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadError({
-                    errorCode: Enums.ErrorCode.NOT_FOUND, // TODO: find proper error code
-                    errorDescription: payload.errorMsg
-                }),
-            });
+                errorCode = Enums.ServerErrorCodes.INTERNAL_SERVER_ERROR;
 
-            this._logger.info('_handleErrorReceivedEvt -> end');
-
-        } catch (err: unknown) {
-            const error = err as unknown as AxiosError;
-            this._logger.error(JSON.stringify(error.response?.data));
+                break;
+            }
+            default: {
+                this._logger.warn(`Cannot handle error message of type: ${message.msgName}, ignoring`);
+                break;
+            }
         }
+                
+        for(let i=0 ; i<list.length ; i+=1){
+            if(payload[list[i]]) {
+                extensionList.push({
+                    key: list[i],
+                    value: payload[list[i]]
+                });
+            }
+        } 
+
+        this._sendErrorFeedbackToFsp({
+            message: message,
+            error: message.payload.errorInformation.errorDescription,
+            errorCode: errorCode,
+            headers: clonedHeaders,
+            source: requesterFspId,
+            id: quoteId ? [quoteId] : [bulkQuoteId],
+            extensionList: extensionList
+        });
+
+        this._logger.info('_handleQuotingErrorReceivedEvt -> end');
 
         return;
     }
 
     private async _handleQuotingCreatedRequestReceivedEvt(message: QuoteRequestAcceptedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
-        const { payload } = message;
-  
-        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
-
-        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(payload.payee.partyIdInfo.fspId as string);
-
-        if(!requestedEndpoint){
-
-            this._logger.error("Cannot get requestedEndpoint at _handleQuotingCreatedRequestReceivedEvt");
-
-            // TODO discuss about having the specific event for overall errors so we dont have
-            // to change an existing event to use the generic topic
-            const msg =  new QuoteRequestAcceptedEvt(payload);
-    
-            msg.msgTopic = KAFKA_OPERATOR_ERROR_TOPIC;
-
-            await this._kafkaProducer.send(msg);
-
-            return;
-        }
-
         try {
+            const { payload } = message;
+    
+            const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+
+            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(payload.payee.partyIdInfo.fspId as string);
+
+            if(!requestedEndpoint) {
+                throw Error(`fspId ${payload.payee.partyIdInfo.fspId} has no valid participant associated`);
+            }
+
             this._logger.info('_handleQuotingCreatedRequestReceivedEvt -> start');
 
             // Always validate the payload and headers received
@@ -215,44 +248,27 @@ export class QuotingEventHandler extends BaseEventHandler {
             this._logger.info('_handleQuotingCreatedRequestReceivedEvt -> end');
 
         } catch (error: unknown) {
-            this._sendErrorFeedbackToFsp({ 
-                error: error,
-                headers: clonedHeaders,
-                source: requesterFspId,
-                endpoint: requestedEndpoint,
-                entity: Enums.EntityTypeEnum.QUOTES,
-                id: [payload.quoteId],
-            });
+            this._logger.info('_handleQuotingCreatedRequestReceivedEvt -> error');
+            throw Error("_handleQuotingCreatedRequestReceivedEvt -> error");
         }
 
         return;
     }
 
     private async _handleQuotingResponseAcceptedEvt(message: QuoteResponseAccepted, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
-        const { payload } = message;
-  
-        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
-        
-        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
-
-        if(!requestedEndpoint){
-
-            this._logger.error("Cannot get requestedEndpoint at _handleQuotingResponseAcceptedEvt()");
-
-            // TODO discuss about having the specific event for overall errors so we dont have
-            // to change an existing event to use the generic topic
-            const msg = new QuoteResponseAccepted(payload);
-    
-            msg.msgTopic = KAFKA_OPERATOR_ERROR_TOPIC;
-
-            await this._kafkaProducer.send(msg);
-
-            return;
-        }
-
         try {
+            const { payload } = message;
+    
+            const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+            
+            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
+
+            if(!requestedEndpoint) {
+                throw Error(`fspId ${destinationFspId} has no valid participant associated`);
+            }
+
             this._logger.info('_handleQuotingResponseAcceptedEvt -> start');
 
             // Always validate the payload and headers received
@@ -274,44 +290,27 @@ export class QuotingEventHandler extends BaseEventHandler {
             this._logger.info('_handleQuotingResponseAcceptedEvt -> end');
 
         } catch (error: unknown) {
-            this._sendErrorFeedbackToFsp({ 
-                error: error,
-                headers: clonedHeaders,
-                source: requesterFspId,
-                endpoint: requestedEndpoint,
-                entity: Enums.EntityTypeEnum.QUOTES,
-                id: [payload.quoteId],
-            });
+            this._logger.info('_handleQuotingResponseAcceptedEvt -> error');
+            throw Error("_handleQuotingResponseAcceptedEvt -> error");
         }
 
         return;
     }
 
-    private async _handleQuotingQueryResponseEvt(message: QuoteQueryResponseEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
-        const { payload } = message;
-  
-        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
-        
-        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
-
-        if(!requestedEndpoint){
-
-            this._logger.error("Cannot get requestedEndpoint at _handleQuotingResponseAcceptedEvt()");
-
-            // TODO discuss about having the specific event for overall errors so we dont have
-            // to change an existing event to use the generic topic
-            const msg = new QuoteQueryResponseEvt(payload);
-    
-            msg.msgTopic = KAFKA_OPERATOR_ERROR_TOPIC;
-
-            await this._kafkaProducer.send(msg);
-
-            return;
-        }
-
+    private async _handleQuotingQueryResponseEvt(message: QuoteQueryResponseEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void> {
         try {
-            this._logger.info('_handleQuotingResponseAcceptedEvt -> start');
+            const { payload } = message;
+    
+            const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+            
+            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
+
+            if(!requestedEndpoint) {
+                throw Error(`fspId ${requesterFspId} has no valid participant associated`);
+            }
+
+            this._logger.info('_handleQuotingQueryResponseEvt -> start');
 
             // Always validate the payload and headers received
             message.validatePayload();
@@ -330,44 +329,29 @@ export class QuotingEventHandler extends BaseEventHandler {
                 payload: null,
             });
 
-            this._logger.info('_handleQuotingResponseAcceptedEvt -> end');
+            this._logger.info('_handleQuotingQueryResponseEvt -> end');
 
         } catch (error: unknown) {
-            this._sendErrorFeedbackToFsp({ 
-                error: error,
-                headers: clonedHeaders,
-                source: requesterFspId,
-                endpoint: requestedEndpoint,
-                entity: Enums.EntityTypeEnum.QUOTES,
-                id: [payload.quoteId],
-            });
+            this._logger.info('_handleQuotingQueryResponseEvt -> error');
+            throw Error("_handleQuotingQueryResponseEvt -> error");
         }
 
         return;
     }
 
     private async _handleBulkQuotingRequestReceivedEvt(message: BulkQuoteReceivedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
-        const { payload } = message;
-  
-        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
-        
-        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
-
-        if(!requestedEndpoint){
-
-            this._logger.error("Cannot get requestedEndpoint at _handleBulkQuotingRequestReceivedEvt()");
-
-            const msg = new BulkQuoteReceivedEvt(payload);
-    
-            msg.msgTopic = KAFKA_OPERATOR_ERROR_TOPIC;
-
-            await this._kafkaProducer.send(msg);
-
-            return;
-        }
-
         try {
+            const { payload } = message;
+    
+            const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+            
+            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
+
+            if(!requestedEndpoint) {
+                throw Error(`fspId ${requesterFspId} has no valid participant associated`);
+            }
+
             this._logger.info('_handleBulkQuotingRequestReceivedEvt -> start');
 
             // Always validate the payload and headers received
@@ -388,42 +372,27 @@ export class QuotingEventHandler extends BaseEventHandler {
             this._logger.info('_handleBulkQuotingRequestReceivedEvt -> end');
 
         } catch (error: unknown) {
-            this._sendErrorFeedbackToFsp({ 
-                error: error,
-                headers: clonedHeaders,
-                source: requesterFspId,
-                endpoint: requestedEndpoint,
-                entity: Enums.EntityTypeEnum.BULK_QUOTES,
-                id: [payload.bulkQuoteId],
-            });
+            this._logger.info('_handleBulkQuotingRequestReceivedEvt -> error');
+            throw Error("_handleBulkQuotingRequestReceivedEvt -> error");
         }
 
         return;
     }
-
-    private async _handleBulkQuoteAcceptedResponseEvt(message: BulkQuoteAcceptedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
-        const { payload } = message;
-  
-        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-        const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
-        
-        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
-
-        if(!requestedEndpoint){
-
-            this._logger.error("Cannot get requestedEndpoint at _handleBulkQuoteAcceptedResponseEvt()");
-
-            const msg = new BulkQuoteAcceptedEvt(payload);
     
-            msg.msgTopic = KAFKA_OPERATOR_ERROR_TOPIC;
-
-            await this._kafkaProducer.send(msg);
-
-            return;
-        }
-
+    private async _handleBulkQuoteAcceptedResponseEvt(message: BulkQuoteAcceptedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
         try {
+            const { payload } = message;
+    
+            const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+            
+            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
+
+            if(!requestedEndpoint) {
+                throw Error(`fspId ${destinationFspId} has no valid participant associated`);
+            }
+
             this._logger.info('_handleBulkQuoteAcceptedResponseEvt -> start');
 
             // Always validate the payload and headers received
@@ -445,14 +414,8 @@ export class QuotingEventHandler extends BaseEventHandler {
             this._logger.info('_handleBulkQuoteAcceptedResponseEvt -> end');
 
         } catch (error: unknown) {
-            this._sendErrorFeedbackToFsp({ 
-                error: error,
-                headers: clonedHeaders,
-                source: requesterFspId,
-                endpoint: requestedEndpoint,
-                entity: Enums.EntityTypeEnum.BULK_QUOTES,
-                id: [payload.bulkQuoteId],
-            });
+            this._logger.info('_handleBulkQuoteAcceptedResponseEvt -> error');
+            throw Error("_handleBulkQuoteAcceptedResponseEvt -> error");
         }
 
         return;

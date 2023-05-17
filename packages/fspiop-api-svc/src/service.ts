@@ -1,32 +1,32 @@
 /*****
  License
- --------------
- Copyright © 2017 Bill & Melinda Gates Foundation
- The Mojaloop files are made available by the Bill & Melinda Gates Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License. You may obtain a copy of the License at
+--------------
+Copyright © 2017 Bill & Melinda Gates Foundation
+The Mojaloop files are made available by the Bill & Melinda Gates Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License. You may obtain a copy of the License at
 
- http://www.apache.org/licenses/LICENSE-2.0
+http://www.apache.org/licenses/LICENSE-2.0
 
- Unless required by applicable law or agreed to in writing, the Mojaloop files are distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+Unless required by applicable law or agreed to in writing, the Mojaloop files are distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
- Contributors
- --------------
- This is the official list (alphabetical ordering) of the Mojaloop project contributors for this file.
- Names of the original copyright holders (individuals or organizations)
- should be listed with a '*' in the first column. People who have
- contributed from an organization can be listed under the organization
- that actually holds the copyright for their contributions (see the
- Gates Foundation organization for an example). Those individuals should have
- their names indented and be marked with a '-'. Email address can be added
- optionally within square brackets <email>.
+Contributors
+--------------
+This is the official list (alphabetical ordering) of the Mojaloop project contributors for this file.
+Names of the original copyright holders (individuals or organizations)
+should be listed with a '*' in the first column. People who have
+contributed from an organization can be listed under the organization
+that actually holds the copyright for their contributions (see the
+Gates Foundation organization for an example). Those individuals should have
+their names indented and be marked with a '-'. Email address can be added
+optionally within square brackets <email>.
 
- * Gates Foundation
- - Name Surname <name.surname@gatesfoundation.com>
+* Gates Foundation
+- Name Surname <name.surname@gatesfoundation.com>
 
- * Crosslake
- - Pedro Sousa Barreto <pedrob@crosslaketech.com>
+* Crosslake
+- Pedro Sousa Barreto <pedrob@crosslaketech.com>
 
- --------------
- ******/
+--------------
+******/
 
 "use strict";
 import {existsSync} from "fs";
@@ -44,19 +44,40 @@ import process from "process";
 import {ParticipantAdapter} from "./implementations/index";
 import {ParticipantRoutes} from "./http_routes/account-lookup-bc/participant_routes";
 import {PartyRoutes} from "./http_routes/account-lookup-bc/party_routes";
-import { MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions, MLKafkaRawProducerOptions, MLKafkaRawProducerPartitioners } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import { 
+    MLKafkaJsonConsumerOptions, 
+    MLKafkaJsonProducerOptions, 
+    MLKafkaRawProducerOptions, 
+    MLKafkaRawProducerPartitioners 
+} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { AccountLookupEventHandler } from "./event_handlers/account_lookup_evt_handler";
 import { QuotingEventHandler } from "./event_handlers/quoting_evt_handler";
 import { TransferEventHandler } from "./event_handlers/transfers_evt_handler";
-import { AccountLookupBCTopics, QuotingBCTopics, TransfersBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { 
+    AccountLookupBCTopics, 
+    QuotingBCTopics, 
+    TransfersBCTopics 
+} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { QuoteRoutes } from "./http_routes/quoting-bc/quote_routes";
 import { QuoteBulkRoutes } from "./http_routes/quoting-bc/bulk_quote_routes";
 import { TransfersRoutes } from "./http_routes/transfers-bc/transfers_routes";
 import { IParticipantService } from "./interfaces/infrastructure";
 import {
-	AuthenticatedHttpRequester,
-	IAuthenticatedHttpRequester
+    AuthenticatedHttpRequester,
+    IAuthenticatedHttpRequester
 } from "@mojaloop/security-bc-client-lib";
+import path from "path";
+import { OpenApiDocument, OpenApiValidator } from "express-openapi-validate";
+import jsYaml from "js-yaml";
+import fs from "fs";
+import { validateHeaders } from "./headerValidation";
+
+const API_SPEC_FILE_PATH = process.env["API_SPEC_FILE_PATH"] || "../dist/api_spec.yaml";
+
+const openApiDocument = jsYaml.load(
+    fs.readFileSync(path.join(__dirname, API_SPEC_FILE_PATH), "utf-8"),
+) as OpenApiDocument;
+const validator = new OpenApiValidator(openApiDocument);
 
 const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
 const LOGLEVEL:LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
@@ -112,19 +133,28 @@ let accountEvtHandler:AccountLookupEventHandler;
 let quotingEvtHandler:QuotingEventHandler;
 let transferEvtHandler:TransferEventHandler;
 
-
+type FspiopHttpRequestError = { 
+    name: string;
+    statusCode: number;
+    data: { 
+        keyword: string; 
+        instancePath: string; 
+        params: string;
+        message: string; 
+    }[] 
+}
 export class Service {
-	static logger: ILogger;
-	static expressServer: Server;
+    static logger: ILogger;
+    static expressServer: Server;
     static participantRoutes:ParticipantRoutes;
     static partyRoutes:PartyRoutes;
     static quotesRoutes:QuoteRoutes;
     static bulkQuotesRoutes:QuoteBulkRoutes;
     static transfersRoutes:TransfersRoutes;
     static participantService: IParticipantService;
-    static auditClient: IAuditClient
+    static auditClient: IAuditClient;
     
-	static async start(
+    static async start(
         logger?:ILogger,
         expressServer?: Server,
         participantService?: IParticipantService,
@@ -235,21 +265,24 @@ export class Service {
         app.use(express.json({
             limit: "100mb",
             type: (req)=>{
+                const contentLength = req.headers['content-length'];
+                if(contentLength) {
+                    // We need to send this as a number
+                    req.headers['content-length']= parseInt(contentLength) as unknown as string;
+                }
+                
                 return req.headers["content-type"]?.toUpperCase()==="application/json".toUpperCase()
                     || req.headers["content-type"]?.startsWith("application/vnd.interoperability.")
                     || false;
             }
         })); // for parsing application/json
         app.use(express.urlencoded({limit: '100mb', extended: true})); // for parsing application/x-www-form-urlencoded
-  
-        // TODO: find another way around this since it's only a temporary fix for admin-ui date header 
-        app.use((req, res, next) => {
-            if(req.headers['fspiop-date']) {
-                req.headers.date = req.headers["fspiop-date"] as string;
-                delete req.headers["fspiop-date"];
-            }
-            next()
-        })
+    
+        // Call header validation
+        app.use(validateHeaders);
+        
+        // Call the request validator in every request
+        app.use(validator.match());
 
         this.participantRoutes = new ParticipantRoutes(kafkaProducerOptions, KAFKA_ACCOUNTS_LOOKUP_TOPIC, loggerParam);
         this.partyRoutes = new PartyRoutes(kafkaProducerOptions, KAFKA_ACCOUNTS_LOOKUP_TOPIC, loggerParam);
@@ -269,6 +302,63 @@ export class Service {
         app.use(`/${BULK_QUOTES_URL_RESOURCE_NAME}`, this.bulkQuotesRoutes.router);
         app.use(`/${TRANSFERS_URL_RESOURCE_NAME}`, this.transfersRoutes.router);
 
+        
+        app.use((err: FspiopHttpRequestError, req: express.Request, res: express.Response, next: express.NextFunction) => {
+            const errorResponseBuilder = (errorCode: string, errorDescription: string, additionalProperties = {}) => {
+                return {
+                    errorInformation: {
+                        errorCode,
+                        errorDescription,
+                        ...additionalProperties
+                    }
+                };
+            };
+            
+            const statusCode = err.statusCode || 500;
+
+            const extensionList = [{
+                key: 'keyword',
+                value: err.data[0].keyword
+            },
+            {
+                key: 'instancePath',
+                value: err.data[0].instancePath
+            }];
+            for (const [key, value] of Object.entries(err.data[0].params)) {
+                extensionList.push({ key, value });
+            }
+            const customFSPIOPHeaders = ["content-type"];
+
+            const customHeaders:{[key: string]: string} = {};
+            for (const value of customFSPIOPHeaders) {
+                const headerValue = req.headers[value] as string;
+
+                if(req.headers[value]) {
+                    customHeaders[value] = headerValue;
+                }
+            }
+
+            res.set(customHeaders);
+
+            let errorCode:string;
+            let errorType = err.data[0].instancePath;
+
+            switch(true) {
+                case errorType.includes("body"): {
+                    errorCode = "3100";
+                    break;
+                }
+                case !errorType.includes("body"): {
+                    errorCode = "3102";
+                    break;
+                }
+                default: 
+                    errorCode = "3100";
+            }
+
+            res.status(statusCode).json(errorResponseBuilder(errorCode, `${err.data[0].message} - path: ${err.data[0].instancePath}`, { extensionList: { extension: extensionList} }));
+        });
+
         app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
             // catch all
             loggerParam.warn(`Received unhandled request to url: ${req.url}`);
@@ -279,12 +369,12 @@ export class Service {
         return createServer(app);
     }
 
-	static async stop() {
-		// if (this.handler) await this.handler.stop();
-		// if (this.messageConsumer) await this.messageConsumer.destroy(true);
+    static async stop() {
+        // if (this.handler) await this.handler.stop();
+        // if (this.messageConsumer) await this.messageConsumer.destroy(true);
 
-		// if (this.auditClient) await this.auditClient.destroy();
-		// if (this.logger && this.logger instanceof KafkaLogger) await this.logger.destroy();
+        // if (this.auditClient) await this.auditClient.destroy();
+        // if (this.logger && this.logger instanceof KafkaLogger) await this.logger.destroy();
 
         await accountEvtHandler.destroy();
         await quotingEvtHandler.destroy();
@@ -294,7 +384,7 @@ export class Service {
         setTimeout(async () => {
             await (this.logger as KafkaLogger).destroy();
         }, 5000);
-	}
+    }
 }
 
 
