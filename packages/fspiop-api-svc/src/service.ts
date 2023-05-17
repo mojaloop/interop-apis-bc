@@ -72,8 +72,10 @@ import jsYaml from "js-yaml";
 import fs from "fs";
 import { validateHeaders } from "./headerValidation";
 
+const API_SPEC_FILE_PATH = process.env["API_SPEC_FILE_PATH"] || "../dist/api_spec.yaml";
+
 const openApiDocument = jsYaml.load(
-    fs.readFileSync(path.join(__dirname, "../dist/api_spec.yaml"), "utf-8"),
+    fs.readFileSync(path.join(__dirname, API_SPEC_FILE_PATH), "utf-8"),
 ) as OpenApiDocument;
 const validator = new OpenApiValidator(openApiDocument);
 
@@ -90,7 +92,7 @@ const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
 
 const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
-const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || path.join(__dirname, "../dist/tmp_key_file");
+const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || "/app/data/audit_private_key.pem";
 
 // Account Lookup
 const PARTICIPANTS_URL_RESOURCE_NAME = "participants";

@@ -88,7 +88,7 @@ export class PartyRoutes extends BaseRoutes {
             partyType: type,
             partyId: id,
             partySubType: null,
-            currency: "USD",
+            currency: currency,
         };
 
         const msg =  new PartyQueryReceivedEvt(msgPayload);
