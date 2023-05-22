@@ -62,7 +62,17 @@ import {
     TransferCancelReservationFailedEvt,
     TransferPreparePayerNotFoundFailedEvt,
     TransferPreparePayeeNotFoundFailedEvt,
-    TransferPrepareHubNotFoundFailedEvt
+    TransferPrepareHubNotFoundFailedEvt,
+    TransferQueryInvalidPayerParticipantIdEvt,
+    TransferPrepareHubAccountNotFoundFailedEvt,
+    TransferPreparePayerPositionAccountNotFoundFailedEvt,
+    TransferPreparePayerLiquidityAccountNotFoundFailedEvt,
+    TransferPreparePayeePositionAccountNotFoundFailedEvt,
+    TransferPreparePayeeLiquidityAccountNotFoundFailedEvt,
+    TransferPreparePayerNotActiveEvt,
+    TransferPreparePayerNotApprovedEvt,
+    TransferPreparePayeeNotActiveEvt,
+    TransferPreparePayeeNotApprovedEvt
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { IncomingHttpHeaders } from "http";
@@ -101,6 +111,7 @@ export class TransferEventHandler extends BaseEventHandler {
             case TransferQueryInvalidPayeeCheckFailedEvt.name:
             case TransferQueryPayerNotFoundFailedEvt.name:
             case TransferQueryPayeeNotFoundFailedEvt.name:
+            case TransferQueryInvalidPayerParticipantIdEvt.name:
             case TransferQueryInvalidPayeeParticipantIdEvt.name:
             case TransferUnableToGetTransferByIdEvt.name:
             case TransferNotFoundEvt.name:
@@ -110,6 +121,15 @@ export class TransferEventHandler extends BaseEventHandler {
             case TransferFulfilPostCommittedRequestedTimedoutEvt.name:
             case TransferCancelReservationFailedEvt.name:
             case TransferCancelReservationAndCommitFailedEvt.name:
+            case TransferPrepareHubAccountNotFoundFailedEvt.name:
+            case TransferPreparePayerPositionAccountNotFoundFailedEvt.name:
+            case TransferPreparePayerLiquidityAccountNotFoundFailedEvt.name:
+            case TransferPreparePayeePositionAccountNotFoundFailedEvt.name:
+            case TransferPreparePayeeLiquidityAccountNotFoundFailedEvt.name:
+            case TransferPreparePayerNotActiveEvt.name:
+            case TransferPreparePayerNotApprovedEvt.name:
+            case TransferPreparePayeeNotActiveEvt.name:
+            case TransferPreparePayeeNotApprovedEvt.name:
             case TransfersBCUnknownErrorEvent.name:
                 await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState);
                 break;
@@ -151,7 +171,7 @@ export class TransferEventHandler extends BaseEventHandler {
 
         switch(message.msgName){
             case TransferInvalidMessagePayloadEvt.name:
-                case TransferInvalidMessageTypeEvt.name:
+            case TransferInvalidMessageTypeEvt.name:
             case TransferPreparePayerNotFoundFailedEvt.name:
             case TransferPreparePayeeNotFoundFailedEvt.name:
             case TransferPrepareHubNotFoundFailedEvt.name:
@@ -159,28 +179,36 @@ export class TransferEventHandler extends BaseEventHandler {
             case TransferPrepareInvalidPayeeCheckFailedEvt.name:
             case TransferQueryInvalidPayerCheckFailedEvt.name:
             case TransferQueryInvalidPayeeCheckFailedEvt.name:
+            case TransferQueryInvalidPayerParticipantIdEvt.name:
+            case TransferQueryInvalidPayeeParticipantIdEvt.name:
             case TransferQueryPayerNotFoundFailedEvt.name:
             case TransferQueryPayeeNotFoundFailedEvt.name:
-            case TransferQueryInvalidPayerCheckFailedEvt.name:
-            case TransferQueryInvalidPayeeParticipantIdEvt.name:
             case TransferUnableToGetTransferByIdEvt.name:
             case TransferNotFoundEvt.name:
             case TransferUnableToAddEvt.name:
             case TransferUnableToUpdateEvt.name:
             case TransferFulfilCommittedRequestedTimedoutEvt.name:
             case TransferFulfilPostCommittedRequestedTimedoutEvt.name:
-            case TransferNotFoundEvt.name:
             case TransferPrepareLiquidityCheckFailedEvt.name:
             case TransferPrepareDuplicateCheckFailedEvt.name:
             case TransferPrepareRequestTimedoutEvt.name:
             case TransferRejectRequestProcessedEvt.name:
-                case TransfersBCUnknownErrorEvent.name:  {
-                    list = ["transferId", "fspId"];
-                    errorCode = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR;
-                    errorDescription = message.payload.errorDescription;
+            case TransferPrepareHubAccountNotFoundFailedEvt.name:
+            case TransferPreparePayerPositionAccountNotFoundFailedEvt.name:
+            case TransferPreparePayerLiquidityAccountNotFoundFailedEvt.name:
+            case TransferPreparePayeePositionAccountNotFoundFailedEvt.name:
+            case TransferPreparePayeeLiquidityAccountNotFoundFailedEvt.name:
+            case TransferPreparePayerNotActiveEvt.name:
+            case TransferPreparePayerNotApprovedEvt.name:
+            case TransferPreparePayeeNotActiveEvt.name:
+            case TransferPreparePayeeNotApprovedEvt.name:
+            case TransfersBCUnknownErrorEvent.name:  {
+                list = ["transferId", "fspId"];
+                errorCode = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR;
+                errorDescription = message.payload.errorDescription;
 
-                    break;
-                }
+                break;
+            }
 
             case TransferCancelReservationFailedEvt.name:
             case TransferCancelReservationAndCommitFailedEvt.name: {
