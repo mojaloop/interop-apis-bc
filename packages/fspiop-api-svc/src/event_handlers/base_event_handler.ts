@@ -38,7 +38,7 @@ import { IParticipantEndpoint } from "@mojaloop/participants-bc-client-lib";
 import { IEventHandler } from "../interfaces/types";
 import { IParticipantService } from "../interfaces/infrastructure";
 import { IncomingHttpHeaders } from "http";
-import { 
+import {
     AccountLookUpBCOperatorErrorEvent,
     AccountLookUpBCOperatorErrorPayload,
     AccountLookupBCTopics,
@@ -47,7 +47,7 @@ import {
     QuoteBCOperatorErrorEvent,
     TransfersBCTopics,
     TransfersBCOperatorErrorPayload,
-    TransfersBCOperatorErrorEvent 
+    TransfersBCOperatorErrorEvent
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { AccountLookupEventHandler } from "./account_lookup_evt_handler";
@@ -144,16 +144,14 @@ export abstract class BaseEventHandler implements IEventHandler {
             const err = error as unknown as any;
             // this._logger.error(err.response?.data ? JSON.stringify(err.response?.data) : err.message);
 
-            const requesterFspId = headers["fspiop-source"] as string;
-
-            const endpoint = (await this._validateParticipantAndGetEndpoint(requesterFspId));
+            const endpoint = (await this._validateParticipantAndGetEndpoint(source));
 
             if(!endpoint) {
-                throw Error(`fspId ${requesterFspId} has no valid participant associated`);
+                throw Error(`fspId ${source} has no valid participant associated`);
             }
 
             const urlBuilder = new Request.URLBuilder(endpoint.value);
-            
+
             urlBuilder.setLocation(id);
             urlBuilder.hasError(true);
 
@@ -201,9 +199,9 @@ export abstract class BaseEventHandler implements IEventHandler {
             const error = (err as Error).message;
 
             this._logger.error(error);
-         
-            
-            
+
+
+
             switch(this.constructor.name) {
                 case "AccountLookupEventHandler": {
                     const payload:AccountLookUpBCOperatorErrorPayload = {
@@ -215,9 +213,9 @@ export abstract class BaseEventHandler implements IEventHandler {
                     };
 
                     const msg = new AccountLookUpBCOperatorErrorEvent(payload);
-    
+
                     msg.msgTopic = KAFKA_ACCOUNT_LOOKUP_OPERATOR_ERROR_TOPIC;
-        
+
                     await this._kafkaProducer.send(msg);
                     break;
                 }
@@ -230,9 +228,9 @@ export abstract class BaseEventHandler implements IEventHandler {
                     };
 
                     const msg = new QuoteBCOperatorErrorEvent(payload);
-    
+
                     msg.msgTopic = KAFKA_QUOTING_OPERATOR_ERROR_TOPIC;
-        
+
                     await this._kafkaProducer.send(msg);
                     break;
                 }
@@ -244,9 +242,9 @@ export abstract class BaseEventHandler implements IEventHandler {
                     };
 
                     const msg = new TransfersBCOperatorErrorEvent(payload);
-    
+
                     msg.msgTopic = KAFKA_TRANSFERS_OPERATOR_ERROR_TOPIC;
-        
+
                     await this._kafkaProducer.send(msg);
                     break;
                 }

@@ -25,7 +25,7 @@
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
-  
+
  --------------
  ******/
 
@@ -35,23 +35,23 @@ import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {
-    QuoteBCInvalidIdErrorEvent,
+    //QuoteBCInvalidIdErrorEvent,
     QuoteRequestAcceptedEvt,
     QuoteResponseAccepted,
     QuoteQueryResponseEvt,
     BulkQuoteReceivedEvt,
     BulkQuoteAcceptedEvt,
     QuoteBCDuplicateQuoteErrorEvent,
-    QuoteBCInvalidMessageErrorEvent,
+    //QuoteBCInvalidMessageErrorEvent,
     QuoteBCBulkQuoteNotFoundErrorEvent,
     QuoteBCQuoteNotFoundErrorEvent,
     QuoteBCInvalidMessageTypeErrorEvent,
     QuoteBCParticipantNotFoundErrorEvent,
     QuoteBCRequiredParticipantIsNotActiveErrorEvent,
-    QuoteBCInvalidParticipantIdErrorEvent,
+    //QuoteBCInvalidParticipantIdErrorEvent,
     QuoteBCInvalidRequesterFspIdErrorEvent,
     QuoteBCInvalidDestinationFspIdErrorEvent,
-    QuoteBCInvalidDestinationPartyInformationErrorEvent,
+    //QuoteBCInvalidDestinationPartyInformationErrorEvent,
     QuoteBCUnknownErrorEvent
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
@@ -76,9 +76,9 @@ export class QuotingEventHandler extends BaseEventHandler {
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
             switch(message.msgName){
-                case QuoteBCInvalidIdErrorEvent.name:
-                    await this._handleErrorReceivedEvt(new QuoteBCInvalidIdErrorEvent(message.payload), message.fspiopOpaqueState);
-                    break;
+                //case QuoteBCInvalidIdErrorEvent.name:
+                //    await this._handleErrorReceivedEvt(new QuoteBCInvalidIdErrorEvent(message.payload), message.fspiopOpaqueState);
+                //    break;
                 case QuoteRequestAcceptedEvt.name:
                     await this._handleQuotingCreatedRequestReceivedEvt(new QuoteRequestAcceptedEvt(message.payload), message.fspiopOpaqueState);
                     break;
@@ -128,7 +128,7 @@ export class QuotingEventHandler extends BaseEventHandler {
         this._logger.info('_handleQuotingErrorReceivedEvt -> start');
 
         const { payload } = message;
-  
+
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
         const requesterFspId = clonedHeaders["fspiop-source"] as string;
         const quoteId = payload.quoteId as string;
@@ -141,28 +141,28 @@ export class QuotingEventHandler extends BaseEventHandler {
         }
 
         const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
-        
+
         urlBuilder.setEntity(quoteId ? Enums.EntityTypeEnum.QUOTES : Enums.EntityTypeEnum.BULK_QUOTES);
         urlBuilder.setLocation(quoteId ? [quoteId] : [bulkQuoteId]);
         urlBuilder.hasError(true);
-        
+
         const extensionList = [];
         let list: string[] = [];
         let errorCode = "1000"; // Default error code
 
         switch(message.msgName){
-            case QuoteBCInvalidIdErrorEvent.name:
+            //case QuoteBCInvalidIdErrorEvent.name:
             case QuoteBCDuplicateQuoteErrorEvent.name:
             case QuoteBCQuoteNotFoundErrorEvent.name:
-            case QuoteBCBulkQuoteNotFoundErrorEvent.name: 
-            case QuoteBCInvalidMessageErrorEvent.name:
+            case QuoteBCBulkQuoteNotFoundErrorEvent.name:
+            //case QuoteBCInvalidMessageErrorEvent.name:
             case QuoteBCInvalidMessageTypeErrorEvent.name:
             case QuoteBCParticipantNotFoundErrorEvent.name:
-            case QuoteBCInvalidParticipantIdErrorEvent.name: 
-            case QuoteBCRequiredParticipantIsNotActiveErrorEvent.name: 
+            //case QuoteBCInvalidParticipantIdErrorEvent.name:
+            case QuoteBCRequiredParticipantIsNotActiveErrorEvent.name:
             case QuoteBCInvalidRequesterFspIdErrorEvent.name:
-            case QuoteBCInvalidDestinationFspIdErrorEvent.name: 
-            case QuoteBCInvalidDestinationPartyInformationErrorEvent.name: {
+            case QuoteBCInvalidDestinationFspIdErrorEvent.name: {
+            //case QuoteBCInvalidDestinationPartyInformationErrorEvent.name:
                 if(quoteId) {
                     list = ["quoteId", "fspId"]
                 } else {
@@ -189,7 +189,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 break;
             }
         }
-                
+
         for(let i=0 ; i<list.length ; i+=1){
             if(payload[list[i]]) {
                 extensionList.push({
@@ -197,7 +197,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                     value: payload[list[i]]
                 });
             }
-        } 
+        }
 
         this._sendErrorFeedbackToFsp({
             message: message,
@@ -217,7 +217,7 @@ export class QuotingEventHandler extends BaseEventHandler {
     private async _handleQuotingCreatedRequestReceivedEvt(message: QuoteRequestAcceptedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
         try {
             const { payload } = message;
-    
+
             const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
             const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
@@ -237,10 +237,10 @@ export class QuotingEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
 
             await Request.sendRequest({
-                url: urlBuilder.build(), 
-                headers: clonedHeaders, 
-                source: requesterFspId, 
-                destination: destinationFspId, 
+                url: urlBuilder.build(),
+                headers: clonedHeaders,
+                source: requesterFspId,
+                destination: destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.POST,
                 payload: Transformer.transformPayloadQuotingRequestPost(payload),
             });
@@ -258,11 +258,11 @@ export class QuotingEventHandler extends BaseEventHandler {
     private async _handleQuotingResponseAcceptedEvt(message: QuoteResponseAccepted, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
         try {
             const { payload } = message;
-    
+
             const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
             const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
-            
+
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
             if(!requestedEndpoint) {
@@ -279,10 +279,10 @@ export class QuotingEventHandler extends BaseEventHandler {
             urlBuilder.setLocation([payload.quoteId]);
 
             await Request.sendRequest({
-                url: urlBuilder.build(), 
-                headers: clonedHeaders, 
-                source: requesterFspId, 
-                destination: requesterFspId, 
+                url: urlBuilder.build(),
+                headers: clonedHeaders,
+                source: requesterFspId,
+                destination: requesterFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: Transformer.transformPayloadQuotingResponsePut(payload),
             });
@@ -300,10 +300,10 @@ export class QuotingEventHandler extends BaseEventHandler {
     private async _handleQuotingQueryResponseEvt(message: QuoteQueryResponseEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void> {
         try {
             const { payload } = message;
-    
+
             const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
             const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
-            
+
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
             if(!requestedEndpoint) {
@@ -321,10 +321,10 @@ export class QuotingEventHandler extends BaseEventHandler {
             urlBuilder.setId(payload.quoteId);
 
             await Request.sendRequest({
-                url: urlBuilder.build(), 
-                headers: clonedHeaders, 
-                source: requesterFspId, 
-                destination: requesterFspId, 
+                url: urlBuilder.build(),
+                headers: clonedHeaders,
+                source: requesterFspId,
+                destination: requesterFspId,
                 method: Enums.FspiopRequestMethodsEnum.GET,
                 payload: null,
             });
@@ -342,10 +342,10 @@ export class QuotingEventHandler extends BaseEventHandler {
     private async _handleBulkQuotingRequestReceivedEvt(message: BulkQuoteReceivedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
         try {
             const { payload } = message;
-    
+
             const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
             const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
-            
+
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
             if(!requestedEndpoint) {
@@ -361,10 +361,10 @@ export class QuotingEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);
 
             await Request.sendRequest({
-                url: urlBuilder.build(), 
-                headers: clonedHeaders, 
-                source: requesterFspId, 
-                destination: requesterFspId, 
+                url: urlBuilder.build(),
+                headers: clonedHeaders,
+                source: requesterFspId,
+                destination: requesterFspId,
                 method: Enums.FspiopRequestMethodsEnum.POST,
                 payload: Transformer.transformPayloadBulkQuotingResponsePost(payload),
             });
@@ -378,15 +378,15 @@ export class QuotingEventHandler extends BaseEventHandler {
 
         return;
     }
-    
+
     private async _handleBulkQuoteAcceptedResponseEvt(message: BulkQuoteAcceptedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
         try {
             const { payload } = message;
-    
+
             const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
             const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
-            
+
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
             if(!requestedEndpoint) {
@@ -403,10 +403,10 @@ export class QuotingEventHandler extends BaseEventHandler {
             urlBuilder.setId(payload.bulkQuoteId);
 
             await Request.sendRequest({
-                url: urlBuilder.build(), 
-                headers: clonedHeaders, 
-                source: requesterFspId, 
-                destination: requesterFspId, 
+                url: urlBuilder.build(),
+                headers: clonedHeaders,
+                source: requesterFspId,
+                destination: requesterFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: Transformer.transformPayloadBulkQuotingResponsePut(payload),
             });

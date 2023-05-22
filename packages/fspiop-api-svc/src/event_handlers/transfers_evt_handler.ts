@@ -25,7 +25,7 @@
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
-  
+
  --------------
  ******/
 
@@ -34,10 +34,10 @@
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import { 
-    TransferPreparedEvt, 
-    TransferCommittedFulfiledEvt, 
-    TransferPrepareInvalidPayerCheckFailedEvt, 
+import {
+    TransferPreparedEvt,
+    TransferCommittedFulfiledEvt,
+    TransferPrepareInvalidPayerCheckFailedEvt,
     TransferPrepareInvalidPayeeCheckFailedEvt,
     TransferPrepareLiquidityCheckFailedEvt,
     TransferPrepareDuplicateCheckFailedEvt,
@@ -57,7 +57,12 @@ import {
     TransferFulfilCommittedRequestedTimedoutEvt,
     TransferFulfilPostCommittedRequestedTimedoutEvt,
     TransferInvalidMessagePayloadEvt,
-    TransferInvalidMessageTypeEvt
+    TransferInvalidMessageTypeEvt,
+    TransferCancelReservationAndCommitFailedEvt,
+    TransferCancelReservationFailedEvt,
+    TransferPreparePayerNotFoundFailedEvt,
+    TransferPreparePayeeNotFoundFailedEvt,
+    TransferPrepareHubNotFoundFailedEvt
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { IncomingHttpHeaders } from "http";
@@ -83,6 +88,9 @@ export class TransferEventHandler extends BaseEventHandler {
         switch(message.msgName){
             case TransferInvalidMessagePayloadEvt.name:
             case TransferInvalidMessageTypeEvt.name:
+            case TransferPreparePayerNotFoundFailedEvt.name:
+            case TransferPreparePayeeNotFoundFailedEvt.name:
+            case TransferPrepareHubNotFoundFailedEvt.name:
             case TransferPrepareInvalidPayerCheckFailedEvt.name:
             case TransferPrepareInvalidPayeeCheckFailedEvt.name:
             case TransferPrepareLiquidityCheckFailedEvt.name:
@@ -100,6 +108,8 @@ export class TransferEventHandler extends BaseEventHandler {
             case TransferUnableToUpdateEvt.name:
             case TransferFulfilCommittedRequestedTimedoutEvt.name:
             case TransferFulfilPostCommittedRequestedTimedoutEvt.name:
+            case TransferCancelReservationFailedEvt.name:
+            case TransferCancelReservationAndCommitFailedEvt.name:
             case TransfersBCUnknownErrorEvent.name:
                 await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState);
                 break;
@@ -128,11 +138,12 @@ export class TransferEventHandler extends BaseEventHandler {
         this._logger.info('_handleTransferErrorReceivedEvt -> start');
 
         const { payload } = message;
-  
+
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-        const requesterFspId = clonedHeaders["fspiop-source"] as string;
+        let sourceFspId = clonedHeaders["fspiop-source"] as string;
+        let destinationFspId = clonedHeaders["fspiop-destination"] as string;
         const transferId = payload.transferId as string;
-        
+
         const extensionList = [];
         let list: string[] = [];
         let errorCode = "1000"; // Default error code
@@ -140,9 +151,12 @@ export class TransferEventHandler extends BaseEventHandler {
 
         switch(message.msgName){
             case TransferInvalidMessagePayloadEvt.name:
-            case TransferInvalidMessageTypeEvt.name:
+                case TransferInvalidMessageTypeEvt.name:
+            case TransferPreparePayerNotFoundFailedEvt.name:
+            case TransferPreparePayeeNotFoundFailedEvt.name:
+            case TransferPrepareHubNotFoundFailedEvt.name:
             case TransferPrepareInvalidPayerCheckFailedEvt.name:
-            case TransferPrepareInvalidPayeeCheckFailedEvt.name: 
+            case TransferPrepareInvalidPayeeCheckFailedEvt.name:
             case TransferQueryInvalidPayerCheckFailedEvt.name:
             case TransferQueryInvalidPayeeCheckFailedEvt.name:
             case TransferQueryPayerNotFoundFailedEvt.name:
@@ -160,20 +174,30 @@ export class TransferEventHandler extends BaseEventHandler {
             case TransferPrepareDuplicateCheckFailedEvt.name:
             case TransferPrepareRequestTimedoutEvt.name:
             case TransferRejectRequestProcessedEvt.name:
-            case TransfersBCUnknownErrorEvent.name:  {
+                case TransfersBCUnknownErrorEvent.name:  {
+                    list = ["transferId", "fspId"];
+                    errorCode = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR;
+                    errorDescription = message.payload.errorDescription;
+
+                    break;
+                }
+
+            case TransferCancelReservationFailedEvt.name:
+            case TransferCancelReservationAndCommitFailedEvt.name: {
                 list = ["transferId", "fspId"];
                 errorCode = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR;
                 errorDescription = message.payload.errorDescription;
 
+                sourceFspId = destinationFspId;
                 break;
             }
-         
+
             default: {
                 this._logger.warn(`Cannot handle error message of type: ${message.msgName}, ignoring`);
                 break;
             }
         }
-                
+
         for(let i=0 ; i<list.length ; i+=1){
             if(payload[list[i]]) {
                 extensionList.push({
@@ -181,14 +205,14 @@ export class TransferEventHandler extends BaseEventHandler {
                     value: payload[list[i]]
                 });
             }
-        } 
+        }
 
         this._sendErrorFeedbackToFsp({
             message: message,
             error: errorDescription,
             errorCode: errorCode,
             headers: clonedHeaders,
-            source: requesterFspId,
+            source: sourceFspId,
             id: [transferId],
             extensionList: extensionList
         });
@@ -200,7 +224,7 @@ export class TransferEventHandler extends BaseEventHandler {
 
     private async _handleTransferPreparedEvt(message: TransferPreparedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
         const { payload } = message;
-  
+
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
         const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
         const destinationFspId = payload.payeeFsp;
@@ -214,7 +238,7 @@ export class TransferEventHandler extends BaseEventHandler {
             // TODO discuss about having the specific event for overall errors so we dont have
             // to change an existing event to use the generic topic
             const msg =  new TransferPreparedEvt(payload);
-    
+
             msg.msgTopic = KAFKA_OPERATOR_ERROR_TOPIC;
 
             await this._kafkaProducer.send(msg);
@@ -232,10 +256,10 @@ export class TransferEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.TRANSFERS);
 
             await Request.sendRequest({
-                url: urlBuilder.build(), 
-                headers: clonedHeaders, 
-                source: requesterFspId, 
-                destination: destinationFspId, 
+                url: urlBuilder.build(),
+                headers: clonedHeaders,
+                source: requesterFspId,
+                destination: destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.POST,
                 payload: Transformer.transformPayloadTransferRequestPost(payload),
             });
@@ -243,7 +267,7 @@ export class TransferEventHandler extends BaseEventHandler {
             this._logger.info('_handleTransferPreparedEvt -> end');
 
         } catch (error: unknown) {
-            this._sendErrorFeedbackToFsp({ 
+            this._sendErrorFeedbackToFsp({
                 error: error,
                 headers: clonedHeaders,
                 source: requesterFspId,
@@ -258,7 +282,7 @@ export class TransferEventHandler extends BaseEventHandler {
 
     private async _handleTransferCommittedFulfiledEvt(message: TransferCommittedFulfiledEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
         const { payload } = message;
-  
+
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
         const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
         const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
@@ -272,7 +296,7 @@ export class TransferEventHandler extends BaseEventHandler {
             // TODO discuss about having the specific event for overall errors so we dont have
             // to change an existing event to use the generic topic
             const msg =  new TransferCommittedFulfiledEvt(payload);
-    
+
             msg.msgTopic = KAFKA_OPERATOR_ERROR_TOPIC;
 
             await this._kafkaProducer.send(msg);
@@ -291,10 +315,10 @@ export class TransferEventHandler extends BaseEventHandler {
             urlBuilder.setLocation([payload.transferId]);
 
             await Request.sendRequest({
-                url: urlBuilder.build(), 
-                headers: clonedHeaders, 
-                source: requesterFspId, 
-                destination: destinationFspId, 
+                url: urlBuilder.build(),
+                headers: clonedHeaders,
+                source: requesterFspId,
+                destination: destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: Transformer.transformPayloadTransferRequestPut(payload),
             });
@@ -302,7 +326,7 @@ export class TransferEventHandler extends BaseEventHandler {
             this._logger.info('_handleTransferCommittedFulfiledEvt -> end');
 
         } catch (error: unknown) {
-            this._sendErrorFeedbackToFsp({ 
+            this._sendErrorFeedbackToFsp({
                 error: error,
                 headers: clonedHeaders,
                 source: requesterFspId,
@@ -318,10 +342,10 @@ export class TransferEventHandler extends BaseEventHandler {
     private async _handleTransferQueryResponseEvt(message: TransferQueryResponseEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void> {
         try {
             const { payload } = message;
-    
+
             const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
             const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
-            
+
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
             if(!requestedEndpoint) {
@@ -338,10 +362,10 @@ export class TransferEventHandler extends BaseEventHandler {
             urlBuilder.setId(payload.transferId);
 
             await Request.sendRequest({
-                url: urlBuilder.build(), 
-                headers: clonedHeaders, 
-                source: requesterFspId, 
-                destination: requesterFspId, 
+                url: urlBuilder.build(),
+                headers: clonedHeaders,
+                source: requesterFspId,
+                destination: requesterFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: Transformer.transformPayloadTransferRequestGet(payload),
             });
