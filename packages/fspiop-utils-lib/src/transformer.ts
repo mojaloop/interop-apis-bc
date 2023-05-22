@@ -25,18 +25,18 @@
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
-  
+
  --------------
  ******/
 
  'use strict';
 
-import { 
-	BulkQuoteReceivedEvtPayload, 
-	BulkQuoteAcceptedEvtPayload, 
-	ParticipantAssociationCreatedEvtPayload, 
-	ParticipantAssociationRemovedEvtPayload, 
-	ParticipantQueryResponseEvtPayload, 
+import {
+	BulkQuoteReceivedEvtPayload,
+	BulkQuoteAcceptedEvtPayload,
+	ParticipantAssociationCreatedEvtPayload,
+	ParticipantAssociationRemovedEvtPayload,
+	ParticipantQueryResponseEvtPayload,
 	PartyInfoRequestedEvtPayload,
 	PartyQueryResponseEvtPayload,
 	QuoteRequestAcceptedEvtPayload,
@@ -115,7 +115,7 @@ export const transformPayloadPartyAssociationPut = (payload: ParticipantAssociat
 			}
 		},
 	};
-		
+
 	return removeEmpty(info);
 };
 
@@ -130,7 +130,7 @@ export const transformPayloadPartyDisassociationPut = (payload: ParticipantAssoc
 			}
 		},
 	};
-	
+
 	return removeEmpty(info);
 };
 
@@ -172,12 +172,12 @@ export const transformPayloadPartyInfoReceivedPut = (payload: PartyQueryResponse
 };
 
 export const transformPayloadError = ({
-		errorCode, 
+		errorCode,
 		errorDescription,
 		extensionList = null
-	}:{ 
-		errorCode: string, 
-		errorDescription: string, 
+	}:{
+		errorCode: string,
+		errorDescription: string,
 		extensionList?: ExtensionList | null
 	}):FspiopError => {
 		const payload:FspiopError = {
@@ -206,7 +206,7 @@ export const transformPayloadQuotingRequestPost = (payload: QuoteRequestAccepted
 		amount: payload.amount,
 		transactionType: payload.transactionType
 	};
-		
+
 	return removeEmpty(info);
 };
 
@@ -223,7 +223,7 @@ export const transformPayloadQuotingResponsePut = (payload: QuoteResponseAccepte
 		geoCode: payload.geoCode,
 		extensionList: payload.extensionList
 	};
-		
+
 	return removeEmpty(info);
 };
 
@@ -236,7 +236,7 @@ export const transformPayloadBulkQuotingResponsePost = (payload: BulkQuoteReceiv
         individualQuotes: payload.individualQuotes,
 		extensionList: payload.extensionList
     };
-		
+
 	return removeEmpty(info);
 };
 
@@ -247,7 +247,7 @@ export const transformPayloadBulkQuotingResponsePut = (payload: BulkQuoteAccepte
 		expiration: payload.expiration,
 		extensionList: payload.extensionList
     };
-		
+
 	return removeEmpty(info);
 };
 
@@ -266,19 +266,19 @@ export const transformPayloadTransferRequestPost = (payload: TransferPreparedEvt
 		condition: payload.condition,
 		expiration: payload.expiration,
 	};
-		
+
 	return removeEmpty(info);
 };
 
 export const transformPayloadTransferRequestPut = (payload: TransferCommittedFulfiledEvtPayload):any => {
 	const info = {
 		transferId: payload.transferId,
-		transferState: payload.transferState,
+		transferState: "COMMITTED",
 		fulfilment: payload.fulfilment,
 		completedTimestamp: payload.completedTimestamp,
 		extensionList: payload.extensionList
 	};
-		
+
 	return removeEmpty(info);
 };
 
@@ -289,6 +289,6 @@ export const transformPayloadTransferRequestGet = (payload: TransferQueryRespons
 		completedTimestamp: payload.completedTimestamp,
 		extensionList: payload.extensionList
 	};
-		
+
 	return removeEmpty(info);
 };
