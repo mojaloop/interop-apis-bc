@@ -71,8 +71,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             kafkaTopics : string[],
             participantService: IParticipantService
     ) {
-        super(logger, consumerOptions, producerOptions, kafkaTopics, participantService);
-        this.handlerName = HandlerNames.AccountLookUp;
+        super(logger, consumerOptions, producerOptions, kafkaTopics, participantService, HandlerNames.AccountLookUp);
     }
 
     async processMessage (sourceMessage: IMessage) : Promise<void> {

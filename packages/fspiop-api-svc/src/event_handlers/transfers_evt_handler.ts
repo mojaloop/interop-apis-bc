@@ -89,8 +89,7 @@ export class TransferEventHandler extends BaseEventHandler {
             kafkaTopics : string[],
             participantService: IParticipantService
     ) {
-        super(logger, consumerOptions, producerOptions, kafkaTopics, participantService);
-        this.handlerName = HandlerNames.Transfers;
+        super(logger, consumerOptions, producerOptions, kafkaTopics, participantService, HandlerNames.Transfers);
     }
 
     async processMessage (sourceMessage: IMessage) : Promise<void> {

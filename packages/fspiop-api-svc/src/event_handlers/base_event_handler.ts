@@ -49,20 +49,20 @@ import {
 import { Constants, Request, Enums, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 
 export const HandlerNames = {
-    Transfers: 'TransfersEventHandler',
     AccountLookUp: 'AccountLookUpEventHandler',
     Quotes: 'QuotesEventHandler',
+    Transfers: 'TransfersEventHandler',
 } as const;
 
 export abstract class BaseEventHandler implements IEventHandler {
-    protected kafkaConsumer: MLKafkaJsonConsumer;
-    protected logger:ILogger;
-    protected consumerOpts: MLKafkaJsonConsumerOptions;
-    protected kafkaTopics: string[];
-    protected producerOptions: MLKafkaJsonProducerOptions;
-    protected kafkaProducer: MLKafkaJsonProducer;
-    protected participantService: IParticipantService;
-    protected handlerName!: string;
+    protected readonly logger:ILogger;
+    protected readonly consumerOpts: MLKafkaJsonConsumerOptions;
+    protected readonly kafkaTopics: string[];
+    protected readonly producerOptions: MLKafkaJsonProducerOptions;
+    protected readonly participantService: IParticipantService;
+    protected readonly kafkaConsumer: MLKafkaJsonConsumer;
+    protected readonly kafkaProducer: MLKafkaJsonProducer;
+    protected readonly handlerName: string;
 
     constructor(
             logger: ILogger,
@@ -70,22 +70,31 @@ export abstract class BaseEventHandler implements IEventHandler {
             producerOptions: MLKafkaJsonProducerOptions,
             kafkaTopics : string[],
             participantService: IParticipantService,
+            handlerName: string
     ) {
         this.logger = logger.createChild(this.constructor.name);
         this.consumerOpts = consumerOptions;
         this.kafkaTopics = kafkaTopics;
         this.producerOptions = producerOptions;
         this.participantService = participantService;
+        this.handlerName = handlerName;
+        this.kafkaConsumer = new MLKafkaJsonConsumer(this.consumerOpts, this.logger);
+        this.kafkaProducer = new MLKafkaJsonProducer(this.producerOptions);
     }
 
     async init () : Promise<void> {
-        this.kafkaConsumer = new MLKafkaJsonConsumer(this.consumerOpts, this.logger);
-        this.kafkaConsumer.setTopics(this.kafkaTopics);
-        this.kafkaConsumer.setCallbackFn(this.processMessage.bind(this));
-        this.kafkaProducer = new MLKafkaJsonProducer(this.producerOptions);
-        await this.kafkaConsumer.connect();
-        await this.kafkaConsumer.start();
-        await this.kafkaProducer.connect();
+        try{
+            this.kafkaConsumer.setTopics(this.kafkaTopics);
+            this.kafkaConsumer.setCallbackFn(this.processMessage.bind(this));
+            await this.kafkaConsumer.connect();
+            await this.kafkaConsumer.start();
+            await this.kafkaProducer.connect();
+        }
+        catch(error: unknown) {
+            this.logger.error(`Error initializing ${this.handlerName} handler: ${(error as Error).message}`);
+            throw new Error(`Error initializing ${this.handlerName}`);
+        }
+
     }
 
     protected async _validateParticipantAndGetEndpoint(fspId: string):Promise<IParticipantEndpoint|null>{

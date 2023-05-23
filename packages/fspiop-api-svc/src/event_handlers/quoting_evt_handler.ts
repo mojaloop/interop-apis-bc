@@ -68,8 +68,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             kafkaTopics : string[],
             participantService: IParticipantService
     ) {
-        super(logger, consumerOptions, producerOptions, kafkaTopics, participantService);
-        this.handlerName = HandlerNames.Quotes;
+        super(logger, consumerOptions, producerOptions, kafkaTopics, participantService, HandlerNames.Quotes);
     }
 
     async processMessage (sourceMessage: IMessage) : Promise<void> {
