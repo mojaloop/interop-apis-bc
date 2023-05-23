@@ -54,10 +54,6 @@ import { AccountLookupEventHandler } from "./account_lookup_evt_handler";
 import { QuotingEventHandler } from "./quoting_evt_handler";
 import { TransferEventHandler } from "./transfers_evt_handler";
 
-const KAFKA_ACCOUNT_LOOKUP_OPERATOR_ERROR_TOPIC = process.env["KAFKA_OPERATOR_ERROR_TOPIC"] || AccountLookupBCTopics.DomainErrors;
-const KAFKA_QUOTING_OPERATOR_ERROR_TOPIC = process.env["KAFKA_OPERATOR_ERROR_TOPIC"] || QuotingBCTopics.DomainErrors;
-const KAFKA_TRANSFERS_OPERATOR_ERROR_TOPIC = process.env["KAFKA_OPERATOR_ERROR_TOPIC"] || TransfersBCTopics.DomainErrors;
-
 export abstract class BaseEventHandler implements IEventHandler {
     protected _kafkaConsumer: MLKafkaJsonConsumer;
     protected _logger:ILogger;
@@ -200,8 +196,6 @@ export abstract class BaseEventHandler implements IEventHandler {
 
             this._logger.error(error);
 
-
-
             switch(this.constructor.name) {
                 case "AccountLookupEventHandler": {
                     const payload:AccountLookUpBCOperatorErrorPayload = {
@@ -213,8 +207,6 @@ export abstract class BaseEventHandler implements IEventHandler {
                     };
 
                     const msg = new AccountLookUpBCOperatorErrorEvent(payload);
-
-                    msg.msgTopic = KAFKA_ACCOUNT_LOOKUP_OPERATOR_ERROR_TOPIC;
 
                     await this._kafkaProducer.send(msg);
                     break;
@@ -229,8 +221,6 @@ export abstract class BaseEventHandler implements IEventHandler {
 
                     const msg = new QuoteBCOperatorErrorEvent(payload);
 
-                    msg.msgTopic = KAFKA_QUOTING_OPERATOR_ERROR_TOPIC;
-
                     await this._kafkaProducer.send(msg);
                     break;
                 }
@@ -242,8 +232,6 @@ export abstract class BaseEventHandler implements IEventHandler {
                     };
 
                     const msg = new TransfersBCOperatorErrorEvent(payload);
-
-                    msg.msgTopic = KAFKA_TRANSFERS_OPERATOR_ERROR_TOPIC;
 
                     await this._kafkaProducer.send(msg);
                     break;
