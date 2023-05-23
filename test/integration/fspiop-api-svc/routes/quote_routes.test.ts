@@ -33,7 +33,7 @@
 
 import path from "path";
 import request from "supertest";
-import jestOpenAPI from 'jest-openapi';
+import jestOpenAPI from "jest-openapi";
 import { QuoteQueryReceivedEvt, QuoteRequestReceivedEvt, QuoteResponseReceivedEvt, QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Service } from "@mojaloop/interop-apis-bc-fspiop-api-svc";
 import { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
@@ -41,7 +41,7 @@ import { getHeaders, missingPropertyResponse } from "@mojaloop/interop-apis-bc-s
 import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 
 // Sets the location of your OpenAPI Specification file
-jestOpenAPI(path.join(__dirname, '../../../../packages/fspiop-api-svc/dist/api_spec.yaml'));
+jestOpenAPI(path.join(__dirname, "../../../../packages/fspiop-api-svc/dist/api_spec.yaml"));
 
 const SVC_DEFAULT_HTTP_PORT = process.env["SVC_DEFAULT_HTTP_PORT"] || 4000;
 
@@ -112,11 +112,11 @@ describe("FSPIOP API Service Quote Routes", () => {
     beforeAll(async () => {
         await Service.start();
     });
-    
+
     afterAll(async () => {
         await Service.stop();
     });
-    
+
     it("should successfully call quoteQueryReceived endpoint", async () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(topic);
@@ -129,12 +129,12 @@ describe("FSPIOP API Service Quote Routes", () => {
         let sentMessagesCount = 0;
         let expectedOffsetMessage;
         const currentOffset = await getCurrentKafkaOffset(topic);
-        
+
         if (currentOffset.offset && expectedOffset.offset) {
             sentMessagesCount = currentOffset.offset - expectedOffset.offset;
             expectedOffsetMessage = JSON.parse(currentOffset.value as string);
         }
-        
+
         // Assert
         expect(res.statusCode).toEqual(202);
         expect(res.body).toStrictEqual(null);
@@ -156,12 +156,12 @@ describe("FSPIOP API Service Quote Routes", () => {
         let sentMessagesCount = 0;
         let expectedOffsetMessage;
         const currentOffset = await getCurrentKafkaOffset(topic);
-        
+
         if (currentOffset.offset && expectedOffset.offset) {
             sentMessagesCount = currentOffset.offset - expectedOffset.offset;
             expectedOffsetMessage = JSON.parse(currentOffset.value as string);
         }
-        
+
         // Assert
         expect(res.statusCode).toEqual(202);
         expect(res.body).toStrictEqual(null);
@@ -183,12 +183,12 @@ describe("FSPIOP API Service Quote Routes", () => {
         let sentMessagesCount = 0;
         let expectedOffsetMessage;
         const currentOffset = await getCurrentKafkaOffset(topic);
-        
+
         if (currentOffset.offset && expectedOffset.offset) {
             sentMessagesCount = currentOffset.offset - expectedOffset.offset;
             expectedOffsetMessage = JSON.parse(currentOffset.value as string);
         }
-        
+
         // Assert
         expect(res.statusCode).toEqual(200);
         expect(res.body).toStrictEqual(null);
@@ -207,11 +207,11 @@ describe("FSPIOP API Service Quote Routes", () => {
 
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
-        
+
         if (currentOffset.offset && expectedOffset.offset) {
             sentMessagesCount = currentOffset.offset - expectedOffset.offset;
         }
-        
+
         // Assert
         expect(res.statusCode).toEqual(400);
         expect(res.body).toStrictEqual(missingPropertyResponse("quoteId", "body"));
@@ -228,11 +228,11 @@ describe("FSPIOP API Service Quote Routes", () => {
 
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
-        
+
         if (currentOffset.offset && expectedOffset.offset) {
             sentMessagesCount = currentOffset.offset - expectedOffset.offset;
         }
-        
+
         // Assert
         expect(res.statusCode).toEqual(400);
         expect(res.body).toStrictEqual(missingPropertyResponse("transferAmount", "body"));
@@ -249,11 +249,11 @@ describe("FSPIOP API Service Quote Routes", () => {
 
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
-        
+
         if (currentOffset.offset && expectedOffset.offset) {
             sentMessagesCount = currentOffset.offset - expectedOffset.offset;
         }
-        
+
         // Assert
         expect(res.statusCode).toEqual(400);
         expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"));
@@ -272,11 +272,11 @@ describe("FSPIOP API Service Quote Routes", () => {
 
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
-        
+
         if (currentOffset.offset && expectedOffset.offset) {
             sentMessagesCount = currentOffset.offset - expectedOffset.offset;
         }
-        
+
         // Assert
         expect(res.statusCode).toEqual(400);
         expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"));
@@ -294,11 +294,11 @@ describe("FSPIOP API Service Quote Routes", () => {
 
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
-        
+
         if (currentOffset.offset && expectedOffset.offset) {
             sentMessagesCount = currentOffset.offset - expectedOffset.offset;
         }
-        
+
         // Assert
         expect(res.statusCode).toEqual(400);
         expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"));

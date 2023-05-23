@@ -22,7 +22,7 @@
 
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
- 
+
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
@@ -98,7 +98,7 @@ export class LocalCache implements ILocalCache {
 
     private createKey(...keys: string[]): string {
         try{
-            return keys.filter(x => typeof x === 'string' && x.length > 0).join(":");
+            return keys.filter(x => typeof x === "string" && x.length > 0).join(":");
         }
         catch(err){
             throw new LocalCacheError(`Error creating key: ${err}`);

@@ -32,7 +32,7 @@
 type UnknownProperties = { [k: string]: string };
 
 export const getHeaders = (entity: string, remove?: string[], override?: UnknownProperties): UnknownProperties => {
-    const minimalWorkingHeaders = { 
+    const minimalWorkingHeaders = {
         "accept": `application/vnd.interoperability.${entity}+json;version=1.1`,
         "content-type": `application/vnd.interoperability.${entity}+json;version=1.1`,
         "date": "Mon, 10 Apr 2023 04:04:04 GMT",
@@ -54,7 +54,7 @@ export const getHeaders = (entity: string, remove?: string[], override?: Unknown
 };
 
 export const getBody = (remove: string[], override: UnknownProperties): UnknownProperties => {
-    const minimalWorkingHeaders = { 
+    const minimalWorkingHeaders = {
         "accept": "application/json",
         "content-type": "application/vnd.interoperability.parties+json;version=1.1",
         "date": "Tue Apr 04 2023 15:10:56 GMT+0100 (Western European Summer Time)",
@@ -100,7 +100,7 @@ export const badStatusResponse = (options: {
 export const missingPropertyResponse = (field: string, type: string) => {
     return badStatusResponse({
         "code": "3100",
-        "description": `must have required property '${field}'`,
+        "description": `must have required property "${field}"`,
         "extensionList": [
                 {
                     "key": "keyword",

@@ -239,7 +239,7 @@ export class PartyRoutes extends BaseRoutes {
             partyId: id,
             partySubType: partySubIdOrType,
             currency: currency,
-            partyName: 'partynmame',
+            partyName: "partynmame",
             partyDoB: new Date(),
         };
 

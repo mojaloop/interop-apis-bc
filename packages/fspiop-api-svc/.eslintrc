@@ -1,0 +1,5 @@
+{
+    "root": true,
+    "extends": ["../../.eslintrc"],
+    "ignorePatterns": [ "validation.ts", "headerValidation.ts"  ]
+}

@@ -13,16 +13,16 @@
  --------------
  This is the official list (alphabetical ordering) of the Mojaloop project contributors for this file.
  Names of the original copyright holders (individuals or organizations)
- should be listed with a '' in the first column. People who have
+ should be listed with a "" in the first column. People who have
  contributed from an organization can be listed under the organization
  that actually holds the copyright for their contributions (see the
  Gates Foundation organization for an example). Those individuals should have
- their names indented and be marked with a '-'. Email address can be added
+ their names indented and be marked with a "-". Email address can be added
  optionally within square brackets <email>.
 
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
- 
+
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
@@ -30,7 +30,7 @@
  --------------
  **/
 
- "use strict";
+"use strict";
 
 
 import { FSPIOP_HEADERS_ACCEPT, FSPIOP_HEADERS_CONTENT_LENGTH, FSPIOP_HEADERS_CONTENT_TYPE, FSPIOP_HEADERS_DATE, FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION, FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_ENCRYPTION, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_URI, FSPIOP_HEADERS_X_FORWARDED_FOR } from "../../src/constants";
@@ -43,42 +43,42 @@ import { removeEmpty, transformPayloadError, transformPayloadParticipantPut, tra
 import { ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvtPayload, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { sendRequest } from "../../src/request"
 
-jest.mock('axios');
+jest.mock("axios");
 
 describe("FSPIOP Utils Lib", () => {
-       
+
     afterEach(async () => {
         jest.resetAllMocks();
     });
 
     //#region Request
     test("should be able to send a request", async()=>{
-        // Arrange 
+        // Arrange
         const response = [
             { test: "random response" },
         ];
-        
-        (axios as unknown as jest.Mock).mockResolvedValueOnce(response)       
-        
+
+        (axios as unknown as jest.Mock).mockResolvedValueOnce(response)
+
         // Act
         await sendRequest({
-            url: 'testurl', 
+            url: "testurl",
             headers: {
-                [FSPIOP_HEADERS_CONTENT_TYPE]: '1', 
-                [FSPIOP_HEADERS_SOURCE]: '1', 
-                [FSPIOP_HEADERS_DESTINATION]: '1',
-                [FSPIOP_HEADERS_ACCEPT]: '1',
-                [FSPIOP_HEADERS_HTTP_METHOD]: '1',
-                [FSPIOP_HEADERS_SIGNATURE]: '1',
-                [FSPIOP_HEADERS_DATE]: '1',
-                [FSPIOP_HEADERS_DATE]: '1'
-            }, 
-            source: '1', 
-            destination: '2',
+                [FSPIOP_HEADERS_CONTENT_TYPE]: "1",
+                [FSPIOP_HEADERS_SOURCE]: "1",
+                [FSPIOP_HEADERS_DESTINATION]: "1",
+                [FSPIOP_HEADERS_ACCEPT]: "1",
+                [FSPIOP_HEADERS_HTTP_METHOD]: "1",
+                [FSPIOP_HEADERS_SIGNATURE]: "1",
+                [FSPIOP_HEADERS_DATE]: "1",
+                [FSPIOP_HEADERS_DATE]: "1"
+            },
+            source: "1",
+            destination: "2",
             method: FspiopRequestMethodsEnum.PUT,
             payload: {
-                fspId: '1',
-            },            
+                fspId: "1",
+            },
         });
 
 
@@ -92,7 +92,7 @@ describe("FSPIOP Utils Lib", () => {
                 "content-length": undefined,
                 "content-type": "1",
                 "date": "Mon, 01 Jan 2001 00:00:00 GMT",
-                "fspiop-destination": undefined,
+                "fspiop-destination": "1",
                 "fspiop-encryption": undefined,
                 "fspiop-http-method": "PUT",
                 "fspiop-signature": undefined,
@@ -121,13 +121,13 @@ describe("FSPIOP Utils Lib", () => {
             "fspiop-http-method": FspiopRequestMethodsEnum.PUT,
             "fspiop-signature": "test-fspiop-signature",
             "fspiop-uri": "test-fspiop-uri",
-            "x-forwarded-for": 'test-fspiop-x-forwarded-for'
+            "x-forwarded-for": "test-fspiop-x-forwarded-for"
         };
 
         const config =  {
-            httpMethod: 'PUT',
-            sourceFsp: 'source',
-            destinationFsp: 'destination',
+            httpMethod: "PUT",
+            sourceFsp: "source",
+            destinationFsp: "destination",
             protocolVersions: {
                 content: FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION,
                 accept: FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION
@@ -161,16 +161,16 @@ describe("FSPIOP Utils Lib", () => {
             "fspiop-http-method": FspiopRequestMethodsEnum.PUT,
             "fspiop-signature": "test-fspiop-signature",
             "fspiop-uri": "test-fspiop-uri",
-            "x-forwarded-for": 'test-fspiop-x-forwarded-for'
+            "x-forwarded-for": "test-fspiop-x-forwarded-for"
         });
     });
 
     test("should default http method to null if null is passed", async()=>{
         // Arrange
         const config =  {
-            httpMethod: 'PUT',
-            sourceFsp: 'source',
-            destinationFsp: 'destination',
+            httpMethod: "PUT",
+            sourceFsp: "source",
+            destinationFsp: "destination",
             protocolVersions: {
                 content: FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION,
                 accept: FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION
@@ -210,7 +210,7 @@ describe("FSPIOP Utils Lib", () => {
 
     test("should default to sent header date value if unable to convert invalid date", async()=>{
         // Arrange
-        const headerDate = 'invalid-date';
+        const headerDate = "invalid-date";
 
         // Act
         const builder = new HeaderBuilder();
@@ -225,7 +225,7 @@ describe("FSPIOP Utils Lib", () => {
         }));
     });
     //#endregion
-    
+
     //#region Validate
     test("it should be valid with all the required keys for type", async()=>{
         // Arrange
@@ -240,7 +240,7 @@ describe("FSPIOP Utils Lib", () => {
             "fspiop-http-method": FspiopRequestMethodsEnum.PUT,
             "fspiop-signature": "test-fspiop-signature",
             "fspiop-uri": "test-fspiop-uri",
-            "x-forwarded-for": 'test-fspiop-x-forwarded-for'
+            "x-forwarded-for": "test-fspiop-x-forwarded-for"
         };
 
         // Act
@@ -274,11 +274,11 @@ describe("FSPIOP Utils Lib", () => {
         const sampleObject = {
             "name": "random",
             "age": null,
-            "surname": '',
+            "surname": "",
             "address": {
                 "street": "test",
                 "city": null,
-                "country": ''
+                "country": ""
             }
         };
 
@@ -299,8 +299,8 @@ describe("FSPIOP Utils Lib", () => {
         const payload: ParticipantQueryResponseEvtPayload = {
             requesterFspId: "non-existing-requester-id",
             ownerFspId:"test-fspiop-source",
-            partyId: '123456789',
-            partyType: 'MSISDN',
+            partyId: "123456789",
+            partyType: "MSISDN",
             partySubType: null,
             currency: null
         };
@@ -318,8 +318,8 @@ describe("FSPIOP Utils Lib", () => {
         // Arrange
         const payload: ParticipantAssociationCreatedEvtPayload = {
             ownerFspId: "test-fspiop-source",
-            partyId: '123456789',
-            partyType: 'MSISDN',
+            partyId: "123456789",
+            partyType: "MSISDN",
             partySubType: null
         };
 
@@ -342,8 +342,8 @@ describe("FSPIOP Utils Lib", () => {
         // Arrange
         const payload: ParticipantAssociationRemovedEvtPayload = {
             ownerFspId: "test-fspiop-source",
-            partyId: '123456789',
-            partyType: 'MSISDN',
+            partyId: "123456789",
+            partyType: "MSISDN",
             partySubType: null
         };
 
@@ -366,9 +366,9 @@ describe("FSPIOP Utils Lib", () => {
         // Arrange
         const payload: PartyInfoRequestedEvtPayload = {
             requesterFspId: "test-fspiop-source",
-            destinationFspId: 'test-fspiop-destination',
-            partyId: '123456789',
-            partyType: 'MSISDN',
+            destinationFspId: "test-fspiop-destination",
+            partyId: "123456789",
+            partyType: "MSISDN",
             partySubType: null,
             currency: null
         };
@@ -393,11 +393,11 @@ describe("FSPIOP Utils Lib", () => {
         // Arrange
         const payload: PartyQueryResponseEvtPayload = {
             requesterFspId: "test-fspiop-source",
-            destinationFspId: 'test-fspiop-destination',
-            ownerFspId: 'test-fspiop-owner',
-            partyId: '123456789',
-            partyType: 'MSISDN',
-            partyName: 'test-party-name',
+            destinationFspId: "test-fspiop-destination",
+            ownerFspId: "test-fspiop-owner",
+            partyId: "123456789",
+            partyType: "MSISDN",
+            partyName: "test-party-name",
             partyDoB: new Date(),
             partySubType: null,
             currency: null
@@ -430,8 +430,8 @@ describe("FSPIOP Utils Lib", () => {
     test("should be able to get correct result from transformPayloadError", async()=>{
         // Arrange
         const payload = {
-            errorCode: ErrorCode.BAD_REQUEST, 
-            errorDescription: 'test-error-description'
+            errorCode: ErrorCode.BAD_REQUEST,
+            errorDescription: "test-error-description"
         };
 
         // Act

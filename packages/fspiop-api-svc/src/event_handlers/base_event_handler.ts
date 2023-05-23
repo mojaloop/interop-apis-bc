@@ -88,7 +88,7 @@ export abstract class BaseEventHandler implements IEventHandler {
     }
 
     protected async _validateParticipantAndGetEndpoint(fspId: string):Promise<IParticipantEndpoint|null>{
-        try {
+        // try {
             const participant = await this._participantService.getParticipantInfo(fspId);
 
             if (!participant) {
@@ -108,9 +108,9 @@ export abstract class BaseEventHandler implements IEventHandler {
             }
 
             return endpoint;
-        }catch(error: unknown) {
-            throw Error((error as Error).message);
-        }
+        // }catch(error: unknown) {
+        //     throw Error((error as Error).message);
+        // }
     }
 
     protected async _sendErrorFeedbackToFsp({

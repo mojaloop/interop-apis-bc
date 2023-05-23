@@ -44,19 +44,19 @@ import process from "process";
 import {ParticipantAdapter} from "./implementations/index";
 import {ParticipantRoutes} from "./http_routes/account-lookup-bc/participant_routes";
 import {PartyRoutes} from "./http_routes/account-lookup-bc/party_routes";
-import { 
-    MLKafkaJsonConsumerOptions, 
-    MLKafkaJsonProducerOptions, 
-    MLKafkaRawProducerOptions, 
-    MLKafkaRawProducerPartitioners 
+import {
+    MLKafkaJsonConsumerOptions,
+    MLKafkaJsonProducerOptions,
+    MLKafkaRawProducerOptions,
+    MLKafkaRawProducerPartitioners
 } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { AccountLookupEventHandler } from "./event_handlers/account_lookup_evt_handler";
 import { QuotingEventHandler } from "./event_handlers/quoting_evt_handler";
 import { TransferEventHandler } from "./event_handlers/transfers_evt_handler";
-import { 
-    AccountLookupBCTopics, 
-    QuotingBCTopics, 
-    TransfersBCTopics 
+import {
+    AccountLookupBCTopics,
+    QuotingBCTopics,
+    TransfersBCTopics
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { QuoteRoutes } from "./http_routes/quoting-bc/quote_routes";
 import { QuoteBulkRoutes } from "./http_routes/quoting-bc/bulk_quote_routes";
@@ -133,15 +133,15 @@ let accountEvtHandler:AccountLookupEventHandler;
 let quotingEvtHandler:QuotingEventHandler;
 let transferEvtHandler:TransferEventHandler;
 
-type FspiopHttpRequestError = { 
+type FspiopHttpRequestError = {
     name: string;
     statusCode: number;
-    data: { 
-        keyword: string; 
-        instancePath: string; 
+    data: {
+        keyword: string;
+        instancePath: string;
         params: string;
-        message: string; 
-    }[] 
+        message: string;
+    }[]
 }
 export class Service {
     static logger: ILogger;
@@ -153,7 +153,7 @@ export class Service {
     static transfersRoutes:TransfersRoutes;
     static participantService: IParticipantService;
     static auditClient: IAuditClient;
-    
+
     static async start(
         logger?:ILogger,
         expressServer?: Server,
@@ -201,7 +201,7 @@ export class Service {
         participantLogger.setLogLevel(LogLevel.INFO);
         participantService = new ParticipantAdapter(participantLogger, PARTICIPANTS_SVC_URL, authRequester, HTTP_CLIENT_TIMEOUT_MS);
         this.participantService = participantService;
-        
+
         await Service.setupEventHandlers();
 
         const app = await Service.setupExpress(logger);
@@ -224,13 +224,13 @@ export class Service {
             kafkaBrokerList: KAFKA_URL,
             kafkaGroupId: `${BC_NAME}_${APP_NAME}`,
         };
-    
+
         const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
             kafkaBrokerList: KAFKA_URL,
             producerClientId: `${BC_NAME}_${APP_NAME}`,
             skipAcknowledgements: true,
         };
-    
+
         accountEvtHandler = new AccountLookupEventHandler(
             this.logger,
             kafkaJsonConsumerOptions,
@@ -239,7 +239,7 @@ export class Service {
             this.participantService
         );
         await accountEvtHandler.init();
-    
+
         quotingEvtHandler = new QuotingEventHandler(
             this.logger,
             kafkaJsonConsumerOptions,
@@ -248,7 +248,7 @@ export class Service {
             this.participantService
         );
         await quotingEvtHandler.init();
-    
+
         transferEvtHandler = new TransferEventHandler(
             this.logger,
             kafkaJsonConsumerOptions,
@@ -257,7 +257,7 @@ export class Service {
             this.participantService
         );
         await transferEvtHandler.init();
-    
+
     }
 
     static async setupExpress(loggerParam:ILogger): Promise<Server> {
@@ -265,22 +265,22 @@ export class Service {
         app.use(express.json({
             limit: "100mb",
             type: (req)=>{
-                const contentLength = req.headers['content-length'];
+                const contentLength = req.headers["content-length"];
                 if(contentLength) {
                     // We need to send this as a number
-                    req.headers['content-length']= parseInt(contentLength) as unknown as string;
+                    req.headers["content-length"]= parseInt(contentLength) as unknown as string;
                 }
-                
+
                 return req.headers["content-type"]?.toUpperCase()==="application/json".toUpperCase()
                     || req.headers["content-type"]?.startsWith("application/vnd.interoperability.")
                     || false;
             }
         })); // for parsing application/json
-        app.use(express.urlencoded({limit: '100mb', extended: true})); // for parsing application/x-www-form-urlencoded
-    
+        app.use(express.urlencoded({limit: "100mb", extended: true})); // for parsing application/x-www-form-urlencoded
+
         // Call header validation
         app.use(validateHeaders);
-        
+
         // Call the request validator in every request
         app.use(validator.match());
 
@@ -289,21 +289,21 @@ export class Service {
         this.quotesRoutes = new QuoteRoutes(kafkaProducerOptions,  KAFKA_QUOTES_LOOKUP_TOPIC, loggerParam);
         this.bulkQuotesRoutes = new QuoteBulkRoutes(kafkaProducerOptions, KAFKA_QUOTES_LOOKUP_TOPIC, loggerParam);
         this.transfersRoutes = new TransfersRoutes(kafkaProducerOptions,  KAFKA_TRANSFERS_TOPIC, loggerParam);
-        
+
         await this.participantRoutes.init();
         await this.partyRoutes.init();
         await this.quotesRoutes.init();
         await this.bulkQuotesRoutes.init();
         await this.transfersRoutes.init();
-        
+
         app.use(`/${PARTICIPANTS_URL_RESOURCE_NAME}`, this.participantRoutes.router);
         app.use(`/${PARTIES_URL_RESOURCE_NAME}`, this.partyRoutes.router);
         app.use(`/${QUOTES_URL_RESOURCE_NAME}`, this.quotesRoutes.router);
         app.use(`/${BULK_QUOTES_URL_RESOURCE_NAME}`, this.bulkQuotesRoutes.router);
         app.use(`/${TRANSFERS_URL_RESOURCE_NAME}`, this.transfersRoutes.router);
 
-        
-        app.use((err: FspiopHttpRequestError, req: express.Request, res: express.Response, next: express.NextFunction) => {
+
+        app.use((err: FspiopHttpRequestError, req: express.Request, res: express.Response) => {
             const errorResponseBuilder = (errorCode: string, errorDescription: string, additionalProperties = {}) => {
                 return {
                     errorInformation: {
@@ -313,15 +313,15 @@ export class Service {
                     }
                 };
             };
-            
+
             const statusCode = err.statusCode || 500;
 
             const extensionList = [{
-                key: 'keyword',
+                key: "keyword",
                 value: err.data[0].keyword
             },
             {
-                key: 'instancePath',
+                key: "instancePath",
                 value: err.data[0].instancePath
             }];
             for (const [key, value] of Object.entries(err.data[0].params)) {
@@ -341,7 +341,7 @@ export class Service {
             res.set(customHeaders);
 
             let errorCode:string;
-            let errorType = err.data[0].instancePath;
+            const errorType = err.data[0].instancePath;
 
             switch(true) {
                 case errorType.includes("body"): {
@@ -352,7 +352,7 @@ export class Service {
                     errorCode = "3102";
                     break;
                 }
-                default: 
+                default:
                     errorCode = "3100";
             }
 
@@ -365,7 +365,7 @@ export class Service {
             res.sendStatus(404);
             next();
         });
-    
+
         return createServer(app);
     }
 

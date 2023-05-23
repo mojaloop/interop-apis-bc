@@ -30,7 +30,7 @@
  ******/
 
  "use strict";
- 
+
 import * as kafka from "kafka-node";
 
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
@@ -41,7 +41,7 @@ export const getCurrentKafkaOffset = (topic: string): Promise<kafka.Message> => 
     });
 
     const offset = new kafka.Offset(client);
-    
+
     return new Promise((resolve, reject) => offset.fetchLatestOffsets([topic], (error, data) => {
         const partitions:(string | kafka.OffsetFetchRequest)[] = [];
 
@@ -52,18 +52,18 @@ export const getCurrentKafkaOffset = (topic: string): Promise<kafka.Message> => 
                 offset: (value as number)-1, // Offset value starts from 0
             });
         }
-        
+
         const consumer = new kafka.Consumer(
             client,
-            partitions, 
+            partitions,
             {
                 autoCommit: false,
                 fromOffset: true,
             }
         );
-        consumer.on('message', async function (message) {
+        consumer.on("message", async function (message) {
             error? reject(error) : resolve(message);
-            
+
             consumer.close(false, () => {
                 client.close();
             });

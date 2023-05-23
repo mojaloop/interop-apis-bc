@@ -36,12 +36,12 @@ import request from "supertest";
 import { Service } from "@mojaloop/interop-apis-bc-fspiop-api-svc";
 import { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
 import path from "path";
-import jestOpenAPI from 'jest-openapi';
+import jestOpenAPI from "jest-openapi";
 import { getHeaders, defaultEntryValidRequest, missingPropertyResponse, unknownHeaderResponse } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 
 // Sets the location of your OpenAPI Specification file
-jestOpenAPI(path.join(__dirname, '../../../../packages/fspiop-api-svc/dist/api_spec.yaml'));
+jestOpenAPI(path.join(__dirname, "../../../../packages/fspiop-api-svc/dist/api_spec.yaml"));
 
 const server = process.env["SVC_DEFAULT_URL"] || "http://localhost:4000";
 
@@ -57,11 +57,11 @@ describe("FSPIOP API Service Participant Routes", () => {
     beforeAll(async () => {
         await Service.start();
     });
-    
+
     afterAll(async () => {
         await Service.stop();
     });
-    
+
     it("should successfully call getPartyQueryReceivedByTypeAndId endpoint", async () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(topic);
@@ -73,12 +73,12 @@ describe("FSPIOP API Service Participant Routes", () => {
         let sentMessagesCount = 0;
         let expectedOffsetMessage;
         const currentOffset = await getCurrentKafkaOffset(topic);
-        
+
         if (currentOffset.offset && expectedOffset.offset) {
             sentMessagesCount = currentOffset.offset - expectedOffset.offset;
             expectedOffsetMessage = JSON.parse(currentOffset.value as string);
         }
-        
+
         // Assert
         expect(res.statusCode).toEqual(202);
         expect(res.body).toStrictEqual(defaultEntryValidRequest);
@@ -97,12 +97,12 @@ describe("FSPIOP API Service Participant Routes", () => {
         let sentMessagesCount = 0;
         let expectedOffsetMessage;
         const currentOffset = await getCurrentKafkaOffset(topic);
-        
+
         if (currentOffset.offset && expectedOffset.offset) {
             sentMessagesCount = currentOffset.offset - expectedOffset.offset;
             expectedOffsetMessage = JSON.parse(currentOffset.value as string);
         }
-        
+
         // Assert
         expect(res.statusCode).toEqual(202);
         expect(res.body).toStrictEqual(defaultEntryValidRequest);
@@ -133,7 +133,7 @@ describe("FSPIOP API Service Participant Routes", () => {
 
         // Act
         const expectedOffset = await getCurrentKafkaOffset(topic);
-        
+
         const res = await request(server)
         .put(pathWithoutSubType)
         .send(payload)
@@ -142,12 +142,12 @@ describe("FSPIOP API Service Participant Routes", () => {
         let sentMessagesCount = 0;
         let expectedOffsetMessage;
         const currentOffset = await getCurrentKafkaOffset(topic);
-        
+
         if (currentOffset.offset && expectedOffset.offset) {
             sentMessagesCount = currentOffset.offset - expectedOffset.offset;
             expectedOffsetMessage = JSON.parse(currentOffset.value as string);
         }
-        
+
         // Assert
         expect(res.statusCode).toEqual(202);
         expect(res.body).toStrictEqual(defaultEntryValidRequest);
@@ -187,12 +187,12 @@ describe("FSPIOP API Service Participant Routes", () => {
         let sentMessagesCount = 0;
         let expectedOffsetMessage;
         const currentOffset = await getCurrentKafkaOffset(topic);
-        
+
         if (currentOffset.offset && expectedOffset.offset) {
             sentMessagesCount = currentOffset.offset - expectedOffset.offset;
             expectedOffsetMessage = JSON.parse(currentOffset.value as string);
         }
-        
+
         // Assert
         expect(res.statusCode).toEqual(202);
         expect(res.body).toStrictEqual(defaultEntryValidRequest);
@@ -210,11 +210,11 @@ describe("FSPIOP API Service Participant Routes", () => {
 
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
-        
+
         if (currentOffset.offset && expectedOffset.offset) {
             sentMessagesCount = currentOffset.offset - expectedOffset.offset;
         }
-        
+
         // Assert
         expect(res.statusCode).toEqual(400);
         expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"));
@@ -231,11 +231,11 @@ describe("FSPIOP API Service Participant Routes", () => {
 
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
-        
+
         if (currentOffset.offset && expectedOffset.offset) {
             sentMessagesCount = currentOffset.offset - expectedOffset.offset;
         }
-        
+
         // Assert
         expect(res.statusCode).toEqual(400);
         expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"));
@@ -252,11 +252,11 @@ describe("FSPIOP API Service Participant Routes", () => {
 
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
-        
+
         if (currentOffset.offset && expectedOffset.offset) {
             sentMessagesCount = currentOffset.offset - expectedOffset.offset;
         }
-        
+
         // Assert
         expect(res.statusCode).toEqual(400);
         expect(res.body).toStrictEqual(missingPropertyResponse("party", "body"));
@@ -273,16 +273,16 @@ describe("FSPIOP API Service Participant Routes", () => {
 
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
-        
+
         if (currentOffset.offset && expectedOffset.offset) {
             sentMessagesCount = currentOffset.offset - expectedOffset.offset;
         }
-        
+
         // Assert
         expect(res.statusCode).toEqual(400);
         expect(res.body).toStrictEqual(missingPropertyResponse("party", "body"));
         expect(sentMessagesCount).toBe(0);
-        
+
     });
 
     //TTK Negative Paths
@@ -293,7 +293,7 @@ describe("FSPIOP API Service Participant Routes", () => {
         const res = await request(server)
         .get(pathWithoutSubType)
         .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["fspiop-source"]));
-        
+
         // Assert
         expect(res.statusCode).toEqual(400);
         expect(res.body).toStrictEqual(missingPropertyResponse("fspiop-source", "headers"));
@@ -306,33 +306,33 @@ describe("FSPIOP API Service Participant Routes", () => {
         const res = await request(server)
         .get(pathWithoutSubType)
         .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["date"]));
-        
+
         // Assert
         expect(res.statusCode).toEqual(400);
         expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"));
         expect(res).toSatisfyApiSpec();
 
     });
-    
+
     it("Party info with missing content header", async () => {
         // Act
         const res = await request(server)
         .get(pathWithoutSubType)
         .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["content-type"]));
-        
+
         // Assert
         expect(res.statusCode).toEqual(400);
         expect(res.body).toStrictEqual(missingPropertyResponse("content-type", "headers"));
         expect(res).toSatisfyApiSpec();
 
     });
-        
+
     it("Party info with missing accept header", async () => {
         // Act
         const res = await request(server)
         .get(pathWithoutSubType)
         .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["accept"]));
-        
+
         // Assert
         expect(res.statusCode).toEqual(400);
         expect(res.body).toStrictEqual(missingPropertyResponse("accept", "headers"));
@@ -342,24 +342,24 @@ describe("FSPIOP API Service Participant Routes", () => {
 
     //#region Party info of unprovisioned party
     it("Party info of unprovisioned party", async () => {
-        // Act        
+        // Act
         const res = await request(server)
         .get(pathWithoutSubType)
         .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
-        
+
         // Assert
         expect(res.statusCode).toEqual(202);
         expect(res.body).toStrictEqual(defaultEntryValidRequest);
         expect(res).toSatisfyApiSpec();
 
     });
-    
+
     it("Party info of unused type", async () => {
         // Act
         const res = await request(server)
         .get(pathWithoutSubType)
         .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
-        
+
         // Assert
         expect(res.statusCode).toEqual(202);
         expect(res.body).toStrictEqual(defaultEntryValidRequest);
@@ -374,18 +374,18 @@ describe("FSPIOP API Service Participant Routes", () => {
         const res = await request(server)
         .get(pathWithoutSubType)
         .set(getHeaders(Enums.EntityTypeEnum.PARTIES, [], { "date": "thursday" }));
-        
+
         // Assert
         expect(res.statusCode).toEqual(202);
         expect(res.body).toStrictEqual(defaultEntryValidRequest);
         expect(res).toSatisfyApiSpec();
     });
-    
+
     it("Party info with wrong content header(BUG)", async () => {
         // Act
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, [], { "content-type": "application/vnd.interoperability.parties+xml;version=15.5" }));      
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, [], { "content-type": "application/vnd.interoperability.parties+xml;version=15.5" }));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -397,33 +397,33 @@ describe("FSPIOP API Service Participant Routes", () => {
         // Act
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, [], { "accept": "application/vnd.interoperability.parties+xml;version=3.0" }));      
-        
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, [], { "accept": "application/vnd.interoperability.parties+xml;version=3.0" }));
+
         // Assert
         expect(res.statusCode).toEqual(400);
         expect(res.body).toStrictEqual(unknownHeaderResponse);
         expect(res).toSatisfyApiSpec();
     });
     //#region
-    
+
     //#region Get Party with wrong optional headers
     it("Get party information", async () => {
         // Act
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));      
-        
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
+
         // Assert
         expect(res.statusCode).toEqual(202);
         expect(res.body).toStrictEqual(defaultEntryValidRequest);
         expect(res).toSatisfyApiSpec();
     });
-    
+
     it("Get party information with wrong optional HTTP header", async () => {
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));      
-        
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
+
         // Assert
         expect(res.statusCode).toEqual(202);
         expect(res.body).toStrictEqual(defaultEntryValidRequest);
