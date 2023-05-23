@@ -262,6 +262,8 @@ export class TransferEventHandler extends BaseEventHandler {
         const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
         const destinationFspId = payload.payeeFsp;
 
+        // TODO validate vars above
+
         const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
         if(!requestedEndpoint){
@@ -300,6 +302,7 @@ export class TransferEventHandler extends BaseEventHandler {
             this._logger.info("_handleTransferPreparedEvt -> end");
 
         } catch (error: unknown) {
+            this._logger.error(error);
             this._sendErrorFeedbackToFsp({
                 error: error,
                 headers: clonedHeaders,
@@ -319,6 +322,8 @@ export class TransferEventHandler extends BaseEventHandler {
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
         const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
         const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+
+        // TODO validate vars above
 
         const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
@@ -359,6 +364,7 @@ export class TransferEventHandler extends BaseEventHandler {
             this._logger.info("_handleTransferCommittedFulfiledEvt -> end");
 
         } catch (error: unknown) {
+            this._logger.error(error);
             this._sendErrorFeedbackToFsp({
                 error: error,
                 headers: clonedHeaders,
@@ -378,6 +384,8 @@ export class TransferEventHandler extends BaseEventHandler {
 
             const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
             const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+
+            // TODO validate vars above
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
@@ -406,7 +414,7 @@ export class TransferEventHandler extends BaseEventHandler {
             this._logger.info("_handleTransferQueryResponseEvt -> end");
 
         } catch (error: unknown) {
-            this._logger.info("_handleTransferQueryResponseEvt -> error");
+            this._logger.error("_handleTransferQueryResponseEvt -> error");
             throw Error("_handleTransferQueryResponseEvt -> error");
         }
 

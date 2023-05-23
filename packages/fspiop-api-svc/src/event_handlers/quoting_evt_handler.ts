@@ -113,7 +113,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             const partyId = message.payload.partyId as string;
             const partySubType = message.payload.partySubType as string;
 
-            this._sendErrorFeedbackToFsp({
+            await this._sendErrorFeedbackToFsp({
                 message: message,
                 error: message.msgName,
                 errorCode: "2100",
@@ -139,7 +139,9 @@ export class QuotingEventHandler extends BaseEventHandler {
         const quoteId = payload.quoteId as string;
         const bulkQuoteId = payload.bulkQuoteId as string;
 
-        const requestedEndpoint = (await this._validateParticipantAndGetEndpoint(requesterFspId));
+        // TODO validate vars above
+
+        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
         if(!requestedEndpoint) {
             throw Error(`fspId ${requesterFspId} has no valid participant associated`);
@@ -201,7 +203,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             }
         }
 
-        this._sendErrorFeedbackToFsp({
+        await this._sendErrorFeedbackToFsp({
             message: message,
             error: message.payload.errorInformation.errorDescription,
             errorCode: errorCode,
@@ -224,6 +226,9 @@ export class QuotingEventHandler extends BaseEventHandler {
             const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
 
+            // TODO validate vars above
+
+            // TODO validate payload.payee.partyIdInfo.fspId actually exists
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(payload.payee.partyIdInfo.fspId as string);
 
             if(!requestedEndpoint) {
@@ -250,11 +255,9 @@ export class QuotingEventHandler extends BaseEventHandler {
             this._logger.info("_handleQuotingCreatedRequestReceivedEvt -> end");
 
         } catch (error: unknown) {
-            this._logger.info("_handleQuotingCreatedRequestReceivedEvt -> error");
+            this._logger.error(error,"_handleQuotingCreatedRequestReceivedEvt -> error");
             throw Error("_handleQuotingCreatedRequestReceivedEvt -> error");
         }
-
-        return;
     }
 
     private async _handleQuotingResponseAcceptedEvt(message: QuoteResponseAccepted, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
@@ -264,6 +267,8 @@ export class QuotingEventHandler extends BaseEventHandler {
             const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
             const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+
+            // TODO validate vars above
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
@@ -292,7 +297,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             this._logger.info("_handleQuotingResponseAcceptedEvt -> end");
 
         } catch (error: unknown) {
-            this._logger.info("_handleQuotingResponseAcceptedEvt -> error");
+            this._logger.error(error,"_handleQuotingResponseAcceptedEvt -> error");
             throw Error("_handleQuotingResponseAcceptedEvt -> error");
         }
 
@@ -305,6 +310,8 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
             const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+
+            // TODO validate vars above
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
@@ -334,7 +341,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             this._logger.info("_handleQuotingQueryResponseEvt -> end");
 
         } catch (error: unknown) {
-            this._logger.info("_handleQuotingQueryResponseEvt -> error");
+            this._logger.error(error,"_handleQuotingQueryResponseEvt -> error");
             throw Error("_handleQuotingQueryResponseEvt -> error");
         }
 
@@ -347,6 +354,8 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
             const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+
+            // TODO validate vars above
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
@@ -374,7 +383,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             this._logger.info("_handleBulkQuotingRequestReceivedEvt -> end");
 
         } catch (error: unknown) {
-            this._logger.info("_handleBulkQuotingRequestReceivedEvt -> error");
+            this._logger.error(error, "_handleBulkQuotingRequestReceivedEvt -> error");
             throw Error("_handleBulkQuotingRequestReceivedEvt -> error");
         }
 
@@ -388,6 +397,8 @@ export class QuotingEventHandler extends BaseEventHandler {
             const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
             const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+
+            // TODO validate vars above
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
@@ -416,7 +427,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             this._logger.info("_handleBulkQuoteAcceptedResponseEvt -> end");
 
         } catch (error: unknown) {
-            this._logger.info("_handleBulkQuoteAcceptedResponseEvt -> error");
+            this._logger.error(error, "_handleBulkQuoteAcceptedResponseEvt -> error");
             throw Error("_handleBulkQuoteAcceptedResponseEvt -> error");
         }
 
