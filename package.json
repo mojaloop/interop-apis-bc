@@ -20,9 +20,9 @@
     "start:fspiop-api-svc": "npm -w @mojaloop/interop-apis-bc-fspiop-api-svc run start",
     "build": "npm -ws run build",
     "watch": "npm -ws  run watch",
-    "clean": "npm run clean:dist; npm run clean:npm",
-    "clean:npm": "rm -Rf node_modules; npm -ws run clean:npm",
-    "clean:dist": "rm -Rf dist; npm -ws run clean:dist",
+    "clean": "(npm run clean:dist || true) && npm run clean:npm",
+    "clean:npm": "(rm -Rf node_modules || true) && npm -ws run clean:npm",
+    "clean:dist": "(rm -Rf dist || true) && npm -ws run clean:dist",
     "docker:build": "npm run build && docker build . -t \"mojaloop/interop-apis-bc-fspiop-api-svc\"",
     "pretest": "echo 'FIX ME'",
     "standard": "npm run --no-progress --stream lint'",
@@ -37,8 +37,8 @@
     "coverage:gen-report": "nyc report --reporter=lcov --temp-dir=./coverage",
     "audit:resolve": "npm -ws run audit:resolve",
     "audit:check": "npm -ws run audit:check",
-    "dep:check": "ncu -e 2; npm -ws run dep:check",
-    "dep:update": "ncu -e 2 -u; npm -ws run dep:update"
+    "dep:check": "(ncu -e 2 || true) && npm -ws run dep:check",
+    "dep:update": "(ncu -e 2 -u || true) && npm -ws run dep:update"
   },
   "devDependencies": {
     "@mojaloop/interop-apis-bc-shared-mocks-lib": "*",

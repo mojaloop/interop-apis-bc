@@ -59,7 +59,7 @@ import {
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { ParticipantsPutId, ParticipantsPutTypeAndId, PartiesPutTypeAndId, PartiesPutTypeAndIdAndSubId } from "../errors";
 import { IncomingHttpHeaders } from "http";
-import { BaseEventHandler } from "./base_event_handler";
+import { BaseEventHandler, HandlerNames } from "./base_event_handler";
 import { IParticipantService } from "../interfaces/infrastructure";
 
 export class AccountLookupEventHandler extends BaseEventHandler {
@@ -72,6 +72,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             participantService: IParticipantService
     ) {
         super(logger, consumerOptions, producerOptions, kafkaTopics, participantService);
+        this._handlerName = HandlerNames.AccountLookUp;
     }
 
     async processMessage (sourceMessage: IMessage) : Promise<void> {
@@ -84,20 +85,6 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             }
 
             switch(message.msgName){
-                case AccountLookUpUnknownErrorEvent.name:
-                case AccountLookupBCInvalidMessagePayloadErrorEvent.name:
-                case AccountLookupBCInvalidMessageTypeErrorEvent.name:
-                case AccountLookupBCUnableToAssociateParticipantErrorEvent.name:
-                case AccountLookupBCUnableToDisassociateParticipantErrorEvent.name:
-                case AccountLookupBCParticipantNotFoundErrorEvent.name:
-                case AccountLookupBCInvalidParticipantIdErrorEvent.name:
-                case AccountLookupBCUnableToGetOracleFromOracleFinderErrorEvent.name:
-                case AccountLookupBCOracleNotFoundErrorEvent.name:
-                case AccountLookupBCOracleAdapterNotFoundErrorEvent.name:
-                case AccountLookupBCUnableToGetParticipantFspIdErrorEvent.name:
-                case AccountLookupBCParticipantFspIdNotFoundErrorEvent.name:
-                    await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState);
-                    break;
                 case ParticipantAssociationCreatedEvt.name:
                     await this._handleParticipantAssociationRequestReceivedEvt(new ParticipantAssociationCreatedEvt(message.payload), message.fspiopOpaqueState);
                     break;
@@ -112,6 +99,20 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                     break;
                 case ParticipantQueryResponseEvt.name:
                     await this._handleParticipantQueryResponseEvt(new ParticipantQueryResponseEvt(message.payload), message.fspiopOpaqueState);
+                    break;
+                case AccountLookUpUnknownErrorEvent.name:
+                case AccountLookupBCInvalidMessagePayloadErrorEvent.name:
+                case AccountLookupBCInvalidMessageTypeErrorEvent.name:
+                case AccountLookupBCUnableToAssociateParticipantErrorEvent.name:
+                case AccountLookupBCUnableToDisassociateParticipantErrorEvent.name:
+                case AccountLookupBCParticipantNotFoundErrorEvent.name:
+                case AccountLookupBCInvalidParticipantIdErrorEvent.name:
+                case AccountLookupBCUnableToGetOracleFromOracleFinderErrorEvent.name:
+                case AccountLookupBCOracleNotFoundErrorEvent.name:
+                case AccountLookupBCOracleAdapterNotFoundErrorEvent.name:
+                case AccountLookupBCUnableToGetParticipantFspIdErrorEvent.name:
+                case AccountLookupBCParticipantFspIdNotFoundErrorEvent.name:
+                    await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState);
                     break;
                 default:
                     this._logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
@@ -171,77 +172,23 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         urlBuilder.hasError(true);
 
         const extensionList = [];
-        let list: string[] = [];
-        let errorCode = "1000"; // Default error code
 
-        switch(message.msgName){
-            case AccountLookupBCUnableToAssociateParticipantErrorEvent.name:
-            case AccountLookupBCUnableToDisassociateParticipantErrorEvent.name: {
-                list = ["partyType", "partyId", "partySubType", "fspId"];
-                errorCode = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR;
+        const errorResponse = this.buildErrorResponseBasedOnErrorEvent(message, clonedHeaders);
+        const errorsList = errorResponse.list;
 
-                break;
-            }
-            case AccountLookupBCParticipantNotFoundErrorEvent.name:
-            case AccountLookupBCUnableToGetParticipantFspIdErrorEvent.name:
-            case AccountLookupBCParticipantFspIdNotFoundErrorEvent.name: {
-                list = ["partyType", "partyId", "partySubType", "fspId"];
-
-                if(clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === message.payload.fspId) {
-                    errorCode = Enums.ClientErrorCodes.PAYER_FSP_ID_NOT_FOUND;
-                } else {
-                    errorCode = Enums.ClientErrorCodes.PAYEE_FSP_ID_NOT_FOUND;
-                }
-
-                break;
-            }
-            case AccountLookupBCInvalidParticipantIdErrorEvent.name: {
-                list = ["partyType", "partyId", "partySubType", "fspId"];
-
-                if(clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === message.payload.fspId) {
-                    errorCode = Enums.ClientErrorCodes.GENERIC_CLIENT_ERROR;
-                } else {
-                    errorCode = Enums.ClientErrorCodes.DESTINATION_FSP_ERROR;
-                }
-
-                break;
-            }
-            case AccountLookupBCInvalidMessagePayloadErrorEvent.name:
-            case AccountLookupBCInvalidMessageTypeErrorEvent.name:
-            case AccountLookupBCUnableToGetOracleFromOracleFinderErrorEvent.name:
-            case AccountLookupBCOracleNotFoundErrorEvent.name:
-            case AccountLookupBCOracleAdapterNotFoundErrorEvent.name: {
-
-                list = ["partyType", "partyId", "partySubType", "fspId"];
-                errorCode = Enums.ClientErrorCodes.GENERIC_CLIENT_ERROR;
-
-                break;
-            }
-            case AccountLookUpUnknownErrorEvent.name: {
-                list = ["partyType", "partyId", "partySubType", "fspId"];
-                errorCode = Enums.ServerErrorCodes.INTERNAL_SERVER_ERROR;
-
-                break;
-            }
-            default: {
-                this._logger.warn(`Cannot handle error message of type: ${message.msgName}, ignoring`);
-                break;
-            }
-        }
-
-        for(let i=0 ; i<list.length ; i+=1){
-            if(payload[list[i]]) {
+        for(let i=0 ; i<errorsList.length ; i+=1){
+            if(payload[errorsList[i]]) {
                 extensionList.push({
-                    key: list[i],
-                    value: payload[list[i]]
+                    key: errorsList[i],
+                    value: payload[errorsList[i]]
                 });
             }
         }
 
         await this._sendErrorFeedbackToFsp({
             message: message,
-            error: message.payload.errorInformation.errorDescription,
-            errorCode: errorCode,
+            error: errorResponse.errorDescription,
+            errorCode: errorResponse.errorCode,
             headers: clonedHeaders,
             source: requesterFspId,
             id: [partyType, partyId, partySubType],
@@ -251,6 +198,70 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         this._logger.info("_handleAccountLookupErrorReceivedEvt -> end");
 
         return;
+    }
+
+    private buildErrorResponseBasedOnErrorEvent(message: IDomainMessage, clonedHeaders: any): { list: string[], errorCode: string, errorDescription: string } {
+        const errorResponse: { list: string[], errorCode: string, errorDescription: string } =
+        {
+            list : [],
+            errorCode : "1000", // Default error code
+            errorDescription : "Unknown error event type received for account lookup",
+        };
+
+        switch (message.msgName) {
+            case AccountLookupBCUnableToAssociateParticipantErrorEvent.name:
+            case AccountLookupBCUnableToDisassociateParticipantErrorEvent.name: {
+                errorResponse.list = ["partyType", "partyId", "partySubType", "fspId"];
+                errorResponse.errorCode = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR;
+                errorResponse.errorDescription = message.payload.errorInformation.errorDescription;
+                break;
+            }
+            case AccountLookupBCParticipantNotFoundErrorEvent.name:
+            case AccountLookupBCUnableToGetParticipantFspIdErrorEvent.name:
+            case AccountLookupBCParticipantFspIdNotFoundErrorEvent.name: {
+                errorResponse.list = ["partyType", "partyId", "partySubType", "fspId"];
+                //TODO: Create error event in account lookup for destination and source participants
+                if (clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === message.payload.fspId) {
+                    errorResponse.errorCode = Enums.ClientErrorCodes.PAYER_FSP_ID_NOT_FOUND;
+                } else {
+                    errorResponse.errorCode = Enums.ClientErrorCodes.PAYEE_FSP_ID_NOT_FOUND;
+                }
+                errorResponse.errorDescription = message.payload.errorInformation.errorDescription;
+                break;
+            }
+            case AccountLookupBCInvalidParticipantIdErrorEvent.name: {
+                errorResponse.list = ["partyType", "partyId", "partySubType", "fspId"];
+                //TODO: Create error event in account lookup for destination and source participants
+                if (clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === message.payload.fspId) {
+                    errorResponse.errorCode = Enums.ClientErrorCodes.GENERIC_CLIENT_ERROR;
+                } else {
+                    errorResponse.errorCode = Enums.ClientErrorCodes.DESTINATION_FSP_ERROR;
+                }
+                errorResponse.errorDescription = message.payload.errorInformation.errorDescription;
+                break;
+            }
+            case AccountLookupBCInvalidMessagePayloadErrorEvent.name:
+            case AccountLookupBCInvalidMessageTypeErrorEvent.name:
+            case AccountLookupBCUnableToGetOracleFromOracleFinderErrorEvent.name:
+            case AccountLookupBCOracleNotFoundErrorEvent.name:
+            case AccountLookupBCOracleAdapterNotFoundErrorEvent.name: {
+                errorResponse.list = ["partyType", "partyId", "partySubType", "fspId"];
+                errorResponse.errorCode = Enums.ClientErrorCodes.GENERIC_CLIENT_ERROR;
+                errorResponse.errorDescription = message.payload.errorInformation.errorDescription;
+                break;
+            }
+            case AccountLookUpUnknownErrorEvent.name: {
+                errorResponse.list = ["partyType", "partyId", "partySubType", "fspId"];
+                errorResponse.errorCode = Enums.ServerErrorCodes.INTERNAL_SERVER_ERROR;
+                errorResponse.errorDescription = message.payload.errorInformation.errorDescription;
+                break;
+            }
+            default: {
+                this._logger.warn(`Cannot handle error message of type: ${message.msgName}, ignoring`);
+                break;
+            }
+        }
+        return errorResponse;
     }
 
     private async _handleParticipantAssociationRequestReceivedEvt(message: ParticipantAssociationCreatedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{

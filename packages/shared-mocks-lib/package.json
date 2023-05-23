@@ -20,9 +20,8 @@
   "scripts": {
     "build": "tsc",
     "clean:dist": "rm -rf dist",
-    "clean:node-modules": "rm -rf node_modules",
-    "clean:dist-and-node-modules": "rm -rf dist node_modules",
-    "clean": "npm run clean:dist",
+    "clean:npm": "rm -rf node_modules",
+    "clean": "(npm run clean:npm || true) && npm run clean:dist",
     "audit:check": "npm npm audit",
     "dep:check": "ncu -e 2",
     "dep:update": "ncu -u",

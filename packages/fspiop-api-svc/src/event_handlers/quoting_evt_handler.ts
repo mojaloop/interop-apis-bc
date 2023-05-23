@@ -56,7 +56,7 @@ import {
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { IncomingHttpHeaders } from "http";
-import { BaseEventHandler } from "./base_event_handler";
+import { BaseEventHandler, HandlerNames } from "./base_event_handler";
 import { QuotesPost } from "../errors";
 import { IParticipantService } from "../interfaces/infrastructure";
 
@@ -69,6 +69,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             participantService: IParticipantService
     ) {
         super(logger, consumerOptions, producerOptions, kafkaTopics, participantService);
+        this._handlerName = HandlerNames.Quotes;
     }
 
     async processMessage (sourceMessage: IMessage) : Promise<void> {
@@ -154,59 +155,23 @@ export class QuotingEventHandler extends BaseEventHandler {
         urlBuilder.hasError(true);
 
         const extensionList = [];
-        let list: string[] = [];
-        let errorCode = "1000"; // Default error code
+        const isQuoteType = quoteId ? true : false;
+        const errorResponse = this.buildErrorResponseBasedOnErrorEvent(message, isQuoteType);
+        const errorList = errorResponse.list;
 
-        switch(message.msgName){
-            //case QuoteBCInvalidIdErrorEvent.name:
-            case QuoteBCDuplicateQuoteErrorEvent.name:
-            case QuoteBCQuoteNotFoundErrorEvent.name:
-            case QuoteBCBulkQuoteNotFoundErrorEvent.name:
-            case QuoteBCInvalidMessageTypeErrorEvent.name:
-            case QuoteBCParticipantNotFoundErrorEvent.name:
-            case QuoteBCRequiredParticipantIsNotActiveErrorEvent.name:
-            case QuoteBCInvalidRequesterFspIdErrorEvent.name:
-            case QuoteBCInvalidDestinationFspIdErrorEvent.name: {
-                if(quoteId) {
-                    list = ["quoteId", "fspId"];
-                } else {
-                    list = ["bulkQuoteId", "fspId"];
-                }
-
-                errorCode = Enums.ClientErrorCodes.GENERIC_CLIENT_ERROR;
-
-                break;
-            }
-            case QuoteBCUnknownErrorEvent.name: {
-                if(quoteId) {
-                    list = ["quoteId", "fspId"];
-                } else {
-                    list = ["bulkQuoteId", "fspId"];
-                }
-
-                errorCode = Enums.ServerErrorCodes.INTERNAL_SERVER_ERROR;
-
-                break;
-            }
-            default: {
-                this._logger.warn(`Cannot handle error message of type: ${message.msgName}, ignoring`);
-                break;
-            }
-        }
-
-        for(let i=0 ; i<list.length ; i+=1){
-            if(payload[list[i]]) {
+        for(let i=0 ; i<errorList.length ; i+=1){
+            if(payload[errorList[i]]) {
                 extensionList.push({
-                    key: list[i],
-                    value: payload[list[i]]
+                    key: errorList[i],
+                    value: payload[errorList[i]]
                 });
             }
         }
 
         await this._sendErrorFeedbackToFsp({
             message: message,
-            error: message.payload.errorInformation.errorDescription,
-            errorCode: errorCode,
+            error: errorResponse.errorDescription,
+            errorCode: errorResponse.errorCode,
             headers: clonedHeaders,
             source: requesterFspId,
             id: quoteId ? [quoteId] : [bulkQuoteId],
@@ -216,6 +181,56 @@ export class QuotingEventHandler extends BaseEventHandler {
         this._logger.info("_handleQuotingErrorReceivedEvt -> end");
 
         return;
+    }
+
+    private buildErrorResponseBasedOnErrorEvent(message: IDomainMessage, isQuoteType: boolean): { list: string[]; errorCode: string; errorDescription: string} {
+        const errorResponse: { list: string[], errorCode: string, errorDescription: string } =
+        {
+            list : [],
+            errorCode : "1000", // Default error code
+            errorDescription : "Unknown error event type received for quoting",
+        };
+
+        // QuoteBCInvalidMessagePayloadErrorEvent  |
+        // QuoteBCQuoteExpiredErrorEvent | QuoteBCBulkQuoteExpiredErrorEvent | QuoteBCUnableToAddQuoteToDatabaseErrorEvent |
+        // QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent | QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent |
+        // QuoteBCeUnableToUpdateBulkQuoteInDatabaseErrorEvent | QuoteBCInvalidBulkQuoteLengthErrorEvent |
+        //  | QuoteBCUnableToAddQuoteToDatabaseErrorEvent | QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent | QuoteBCUnableToAddQuoteToDatabaseErrorEvent
+
+        switch (message.msgName) {
+            case QuoteBCDuplicateQuoteErrorEvent.name:
+            case QuoteBCQuoteNotFoundErrorEvent.name:
+            case QuoteBCBulkQuoteNotFoundErrorEvent.name:
+            case QuoteBCInvalidMessageTypeErrorEvent.name:
+            case QuoteBCParticipantNotFoundErrorEvent.name:
+            case QuoteBCRequiredParticipantIsNotActiveErrorEvent.name:
+            case QuoteBCInvalidRequesterFspIdErrorEvent.name:
+            case QuoteBCInvalidDestinationFspIdErrorEvent.name: {
+                if (isQuoteType) {
+                    errorResponse.list = ["quoteId", "fspId"];
+                } else {
+                    errorResponse.list = ["bulkQuoteId", "fspId"];
+                }
+                errorResponse.errorCode = Enums.ClientErrorCodes.GENERIC_CLIENT_ERROR;
+                errorResponse.errorDescription = message.payload.errorDescription;
+                break;
+            }
+            case QuoteBCUnknownErrorEvent.name: {
+                if (isQuoteType) {
+                    errorResponse.list = ["quoteId", "fspId"];
+                } else {
+                    errorResponse.list = ["bulkQuoteId", "fspId"];
+                }
+                errorResponse.errorCode = Enums.ServerErrorCodes.INTERNAL_SERVER_ERROR;
+                errorResponse.errorDescription = message.payload.errorDescription;
+                break;
+            }
+            default: {
+                this._logger.warn(`Cannot handle error message of type: ${message.msgName}, ignoring`);
+                break;
+            }
+        }
+        return errorResponse;
     }
 
     private async _handleQuotingCreatedRequestReceivedEvt(message: QuoteRequestAcceptedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{

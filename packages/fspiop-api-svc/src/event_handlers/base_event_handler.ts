@@ -41,18 +41,18 @@ import { IncomingHttpHeaders } from "http";
 import {
     AccountLookUpBCOperatorErrorEvent,
     AccountLookUpBCOperatorErrorPayload,
-    AccountLookupBCTopics,
-    QuotingBCTopics,
     QuoteBCOperatorErrorPayload,
     QuoteBCOperatorErrorEvent,
-    TransfersBCTopics,
     TransfersBCOperatorErrorPayload,
     TransfersBCOperatorErrorEvent
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { AccountLookupEventHandler } from "./account_lookup_evt_handler";
-import { QuotingEventHandler } from "./quoting_evt_handler";
-import { TransferEventHandler } from "./transfers_evt_handler";
+
+export const HandlerNames = {
+    Transfers: 'TransfersEventHandler',
+    AccountLookUp: 'AccountLookUpEventHandler',
+    Quotes: 'QuotesEventHandler',
+} as const;
 
 export abstract class BaseEventHandler implements IEventHandler {
     protected _kafkaConsumer: MLKafkaJsonConsumer;
@@ -62,6 +62,7 @@ export abstract class BaseEventHandler implements IEventHandler {
     protected _producerOptions: MLKafkaJsonProducerOptions;
     protected _kafkaProducer: MLKafkaJsonProducer;
     protected _participantService: IParticipantService;
+    protected _handlerName: string;
 
     constructor(
             logger: ILogger,
@@ -146,39 +147,10 @@ export abstract class BaseEventHandler implements IEventHandler {
                 throw Error(`fspId ${source} has no valid participant associated`);
             }
 
-            const urlBuilder = new Request.URLBuilder(endpoint.value);
-
-            urlBuilder.setLocation(id);
-            urlBuilder.hasError(true);
-
-            const header = message?.fspiopOpaqueState.headers["content-type"];
-            switch(true) {
-                case header.includes("participants"): {
-                    urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
-                    break;
-                }
-                case header.includes("parties"): {
-                    urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
-                    break;
-                }
-                case header.includes("quotes"): {
-                    urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
-                    break;
-                }
-                case header.includes("bulkQuotes"): {
-                    urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);
-                    break;
-                }
-                case header.includes("transfers"): {
-                    urlBuilder.setEntity(Enums.EntityTypeEnum.TRANSFERS);
-                    break;
-                }
-                default:
-                    throw Error();
-            }
+            const url = this.buildFspFeedbackUrl(endpoint, id, message);
 
             await Request.sendRequest({
-                url: urlBuilder.build(),
+                url: url,
                 headers: headers,
                 source: source,
                 destination: headers[Constants.FSPIOP_HEADERS_DESTINATION] || null,
@@ -196,56 +168,98 @@ export abstract class BaseEventHandler implements IEventHandler {
 
             this._logger.error(error);
 
-            switch(this.constructor.name) {
-                case "AccountLookupEventHandler": {
-                    const payload:AccountLookUpBCOperatorErrorPayload = {
-                        partyId: message?.payload.partyId,
-                        partyType: message?.payload.partyId,
-                        fspId: message?.payload.partyId,
-                        partySubType: message?.payload.partyId,
-                        errorDescription: error
-                    };
-
-                    const msg = new AccountLookUpBCOperatorErrorEvent(payload);
-
-                    await this._kafkaProducer.send(msg);
-                    break;
-                }
-                case "QuotingEventHandler": {
-                    const payload:QuoteBCOperatorErrorPayload = {
-                        quoteId: message?.payload.quoteId,
-                        bulkQuoteId: message?.payload.bulkQuoteId,
-                        fspId: message?.payload.quoteId,
-                        errorDescription: error
-                    };
-
-                    const msg = new QuoteBCOperatorErrorEvent(payload);
-
-                    await this._kafkaProducer.send(msg);
-                    break;
-                }
-                case "TransferEventHandler": {
-                    const payload:TransfersBCOperatorErrorPayload = {
-                        transferId: message?.payload.transferId,
-                        fspId: message?.payload.transferId,
-                        errorDescription: error
-                    };
-
-                    const msg = new TransfersBCOperatorErrorEvent(payload);
-
-                    await this._kafkaProducer.send(msg);
-                    break;
-                }
-                default: {
-                    this._logger.error(`not possible to send message ${message?.msgName} event untreated error to corresponding operator error topic`);
-                    break;
-                }
-            }
+            await this.handleErrorEventForFspFeedbackFailure(message, error).catch((err: unknown) => {
+                this._logger.error(`handleErrorEventForFspFeedbackFailure failed with error: ${err}`);
+            });
         }
 
         return;
     }
 
+
+    private async handleErrorEventForFspFeedbackFailure(message: IDomainMessage | undefined, error: string):Promise<void> {
+        let messageToSend: IDomainMessage | undefined;
+        switch (this._handlerName) {
+            case HandlerNames.AccountLookUp: {
+                const payload: AccountLookUpBCOperatorErrorPayload = {
+                    partyId: message?.payload.partyId,
+                    partyType: message?.payload.partyId,
+                    fspId: message?.payload.partyId,
+                    partySubType: message?.payload.partyId,
+                    errorDescription: error
+                };
+
+                messageToSend = new AccountLookUpBCOperatorErrorEvent(payload);
+                break;
+            }
+            case HandlerNames.Quotes: {
+                const payload: QuoteBCOperatorErrorPayload = {
+                    quoteId: message?.payload.quoteId,
+                    bulkQuoteId: message?.payload.bulkQuoteId,
+                    fspId: message?.payload.quoteId,
+                    errorDescription: error
+                };
+
+                messageToSend = new QuoteBCOperatorErrorEvent(payload);
+                break;
+            }
+            case HandlerNames.Transfers: {
+                const payload: TransfersBCOperatorErrorPayload = {
+                    transferId: message?.payload.transferId,
+                    fspId: message?.payload.transferId,
+                    errorDescription: error
+                };
+
+                messageToSend = new TransfersBCOperatorErrorEvent(payload);
+                break;
+            }
+            default: {
+                const errorMessage = `Not possible to send message ${message?.msgName} event untreated error to corresponding operator error topic`;
+                this._logger.error(errorMessage);
+                throw new Error(errorMessage);
+            }
+
+        }
+
+        this._logger.info(`Sending ${messageToSend?.msgName} event `);
+        await this._kafkaProducer.send(messageToSend);
+
+    }
+
+    private buildFspFeedbackUrl(endpoint: IParticipantEndpoint, id: string[], message: IDomainMessage | undefined): string {
+        const urlBuilder = new Request.URLBuilder(endpoint.value);
+
+        urlBuilder.setLocation(id);
+        urlBuilder.hasError(true);
+
+        const header = message?.fspiopOpaqueState.headers["content-type"];
+        switch (true) {
+            case header.includes("participants"): {
+                urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
+                break;
+            }
+            case header.includes("parties"): {
+                urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
+                break;
+            }
+            case header.includes("quotes"): {
+                urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
+                break;
+            }
+            case header.includes("bulkQuotes"): {
+                urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);
+                break;
+            }
+            case header.includes("transfers"): {
+                urlBuilder.setEntity(Enums.EntityTypeEnum.TRANSFERS);
+                break;
+            }
+            default:
+                throw Error("Invalid content type, must be one of participants, parties, quotes, bulkQuotes or transfers");
+        }
+
+        return urlBuilder.build();
+    }
 
     async destroy () : Promise<void> {
         await this._kafkaProducer.destroy();
@@ -254,6 +268,6 @@ export abstract class BaseEventHandler implements IEventHandler {
 
     abstract processMessage (sourceMessage: IMessage): Promise<void>
 
-    abstract _handleErrorReceivedEvt(message: any, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>
+    abstract _handleErrorReceivedEvt(message: IMessage, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>
 
 }

@@ -76,7 +76,7 @@ import {
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { IncomingHttpHeaders } from "http";
-import { BaseEventHandler } from "./base_event_handler";
+import { BaseEventHandler, HandlerNames } from "./base_event_handler";
 import { IParticipantService } from "../interfaces/infrastructure";
 
 const KAFKA_OPERATOR_ERROR_TOPIC = process.env["KAFKA_OPERATOR_ERROR_TOPIC"] || "OperatorBcErrors";
@@ -90,6 +90,7 @@ export class TransferEventHandler extends BaseEventHandler {
             participantService: IParticipantService
     ) {
         super(logger, consumerOptions, producerOptions, kafkaTopics, participantService);
+        this._handlerName = HandlerNames.Transfers;
     }
 
     async processMessage (sourceMessage: IMessage) : Promise<void> {
@@ -101,6 +102,15 @@ export class TransferEventHandler extends BaseEventHandler {
         }
 
         switch(message.msgName){
+            case TransferPreparedEvt.name:
+                await this._handleTransferPreparedEvt(new TransferPreparedEvt(message.payload), message.fspiopOpaqueState);
+                break;
+            case TransferCommittedFulfiledEvt.name:
+                await this._handleTransferCommittedFulfiledEvt(new TransferCommittedFulfiledEvt(message.payload), message.fspiopOpaqueState);
+                break;
+            case TransferQueryResponseEvt.name:
+                await this._handleTransferQueryResponseEvt(new TransferQueryResponseEvt(message.payload), message.fspiopOpaqueState);
+                break;
             case TransferInvalidMessagePayloadEvt.name:
             case TransferInvalidMessageTypeEvt.name:
             case TransferPreparePayerNotFoundFailedEvt.name:
@@ -138,15 +148,6 @@ export class TransferEventHandler extends BaseEventHandler {
             case TransfersBCUnknownErrorEvent.name:
                 await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState);
                 break;
-            case TransferPreparedEvt.name:
-                await this._handleTransferPreparedEvt(new TransferPreparedEvt(message.payload), message.fspiopOpaqueState);
-                break;
-            case TransferCommittedFulfiledEvt.name:
-                await this._handleTransferCommittedFulfiledEvt(new TransferCommittedFulfiledEvt(message.payload), message.fspiopOpaqueState);
-                break;
-            case TransferQueryResponseEvt.name:
-                await this._handleTransferQueryResponseEvt(new TransferQueryResponseEvt(message.payload), message.fspiopOpaqueState);
-                break;
             default:
                 this._logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
                 break;
@@ -154,8 +155,6 @@ export class TransferEventHandler extends BaseEventHandler {
 
         // make sure we only return from the processMessage/handler after completing the request,
         // otherwise this will commit the event and will be lost
-
-
         return;
     }
 
@@ -165,16 +164,49 @@ export class TransferEventHandler extends BaseEventHandler {
         const { payload } = message;
 
         const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-        let sourceFspId = clonedHeaders["fspiop-source"] as string;
+        const sourceFspId = clonedHeaders["fspiop-source"] as string;
         const destinationFspId = clonedHeaders["fspiop-destination"] as string;
         const transferId = payload.transferId as string;
 
         const extensionList = [];
-        let list: string[] = [];
-        let errorCode = "1000"; // Default error code
-        let errorDescription = "";
 
-        switch(message.msgName){
+        const errorResponse = this.buildErrorResponseBasedOnErrorEvent(message, sourceFspId, destinationFspId);
+        const errorsList = errorResponse.list;
+
+        for(let i=0 ; i<errorsList.length ; i+=1){
+            if(payload[errorsList[i]]) {
+                extensionList.push({
+                    key: errorsList[i],
+                    value: payload[errorsList[i]]
+                });
+            }
+        }
+
+        this._sendErrorFeedbackToFsp({
+            message: message,
+            error: errorResponse.errorDescription,
+            errorCode: errorResponse.errorCode,
+            headers: clonedHeaders,
+            source: errorResponse.sourceFspId,
+            id: [transferId],
+            extensionList: extensionList
+        });
+
+        this._logger.info("_handleTransferErrorReceivedEvt -> end");
+
+        return;
+    }
+
+    private buildErrorResponseBasedOnErrorEvent (message: IDomainMessage, sourceFspId:string, destinationFspId:string) : { list: string[], errorCode: string, errorDescription: string, sourceFspId: string } {
+        const errorResponse: { list: string[], errorCode: string, errorDescription: string, sourceFspId: string } =
+        {
+            list : [],
+            errorCode : "1000", // Default error code
+            errorDescription : "Unknown error event type received for transfer",
+            sourceFspId : sourceFspId,
+        };
+
+        switch (message.msgName) {
             case TransferInvalidMessagePayloadEvt.name:
             case TransferInvalidMessageTypeEvt.name:
             case TransferPreparePayerNotFoundFailedEvt.name:
@@ -207,52 +239,28 @@ export class TransferEventHandler extends BaseEventHandler {
             case TransferPreparePayerNotApprovedEvt.name:
             case TransferPreparePayeeNotActiveEvt.name:
             case TransferPreparePayeeNotApprovedEvt.name:
-            case TransfersBCUnknownErrorEvent.name:  {
-                list = ["transferId", "fspId"];
-                errorCode = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR;
-                errorDescription = message.payload.errorDescription;
-
+            case TransfersBCUnknownErrorEvent.name: {
+                errorResponse.list = ["transferId", "fspId"];
+                errorResponse.errorCode = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR;
+                errorResponse.errorDescription = message.payload.errorDescription;
                 break;
             }
 
             case TransferCancelReservationFailedEvt.name:
             case TransferCancelReservationAndCommitFailedEvt.name: {
-                list = ["transferId", "fspId"];
-                errorCode = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR;
-                errorDescription = message.payload.errorDescription;
-
-                sourceFspId = destinationFspId;
+                errorResponse.list = ["transferId", "fspId"];
+                errorResponse.errorCode = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR;
+                errorResponse.errorDescription = message.payload.errorDescription;
+                errorResponse.sourceFspId = destinationFspId;
                 break;
             }
 
             default: {
-                this._logger.warn(`Cannot handle error message of type: ${message.msgName}, ignoring`);
-                break;
+                const errorMessage = `Cannot handle error message of type: ${message.msgName}, ignoring`;
+                this._logger.warn(errorMessage);
             }
         }
-
-        for(let i=0 ; i<list.length ; i+=1){
-            if(payload[list[i]]) {
-                extensionList.push({
-                    key: list[i],
-                    value: payload[list[i]]
-                });
-            }
-        }
-
-        this._sendErrorFeedbackToFsp({
-            message: message,
-            error: errorDescription,
-            errorCode: errorCode,
-            headers: clonedHeaders,
-            source: sourceFspId,
-            id: [transferId],
-            extensionList: extensionList
-        });
-
-        this._logger.info("_handleTransferErrorReceivedEvt -> end");
-
-        return;
+        return errorResponse;
     }
 
     private async _handleTransferPreparedEvt(message: TransferPreparedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
