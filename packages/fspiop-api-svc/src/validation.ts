@@ -1,15 +1,15 @@
 
-const assert = require('assert').strict
-const _ = require('lodash')
+const assert = require("assert").strict
+const _ = require("lodash")
 
 export const protocolVersions = {
-  anyVersion: Symbol('Any'),
-  ONE: ['1', '1.0', '1.1']
+  anyVersion: Symbol("Any"),
+  ONE: ["1", "1.0", "1.1"]
 }
 
 export const protocolVersionsMap = [
-  { key: '1', value: '0' },
-  { key: '1', value: '1' }
+  { key: "1", value: "0" },
+  { key: "1", value: "1" }
 ]
 
 // Some convenience functions for generating regexes for header matching
@@ -27,7 +27,7 @@ export const generateSingleAcceptRegexStr = (resource:any) =>
   `application/vnd\\.interoperability\\.${resource}\\+json(\\s{0,1};\\s{0,1}version=\\d+(\\.\\d+)?)?`
 
 export const parseContentTypeHeader = (resource:any, header:any) => {
-  assert(typeof header === 'string')
+  assert(typeof header === "string")
 
   // Create the validation regex
   const r = generateContentTypeRegex(resource)
@@ -45,7 +45,7 @@ export const parseContentTypeHeader = (resource:any, header:any) => {
 }
 
 export const parseAcceptHeader = (resource:any, header:any) => {
-  assert(typeof header === 'string')
+  assert(typeof header === "string")
 
   // Create the validation regex
   const r = generateAcceptRegex(resource)
@@ -57,10 +57,10 @@ export const parseAcceptHeader = (resource:any, header:any) => {
 
   // The header contains a comma-delimited set of versions, extract these
   const versions = new Set(header
-    .split(',')
+    .split(",")
     // @ts-ignore
     .map(verStr => verStr.match(generateSingleAcceptRegex(resource))[1])
-    .map((match:any) => match === undefined ? protocolVersions.anyVersion : match.split('=')[1])
+    .map((match:any) => match === undefined ? protocolVersions.anyVersion : match.split("=")[1])
   )
 
   return {
@@ -72,7 +72,7 @@ export const parseAcceptHeader = (resource:any, header:any) => {
 export const convertSupportedVersionToExtensionList = (supportedVersions:any) => {
   const supportedVersionsExtensionListMap = []
   for (const version of supportedVersions) {
-    const versionList = version.toString().split('.').filter((num:any) => num !== '')
+    const versionList = version.toString().split(".").filter((num:any) => num !== "")
     if (versionList != null && versionList.length === 2) {
       const versionMap:any = {}
       versionMap.key = versionList[0]
@@ -81,7 +81,7 @@ export const convertSupportedVersionToExtensionList = (supportedVersions:any) =>
     } else if (versionList != null && versionList.length === 1 && version !== protocolVersions.anyVersion) {
       const versionMap:any = {}
       versionMap.key = versionList[0]
-      versionMap.value = '0'
+      versionMap.value = "0"
       supportedVersionsExtensionListMap.push(versionMap)
     }
   }

@@ -32,36 +32,36 @@
  "use strict";
 
 import path from "path";
-import jestOpenAPI from 'jest-openapi';
+import jestOpenAPI from "jest-openapi";
 import waitForExpect from "wait-for-expect";
 import { Request, Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
-import { 
-    BulkQuoteAcceptedEvt, 
-    BulkQuoteAcceptedEvtPayload, 
-    BulkQuoteReceivedEvt, 
-    BulkQuoteReceivedEvtPayload, 
-    QuotingBCInvalidIdErrorEvent, 
-    QuoteErrorPayload, 
-    QuoteQueryResponseEvt, 
-    QuoteQueryResponseEvtPayload, 
-    QuoteRequestAcceptedEvt, 
-    QuoteRequestAcceptedEvtPayload, 
-    QuoteRequestReceivedEvt, 
-    QuoteResponseAccepted, 
-    QuoteResponseAcceptedEvtPayload, 
+import {
+    BulkQuoteAcceptedEvt,
+    BulkQuoteAcceptedEvtPayload,
+    BulkQuoteReceivedEvt,
+    BulkQuoteReceivedEvtPayload,
+    QuotingBCInvalidIdErrorEvent,
+    QuoteErrorPayload,
+    QuoteQueryResponseEvt,
+    QuoteQueryResponseEvtPayload,
+    QuoteRequestAcceptedEvt,
+    QuoteRequestAcceptedEvtPayload,
+    QuoteRequestReceivedEvt,
+    QuoteResponseAccepted,
+    QuoteResponseAcceptedEvtPayload,
     QuotingBCTopics
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Service } from "@mojaloop/interop-apis-bc-fspiop-api-svc";
 import KafkaProducer, { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
 
 // Sets the location of your OpenAPI Specification file
-jestOpenAPI(path.join(__dirname, '../../../../packages/fspiop-api-svc/api-specs/quoting-service/api-swagger.yaml'));
+jestOpenAPI(path.join(__dirname, "../../../../packages/fspiop-api-svc/api-specs/quoting-service/api-swagger.yaml"));
 
 const kafkaProducer = new KafkaProducer();
 
 const KAFKA_QUOTING_TOPIC = process.env["KAFKA_QUOTING_TOPIC"] || QuotingBCTopics.DomainEvents;
-const KAFKA_OPERATOR_ERROR_TOPIC = process.env["KAFKA_OPERATOR_ERROR_TOPIC"] || 'OperatorBcErrors';
+const KAFKA_OPERATOR_ERROR_TOPIC = process.env["KAFKA_OPERATOR_ERROR_TOPIC"] || "OperatorBcErrors";
 
 const quoteEntity = "quotes";
 const bulkQuoteEntity = "bulkQuotes";
@@ -106,7 +106,7 @@ const validPostPayload = {
       refundInfo: null,
       balanceOfPayments: null,
     },
-    
+
     transactionRequestId: null,
     fees: null,
     geoCode: null,
@@ -295,14 +295,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
         const payload: QuoteErrorPayload = {
             requesterFspId: "Greenbank",
             destinationFspId: "test-fspiop-destination",
-            quoteId: '2243fdbe-5dea-3abd-a210-3780e7f2f1f4',
+            quoteId: "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
             errorMessage: "test error message",
             sourceEvent: QuoteRequestReceivedEvt.name,
         };
 
         const event = new QuotingBCInvalidIdErrorEvent(payload);
 
-        event.fspiopOpaqueState = { 
+        event.fspiopOpaqueState = {
             "requesterFspId":"Greenbank",
             "destinationFspId": null,
             "headers":{
@@ -312,7 +312,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
                 "fspiop-source":"Greenbank"
             }
         };
-            
+
         const requestSpy = jest.spyOn(Request, "sendRequest");
 
         // Act
@@ -323,7 +323,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         const res = async () => {
             return await requestSpy.mock.results[requestSpy.mock.results.length].value;
         };
-                    
+
         // Assert
         await waitForExpect(() => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
@@ -340,14 +340,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
         const payload: QuoteErrorPayload = {
             requesterFspId: "test-fspiop-source",
             destinationFspId: "test-fspiop-destination",
-            quoteId: '2243fdbe-5dea-3abd-a210-3780e7f2f1f4',
+            quoteId: "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
             errorMessage: "test error message",
             sourceEvent: "non-existing-source-event",
         };
 
         const event = new QuotingBCInvalidIdErrorEvent(payload);
 
-        event.fspiopOpaqueState = { 
+        event.fspiopOpaqueState = {
             "requesterFspId":"non-existing-requester-id",
             "destinationFspId": null,
             "headers":{
@@ -357,12 +357,12 @@ describe("FSPIOP API Service Quoting Handler", () => {
                 "fspiop-source":"test-fspiop-source"
             }
         };
-            
+
         participantClientSpy.mockResolvedValueOnce(null);
 
         // Act
         const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
-        
+
         kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
 
         await new Promise((r) => setTimeout(r, 5000));
@@ -370,13 +370,13 @@ describe("FSPIOP API Service Quoting Handler", () => {
         let sentMessagesCount = 0;
         let expectedOffsetMessage:any;
         const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
-        
+
         if (currentOffset.offset && expectedOffset.offset) {
             sentMessagesCount = currentOffset.offset - expectedOffset.offset;
             expectedOffsetMessage = JSON.parse(currentOffset.value as string);
         }
-        
-        // Assert        
+
+        // Assert
         await waitForExpect(() => {
             expect(sentMessagesCount).toBe(1);
             expect(expectedOffsetMessage.msgName).toBe(QuotingBCInvalidIdErrorEvent.name);
@@ -388,7 +388,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         const payload: QuoteErrorPayload = {
             requesterFspId: "test-fspiop-source",
             destinationFspId: "test-fspiop-destination",
-            quoteId: '2243fdbe-5dea-3abd-a210-3780e7f2f1f4',
+            quoteId: "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
             errorMessage: "test error message",
             sourceEvent: "non-existing-source-event",
             ...validPutPayload
@@ -396,7 +396,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
         const event = new QuotingBCInvalidIdErrorEvent(payload);
 
-        event.fspiopOpaqueState = { 
+        event.fspiopOpaqueState = {
             "requesterFspId":"test-fspiop-source",
             "destinationFspId": null,
             "headers":{
@@ -406,16 +406,16 @@ describe("FSPIOP API Service Quoting Handler", () => {
                 "fspiop-source":"test-fspiop-source"
             }
         };
-            
+
 
         // Act
         kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
 
         jest.spyOn(Request, "sendRequest");
-            
+
         await new Promise((r) => setTimeout(r, 2000));
 
-        // Assert        
+        // Assert
         await waitForExpect(() => {
             expect(Request.sendRequest).toHaveBeenCalledTimes(0);
         });
@@ -426,7 +426,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         const payload: QuoteErrorPayload = {
             requesterFspId: "test-fspiop-source",
             destinationFspId: "test-fspiop-destination",
-            quoteId: '2243fdbe-5dea-3abd-a210-3780e7f2f1f4',
+            quoteId: "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
             errorMessage: "test error message",
             sourceEvent: "non-existing-source-event",
             ...validPutPayload
@@ -440,10 +440,10 @@ describe("FSPIOP API Service Quoting Handler", () => {
         kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
 
         jest.spyOn(Request, "sendRequest");
-            
+
         await new Promise((r) => setTimeout(r, 2000));
 
-        // Assert        
+        // Assert
         await waitForExpect(() => {
             expect(Request.sendRequest).toHaveBeenCalledTimes(0);
         });
@@ -460,7 +460,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
         const event = new QuoteRequestAcceptedEvt(payload);
 
-        event.fspiopOpaqueState = { 
+        event.fspiopOpaqueState = {
             "requesterFspId":"non-existing-owner-id",
             "destinationFspId": null,
             "headers":{
@@ -470,12 +470,12 @@ describe("FSPIOP API Service Quoting Handler", () => {
                 "fspiop-source":"test-fspiop-source"
             }
         };
-            
+
         participantClientSpy.mockResolvedValueOnce(null);
 
         // Act
         const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
-        
+
         kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
 
         await new Promise((r) => setTimeout(r, 2000));
@@ -483,13 +483,13 @@ describe("FSPIOP API Service Quoting Handler", () => {
         let sentMessagesCount = 0;
         let expectedOffsetMessage:any;
         const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
-        
+
         if (currentOffset.offset && expectedOffset.offset) {
             sentMessagesCount = currentOffset.offset - expectedOffset.offset;
             expectedOffsetMessage = JSON.parse(currentOffset.value as string);
         }
-        
-        // Assert        
+
+        // Assert
         await waitForExpect(() => {
             expect(sentMessagesCount).toBe(1);
             expect(expectedOffsetMessage.msgName).toBe(QuoteRequestAcceptedEvt.name);
@@ -504,7 +504,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
         const event = new QuoteRequestAcceptedEvt(payload);
 
-        event.fspiopOpaqueState = { 
+        event.fspiopOpaqueState = {
             "requesterFspId":"test-fspiop-source",
             "destinationFspId": null,
             "headers":{
@@ -520,7 +520,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         requestSpyOn.mockImplementationOnce(() => {
             throw new Error("test error");
         });
-        
+
         // Act
         kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
 
@@ -530,7 +530,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
             return await apiSpy.mock.results[apiSpy.mock.results.length-1].value;
         };
 
-        // Assert        
+        // Assert
         await waitForExpect(() => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${quoteEntity}/${payload.quoteId}/error`)
@@ -552,7 +552,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
         const event = new QuoteResponseAccepted(payload);
 
-        event.fspiopOpaqueState = { 
+        event.fspiopOpaqueState = {
             "requesterFspId":"test-fspiop-source",
             "destinationFspId": null,
             "headers":{
@@ -562,7 +562,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
                 "fspiop-source":"test-fspiop-source"
             }
         };
-            
+
         const requestSpy = jest.spyOn(Request, "sendRequest");
 
         // Act
@@ -573,7 +573,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         const res = async () => {
             return await requestSpy.mock.results[requestSpy.mock.results.length].value;
         };
-                    
+
         // Assert
         await waitForExpect(() => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
@@ -593,7 +593,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
         const event = new QuoteResponseAccepted(payload);
 
-        event.fspiopOpaqueState = { 
+        event.fspiopOpaqueState = {
             "requesterFspId":"non-existing-requester-id",
             "destinationFspId": null,
             "headers":{
@@ -603,12 +603,12 @@ describe("FSPIOP API Service Quoting Handler", () => {
                 "fspiop-source":"test-fspiop-source"
             }
         };
-            
+
         participantClientSpy.mockResolvedValueOnce(null);
 
         // Act
         const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
-        
+
         kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
 
         await new Promise((r) => setTimeout(r, 2000));
@@ -616,13 +616,13 @@ describe("FSPIOP API Service Quoting Handler", () => {
         let sentMessagesCount = 0;
         let expectedOffsetMessage:any;
         const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
-        
+
         if (currentOffset.offset && expectedOffset.offset) {
             sentMessagesCount = currentOffset.offset - expectedOffset.offset;
             expectedOffsetMessage = JSON.parse(currentOffset.value as string);
         }
-        
-        // Assert        
+
+        // Assert
         await waitForExpect(() => {
             expect(sentMessagesCount).toBe(1);
             expect(expectedOffsetMessage.msgName).toBe(QuoteResponseAccepted.name);
@@ -638,7 +638,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
         const event = new QuoteResponseAccepted(payload);
 
-        event.fspiopOpaqueState = { 
+        event.fspiopOpaqueState = {
             "requesterFspId":"test-fspiop-source",
             "destinationFspId": null,
             "headers":{
@@ -654,7 +654,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         requestSpyOn.mockImplementationOnce(() => {
             throw new Error("test error");
         });
-        
+
         // Act
         kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
 
@@ -664,7 +664,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
             return await apiSpy.mock.results[apiSpy.mock.results.length-1].value;
         };
 
-        // Assert        
+        // Assert
         await waitForExpect(() => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${quoteEntity}/${payload.quoteId}/error`)
@@ -686,7 +686,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
         const event = new QuoteQueryResponseEvt(payload);
 
-        event.fspiopOpaqueState = { 
+        event.fspiopOpaqueState = {
             "requesterFspId":"test-fspiop-source",
             "destinationFspId": null,
             "headers":{
@@ -696,7 +696,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
                 "fspiop-source":"test-fspiop-source"
             }
         };
-            
+
         const requestSpy = jest.spyOn(Request, "sendRequest");
 
         // Act
@@ -707,7 +707,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         const res = async () => {
             return await requestSpy.mock.results[requestSpy.mock.results.length].value;
         };
-                    
+
         // Assert
         await waitForExpect(() => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
@@ -727,7 +727,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
         const event = new QuoteQueryResponseEvt(payload);
 
-        event.fspiopOpaqueState = { 
+        event.fspiopOpaqueState = {
             "requesterFspId":"non-existing-requester-id",
             "destinationFspId": null,
             "headers":{
@@ -737,12 +737,12 @@ describe("FSPIOP API Service Quoting Handler", () => {
                 "fspiop-source":"test-fspiop-source"
             }
         };
-            
+
         participantClientSpy.mockResolvedValueOnce(null);
 
         // Act
         const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
-        
+
         kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
 
         await new Promise((r) => setTimeout(r, 2000));
@@ -750,13 +750,13 @@ describe("FSPIOP API Service Quoting Handler", () => {
         let sentMessagesCount = 0;
         let expectedOffsetMessage:any;
         const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
-        
+
         if (currentOffset.offset && expectedOffset.offset) {
             sentMessagesCount = currentOffset.offset - expectedOffset.offset;
             expectedOffsetMessage = JSON.parse(currentOffset.value as string);
         }
-        
-        // Assert        
+
+        // Assert
         await waitForExpect(() => {
             expect(sentMessagesCount).toBe(1);
             expect(expectedOffsetMessage.msgName).toBe(QuoteQueryResponseEvt.name);
@@ -772,7 +772,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
         const event = new QuoteQueryResponseEvt(payload);
 
-        event.fspiopOpaqueState = { 
+        event.fspiopOpaqueState = {
             "requesterFspId":"test-fspiop-source",
             "destinationFspId": null,
             "headers":{
@@ -788,7 +788,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         requestSpyOn.mockImplementationOnce(() => {
             throw new Error("test error");
         });
-        
+
         // Act
         kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
 
@@ -798,7 +798,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
             return await apiSpy.mock.results[apiSpy.mock.results.length-1].value;
         };
 
-        // Assert        
+        // Assert
         await waitForExpect(() => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${quoteEntity}/${payload.quoteId}/error`)
@@ -820,7 +820,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
         const event = new BulkQuoteReceivedEvt(payload);
 
-        event.fspiopOpaqueState = { 
+        event.fspiopOpaqueState = {
             "requesterFspId":"test-fspiop-source",
             "destinationFspId": null,
             "headers":{
@@ -830,7 +830,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
                 "fspiop-source":"test-fspiop-source"
             }
         };
-            
+
         const requestSpy = jest.spyOn(Request, "sendRequest");
 
         // Act
@@ -841,7 +841,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         const res = async () => {
             return await requestSpy.mock.results[requestSpy.mock.results.length].value;
         };
-                    
+
         // Assert
         await waitForExpect(() => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
@@ -861,7 +861,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
         const event = new BulkQuoteReceivedEvt(payload);
 
-        event.fspiopOpaqueState = { 
+        event.fspiopOpaqueState = {
             "requesterFspId":"non-existing-requester-id",
             "destinationFspId": null,
             "headers":{
@@ -871,12 +871,12 @@ describe("FSPIOP API Service Quoting Handler", () => {
                 "fspiop-source":"test-fspiop-source"
             }
         };
-            
+
         participantClientSpy.mockResolvedValueOnce(null);
 
         // Act
         const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
-        
+
         kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
 
         await new Promise((r) => setTimeout(r, 2000));
@@ -884,13 +884,13 @@ describe("FSPIOP API Service Quoting Handler", () => {
         let sentMessagesCount = 0;
         let expectedOffsetMessage:any;
         const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
-        
+
         if (currentOffset.offset && expectedOffset.offset) {
             sentMessagesCount = currentOffset.offset - expectedOffset.offset;
             expectedOffsetMessage = JSON.parse(currentOffset.value as string);
         }
-        
-        // Assert        
+
+        // Assert
         await waitForExpect(() => {
             expect(sentMessagesCount).toBe(1);
             expect(expectedOffsetMessage.msgName).toBe(BulkQuoteReceivedEvt.name);
@@ -906,7 +906,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
         const event = new BulkQuoteReceivedEvt(payload);
 
-        event.fspiopOpaqueState = { 
+        event.fspiopOpaqueState = {
             "requesterFspId":"test-fspiop-source",
             "destinationFspId": null,
             "headers":{
@@ -922,7 +922,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         requestSpyOn.mockImplementationOnce(() => {
             throw new Error("test error");
         });
-        
+
         // Act
         kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
 
@@ -932,7 +932,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
             return await apiSpy.mock.results[apiSpy.mock.results.length-1].value;
         };
 
-        // Assert        
+        // Assert
         await waitForExpect(() => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${bulkQuoteEntity}/${payload.bulkQuoteId}/error`)
@@ -954,7 +954,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
         const event = new BulkQuoteAcceptedEvt(payload);
 
-        event.fspiopOpaqueState = { 
+        event.fspiopOpaqueState = {
             "requesterFspId":"test-fspiop-source",
             "destinationFspId": null,
             "headers":{
@@ -964,7 +964,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
                 "fspiop-source":"test-fspiop-source"
             }
         };
-            
+
         const requestSpy = jest.spyOn(Request, "sendRequest");
 
         // Act
@@ -975,7 +975,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         const res = async () => {
             return await requestSpy.mock.results[requestSpy.mock.results.length].value;
         };
-                    
+
         // Assert
         await waitForExpect(() => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
@@ -995,7 +995,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
         const event = new BulkQuoteAcceptedEvt(payload);
 
-        event.fspiopOpaqueState = { 
+        event.fspiopOpaqueState = {
             "requesterFspId":"non-existing-requester-id",
             "destinationFspId": null,
             "headers":{
@@ -1005,12 +1005,12 @@ describe("FSPIOP API Service Quoting Handler", () => {
                 "fspiop-source":"test-fspiop-source"
             }
         };
-            
+
         participantClientSpy.mockResolvedValueOnce(null);
 
         // Act
         const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
-        
+
         kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
 
         await new Promise((r) => setTimeout(r, 2000));
@@ -1018,13 +1018,13 @@ describe("FSPIOP API Service Quoting Handler", () => {
         let sentMessagesCount = 0;
         let expectedOffsetMessage:any;
         const currentOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
-        
+
         if (currentOffset.offset && expectedOffset.offset) {
             sentMessagesCount = currentOffset.offset - expectedOffset.offset;
             expectedOffsetMessage = JSON.parse(currentOffset.value as string);
         }
-        
-        // Assert        
+
+        // Assert
         await waitForExpect(() => {
             expect(sentMessagesCount).toBe(1);
             expect(expectedOffsetMessage.msgName).toBe(BulkQuoteAcceptedEvt.name);
@@ -1040,7 +1040,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
         const event = new BulkQuoteAcceptedEvt(payload);
 
-        event.fspiopOpaqueState = { 
+        event.fspiopOpaqueState = {
             "requesterFspId":"test-fspiop-source",
             "destinationFspId": null,
             "headers":{
@@ -1056,7 +1056,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         requestSpyOn.mockImplementationOnce(() => {
             throw new Error("test error");
         });
-        
+
         // Act
         kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
 
@@ -1066,7 +1066,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
             return await apiSpy.mock.results[apiSpy.mock.results.length-1].value;
         };
 
-        // Assert        
+        // Assert
         await waitForExpect(() => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${bulkQuoteEntity}/${payload.bulkQuoteId}/error`)

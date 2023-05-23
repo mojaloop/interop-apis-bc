@@ -75,6 +75,11 @@ export class QuotingEventHandler extends BaseEventHandler {
         try {
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
+            if(!message.fspiopOpaqueState || !message.fspiopOpaqueState.headers){
+                this._logger.error(`received message of type: ${message.msgName}, without fspiopOpaqueState or fspiopOpaqueState.headers, ignoring`);
+                return;
+            }
+
             switch(message.msgName){
                 //case QuoteBCInvalidIdErrorEvent.name:
                 //    await this._handleErrorReceivedEvt(new QuoteBCInvalidIdErrorEvent(message.payload), message.fspiopOpaqueState);
@@ -125,7 +130,7 @@ export class QuotingEventHandler extends BaseEventHandler {
     }
 
     async _handleErrorReceivedEvt(message: IDomainMessage, fspiopOpaqueState: IncomingHttpHeaders):Promise<void> {
-        this._logger.info('_handleQuotingErrorReceivedEvt -> start');
+        this._logger.info("_handleQuotingErrorReceivedEvt -> start");
 
         const { payload } = message;
 
@@ -155,16 +160,13 @@ export class QuotingEventHandler extends BaseEventHandler {
             case QuoteBCDuplicateQuoteErrorEvent.name:
             case QuoteBCQuoteNotFoundErrorEvent.name:
             case QuoteBCBulkQuoteNotFoundErrorEvent.name:
-            //case QuoteBCInvalidMessageErrorEvent.name:
             case QuoteBCInvalidMessageTypeErrorEvent.name:
             case QuoteBCParticipantNotFoundErrorEvent.name:
-            //case QuoteBCInvalidParticipantIdErrorEvent.name:
             case QuoteBCRequiredParticipantIsNotActiveErrorEvent.name:
             case QuoteBCInvalidRequesterFspIdErrorEvent.name:
             case QuoteBCInvalidDestinationFspIdErrorEvent.name: {
-            //case QuoteBCInvalidDestinationPartyInformationErrorEvent.name:
                 if(quoteId) {
-                    list = ["quoteId", "fspId"]
+                    list = ["quoteId", "fspId"];
                 } else {
                     list = ["bulkQuoteId", "fspId"];
                 }
@@ -175,7 +177,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             }
             case QuoteBCUnknownErrorEvent.name: {
                 if(quoteId) {
-                    list = ["quoteId", "fspId"]
+                    list = ["quoteId", "fspId"];
                 } else {
                     list = ["bulkQuoteId", "fspId"];
                 }
@@ -209,7 +211,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             extensionList: extensionList
         });
 
-        this._logger.info('_handleQuotingErrorReceivedEvt -> end');
+        this._logger.info("_handleQuotingErrorReceivedEvt -> end");
 
         return;
     }
@@ -228,7 +230,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 throw Error(`fspId ${payload.payee.partyIdInfo.fspId} has no valid participant associated`);
             }
 
-            this._logger.info('_handleQuotingCreatedRequestReceivedEvt -> start');
+            this._logger.info("_handleQuotingCreatedRequestReceivedEvt -> start");
 
             // Always validate the payload and headers received
             message.validatePayload();
@@ -245,10 +247,10 @@ export class QuotingEventHandler extends BaseEventHandler {
                 payload: Transformer.transformPayloadQuotingRequestPost(payload),
             });
 
-            this._logger.info('_handleQuotingCreatedRequestReceivedEvt -> end');
+            this._logger.info("_handleQuotingCreatedRequestReceivedEvt -> end");
 
         } catch (error: unknown) {
-            this._logger.info('_handleQuotingCreatedRequestReceivedEvt -> error');
+            this._logger.info("_handleQuotingCreatedRequestReceivedEvt -> error");
             throw Error("_handleQuotingCreatedRequestReceivedEvt -> error");
         }
 
@@ -269,7 +271,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 throw Error(`fspId ${destinationFspId} has no valid participant associated`);
             }
 
-            this._logger.info('_handleQuotingResponseAcceptedEvt -> start');
+            this._logger.info("_handleQuotingResponseAcceptedEvt -> start");
 
             // Always validate the payload and headers received
             message.validatePayload();
@@ -287,10 +289,10 @@ export class QuotingEventHandler extends BaseEventHandler {
                 payload: Transformer.transformPayloadQuotingResponsePut(payload),
             });
 
-            this._logger.info('_handleQuotingResponseAcceptedEvt -> end');
+            this._logger.info("_handleQuotingResponseAcceptedEvt -> end");
 
         } catch (error: unknown) {
-            this._logger.info('_handleQuotingResponseAcceptedEvt -> error');
+            this._logger.info("_handleQuotingResponseAcceptedEvt -> error");
             throw Error("_handleQuotingResponseAcceptedEvt -> error");
         }
 
@@ -310,7 +312,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 throw Error(`fspId ${requesterFspId} has no valid participant associated`);
             }
 
-            this._logger.info('_handleQuotingQueryResponseEvt -> start');
+            this._logger.info("_handleQuotingQueryResponseEvt -> start");
 
             // Always validate the payload and headers received
             message.validatePayload();
@@ -329,10 +331,10 @@ export class QuotingEventHandler extends BaseEventHandler {
                 payload: null,
             });
 
-            this._logger.info('_handleQuotingQueryResponseEvt -> end');
+            this._logger.info("_handleQuotingQueryResponseEvt -> end");
 
         } catch (error: unknown) {
-            this._logger.info('_handleQuotingQueryResponseEvt -> error');
+            this._logger.info("_handleQuotingQueryResponseEvt -> error");
             throw Error("_handleQuotingQueryResponseEvt -> error");
         }
 
@@ -352,7 +354,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 throw Error(`fspId ${requesterFspId} has no valid participant associated`);
             }
 
-            this._logger.info('_handleBulkQuotingRequestReceivedEvt -> start');
+            this._logger.info("_handleBulkQuotingRequestReceivedEvt -> start");
 
             // Always validate the payload and headers received
             message.validatePayload();
@@ -369,10 +371,10 @@ export class QuotingEventHandler extends BaseEventHandler {
                 payload: Transformer.transformPayloadBulkQuotingResponsePost(payload),
             });
 
-            this._logger.info('_handleBulkQuotingRequestReceivedEvt -> end');
+            this._logger.info("_handleBulkQuotingRequestReceivedEvt -> end");
 
         } catch (error: unknown) {
-            this._logger.info('_handleBulkQuotingRequestReceivedEvt -> error');
+            this._logger.info("_handleBulkQuotingRequestReceivedEvt -> error");
             throw Error("_handleBulkQuotingRequestReceivedEvt -> error");
         }
 
@@ -393,7 +395,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 throw Error(`fspId ${destinationFspId} has no valid participant associated`);
             }
 
-            this._logger.info('_handleBulkQuoteAcceptedResponseEvt -> start');
+            this._logger.info("_handleBulkQuoteAcceptedResponseEvt -> start");
 
             // Always validate the payload and headers received
             message.validatePayload();
@@ -411,10 +413,10 @@ export class QuotingEventHandler extends BaseEventHandler {
                 payload: Transformer.transformPayloadBulkQuotingResponsePut(payload),
             });
 
-            this._logger.info('_handleBulkQuoteAcceptedResponseEvt -> end');
+            this._logger.info("_handleBulkQuoteAcceptedResponseEvt -> end");
 
         } catch (error: unknown) {
-            this._logger.info('_handleBulkQuoteAcceptedResponseEvt -> error');
+            this._logger.info("_handleBulkQuoteAcceptedResponseEvt -> error");
             throw Error("_handleBulkQuoteAcceptedResponseEvt -> error");
         }
 

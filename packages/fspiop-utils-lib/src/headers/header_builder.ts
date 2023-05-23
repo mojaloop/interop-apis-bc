@@ -31,8 +31,8 @@
 
 "use strict";
 
-import { FSPIOP_HEADERS_SWITCH_REGEX } from '../constants';
-import Header, { IHeaderBuilder } from './base_header';
+import { FSPIOP_HEADERS_SWITCH_REGEX } from "../constants";
+import Header, { IHeaderBuilder } from "./base_header";
 export default class HeaderBuilder implements IHeaderBuilder {
     headers: Header;
 

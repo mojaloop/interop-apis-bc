@@ -30,7 +30,7 @@
  - Pedro Sousa Barreto <pedrob@crosslaketech.com>
 
  * Gonçalo Garcia <goncalogarcia99@gmail.com>
- 
+
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
@@ -64,17 +64,17 @@ export class NoSuchQuoteError extends Error {
 }
 export class UnableToGetQuoteError extends Error {
     constructor(message?: string) {
-        super(message || 'Unable to get quote');
+        super(message || "Unable to get quote");
     }
-}   
+}
 export class QuoteAlreadyExistsError extends Error {
     constructor(message?:string) {
-        super(message || 'Quote already registered');
+        super(message || "Quote already registered");
     }
 }
 export class UnableToDeleteQuoteError extends Error {
     constructor(message?:string) {
-        super(message || 'Unable to delete quote');
+        super(message || "Unable to delete quote");
     }
 }
 
@@ -102,41 +102,41 @@ export class NoSuchBulkQuoteError extends Error {
 }
 export class UnableToGetBulkQuoteError extends Error {
     constructor(message?: string) {
-        super(message || 'Unable to get bulk quote');
+        super(message || "Unable to get bulk quote");
     }
-}   
+}
 export class BulkQuoteAlreadyExistsError extends Error {
     constructor(message?:string) {
-        super(message || 'BulkQuote already registered');
+        super(message || "BulkQuote already registered");
     }
 }
 export class UnableToDeleteBulkQuoteError extends Error {
     constructor(message?:string) {
-        super(message || 'Unable to delete bulk quote');
+        super(message || "Unable to delete bulk quote");
     }
 }
 
 // Cache
 export class LocalCacheError extends Error {
     constructor(message?: string) {
-        super(message || 'Unable to get local cache');
+        super(message || "Unable to get local cache");
     }
 }
 
 // Database
 export class UnableToCloseDatabaseConnectionError extends Error{
     constructor(message?: string) {
-        super(message || 'Unable to close database connection');
+        super(message || "Unable to close database connection");
     }
 }
 
 export class UnableToInitQuoteRegistryError extends Error {
     constructor(message?: string) {
-        super(message || 'Unable to initialize quote registry');
+        super(message || "Unable to initialize quote registry");
     }
 }
 export class UnableToInitBulkQuoteRegistryError extends Error {
     constructor(message?: string) {
-        super(message || 'Unable to initialize quote registry');
+        super(message || "Unable to initialize quote registry");
     }
 }
