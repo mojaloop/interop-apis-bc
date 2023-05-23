@@ -55,47 +55,47 @@ export const HandlerNames = {
 } as const;
 
 export abstract class BaseEventHandler implements IEventHandler {
-    protected _kafkaConsumer: MLKafkaJsonConsumer;
-    protected _logger:ILogger;
-    protected _consumerOpts: MLKafkaJsonConsumerOptions;
-    protected _kafkaTopics: string[];
-    protected _producerOptions: MLKafkaJsonProducerOptions;
-    protected _kafkaProducer: MLKafkaJsonProducer;
-    protected _participantService: IParticipantService;
-    protected _handlerName: string;
+    protected kafkaConsumer: MLKafkaJsonConsumer;
+    protected logger:ILogger;
+    protected consumerOpts: MLKafkaJsonConsumerOptions;
+    protected kafkaTopics: string[];
+    protected producerOptions: MLKafkaJsonProducerOptions;
+    protected kafkaProducer: MLKafkaJsonProducer;
+    protected participantService: IParticipantService;
+    protected handlerName!: string;
 
     constructor(
             logger: ILogger,
             consumerOptions: MLKafkaJsonConsumerOptions,
             producerOptions: MLKafkaJsonProducerOptions,
             kafkaTopics : string[],
-            participantService: IParticipantService
+            participantService: IParticipantService,
     ) {
-        this._logger = logger.createChild(this.constructor.name);
-        this._consumerOpts = consumerOptions;
-        this._kafkaTopics = kafkaTopics;
-        this._producerOptions = producerOptions;
-        this._participantService = participantService;
+        this.logger = logger.createChild(this.constructor.name);
+        this.consumerOpts = consumerOptions;
+        this.kafkaTopics = kafkaTopics;
+        this.producerOptions = producerOptions;
+        this.participantService = participantService;
     }
 
     async init () : Promise<void> {
-        this._kafkaConsumer = new MLKafkaJsonConsumer(this._consumerOpts, this._logger);
-        this._kafkaConsumer.setTopics(this._kafkaTopics);
-        this._kafkaConsumer.setCallbackFn(this.processMessage.bind(this));
-        this._kafkaProducer = new MLKafkaJsonProducer(this._producerOptions);
-        await this._kafkaConsumer.connect();
-        await this._kafkaConsumer.start();
-        await this._kafkaProducer.connect();
+        this.kafkaConsumer = new MLKafkaJsonConsumer(this.consumerOpts, this.logger);
+        this.kafkaConsumer.setTopics(this.kafkaTopics);
+        this.kafkaConsumer.setCallbackFn(this.processMessage.bind(this));
+        this.kafkaProducer = new MLKafkaJsonProducer(this.producerOptions);
+        await this.kafkaConsumer.connect();
+        await this.kafkaConsumer.start();
+        await this.kafkaProducer.connect();
     }
 
     protected async _validateParticipantAndGetEndpoint(fspId: string):Promise<IParticipantEndpoint|null>{
         // try {
-            const participant = await this._participantService.getParticipantInfo(fspId);
+            const participant = await this.participantService.getParticipantInfo(fspId);
 
             if (!participant) {
                 const errorMessage = `_validateParticipantAndGetEndpoint could not get participant with id: "${fspId}"`;
 
-                this._logger.error(errorMessage);
+                this.logger.error(errorMessage);
                 throw Error(errorMessage);
             }
 
@@ -104,7 +104,7 @@ export abstract class BaseEventHandler implements IEventHandler {
             if (!endpoint) {
                 const errorMessage = `_validateParticipantAndGetEndpoint could not get "FSPIOP" endpoint from participant with id: "${fspId}"`;
 
-                this._logger.error(errorMessage);
+                this.logger.error(errorMessage);
                 throw Error(errorMessage);
             }
 
@@ -166,10 +166,10 @@ export abstract class BaseEventHandler implements IEventHandler {
         } catch(err: unknown) {
             const error = (err as Error).message;
 
-            this._logger.error(error);
+            this.logger.error(error);
 
             await this.handleErrorEventForFspFeedbackFailure(message, error).catch((err: unknown) => {
-                this._logger.error(`handleErrorEventForFspFeedbackFailure failed with error: ${err}`);
+                this.logger.error(`handleErrorEventForFspFeedbackFailure failed with error: ${err}`);
             });
         }
 
@@ -179,7 +179,7 @@ export abstract class BaseEventHandler implements IEventHandler {
 
     private async handleErrorEventForFspFeedbackFailure(message: IDomainMessage | undefined, error: string):Promise<void> {
         let messageToSend: IDomainMessage | undefined;
-        switch (this._handlerName) {
+        switch (this.handlerName) {
             case HandlerNames.AccountLookUp: {
                 const payload: AccountLookUpBCOperatorErrorPayload = {
                     partyId: message?.payload.partyId,
@@ -215,14 +215,14 @@ export abstract class BaseEventHandler implements IEventHandler {
             }
             default: {
                 const errorMessage = `Not possible to send message ${message?.msgName} event untreated error to corresponding operator error topic`;
-                this._logger.error(errorMessage);
+                this.logger.error(errorMessage);
                 throw new Error(errorMessage);
             }
 
         }
 
-        this._logger.info(`Sending ${messageToSend?.msgName} event `);
-        await this._kafkaProducer.send(messageToSend);
+        this.logger.info(`Sending ${messageToSend?.msgName} event `);
+        await this.kafkaProducer.send(messageToSend);
 
     }
 
@@ -262,8 +262,8 @@ export abstract class BaseEventHandler implements IEventHandler {
     }
 
     async destroy () : Promise<void> {
-        await this._kafkaProducer.destroy();
-        await this._kafkaConsumer.destroy(true);
+        await this.kafkaProducer.destroy();
+        await this.kafkaConsumer.destroy(true);
     }
 
     abstract processMessage (sourceMessage: IMessage): Promise<void>

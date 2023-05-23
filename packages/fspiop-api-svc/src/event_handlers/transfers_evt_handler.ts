@@ -90,14 +90,14 @@ export class TransferEventHandler extends BaseEventHandler {
             participantService: IParticipantService
     ) {
         super(logger, consumerOptions, producerOptions, kafkaTopics, participantService);
-        this._handlerName = HandlerNames.Transfers;
+        this.handlerName = HandlerNames.Transfers;
     }
 
     async processMessage (sourceMessage: IMessage) : Promise<void> {
         const message: IDomainMessage = sourceMessage as IDomainMessage;
 
         if(!message.fspiopOpaqueState || !message.fspiopOpaqueState.headers){
-            this._logger.error(`received message of type: ${message.msgName}, without fspiopOpaqueState or fspiopOpaqueState.headers, ignoring`);
+            this.logger.error(`received message of type: ${message.msgName}, without fspiopOpaqueState or fspiopOpaqueState.headers, ignoring`);
             return;
         }
 
@@ -149,7 +149,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState);
                 break;
             default:
-                this._logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
+                this.logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
                 break;
         }
 
@@ -159,7 +159,7 @@ export class TransferEventHandler extends BaseEventHandler {
     }
 
     async _handleErrorReceivedEvt(message: IDomainMessage, fspiopOpaqueState: IncomingHttpHeaders):Promise<void> {
-        this._logger.info("_handleTransferErrorReceivedEvt -> start");
+        this.logger.info("_handleTransferErrorReceivedEvt -> start");
 
         const { payload } = message;
 
@@ -192,7 +192,7 @@ export class TransferEventHandler extends BaseEventHandler {
             extensionList: extensionList
         });
 
-        this._logger.info("_handleTransferErrorReceivedEvt -> end");
+        this.logger.info("_handleTransferErrorReceivedEvt -> end");
 
         return;
     }
@@ -257,7 +257,7 @@ export class TransferEventHandler extends BaseEventHandler {
 
             default: {
                 const errorMessage = `Cannot handle error message of type: ${message.msgName}, ignoring`;
-                this._logger.warn(errorMessage);
+                this.logger.warn(errorMessage);
             }
         }
         return errorResponse;
@@ -276,7 +276,7 @@ export class TransferEventHandler extends BaseEventHandler {
 
         if(!requestedEndpoint){
 
-            this._logger.error("Cannot get requestedEndpoint at _handleTransferPreparedEvt");
+            this.logger.error("Cannot get requestedEndpoint at _handleTransferPreparedEvt");
 
             // TODO discuss about having the specific event for overall errors so we dont have
             // to change an existing event to use the generic topic
@@ -284,13 +284,13 @@ export class TransferEventHandler extends BaseEventHandler {
 
             msg.msgTopic = KAFKA_OPERATOR_ERROR_TOPIC;
 
-            await this._kafkaProducer.send(msg);
+            await this.kafkaProducer.send(msg);
 
             return;
         }
 
         try {
-            this._logger.info("_handleTransferPreparedEvt -> start");
+            this.logger.info("_handleTransferPreparedEvt -> start");
 
             // Always validate the payload and headers received
             message.validatePayload();
@@ -307,10 +307,10 @@ export class TransferEventHandler extends BaseEventHandler {
                 payload: Transformer.transformPayloadTransferRequestPost(payload),
             });
 
-            this._logger.info("_handleTransferPreparedEvt -> end");
+            this.logger.info("_handleTransferPreparedEvt -> end");
 
         } catch (error: unknown) {
-            this._logger.error(error);
+            this.logger.error(error);
             this._sendErrorFeedbackToFsp({
                 error: error,
                 headers: clonedHeaders,
@@ -337,7 +337,7 @@ export class TransferEventHandler extends BaseEventHandler {
 
         if(!requestedEndpoint){
 
-            this._logger.error("Cannot get requestedEndpoint at _handleTransferCommittedFulfiledEvt");
+            this.logger.error("Cannot get requestedEndpoint at _handleTransferCommittedFulfiledEvt");
 
             // TODO discuss about having the specific event for overall errors so we dont have
             // to change an existing event to use the generic topic
@@ -345,13 +345,13 @@ export class TransferEventHandler extends BaseEventHandler {
 
             msg.msgTopic = KAFKA_OPERATOR_ERROR_TOPIC;
 
-            await this._kafkaProducer.send(msg);
+            await this.kafkaProducer.send(msg);
 
             return;
         }
 
         try {
-            this._logger.info("_handleTransferCommittedFulfiledEvt -> start");
+            this.logger.info("_handleTransferCommittedFulfiledEvt -> start");
 
             // Always validate the payload and headers received
             message.validatePayload();
@@ -369,10 +369,10 @@ export class TransferEventHandler extends BaseEventHandler {
                 payload: Transformer.transformPayloadTransferRequestPut(payload),
             });
 
-            this._logger.info("_handleTransferCommittedFulfiledEvt -> end");
+            this.logger.info("_handleTransferCommittedFulfiledEvt -> end");
 
         } catch (error: unknown) {
-            this._logger.error(error);
+            this.logger.error(error);
             this._sendErrorFeedbackToFsp({
                 error: error,
                 headers: clonedHeaders,
@@ -401,7 +401,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 throw Error(`fspId ${requesterFspId} has no valid participant associated`);
             }
 
-            this._logger.info("_handleTransferQueryResponseEvt -> start");
+            this.logger.info("_handleTransferQueryResponseEvt -> start");
 
             // Always validate the payload and headers received
             message.validatePayload();
@@ -419,10 +419,10 @@ export class TransferEventHandler extends BaseEventHandler {
                 payload: Transformer.transformPayloadTransferRequestGet(payload),
             });
 
-            this._logger.info("_handleTransferQueryResponseEvt -> end");
+            this.logger.info("_handleTransferQueryResponseEvt -> end");
 
         } catch (error: unknown) {
-            this._logger.error("_handleTransferQueryResponseEvt -> error");
+            this.logger.error("_handleTransferQueryResponseEvt -> error");
             throw Error("_handleTransferQueryResponseEvt -> error");
         }
 
