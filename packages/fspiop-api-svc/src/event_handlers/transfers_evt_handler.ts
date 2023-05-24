@@ -250,7 +250,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 errorResponse.list = ["transferId", "fspId"];
                 errorResponse.errorCode = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR;
                 errorResponse.errorDescription = message.payload.errorDescription;
-                errorResponse.sourceFspId = destinationFspId;
+                errorResponse.sourceFspId = destinationFspId ? destinationFspId : sourceFspId;
                 break;
             }
 
