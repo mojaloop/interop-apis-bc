@@ -125,31 +125,22 @@ export abstract class BaseEventHandler implements IEventHandler {
 
     protected async _sendErrorFeedbackToFsp({
         message,
-        error,
         headers,
         source,
         id,
-        extensionList,
-        errorCode,
+        errorResponse,
     }: {
-        message?: IDomainMessage;
-        error: unknown;
+        message: IDomainMessage;
         headers: Request.FspiopHttpHeaders;
         source: string;
         id: string[];
-        extensionList?: {
-            key: string;
-            value: string;
-        }[];
-        errorCode: string;
-        entity?: Enums.EntityTypeEnum;
+        errorResponse: {
+            list: string[];
+            errorCode: string;
+            errorDescription: string;
+        };
     }):Promise<void>{
         try {
-            // This might be an AxiosError as well
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const err = error as unknown as any;
-            // this._logger.error(err.response?.data ? JSON.stringify(err.response?.data) : err.message);
-
             const endpoint = (await this._validateParticipantAndGetEndpoint(source));
 
             if(!endpoint) {
@@ -158,6 +149,18 @@ export abstract class BaseEventHandler implements IEventHandler {
 
             const url = this.buildFspFeedbackUrl(endpoint, id, message);
 
+            const extensionList = [];
+            const errorList = errorResponse.list;
+
+            for(let i=0 ; i<errorList.length ; i+=1){
+                if(message.payload[errorList[i]]) {
+                    extensionList.push({
+                        key: errorList[i],
+                        value: message.payload[errorList[i]]
+                    });
+                }
+            }
+
             await Request.sendRequest({
                 url: url,
                 headers: headers,
@@ -165,8 +168,8 @@ export abstract class BaseEventHandler implements IEventHandler {
                 destination: headers[Constants.FSPIOP_HEADERS_DESTINATION] || null,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: Transformer.transformPayloadError({
-                    errorCode: errorCode,
-                    errorDescription: err,
+                    errorCode: errorResponse.errorCode,
+                    errorDescription: errorResponse.errorDescription,
                     extensionList: (Array.isArray(extensionList) && extensionList.length > 0) ? {
                         extension: extensionList
                     } : null
@@ -236,12 +239,12 @@ export abstract class BaseEventHandler implements IEventHandler {
     }
 
     private buildFspFeedbackUrl(endpoint: IParticipantEndpoint, id: string[], message: IDomainMessage | undefined): string {
+        const header = message?.fspiopOpaqueState.headers["content-type"];
         const urlBuilder = new Request.URLBuilder(endpoint.value);
 
         urlBuilder.setLocation(id);
         urlBuilder.hasError(true);
 
-        const header = message?.fspiopOpaqueState.headers["content-type"];
         switch (true) {
             case header.includes("participants"): {
                 urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);

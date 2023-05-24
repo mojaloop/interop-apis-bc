@@ -93,63 +93,80 @@ export class TransferEventHandler extends BaseEventHandler {
     }
 
     async processMessage (sourceMessage: IMessage) : Promise<void> {
-        const message: IDomainMessage = sourceMessage as IDomainMessage;
+        try {
+            const message: IDomainMessage = sourceMessage as IDomainMessage;
 
-        if(!message.fspiopOpaqueState || !message.fspiopOpaqueState.headers){
-            this.logger.error(`received message of type: ${message.msgName}, without fspiopOpaqueState or fspiopOpaqueState.headers, ignoring`);
-            return;
-        }
+            if(!message.fspiopOpaqueState || !message.fspiopOpaqueState.headers){
+                this.logger.error(`received message of type: ${message.msgName}, without fspiopOpaqueState or fspiopOpaqueState.headers, ignoring`);
+                return;
+            }
 
-        switch(message.msgName){
-            case TransferPreparedEvt.name:
-                await this._handleTransferPreparedEvt(new TransferPreparedEvt(message.payload), message.fspiopOpaqueState);
-                break;
-            case TransferCommittedFulfiledEvt.name:
-                await this._handleTransferCommittedFulfiledEvt(new TransferCommittedFulfiledEvt(message.payload), message.fspiopOpaqueState);
-                break;
-            case TransferQueryResponseEvt.name:
-                await this._handleTransferQueryResponseEvt(new TransferQueryResponseEvt(message.payload), message.fspiopOpaqueState);
-                break;
-            case TransferInvalidMessagePayloadEvt.name:
-            case TransferInvalidMessageTypeEvt.name:
-            case TransferPreparePayerNotFoundFailedEvt.name:
-            case TransferPreparePayeeNotFoundFailedEvt.name:
-            case TransferPrepareHubNotFoundFailedEvt.name:
-            case TransferPrepareInvalidPayerCheckFailedEvt.name:
-            case TransferPrepareInvalidPayeeCheckFailedEvt.name:
-            case TransferPrepareLiquidityCheckFailedEvt.name:
-            case TransferPrepareDuplicateCheckFailedEvt.name:
-            case TransferRejectRequestProcessedEvt.name:
-            case TransferPrepareRequestTimedoutEvt.name:
-            case TransferQueryInvalidPayerCheckFailedEvt.name:
-            case TransferQueryInvalidPayeeCheckFailedEvt.name:
-            case TransferQueryPayerNotFoundFailedEvt.name:
-            case TransferQueryPayeeNotFoundFailedEvt.name:
-            case TransferQueryInvalidPayerParticipantIdEvt.name:
-            case TransferQueryInvalidPayeeParticipantIdEvt.name:
-            case TransferUnableToGetTransferByIdEvt.name:
-            case TransferNotFoundEvt.name:
-            case TransferUnableToAddEvt.name:
-            case TransferUnableToUpdateEvt.name:
-            case TransferFulfilCommittedRequestedTimedoutEvt.name:
-            case TransferFulfilPostCommittedRequestedTimedoutEvt.name:
-            case TransferCancelReservationFailedEvt.name:
-            case TransferCancelReservationAndCommitFailedEvt.name:
-            case TransferPrepareHubAccountNotFoundFailedEvt.name:
-            case TransferPreparePayerPositionAccountNotFoundFailedEvt.name:
-            case TransferPreparePayerLiquidityAccountNotFoundFailedEvt.name:
-            case TransferPreparePayeePositionAccountNotFoundFailedEvt.name:
-            case TransferPreparePayeeLiquidityAccountNotFoundFailedEvt.name:
-            case TransferPreparePayerNotActiveEvt.name:
-            case TransferPreparePayerNotApprovedEvt.name:
-            case TransferPreparePayeeNotActiveEvt.name:
-            case TransferPreparePayeeNotApprovedEvt.name:
-            case TransfersBCUnknownErrorEvent.name:
-                await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState);
-                break;
-            default:
-                this.logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
-                break;
+            switch(message.msgName){
+                case TransferPreparedEvt.name:
+                    await this._handleTransferPreparedEvt(new TransferPreparedEvt(message.payload), message.fspiopOpaqueState);
+                    break;
+                case TransferCommittedFulfiledEvt.name:
+                    await this._handleTransferCommittedFulfiledEvt(new TransferCommittedFulfiledEvt(message.payload), message.fspiopOpaqueState);
+                    break;
+                case TransferQueryResponseEvt.name:
+                    await this._handleTransferQueryResponseEvt(new TransferQueryResponseEvt(message.payload), message.fspiopOpaqueState);
+                    break;
+                case TransferInvalidMessagePayloadEvt.name:
+                case TransferInvalidMessageTypeEvt.name:
+                case TransferPreparePayerNotFoundFailedEvt.name:
+                case TransferPreparePayeeNotFoundFailedEvt.name:
+                case TransferPrepareHubNotFoundFailedEvt.name:
+                case TransferPrepareInvalidPayerCheckFailedEvt.name:
+                case TransferPrepareInvalidPayeeCheckFailedEvt.name:
+                case TransferPrepareLiquidityCheckFailedEvt.name:
+                case TransferPrepareDuplicateCheckFailedEvt.name:
+                case TransferRejectRequestProcessedEvt.name:
+                case TransferPrepareRequestTimedoutEvt.name:
+                case TransferQueryInvalidPayerCheckFailedEvt.name:
+                case TransferQueryInvalidPayeeCheckFailedEvt.name:
+                case TransferQueryPayerNotFoundFailedEvt.name:
+                case TransferQueryPayeeNotFoundFailedEvt.name:
+                case TransferQueryInvalidPayerParticipantIdEvt.name:
+                case TransferQueryInvalidPayeeParticipantIdEvt.name:
+                case TransferUnableToGetTransferByIdEvt.name:
+                case TransferNotFoundEvt.name:
+                case TransferUnableToAddEvt.name:
+                case TransferUnableToUpdateEvt.name:
+                case TransferFulfilCommittedRequestedTimedoutEvt.name:
+                case TransferFulfilPostCommittedRequestedTimedoutEvt.name:
+                case TransferCancelReservationFailedEvt.name:
+                case TransferCancelReservationAndCommitFailedEvt.name:
+                case TransferPrepareHubAccountNotFoundFailedEvt.name:
+                case TransferPreparePayerPositionAccountNotFoundFailedEvt.name:
+                case TransferPreparePayerLiquidityAccountNotFoundFailedEvt.name:
+                case TransferPreparePayeePositionAccountNotFoundFailedEvt.name:
+                case TransferPreparePayeeLiquidityAccountNotFoundFailedEvt.name:
+                case TransferPreparePayerNotActiveEvt.name:
+                case TransferPreparePayerNotApprovedEvt.name:
+                case TransferPreparePayeeNotActiveEvt.name:
+                case TransferPreparePayeeNotApprovedEvt.name:
+                case TransfersBCUnknownErrorEvent.name:
+                    await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState);
+                    break;
+                default:
+                    this.logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
+                    break;
+            }
+        } catch (e: unknown) {
+            const message: IDomainMessage = sourceMessage as IDomainMessage;
+
+            const clonedHeaders = { ...message.fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+            const requesterFspId = clonedHeaders["fspiop-source"] as string;
+            const transferId = message.payload.partyType as string;
+
+            await this._sendErrorFeedbackToFsp({
+                message: message,
+                error: message.msgName,
+                errorCode: Enums.ServerErrorCodes.GENERIC_SERVER_ERROR,
+                headers: message.fspiopOpaqueState.headers,
+                source: requesterFspId,
+                id: [transferId]
+            });
         }
 
         // make sure we only return from the processMessage/handler after completing the request,
@@ -183,12 +200,10 @@ export class TransferEventHandler extends BaseEventHandler {
 
         this._sendErrorFeedbackToFsp({
             message: message,
-            error: errorResponse.errorDescription,
-            errorCode: errorResponse.errorCode,
             headers: clonedHeaders,
             source: errorResponse.sourceFspId,
             id: [transferId],
-            extensionList: extensionList
+            errorResponse: errorResponse
         });
 
         this.logger.info("_handleTransferErrorReceivedEvt -> end");
@@ -273,19 +288,8 @@ export class TransferEventHandler extends BaseEventHandler {
 
         const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
-        if(!requestedEndpoint){
-
-            this.logger.error("Cannot get requestedEndpoint at _handleTransferPreparedEvt");
-
-            // TODO discuss about having the specific event for overall errors so we dont have
-            // to change an existing event to use the generic topic
-            const msg =  new TransferPreparedEvt(payload);
-
-            msg.msgTopic = KAFKA_OPERATOR_ERROR_TOPIC;
-
-            await this.kafkaProducer.send(msg);
-
-            return;
+        if(!requestedEndpoint) {
+            throw Error(`fspId ${requesterFspId} has no valid participant associated`);
         }
 
         try {
@@ -309,15 +313,8 @@ export class TransferEventHandler extends BaseEventHandler {
             this.logger.info("_handleTransferPreparedEvt -> end");
 
         } catch (error: unknown) {
-            this.logger.error(error);
-            this._sendErrorFeedbackToFsp({
-                error: error,
-                headers: clonedHeaders,
-                source: requesterFspId,
-                entity: Enums.EntityTypeEnum.TRANSFERS,
-                id: [payload.transferId],
-                errorCode: ""
-            });
+            this.logger.error(error, "_handleTransferPreparedEvt -> error");
+            throw Error("_handleTransferPreparedEvt -> error");
         }
 
         return;
@@ -334,19 +331,8 @@ export class TransferEventHandler extends BaseEventHandler {
 
         const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
-        if(!requestedEndpoint){
-
-            this.logger.error("Cannot get requestedEndpoint at _handleTransferCommittedFulfiledEvt");
-
-            // TODO discuss about having the specific event for overall errors so we dont have
-            // to change an existing event to use the generic topic
-            const msg =  new TransferCommittedFulfiledEvt(payload);
-
-            msg.msgTopic = KAFKA_OPERATOR_ERROR_TOPIC;
-
-            await this.kafkaProducer.send(msg);
-
-            return;
+        if(!requestedEndpoint) {
+            throw Error(`fspId ${requesterFspId} has no valid participant associated`);
         }
 
         try {
@@ -371,15 +357,8 @@ export class TransferEventHandler extends BaseEventHandler {
             this.logger.info("_handleTransferCommittedFulfiledEvt -> end");
 
         } catch (error: unknown) {
-            this.logger.error(error);
-            this._sendErrorFeedbackToFsp({
-                error: error,
-                headers: clonedHeaders,
-                source: requesterFspId,
-                entity: Enums.EntityTypeEnum.TRANSFERS,
-                id: [payload.transferId],
-                errorCode: ""
-            });
+            this.logger.error(error, "_handleTransferCommittedFulfiledEvt -> error");
+            throw Error("_handleTransferCommittedFulfiledEvt -> error");
         }
 
         return;

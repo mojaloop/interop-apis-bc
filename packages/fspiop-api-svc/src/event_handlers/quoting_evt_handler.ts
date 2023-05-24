@@ -81,9 +81,6 @@ export class QuotingEventHandler extends BaseEventHandler {
             }
 
             switch(message.msgName){
-                //case QuoteBCInvalidIdErrorEvent.name:
-                //    await this._handleErrorReceivedEvt(new QuoteBCInvalidIdErrorEvent(message.payload), message.fspiopOpaqueState);
-                //    break;
                 case QuoteRequestAcceptedEvt.name:
                     await this._handleQuotingCreatedRequestReceivedEvt(new QuoteRequestAcceptedEvt(message.payload), message.fspiopOpaqueState);
                     break;
@@ -99,27 +96,32 @@ export class QuotingEventHandler extends BaseEventHandler {
                 case BulkQuoteAcceptedEvt.name:
                     await this._handleBulkQuoteAcceptedResponseEvt(new BulkQuoteAcceptedEvt(message.payload), message.fspiopOpaqueState);
                     break;
+                //case QuoteBCInvalidIdErrorEvent.name:
+                //    await this._handleErrorReceivedEvt(new QuoteBCInvalidIdErrorEvent(message.payload), message.fspiopOpaqueState);
+                //    break;
                 default:
-                    this.logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
+                 this.logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
                     break;
             }
 
-        } catch (e: unknown) {
+        } catch (error: unknown) {
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
             const clonedHeaders = { ...message.fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
             const requesterFspId = clonedHeaders["fspiop-source"] as string;
-            const partyType = message.payload.partyType as string;
-            const partyId = message.payload.partyId as string;
-            const partySubType = message.payload.partySubType as string;
+            const quoteId = message.payload.quoteId as string;
 
             await this._sendErrorFeedbackToFsp({
                 message: message,
                 error: message.msgName,
-                errorCode: "2100",
                 headers: message.fspiopOpaqueState.headers,
                 source: requesterFspId,
-                id: [partyType, partyId, partySubType]
+                id: [quoteId],
+                errorResponse: {
+                    list: [],
+                    errorCode: Enums.ServerErrorCodes.GENERIC_SERVER_ERROR,
+                    errorDescription: (error as Error).message
+                };
             });
         }
 
@@ -153,19 +155,8 @@ export class QuotingEventHandler extends BaseEventHandler {
         urlBuilder.setLocation(quoteId ? [quoteId] : [bulkQuoteId]);
         urlBuilder.hasError(true);
 
-        const extensionList = [];
         const isQuoteType = quoteId ? true : false;
         const errorResponse = this.buildErrorResponseBasedOnErrorEvent(message, isQuoteType);
-        const errorList = errorResponse.list;
-
-        for(let i=0 ; i<errorList.length ; i+=1){
-            if(payload[errorList[i]]) {
-                extensionList.push({
-                    key: errorList[i],
-                    value: payload[errorList[i]]
-                });
-            }
-        }
 
         await this._sendErrorFeedbackToFsp({
             message: message,
@@ -174,7 +165,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             headers: clonedHeaders,
             source: requesterFspId,
             id: quoteId ? [quoteId] : [bulkQuoteId],
-            extensionList: extensionList
+            errorResponse: errorResponse
         });
 
         this.logger.info("_handleQuotingErrorReceivedEvt -> end");

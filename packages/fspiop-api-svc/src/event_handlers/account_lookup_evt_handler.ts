@@ -117,7 +117,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                     this.logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
                     break;
             }
-        } catch (e: unknown) {
+        } catch (error: unknown) {
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
             const clonedHeaders = { ...message.fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
@@ -129,10 +129,14 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             await this._sendErrorFeedbackToFsp({
                 message: message,
                 error: message.msgName,
-                errorCode: Enums.ServerErrorCodes.GENERIC_SERVER_ERROR,
                 headers: message.fspiopOpaqueState.headers,
                 source: requesterFspId,
-                id: [partyType, partyId, partySubType]
+                id: [partyType, partyId, partySubType],
+                errorResponse: {
+                    list: [],
+                    errorCode: Enums.ServerErrorCodes.GENERIC_SERVER_ERROR,
+                    errorDescription: (error as Error).message
+                };
             });
         }
 
