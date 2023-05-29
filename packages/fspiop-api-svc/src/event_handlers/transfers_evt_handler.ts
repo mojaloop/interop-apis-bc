@@ -75,11 +75,8 @@ import {
     TransferPreparePayeeNotApprovedEvt
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { IncomingHttpHeaders } from "http";
 import { BaseEventHandler, HandlerNames } from "./base_event_handler";
 import { IParticipantService } from "../interfaces/infrastructure";
-
-const KAFKA_OPERATOR_ERROR_TOPIC = process.env["KAFKA_OPERATOR_ERROR_TOPIC"] || "OperatorBcErrors";
 
 export class TransferEventHandler extends BaseEventHandler {
     constructor(
@@ -103,13 +100,13 @@ export class TransferEventHandler extends BaseEventHandler {
 
             switch(message.msgName){
                 case TransferPreparedEvt.name:
-                    await this._handleTransferPreparedEvt(new TransferPreparedEvt(message.payload), message.fspiopOpaqueState);
+                    await this._handleTransferPreparedEvt(new TransferPreparedEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
                 case TransferCommittedFulfiledEvt.name:
-                    await this._handleTransferCommittedFulfiledEvt(new TransferCommittedFulfiledEvt(message.payload), message.fspiopOpaqueState);
+                    await this._handleTransferCommittedFulfiledEvt(new TransferCommittedFulfiledEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
                 case TransferQueryResponseEvt.name:
-                    await this._handleTransferQueryResponseEvt(new TransferQueryResponseEvt(message.payload), message.fspiopOpaqueState);
+                    await this._handleTransferQueryResponseEvt(new TransferQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
                 case TransferInvalidMessagePayloadEvt.name:
                 case TransferInvalidMessageTypeEvt.name:
@@ -146,7 +143,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 case TransferPreparePayeeNotActiveEvt.name:
                 case TransferPreparePayeeNotApprovedEvt.name:
                 case TransfersBCUnknownErrorEvent.name:
-                    await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState);
+                    await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState.headers);
                     break;
                 default:
                     this.logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
@@ -155,17 +152,19 @@ export class TransferEventHandler extends BaseEventHandler {
         } catch (e: unknown) {
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
-            const clonedHeaders = { ...message.fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-            const requesterFspId = clonedHeaders["fspiop-source"] as string;
+            const clonedHeaders = { ...message.fspiopOpaqueState.headers.headers as unknown as Request.FspiopHttpHeaders };
+            const sourceFspId = clonedHeaders["fspiop-source"] as string;
+            const destinationFspId = clonedHeaders["fspiop-destination"] as string;
             const transferId = message.payload.partyType as string;
+
+            const errorResponse = this.buildErrorResponseBasedOnErrorEvent(message, sourceFspId, destinationFspId);
 
             await this._sendErrorFeedbackToFsp({
                 message: message,
-                error: message.msgName,
-                errorCode: Enums.ServerErrorCodes.GENERIC_SERVER_ERROR,
-                headers: message.fspiopOpaqueState.headers,
-                source: requesterFspId,
-                id: [transferId]
+                headers: message.fspiopOpaqueState.headers.headers,
+                source: sourceFspId,
+                id: [transferId],
+                errorResponse: errorResponse
             });
         }
 
@@ -174,29 +173,19 @@ export class TransferEventHandler extends BaseEventHandler {
         return;
     }
 
-    async _handleErrorReceivedEvt(message: IDomainMessage, fspiopOpaqueState: IncomingHttpHeaders):Promise<void> {
+    async _handleErrorReceivedEvt(message: IDomainMessage, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
         this.logger.info("_handleTransferErrorReceivedEvt -> start");
 
         const { payload } = message;
 
-        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-        const sourceFspId = clonedHeaders["fspiop-source"] as string;
-        const destinationFspId = clonedHeaders["fspiop-destination"] as string;
+        const clonedHeaders = fspiopOpaqueState;
+        const sourceFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
         const transferId = payload.transferId as string;
 
-        const extensionList = [];
+        // TODO validate vars above
 
         const errorResponse = this.buildErrorResponseBasedOnErrorEvent(message, sourceFspId, destinationFspId);
-        const errorsList = errorResponse.list;
-
-        for(let i=0 ; i<errorsList.length ; i+=1){
-            if(payload[errorsList[i]]) {
-                extensionList.push({
-                    key: errorsList[i],
-                    value: payload[errorsList[i]]
-                });
-            }
-        }
 
         this._sendErrorFeedbackToFsp({
             message: message,
@@ -277,10 +266,10 @@ export class TransferEventHandler extends BaseEventHandler {
         return errorResponse;
     }
 
-    private async _handleTransferPreparedEvt(message: TransferPreparedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
+    private async _handleTransferPreparedEvt(message: TransferPreparedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
         const { payload } = message;
 
-        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+        const clonedHeaders = fspiopOpaqueState;
         const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
         const destinationFspId = payload.payeeFsp;
 
@@ -320,10 +309,10 @@ export class TransferEventHandler extends BaseEventHandler {
         return;
     }
 
-    private async _handleTransferCommittedFulfiledEvt(message: TransferCommittedFulfiledEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
+    private async _handleTransferCommittedFulfiledEvt(message: TransferCommittedFulfiledEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
         const { payload } = message;
 
-        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+        const clonedHeaders = fspiopOpaqueState;
         const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
         const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
 
@@ -364,11 +353,11 @@ export class TransferEventHandler extends BaseEventHandler {
         return;
     }
 
-    private async _handleTransferQueryResponseEvt(message: TransferQueryResponseEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void> {
+    private async _handleTransferQueryResponseEvt(message: TransferQueryResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
         try {
             const { payload } = message;
 
-            const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+            const clonedHeaders = fspiopOpaqueState;
             const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
 
             // TODO validate vars above

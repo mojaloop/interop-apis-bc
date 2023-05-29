@@ -54,7 +54,7 @@ import path from "path";
 import { Service } from "@mojaloop/interop-apis-bc-fspiop-api-svc";
 
 // Sets the location of your OpenAPI Specification file
-jestOpenAPI(path.join(__dirname, "../../../../packages/fspiop-api-svc/api-specs/account-lookup-service/api-swagger.yaml"));
+jestOpenAPI(path.join(__dirname, "../../../../packages/fspiop-api-svc/api-specs/api_spec.yaml"));
 
 import KafkaProducer, { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
 

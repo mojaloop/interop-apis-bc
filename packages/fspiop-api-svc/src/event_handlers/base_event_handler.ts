@@ -37,7 +37,6 @@ import { MLKafkaJsonConsumer, MLKafkaJsonConsumerOptions, MLKafkaJsonProducer, M
 import { IParticipantEndpoint } from "@mojaloop/participants-bc-client-lib";
 import { IEventHandler } from "../interfaces/types";
 import { IParticipantService } from "../interfaces/infrastructure";
-import { IncomingHttpHeaders } from "http";
 import {
     AccountLookUpBCOperatorErrorEvent,
     AccountLookUpBCOperatorErrorPayload,
@@ -280,6 +279,6 @@ export abstract class BaseEventHandler implements IEventHandler {
 
     abstract processMessage (sourceMessage: IMessage): Promise<void>
 
-    abstract _handleErrorReceivedEvt(message: IMessage, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>
+    abstract _handleErrorReceivedEvt(message: IMessage, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>
 
 }

@@ -58,7 +58,6 @@ import {
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { ParticipantsPutId, ParticipantsPutTypeAndId, PartiesPutTypeAndId, PartiesPutTypeAndIdAndSubId } from "../errors";
-import { IncomingHttpHeaders } from "http";
 import { BaseEventHandler, HandlerNames } from "./base_event_handler";
 import { IParticipantService } from "../interfaces/infrastructure";
 
@@ -85,19 +84,19 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             switch(message.msgName){
                 case ParticipantAssociationCreatedEvt.name:
-                    await this._handleParticipantAssociationRequestReceivedEvt(new ParticipantAssociationCreatedEvt(message.payload), message.fspiopOpaqueState);
+                    await this._handleParticipantAssociationRequestReceivedEvt(new ParticipantAssociationCreatedEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
                 case ParticipantAssociationRemovedEvt.name:
-                    await this._handleParticipantDisassociateRequestReceivedEvt(new ParticipantAssociationRemovedEvt(message.payload), message.fspiopOpaqueState);
+                    await this._handleParticipantDisassociateRequestReceivedEvt(new ParticipantAssociationRemovedEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
                 case PartyInfoRequestedEvt.name:
-                    await this._handlePartyInfoRequestedEvt(new PartyInfoRequestedEvt(message.payload), message.fspiopOpaqueState);
+                    await this._handlePartyInfoRequestedEvt(new PartyInfoRequestedEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
                 case PartyQueryResponseEvt.name:
-                    await this._handlePartyQueryResponseEvt(new PartyQueryResponseEvt(message.payload), message.fspiopOpaqueState);
+                    await this._handlePartyQueryResponseEvt(new PartyQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
                 case ParticipantQueryResponseEvt.name:
-                    await this._handleParticipantQueryResponseEvt(new ParticipantQueryResponseEvt(message.payload), message.fspiopOpaqueState);
+                    await this._handleParticipantQueryResponseEvt(new ParticipantQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
                 case AccountLookUpUnknownErrorEvent.name:
                 case AccountLookupBCInvalidMessagePayloadErrorEvent.name:
@@ -111,7 +110,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 case AccountLookupBCOracleAdapterNotFoundErrorEvent.name:
                 case AccountLookupBCUnableToGetParticipantFspIdErrorEvent.name:
                 case AccountLookupBCParticipantFspIdNotFoundErrorEvent.name:
-                    await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState);
+                    await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState.headers);
                     break;
                 default:
                     this.logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
@@ -120,7 +119,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         } catch (error: unknown) {
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
-            const clonedHeaders = { ...message.fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+            const clonedHeaders = { ...message.fspiopOpaqueState.headers.headers as unknown as Request.FspiopHttpHeaders };
             const requesterFspId = clonedHeaders["fspiop-source"] as string;
             const partyType = message.payload.partyType as string;
             const partyId = message.payload.partyId as string;
@@ -128,15 +127,14 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             await this._sendErrorFeedbackToFsp({
                 message: message,
-                error: message.msgName,
-                headers: message.fspiopOpaqueState.headers,
+                headers: message.fspiopOpaqueState.headers.headers,
                 source: requesterFspId,
                 id: [partyType, partyId, partySubType],
                 errorResponse: {
                     list: [],
                     errorCode: Enums.ServerErrorCodes.GENERIC_SERVER_ERROR,
                     errorDescription: (error as Error).message
-                };
+                }
             });
         }
 
@@ -146,56 +144,28 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         return;
     }
 
-    async _handleErrorReceivedEvt(message: IDomainMessage, fspiopOpaqueState: IncomingHttpHeaders):Promise<void> {
+    async _handleErrorReceivedEvt(message: IDomainMessage, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
         this.logger.info("_handleAccountLookupErrorReceivedEvt -> start");
 
         const { payload } = message;
 
-        const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-        const requesterFspId = clonedHeaders["fspiop-source"] as string;
+        const clonedHeaders = fspiopOpaqueState;
+        const sourceFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
         const partyType = payload.partyType as string;
         const partyId = payload.partyId as string;
         const partySubType = payload.partySubType as string;
 
         // TODO validate vars above
 
-        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
-
-        if(!requestedEndpoint) {
-            throw Error(`fspId ${requesterFspId} has no valid participant associated`);
-        }
-
-        // Always validate the payload and headers received
-        Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
-
-        const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
-
-        urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
-        urlBuilder.setLocation([partyType, partyId, partySubType]);
-        urlBuilder.hasError(true);
-
-        const extensionList = [];
-
-        const errorResponse = this.buildErrorResponseBasedOnErrorEvent(message, clonedHeaders);
-        const errorsList = errorResponse.list;
-
-        for(let i=0 ; i<errorsList.length ; i+=1){
-            if(payload[errorsList[i]]) {
-                extensionList.push({
-                    key: errorsList[i],
-                    value: payload[errorsList[i]]
-                });
-            }
-        }
+        const errorResponse = this.buildErrorResponseBasedOnErrorEvent(message, sourceFspId, destinationFspId);
 
         await this._sendErrorFeedbackToFsp({
             message: message,
-            error: errorResponse.errorDescription,
-            errorCode: errorResponse.errorCode,
             headers: clonedHeaders,
-            source: requesterFspId,
+            source: errorResponse.sourceFspId,
             id: [partyType, partyId, partySubType],
-            extensionList: extensionList
+            errorResponse: errorResponse
         });
 
         this.logger.info("_handleAccountLookupErrorReceivedEvt -> end");
@@ -203,12 +173,13 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         return;
     }
 
-    private buildErrorResponseBasedOnErrorEvent(message: IDomainMessage, clonedHeaders: any): { list: string[], errorCode: string, errorDescription: string } {
-        const errorResponse: { list: string[], errorCode: string, errorDescription: string } =
+    private buildErrorResponseBasedOnErrorEvent(message: IDomainMessage, sourceFspId:string, destinationFspId:string): { list: string[], errorCode: string, errorDescription: string, sourceFspId: string } {
+        const errorResponse: { list: string[], errorCode: string, errorDescription: string, sourceFspId: string } =
         {
             list : [],
             errorCode : "1000", // Default error code
             errorDescription : "Unknown error event type received for account lookup",
+            sourceFspId : sourceFspId,
         };
 
         switch (message.msgName) {
@@ -224,7 +195,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             case AccountLookupBCParticipantFspIdNotFoundErrorEvent.name: {
                 errorResponse.list = ["partyType", "partyId", "partySubType", "fspId"];
                 //TODO: Create error event in account lookup for destination and source participants
-                if (clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === message.payload.fspId) {
+                if (destinationFspId === message.payload.fspId) {
                     errorResponse.errorCode = Enums.ClientErrorCodes.PAYER_FSP_ID_NOT_FOUND;
                 } else {
                     errorResponse.errorCode = Enums.ClientErrorCodes.PAYEE_FSP_ID_NOT_FOUND;
@@ -235,7 +206,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             case AccountLookupBCInvalidParticipantIdErrorEvent.name: {
                 errorResponse.list = ["partyType", "partyId", "partySubType", "fspId"];
                 //TODO: Create error event in account lookup for destination and source participants
-                if (clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === message.payload.fspId) {
+                if (destinationFspId === message.payload.fspId) {
                     errorResponse.errorCode = Enums.ClientErrorCodes.GENERIC_CLIENT_ERROR;
                 } else {
                     errorResponse.errorCode = Enums.ClientErrorCodes.DESTINATION_FSP_ERROR;
@@ -267,7 +238,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         return errorResponse;
     }
 
-    private async _handleParticipantAssociationRequestReceivedEvt(message: ParticipantAssociationCreatedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
+    private async _handleParticipantAssociationRequestReceivedEvt(message: ParticipantAssociationCreatedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
         this.logger.info("_handleParticipantAssociationRequestReceivedEvt -> start");
 
         try {
@@ -277,7 +248,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             const partyType = payload.partyType;
             const partyId = payload.partyId;
             const partySubType = payload.partySubType as string;
-            const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+            const clonedHeaders = fspiopOpaqueState;
 
             // TODO validate vars above
 
@@ -310,7 +281,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         return;
     }
 
-    private async _handleParticipantDisassociateRequestReceivedEvt(message: ParticipantAssociationRemovedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
+    private async _handleParticipantDisassociateRequestReceivedEvt(message: ParticipantAssociationRemovedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
         this.logger.info("_handleParticipantDisassociateRequestReceivedEvt -> start");
 
         try {
@@ -320,7 +291,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             const partyType = payload.partyType;
             const partyId = payload.partyId;
             const partySubType = payload.partySubType as string;
-            const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+            const clonedHeaders = fspiopOpaqueState;
 
             // TODO validate vars above
 
@@ -359,7 +330,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         return;
     }
 
-    private async _handlePartyInfoRequestedEvt(message: PartyInfoRequestedEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
+    private async _handlePartyInfoRequestedEvt(message: PartyInfoRequestedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
         this.logger.info("_handlePartyInfoRequestedEvt -> start");
 
         try {
@@ -371,7 +342,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             const partyType = payload.partyType;
             const partyId = payload.partyId;
             const partySubType = payload.partySubType as string;
-            const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+            const clonedHeaders = fspiopOpaqueState;
 
             // TODO handle the case where destinationFspId is null and remove ! below
 
@@ -417,7 +388,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         return;
     }
 
-    private async _handlePartyQueryResponseEvt(message: PartyQueryResponseEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
+    private async _handlePartyQueryResponseEvt(message: PartyQueryResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
         this.logger.info("_handlePartyQueryResponseEvt -> start");
 
         try {
@@ -428,7 +399,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             const partyType = payload.partyType ;
             const partyId = payload.partyId;
             const partySubType = payload.partySubType as string;
-            const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+            const clonedHeaders = fspiopOpaqueState;
 
             // TODO validate vars above
 
@@ -474,7 +445,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
     }
 
 
-    private async _handleParticipantQueryResponseEvt(message: ParticipantQueryResponseEvt, fspiopOpaqueState: IncomingHttpHeaders):Promise<void>{
+    private async _handleParticipantQueryResponseEvt(message: ParticipantQueryResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
         this.logger.info("_handleParticipantQueryResponseEvt -> start");
 
         try {
@@ -484,7 +455,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             const partyId = payload.partyId;
             const partySubType = payload.partySubType as string;
             const requesterFspId = payload.requesterFspId;
-            const clonedHeaders = { ...fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+            const clonedHeaders = fspiopOpaqueState;
 
             // TODO validate vars above
 
