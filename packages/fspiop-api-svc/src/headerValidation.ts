@@ -6,8 +6,8 @@
 // accuracy of this statement has not been thoroughly tested.
 
 //Import the Enums
-const { Factory: { createFSPIOPError }, Enums } = require("@mojaloop/central-services-error-handling")
-import { parseAcceptHeader, parseContentTypeHeader, protocolVersions, convertSupportedVersionToExtensionList } from "./validation"
+import express from "express";
+import { parseAcceptHeader, parseContentTypeHeader, protocolVersions, FSPIOPErrorCodes } from "./validation";
 
 // Some defaults
 
@@ -20,12 +20,12 @@ const defaultProtocolResources = [
   "bulkQuotes",
   "transactionRequests",
   "authorizations"
-]
+];
 
 const defaultProtocolVersions = [
   ...protocolVersions.ONE,
   protocolVersions.anyVersion
-]
+];
 
 const errorMessages = {
   REQUESTED_VERSION_NOT_SUPPORTED: "The Client requested an unsupported version, see extension list for supported version(s).",
@@ -34,7 +34,7 @@ const errorMessages = {
   REQUIRE_ACCEPT_HEADER: "Accept is required",
   REQUIRE_CONTENT_TYPE_HEADER: "Content-type is required",
   SUPPLIED_VERSION_NOT_SUPPORTED: "Client supplied a protocol version which is not supported by the server"
-}
+};
 
 /**
  * HAPI plugin to validate request headers per FSPIOP-API spec 1.0
@@ -47,24 +47,18 @@ const errorMessages = {
  *                       defaultProtocolResources for an example.
  */
 
-export const validateHeaders = (req: any, res:any, next:any) =>{
-  const resources = [
-      "parties",
-      "participants",
-      "quotes",
-      "transfers",
-      "bulkTransfers",
-      "bulkQuotes",
-      "transactionRequests",
-      "authorizations"
-    ]
-
-  const resource = req.path.replace(/^\//, "").split("/")[0]
+export const validateHeaders = (req: express.Request, res: express.Response, next: express.NextFunction) =>{
+  const resource = req.path.replace(/^\//, "").split("/")[0];
 
   // Only validate requests for the requested resources
-  // if (!resources.includes(resource)) {
-  //   debugger
-  // }
+  if (!defaultProtocolResources.includes(resource)) {
+    return res.status(400).json({
+      errorInformation: {
+          errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX,
+          errorDescription: errorMessages.INVALID_CONTENT_TYPE_HEADER
+      }
+  });
+  }
 
   const supportedProtocolAcceptVersions = defaultProtocolVersions;
   // Always validate the accept header for a get request, or optionally if it has been
@@ -78,11 +72,11 @@ export const validateHeaders = (req: any, res:any, next:any) =>{
               }
           });
       }
-      const contentType:any = parseContentTypeHeader(resource, req.headers["content-type"])
+      const contentType = parseContentTypeHeader(resource, req.headers["content-type"]);
       if (!contentType.valid) {
           return res.status(400).json({
               errorInformation: {
-                  errorCode: Enums.FSPIOPErrorCodes.MALFORMED_SYNTAX,
+                  errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX,
                   errorDescription: errorMessages.INVALID_CONTENT_TYPE_HEADER
               }
           });
@@ -91,62 +85,73 @@ export const validateHeaders = (req: any, res:any, next:any) =>{
       if (req.headers.accept === undefined) {
           return res.status(400).json({
               errorInformation: {
-                  errorCode: Enums.FSPIOPErrorCodes.MISSING_ELEMENT,
+                  errorCode: FSPIOPErrorCodes.MISSING_ELEMENT,
                   errorDescription: errorMessages.REQUIRE_ACCEPT_HEADER
               }
           });
-      }
+        }
 
-      const accept:any = parseAcceptHeader(resource, req.headers.accept)
-      if (!accept.valid) {
+        const accept = parseAcceptHeader(resource, req.headers.accept);
+        if (!accept.valid) {
           return res.status(400).json({
-              errorInformation: {
-                  errorCode: Enums.FSPIOPErrorCodes.MALFORMED_SYNTAX,
-                  errorDescription: errorMessages.INVALID_ACCEPT_HEADER
-              }
-          });
-      }
-      if (!supportedProtocolAcceptVersions.some(supportedVer => accept.versions.has(supportedVer))) {
-          // const supportedVersionExtensionListMap = convertSupportedVersionToExtensionList(supportedProtocolAcceptVersions)
-          return res.status(400).json({
-              errorInformation: {
-                  errorCode: Enums.FSPIOPErrorCodes.MISSING_ELEMENT.code,
+            errorInformation: {
+              errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX,
+              errorDescription: errorMessages.INVALID_ACCEPT_HEADER
+            }
+            });
+          }
+        const getVersionFromConfig = (resourceString:string) => {
+            const resourceVersionMap:{[key: string]: { contentVersion: string; acceptVersion: string; }} = {};
+            resourceString
+              .split(",")
+              .forEach((e) => e.split("=")
+                .reduce((p:string, c:string):any => { // eslint-disable-line @typescript-eslint/no-explicit-any
+                  resourceVersionMap[p] = {
+                    contentVersion: c,
+                    acceptVersion: c.split(".")[0]
+                  };
+                  return null;
+                }));
+            return resourceVersionMap;
+          };
+        const acceptVersion = getVersionFromConfig(req.headers["accept"]);
+
+        if(!acceptVersion || accept.versions === undefined) {
+			return res.status(400).json({
+				errorInformation: {
+					errorCode: FSPIOPErrorCodes.MISSING_ELEMENT.code,
+					errorDescription: errorMessages.INVALID_ACCEPT_HEADER,
+				}
+			});
+        }
+
+	if (!supportedProtocolAcceptVersions.some(supportedVer => accept.versions.has(supportedVer))) {
+        // const supportedVersionExtensionListMap = convertSupportedVersionToExtensionList(supportedProtocolAcceptVersions)
+        return res.status(400).json({
+          errorInformation: {
+            errorCode: FSPIOPErrorCodes.MISSING_ELEMENT.code,
                   errorDescription: errorMessages.INVALID_ACCEPT_HEADER,
               }
           });
       }
-      const getVersionFromConfig = (resourceString:any) => {
-          const resourceVersionMap:any = {}
-          resourceString
-            .split(",")
-            .forEach((e:any) => e.split("=")
-              .reduce((p:any, c:any) => {
-                resourceVersionMap[p] = {
-                  contentVersion: c,
-                  acceptVersion: c.split(".")[0]
-                }
-                return null
-              }))
-          return resourceVersionMap
-        }
-      const acceptVersion = getVersionFromConfig(req.headers["accept"])
 
-      // if(!acceptVersion) {
-      //     debugger
-      // }
-
-      const date:any = req.headers["date"]
-      let tempDate:any;
+      const date:any = req.headers["date"]; // eslint-disable-line @typescript-eslint/no-explicit-any
+      let tempDate:string;
       if (typeof date === "object" && date instanceof Date) {
-          tempDate = date.toUTCString()
+          tempDate = date.toUTCString();
         } else {
           try {
-            tempDate = (new Date(date)).toUTCString()
+            tempDate = (new Date(date)).toUTCString();
             if (tempDate === "Invalid Date") {
-              throw Error("Invalid Date")
+              return res.status(400).json({
+                errorInformation: {
+                    errorCode: "3102",
+                    errorDescription: "Invalid date-type"
+                }
+            });
             }
           } catch (err) {
-            tempDate = date
+            tempDate = date;
           }
         }
   }
@@ -172,4 +177,4 @@ export const validateHeaders = (req: any, res:any, next:any) =>{
 
   next();
   return;
-}
+};
