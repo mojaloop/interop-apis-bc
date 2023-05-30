@@ -60,6 +60,12 @@ export const validateHeaders = (req: express.Request, res: express.Response, nex
   });
   }
 
+    // TODO: find another way around this since it"s only a temporary fix for admin-ui date header
+  if(req.headers["fspiop-date"]) {
+      req.headers.date = req.headers["fspiop-date"] as string;
+      delete req.headers["fspiop-date"];
+  }
+  
   const supportedProtocolAcceptVersions = defaultProtocolVersions;
   // Always validate the accept header for a get request, or optionally if it has been
   // supplied
@@ -167,12 +173,6 @@ export const validateHeaders = (req: express.Request, res: express.Response, nex
               }
           });
       }
-  }
-
-  // TODO: find another way around this since it"s only a temporary fix for admin-ui date header
-  if(req.headers["fspiop-date"]) {
-      req.headers.date = req.headers["fspiop-date"] as string;
-      delete req.headers["fspiop-date"];
   }
 
   next();

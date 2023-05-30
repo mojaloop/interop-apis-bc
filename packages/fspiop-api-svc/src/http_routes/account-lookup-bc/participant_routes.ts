@@ -160,14 +160,15 @@ export class ParticipantRoutes extends BaseRoutes {
         this.logger.debug("Got associatePartyByTypeAndId request");
 
         const clonedHeaders = { ...req.headers };
+        const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
         const type = req.params["type"] as string || null;
         const id = req.params["id"] as string || null;
-        const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-        const currency = req.query["currency"] as string || null;
+        const ownerFspId = req.body["fspId"] as string || null;
+        const currency = req.body["currency"] as string || null;
  
         const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.parties, clonedHeaders);
 
-        if(!isValidHeaders || !type || !id || !requesterFspId){
+        if(!isValidHeaders || !type || !id || !ownerFspId){
             res.status(400).json({
                 status: "not ok"
             });
@@ -175,7 +176,7 @@ export class ParticipantRoutes extends BaseRoutes {
         }
 
         const msgPayload: ParticipantAssociationRequestReceivedEvtPayload = {
-            ownerFspId: requesterFspId,
+            ownerFspId: ownerFspId,
             partyId: id,
             partyType: type,
             partySubType: null,
@@ -205,15 +206,16 @@ export class ParticipantRoutes extends BaseRoutes {
         this.logger.debug("Got associatePartyByTypeAndId request");
 
         const clonedHeaders = { ...req.headers };
+        const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
         const type = req.params["type"] as string || null;
         const id = req.params["id"] as string || null;
         const partySubIdOrType = req.params["subid"] as string || null;
-        const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-        const currency = req.query["currency"] as string || null;
+        const ownerFspId = req.body["fspId"] as string || null;
+        const currency = req.body["currency"] as string || null;
 
         const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.parties, clonedHeaders);
 
-        if(!isValidHeaders || !type || !id || !requesterFspId){
+        if(!isValidHeaders || !type || !id || !ownerFspId){
             res.status(400).json({
                 status: "not ok"
             });
@@ -221,7 +223,7 @@ export class ParticipantRoutes extends BaseRoutes {
         }
 
         const msgPayload: ParticipantAssociationRequestReceivedEvtPayload = {
-            ownerFspId: requesterFspId,
+            ownerFspId: ownerFspId,
             partyId: id,
             partyType: type,
             partySubType: partySubIdOrType,

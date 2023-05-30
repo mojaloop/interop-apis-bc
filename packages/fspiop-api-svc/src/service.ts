@@ -303,7 +303,7 @@ export class Service {
         app.use(`/${TRANSFERS_URL_RESOURCE_NAME}`, this.transfersRoutes.router);
 
 
-        app.use((err: FspiopHttpRequestError, req: express.Request, res: express.Response) => {
+        app.use((err: FspiopHttpRequestError, req: express.Request, res: express.Response, next: express.NextFunction) => {
             const errorResponseBuilder = (errorCode: string, errorDescription: string, additionalProperties = {}) => {
                 return {
                     errorInformation: {
