@@ -104,7 +104,9 @@ export class PartyRoutes extends BaseRoutes {
 
         this.logger.debug("getPartyQueryReceivedByTypeAndId sent message");
 
-        res.status(202).json(null);
+        res.status(202).json({
+            status: "ok"
+        });
 
         this.logger.debug("getPartyQueryReceivedByTypeAndId responded");
     }
