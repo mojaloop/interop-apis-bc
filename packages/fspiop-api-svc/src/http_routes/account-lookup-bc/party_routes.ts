@@ -117,7 +117,7 @@ export class PartyRoutes extends BaseRoutes {
         const id = req.params["id"] as string || null;
         const partySubIdOrType = req.params["subid"] as string || null;
         const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-        const destinationFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const destinationFspId = req.headers[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
         const currency = req.query["currency"] as string || null;
 
         const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.parties, clonedHeaders);
@@ -166,7 +166,7 @@ export class PartyRoutes extends BaseRoutes {
         const type = req.params["type"] as string || null;
         const id = req.params["id"] as string || null;
         const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
         const ownerFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
         const currency = req.query["currency"] as string || null;
 
