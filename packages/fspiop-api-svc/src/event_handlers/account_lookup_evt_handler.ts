@@ -259,7 +259,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             }
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
-            urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
+            urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
             urlBuilder.setLocation([partyType, partyId, partySubType]);
 
             await Request.sendRequest({
@@ -308,7 +308,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
-            urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
+            urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
             urlBuilder.setLocation([partyType, partyId, partySubType]);
 
             await Request.sendRequest({
