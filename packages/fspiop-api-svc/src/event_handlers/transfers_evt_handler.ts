@@ -212,49 +212,104 @@ export class TransferEventHandler extends BaseEventHandler {
         switch (message.msgName) {
             case TransferInvalidMessagePayloadEvt.name:
             case TransferInvalidMessageTypeEvt.name:
-            case TransferPreparePayerNotFoundFailedEvt.name:
-            case TransferPreparePayeeNotFoundFailedEvt.name:
-            case TransferPrepareHubNotFoundFailedEvt.name:
-            case TransferPrepareInvalidPayerCheckFailedEvt.name:
-            case TransferPrepareInvalidPayeeCheckFailedEvt.name:
-            case TransferQueryInvalidPayerCheckFailedEvt.name:
-            case TransferQueryInvalidPayeeCheckFailedEvt.name:
-            case TransferQueryInvalidPayerParticipantIdEvt.name:
-            case TransferQueryInvalidPayeeParticipantIdEvt.name:
-            case TransferQueryPayerNotFoundFailedEvt.name:
-            case TransferQueryPayeeNotFoundFailedEvt.name:
-            case TransferUnableToGetTransferByIdEvt.name:
-            case TransferNotFoundEvt.name:
-            case TransferUnableToAddEvt.name:
-            case TransferUnableToUpdateEvt.name:
-            case TransferFulfilCommittedRequestedTimedoutEvt.name:
-            case TransferFulfilPostCommittedRequestedTimedoutEvt.name:
-            case TransferPrepareLiquidityCheckFailedEvt.name:
-            case TransferPrepareDuplicateCheckFailedEvt.name:
-            case TransferPrepareRequestTimedoutEvt.name:
-            case TransferRejectRequestProcessedEvt.name:
-            case TransferPrepareHubAccountNotFoundFailedEvt.name:
-            case TransferPreparePayerPositionAccountNotFoundFailedEvt.name:
-            case TransferPreparePayerLiquidityAccountNotFoundFailedEvt.name:
-            case TransferPreparePayeePositionAccountNotFoundFailedEvt.name:
-            case TransferPreparePayeeLiquidityAccountNotFoundFailedEvt.name:
-            case TransferPreparePayerNotActiveEvt.name:
-            case TransferPreparePayerNotApprovedEvt.name:
-            case TransferPreparePayeeNotActiveEvt.name:
-            case TransferPreparePayeeNotApprovedEvt.name:
             case TransfersBCUnknownErrorEvent.name: {
                 errorResponse.list = ["transferId", "fspId"];
                 errorResponse.errorCode = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR;
                 errorResponse.errorDescription = message.payload.errorDescription;
                 break;
             }
-
+            case TransferUnableToAddEvt.name: 
+            case TransferUnableToUpdateEvt.name: {
+                errorResponse.list = ["transferId", "fspId"];
+                errorResponse.errorCode = Enums.ServerErrorCodes.INTERNAL_SERVER_ERROR;
+                errorResponse.errorDescription = message.payload.errorDescription;
+                break;
+            }
+            case TransferPrepareHubNotFoundFailedEvt.name: 
+            case TransferPrepareHubAccountNotFoundFailedEvt.name: {
+                errorResponse.list = ["transferId", "fspId"];
+                errorResponse.errorCode = Enums.ClientErrorCodes.GENERIC_ID_NOT_FOUND;
+                errorResponse.errorDescription = message.payload.errorDescription;
+                break;
+            }
+            case TransferPreparePayerNotFoundFailedEvt.name: 
+            case TransferPreparePayeePositionAccountNotFoundFailedEvt.name:
+            case TransferPreparePayeeLiquidityAccountNotFoundFailedEvt.name:
+            case TransferQueryInvalidPayerCheckFailedEvt.name: 
+            case TransferQueryPayerNotFoundFailedEvt.name: { 
+                errorResponse.list = ["transferId", "fspId"];
+                errorResponse.errorCode = Enums.ClientErrorCodes.PAYER_FSP_ID_NOT_FOUND;
+                errorResponse.errorDescription = message.payload.errorDescription;
+                break;
+            }
+            case TransferPreparePayerPositionAccountNotFoundFailedEvt.name:
+            case TransferPreparePayerLiquidityAccountNotFoundFailedEvt.name:
+            case TransferPreparePayeeNotFoundFailedEvt.name:
+            case TransferQueryInvalidPayeeCheckFailedEvt.name: 
+            case TransferQueryPayeeNotFoundFailedEvt.name: {
+                errorResponse.list = ["transferId", "fspId"];
+                errorResponse.errorCode = Enums.ClientErrorCodes.PAYEE_FSP_ID_NOT_FOUND;
+                errorResponse.errorDescription = message.payload.errorDescription;
+                break;
+            }
+            case TransferNotFoundEvt.name:
+            case TransferUnableToGetTransferByIdEvt.name: {
+                errorResponse.list = ["transferId", "fspId"];
+                errorResponse.errorCode = Enums.ClientErrorCodes.TRANSFER_ID_NOT_FOUND;
+                errorResponse.errorDescription = message.payload.errorDescription;
+                break;
+            }
+            case TransferPrepareDuplicateCheckFailedEvt.name: {
+                errorResponse.list = ["transferId", "fspId"];
+                errorResponse.errorCode = Enums.ClientErrorCodes.INVALID_SIGNATURE;
+                errorResponse.errorDescription = message.payload.errorDescription;
+                break;
+            }
+            case TransferPrepareRequestTimedoutEvt.name:
+            case TransferFulfilCommittedRequestedTimedoutEvt.name:
+            case TransferFulfilPostCommittedRequestedTimedoutEvt.name: {
+                errorResponse.list = ["transferId", "fspId"];
+                errorResponse.errorCode = Enums.ClientErrorCodes.TRANSFER_EXPIRED;
+                errorResponse.errorDescription = message.payload.errorDescription;
+                break;
+            }
             case TransferCancelReservationFailedEvt.name:
             case TransferCancelReservationAndCommitFailedEvt.name: {
                 errorResponse.list = ["transferId", "fspId"];
                 errorResponse.errorCode = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR;
                 errorResponse.errorDescription = message.payload.errorDescription;
                 errorResponse.sourceFspId = destinationFspId ? destinationFspId : sourceFspId;
+                break;
+            }
+            case TransferPrepareLiquidityCheckFailedEvt.name: {
+                errorResponse.list = ["transferId", "fspId"];
+                errorResponse.errorCode = Enums.PayerErrorCodes.PAYER_FSP_INSUFFICIENT_LIQUIDITY;
+                errorResponse.errorDescription = message.payload.errorDescription;
+                break;
+            }
+            case TransferRejectRequestProcessedEvt.name: {
+                errorResponse.list = ["transferId", "fspId"];
+                errorResponse.errorCode = message.payload.errorInformation.errorCode;
+                errorResponse.errorDescription = message.payload.errorInformation.errorDescription;
+                errorResponse.sourceFspId = destinationFspId;
+                break;
+            }
+            case TransferPreparePayerNotActiveEvt.name:
+            case TransferPreparePayerNotApprovedEvt.name:
+            case TransferPrepareInvalidPayerCheckFailedEvt.name: 
+            case TransferQueryInvalidPayerParticipantIdEvt.name: {
+                errorResponse.list = ["transferId", "fspId"];
+                errorResponse.errorCode = Enums.PayerErrorCodes.GENERIC_PAYER_ERROR;
+                errorResponse.errorDescription = message.payload.errorDescription;
+                break;
+            }
+            case TransferPreparePayeeNotActiveEvt.name:
+            case TransferPreparePayeeNotApprovedEvt.name:
+            case TransferPrepareInvalidPayeeCheckFailedEvt.name: 
+            case TransferQueryInvalidPayeeParticipantIdEvt.name: {
+                errorResponse.list = ["transferId", "fspId"];
+                errorResponse.errorCode = Enums.PayeeErrorCodes.GENERIC_PAYEE_ERROR;
+                errorResponse.errorDescription = message.payload.errorDescription;
                 break;
             }
 
