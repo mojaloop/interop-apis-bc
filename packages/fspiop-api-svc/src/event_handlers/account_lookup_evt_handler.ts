@@ -119,15 +119,15 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         } catch (error: unknown) {
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
-            const clonedHeaders = { ...message.fspiopOpaqueState.headers.headers as unknown as Request.FspiopHttpHeaders };
-            const requesterFspId = clonedHeaders["fspiop-source"] as string;
+            const clonedHeaders = message.fspiopOpaqueState.headers;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
             const partyType = message.payload.partyType as string;
             const partyId = message.payload.partyId as string;
             const partySubType = message.payload.partySubType as string;
 
             await this._sendErrorFeedbackToFsp({
                 message: message,
-                headers: message.fspiopOpaqueState.headers.headers,
+                headers: message.fspiopOpaqueState.headers,
                 source: requesterFspId,
                 id: [partyType, partyId, partySubType],
                 errorResponse: {
@@ -187,7 +187,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             case AccountLookupBCUnableToDisassociateParticipantErrorEvent.name: {
                 errorResponse.list = ["partyType", "partyId", "partySubType", "fspId"];
                 errorResponse.errorCode = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR;
-                errorResponse.errorDescription = message.payload.errorInformation.errorDescription;
+                errorResponse.errorDescription = message.payload.errorDescription;
                 break;
             }
             case AccountLookupBCParticipantNotFoundErrorEvent.name:
@@ -200,7 +200,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 } else {
                     errorResponse.errorCode = Enums.ClientErrorCodes.PAYEE_FSP_ID_NOT_FOUND;
                 }
-                errorResponse.errorDescription = message.payload.errorInformation.errorDescription;
+                errorResponse.errorDescription = message.payload.errorDescription;
                 break;
             }
             case AccountLookupBCInvalidParticipantIdErrorEvent.name: {
@@ -211,7 +211,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 } else {
                     errorResponse.errorCode = Enums.ClientErrorCodes.DESTINATION_FSP_ERROR;
                 }
-                errorResponse.errorDescription = message.payload.errorInformation.errorDescription;
+                errorResponse.errorDescription = message.payload.errorDescription;
                 break;
             }
             case AccountLookupBCInvalidMessagePayloadErrorEvent.name:
@@ -221,13 +221,13 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             case AccountLookupBCOracleAdapterNotFoundErrorEvent.name: {
                 errorResponse.list = ["partyType", "partyId", "partySubType", "fspId"];
                 errorResponse.errorCode = Enums.ClientErrorCodes.GENERIC_CLIENT_ERROR;
-                errorResponse.errorDescription = message.payload.errorInformation.errorDescription;
+                errorResponse.errorDescription = message.payload.errorDescription;
                 break;
             }
             case AccountLookUpUnknownErrorEvent.name: {
                 errorResponse.list = ["partyType", "partyId", "partySubType", "fspId"];
                 errorResponse.errorCode = Enums.ServerErrorCodes.INTERNAL_SERVER_ERROR;
-                errorResponse.errorDescription = message.payload.errorInformation.errorDescription;
+                errorResponse.errorDescription = message.payload.errorDescription;
                 break;
             }
             default: {
@@ -235,6 +235,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 break;
             }
         }
+
         return errorResponse;
     }
 

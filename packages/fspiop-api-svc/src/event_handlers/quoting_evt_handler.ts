@@ -95,9 +95,9 @@ export class QuotingEventHandler extends BaseEventHandler {
                 case BulkQuoteAcceptedEvt.name:
                     await this._handleBulkQuoteAcceptedResponseEvt(new BulkQuoteAcceptedEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
-                //case QuoteBCInvalidIdErrorEvent.name:
-                //    await this._handleErrorReceivedEvt(new QuoteBCInvalidIdErrorEvent(message.payload), message.fspiopOpaqueState.headers);
-                //    break;
+                case QuoteBCParticipantNotFoundErrorEvent.name:
+                   await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState.headers);
+                   break;
                 default:
                  this.logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
                     break;
@@ -106,8 +106,8 @@ export class QuotingEventHandler extends BaseEventHandler {
         } catch (error: unknown) {
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
-            const clonedHeaders = { ...message.fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
-            const requesterFspId = clonedHeaders["fspiop-source"] as string;
+            const clonedHeaders = message.fspiopOpaqueState.headers;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
             const quoteId = message.payload.quoteId as string;
 
             await this._sendErrorFeedbackToFsp({
@@ -135,7 +135,7 @@ export class QuotingEventHandler extends BaseEventHandler {
         const { payload } = message;
 
         const clonedHeaders = fspiopOpaqueState;
-        const requesterFspId = clonedHeaders["fspiop-source"] as string;
+        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
         const quoteId = payload.quoteId as string;
         const bulkQuoteId = payload.bulkQuoteId as string;
 
@@ -176,7 +176,6 @@ export class QuotingEventHandler extends BaseEventHandler {
             case QuoteBCQuoteNotFoundErrorEvent.name:
             case QuoteBCBulkQuoteNotFoundErrorEvent.name:
             case QuoteBCInvalidMessageTypeErrorEvent.name:
-            case QuoteBCParticipantNotFoundErrorEvent.name:
             case QuoteBCRequiredParticipantIsNotActiveErrorEvent.name:
             case QuoteBCInvalidRequesterFspIdErrorEvent.name:
             case QuoteBCInvalidDestinationFspIdErrorEvent.name: {
@@ -186,6 +185,16 @@ export class QuotingEventHandler extends BaseEventHandler {
                     errorResponse.list = ["bulkQuoteId", "fspId"];
                 }
                 errorResponse.errorCode = Enums.ClientErrorCodes.GENERIC_CLIENT_ERROR;
+                errorResponse.errorDescription = message.payload.errorDescription;
+                break;
+            }
+            case QuoteBCParticipantNotFoundErrorEvent.name: {
+                if (isQuoteType) {
+                    errorResponse.list = ["quoteId", "fspId"];
+                } else {
+                    errorResponse.list = ["bulkQuoteId", "fspId"];
+                }
+                errorResponse.errorCode = Enums.ClientErrorCodes.PAYEE_FSP_ID_NOT_FOUND;
                 errorResponse.errorDescription = message.payload.errorDescription;
                 break;
             }

@@ -97,29 +97,25 @@ export abstract class BaseEventHandler implements IEventHandler {
     }
 
     protected async _validateParticipantAndGetEndpoint(fspId: string):Promise<IParticipantEndpoint|null>{
-        // try {
-            const participant = await this.participantService.getParticipantInfo(fspId);
+        const participant = await this.participantService.getParticipantInfo(fspId);
 
-            if (!participant) {
-                const errorMessage = `_validateParticipantAndGetEndpoint could not get participant with id: "${fspId}"`;
+        if (!participant) {
+            const errorMessage = `_validateParticipantAndGetEndpoint could not get participant with id: "${fspId}"`;
 
-                this.logger.error(errorMessage);
-                throw Error(errorMessage);
-            }
+            this.logger.error(errorMessage);
+            throw Error(errorMessage);
+        }
 
-            const endpoint = participant.participantEndpoints.find(endpoint => endpoint.type==="FSPIOP");
+        const endpoint = participant.participantEndpoints.find(endpoint => endpoint.type==="FSPIOP");
 
-            if (!endpoint) {
-                const errorMessage = `_validateParticipantAndGetEndpoint could not get "FSPIOP" endpoint from participant with id: "${fspId}"`;
+        if (!endpoint) {
+            const errorMessage = `_validateParticipantAndGetEndpoint could not get "FSPIOP" endpoint from participant with id: "${fspId}"`;
 
-                this.logger.error(errorMessage);
-                throw Error(errorMessage);
-            }
+            this.logger.error(errorMessage);
+            throw Error(errorMessage);
+        }
 
-            return endpoint;
-        // }catch(error: unknown) {
-        //     throw Error((error as Error).message);
-        // }
+        return endpoint;
     }
 
     protected async _sendErrorFeedbackToFsp({
@@ -227,7 +223,7 @@ export abstract class BaseEventHandler implements IEventHandler {
             default: {
                 const errorMessage = `Not possible to send message ${message?.msgName} event untreated error to corresponding operator error topic`;
                 this.logger.error(errorMessage);
-                throw new Error(errorMessage);
+                throw new Error(errorMessage); 
             }
 
         }
