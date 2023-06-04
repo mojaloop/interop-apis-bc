@@ -63,9 +63,26 @@ export interface FspiopError {
 	}
 }
 
+
+
+export const removeEmpty = (obj: any) => {
+	Object.entries(obj).forEach(([key, val])  =>
+		(val && typeof val === 'object') && removeEmpty(val) ||
+		(val === null || val === "") && delete obj[key]
+	);
+	return obj;
+};
+
+
 export interface PutParticipant {
 	fspId: string,
 }
+
+export const transformPayloadParticipantPut = (payload: ParticipantQueryResponseEvtPayload):PutParticipant => {
+	return {
+		fspId: payload.ownerFspId
+	};
+};
 
 export interface PutParty {
 	party: {
@@ -89,22 +106,7 @@ export interface PutParty {
 	}
 }
 
-export const removeEmpty = (obj: any) => {
-	Object.entries(obj).forEach(([key, val])  =>
-		(val && typeof val === 'object') && removeEmpty(val) ||
-		(val === null || val === "") && delete obj[key]
-	);
-	return obj;
-};
-
-
-export const transformPayloadParticipantPut = (payload: ParticipantQueryResponseEvtPayload):PutParticipant => {
-	return {
-		fspId: payload.ownerFspId
-	};
-};
-
-export const transformPayloadPartyAssociationPut = (payload: ParticipantAssociationCreatedEvtPayload):Pick<PutParty, 'party'> => {
+export const transformPayloadPartyAssociationPut = (payload: ParticipantAssociationCreatedEvtPayload):PutParty => {
 	const info = {
 		party: {
 			partyIdInfo: {

@@ -149,22 +149,23 @@ export class TransferEventHandler extends BaseEventHandler {
                     this.logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
                     break;
             }
-        } catch (e: unknown) {
+        } catch (error: unknown) {
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
-            const clonedHeaders = { ...message.fspiopOpaqueState.headers.headers as unknown as Request.FspiopHttpHeaders };
-            const sourceFspId = clonedHeaders["fspiop-source"] as string;
-            const destinationFspId = clonedHeaders["fspiop-destination"] as string;
-            const transferId = message.payload.partyType as string;
-
-            const errorResponse = this.buildErrorResponseBasedOnErrorEvent(message, sourceFspId, destinationFspId);
+            const clonedHeaders = message.fspiopOpaqueState.headers;
+            const sourceFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+            const transferId = message.payload.transferId as string;
 
             await this._sendErrorFeedbackToFsp({
                 message: message,
-                headers: message.fspiopOpaqueState.headers.headers,
+                headers: message.fspiopOpaqueState.headers,
                 source: sourceFspId,
                 id: [transferId],
-                errorResponse: errorResponse
+                errorResponse: {
+                    list: [],
+                    errorCode: Enums.ServerErrorCodes.GENERIC_SERVER_ERROR,
+                    errorDescription: (error as Error).message
+                }
             });
         }
 
@@ -282,7 +283,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 break;
             }
             case TransferPrepareLiquidityCheckFailedEvt.name: {
-                errorResponse.list = ["transferId", "fspId"];
+                errorResponse.list = ["transferId", "fspId", "amount", "currency"];
                 errorResponse.errorCode = Enums.PayerErrorCodes.PAYER_FSP_INSUFFICIENT_LIQUIDITY;
                 errorResponse.errorDescription = message.payload.errorDescription;
                 break;
@@ -318,6 +319,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 this.logger.warn(errorMessage);
             }
         }
+
         return errorResponse;
     }
 
