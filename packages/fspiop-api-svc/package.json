@@ -23,7 +23,8 @@
   ],
   "scripts": {
     "start": "npm run service",
-    "start:dev": "npm run build && AUDIT_KEY_FILE_PATH=./dist/tmp_key_file npm start",
+    "start:dev": "npm run build && npm run environment:dev && npm start",
+    "environment:dev": "(AUDIT_KEY_FILE_PATH = ./dist/tmp_key_file) || (set AUDIT_KEY_FILE_PATH = ./dist/tmp_key_file)",
     "service": "node dist/index.js",
     "build": "tsc && cp api-specs/api_spec.yaml dist",
     "watch": "tsc -w",
