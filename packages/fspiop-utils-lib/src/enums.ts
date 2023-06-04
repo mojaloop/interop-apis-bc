@@ -61,12 +61,12 @@ export enum ErrorCode {
     NOT_ACCEPTABLE = "9221",
     NOT_IMPLEMENTED = "5261",
     SERVICE_UNAVAILABLE = "6991"
-} 
+}
 
 export enum CommunicationErrorCodes {
     COMMUNCATION_ERROR = "1000",
     DESTINATION_COMMUNICATION_ERROR = "1001"
-} 
+}
 
 export enum ServerErrorCodes {
     GENERIC_SERVER_ERROR = "2000",
@@ -75,7 +75,7 @@ export enum ServerErrorCodes {
 	SERVICE_CURRENTLY_UNAVAILABLE = "2003",
 	SERVER_TIMED_OUT = "2004",
 	SERVER_BUSY = "2005"
-} 
+}
 
 export enum ClientErrorCodes {
     GENERIC_CLIENT_ERROR = "3000",
@@ -135,13 +135,13 @@ export enum PayeeErrorCodes {
 }
 
 export enum PartyIdentifier {
-    MSISDN = "MSISDN", 
-    EMAIL = "EMAIL", 
-    PERSONAL_ID = "PERSONAL_ID", 
-    BUSINESS = "BUSINESS", 
-    DEVICE = "DEVICE", 
-    ACCOUNT_ID = "ACCOUNT_ID", 
-    IBAN = "IBAN", 
+    MSISDN = "MSISDN",
+    EMAIL = "EMAIL",
+    PERSONAL_ID = "PERSONAL_ID",
+    BUSINESS = "BUSINESS",
+    DEVICE = "DEVICE",
+    ACCOUNT_ID = "ACCOUNT_ID",
+    IBAN = "IBAN",
     ALIAS = "ALIAS"
 }
 
