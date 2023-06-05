@@ -71,7 +71,6 @@ describe("FSPIOP Utils Lib", () => {
                 [FSPIOP_HEADERS_HTTP_METHOD]: "1",
                 [FSPIOP_HEADERS_SIGNATURE]: "1",
                 [FSPIOP_HEADERS_DATE]: "1",
-                [FSPIOP_HEADERS_DATE]: "1"
             },
             source: "1",
             destination: "2",
