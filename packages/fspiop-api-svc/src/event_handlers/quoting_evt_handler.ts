@@ -35,24 +35,29 @@ import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {
-    //QuoteBCInvalidIdErrorEvent,
     QuoteRequestAcceptedEvt,
     QuoteResponseAccepted,
     QuoteQueryResponseEvt,
     BulkQuoteReceivedEvt,
     BulkQuoteAcceptedEvt,
     QuoteBCDuplicateQuoteErrorEvent,
-    //QuoteBCInvalidMessageErrorEvent,
     QuoteBCBulkQuoteNotFoundErrorEvent,
     QuoteBCQuoteNotFoundErrorEvent,
     QuoteBCInvalidMessageTypeErrorEvent,
     QuoteBCParticipantNotFoundErrorEvent,
     QuoteBCRequiredParticipantIsNotActiveErrorEvent,
-    //QuoteBCInvalidParticipantIdErrorEvent,
     QuoteBCInvalidRequesterFspIdErrorEvent,
     QuoteBCInvalidDestinationFspIdErrorEvent,
-    //QuoteBCInvalidDestinationPartyInformationErrorEvent,
-    QuoteBCUnknownErrorEvent
+    QuoteBCUnknownErrorEvent,
+    QuoteBCQuoteExpiredErrorEvent,
+    QuoteBCBulkQuoteExpiredErrorEvent,
+    QuoteBCInvalidMessagePayloadErrorEvent,
+    QuoteBCUnableToAddQuoteToDatabaseErrorEvent,
+    QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent,
+    QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent,
+    QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent,
+    QuoteBCInvalidBulkQuoteLengthErrorEvent,
+    QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { BaseEventHandler, HandlerNames } from "./base_event_handler";
@@ -95,9 +100,9 @@ export class QuotingEventHandler extends BaseEventHandler {
                 case BulkQuoteAcceptedEvt.name:
                     await this._handleBulkQuoteAcceptedResponseEvt(new BulkQuoteAcceptedEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
-                case QuoteBCParticipantNotFoundErrorEvent.name:
-                   await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState.headers);
-                   break;
+                //case QuoteBCInvalidIdErrorEvent.name:
+                //    await this._handleErrorReceivedEvt(new QuoteBCInvalidIdErrorEvent(message.payload), message.fspiopOpaqueState.headers);
+                //    break;
                 default:
                  this.logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
                     break;
@@ -106,8 +111,8 @@ export class QuotingEventHandler extends BaseEventHandler {
         } catch (error: unknown) {
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
-            const clonedHeaders = message.fspiopOpaqueState.headers;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+            const clonedHeaders = { ...message.fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+            const requesterFspId = clonedHeaders["fspiop-source"] as string;
             const quoteId = message.payload.quoteId as string;
 
             await this._sendErrorFeedbackToFsp({
@@ -135,7 +140,7 @@ export class QuotingEventHandler extends BaseEventHandler {
         const { payload } = message;
 
         const clonedHeaders = fspiopOpaqueState;
-        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+        const requesterFspId = clonedHeaders["fspiop-source"] as string;
         const quoteId = payload.quoteId as string;
         const bulkQuoteId = payload.bulkQuoteId as string;
 
@@ -165,45 +170,62 @@ export class QuotingEventHandler extends BaseEventHandler {
             errorDescription : "Unknown error event type received for quoting",
         };
 
-        // QuoteBCInvalidMessagePayloadErrorEvent  |
-        // QuoteBCQuoteExpiredErrorEvent | QuoteBCBulkQuoteExpiredErrorEvent | QuoteBCUnableToAddQuoteToDatabaseErrorEvent |
-        // QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent | QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent |
-        // QuoteBCeUnableToUpdateBulkQuoteInDatabaseErrorEvent | QuoteBCInvalidBulkQuoteLengthErrorEvent |
-        //  | QuoteBCUnableToAddQuoteToDatabaseErrorEvent | QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent | QuoteBCUnableToAddQuoteToDatabaseErrorEvent
+        const errorList = (isQuoteType)? ["quoteId", "fspId"] : ["bulkQuoteId", "fspId"];
 
         switch (message.msgName) {
-            case QuoteBCDuplicateQuoteErrorEvent.name:
-            case QuoteBCQuoteNotFoundErrorEvent.name:
-            case QuoteBCBulkQuoteNotFoundErrorEvent.name:
+            case QuoteBCInvalidMessagePayloadErrorEvent.name:
             case QuoteBCInvalidMessageTypeErrorEvent.name:
+            case QuoteBCInvalidBulkQuoteLengthErrorEvent.name:
+            case QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent.name:
+            {
+                errorResponse.list = errorList;
+                errorResponse.errorCode = Enums.ClientErrorCodes.GENERIC_VALIDATION_ERROR;
+                errorResponse.errorDescription = message.payload.errorDescription;
+                break;
+            }
+            case QuoteBCQuoteNotFoundErrorEvent.name:
+            {
+                errorResponse.list = errorList;
+                errorResponse.errorCode = Enums.ClientErrorCodes.QUOTE_ID_NOT_FOUND;
+                errorResponse.errorDescription = message.payload.errorDescription;
+                break;
+            }
+            case QuoteBCBulkQuoteNotFoundErrorEvent.name: {
+                errorResponse.list = errorList;
+                errorResponse.errorCode = Enums.ClientErrorCodes.BULK_QUOTE_ID_NOT_FOUND;
+                errorResponse.errorDescription = message.payload.errorDescription;
+                break;
+            }
+            case QuoteBCInvalidDestinationFspIdErrorEvent.name:{
+                errorResponse.list = errorList;
+                errorResponse.errorCode = Enums.ClientErrorCodes.DESTINATION_FSP_ERROR;
+                errorResponse.errorDescription = message.payload.errorDescription;
+                break;
+            }
+            case QuoteBCDuplicateQuoteErrorEvent.name:
+            case QuoteBCUnableToAddQuoteToDatabaseErrorEvent.name:
+            case QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent.name:
+            case QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent.name:
+            case QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent.name:
+            case QuoteBCParticipantNotFoundErrorEvent.name:
             case QuoteBCRequiredParticipantIsNotActiveErrorEvent.name:
             case QuoteBCInvalidRequesterFspIdErrorEvent.name:
-            case QuoteBCInvalidDestinationFspIdErrorEvent.name: {
-                if (isQuoteType) {
-                    errorResponse.list = ["quoteId", "fspId"];
-                } else {
-                    errorResponse.list = ["bulkQuoteId", "fspId"];
-                }
+            {
+                errorResponse.list = errorList;
                 errorResponse.errorCode = Enums.ClientErrorCodes.GENERIC_CLIENT_ERROR;
                 errorResponse.errorDescription = message.payload.errorDescription;
                 break;
             }
-            case QuoteBCParticipantNotFoundErrorEvent.name: {
-                if (isQuoteType) {
-                    errorResponse.list = ["quoteId", "fspId"];
-                } else {
-                    errorResponse.list = ["bulkQuoteId", "fspId"];
-                }
-                errorResponse.errorCode = Enums.ClientErrorCodes.PAYEE_FSP_ID_NOT_FOUND;
+            case QuoteBCQuoteExpiredErrorEvent.name:
+            case QuoteBCBulkQuoteExpiredErrorEvent.name: {
+                errorList.push("expiration");
+                errorResponse.list = errorList;
+                errorResponse.errorCode = Enums.ClientErrorCodes.QUOTE_EXPIRED;
                 errorResponse.errorDescription = message.payload.errorDescription;
                 break;
             }
             case QuoteBCUnknownErrorEvent.name: {
-                if (isQuoteType) {
-                    errorResponse.list = ["quoteId", "fspId"];
-                } else {
-                    errorResponse.list = ["bulkQuoteId", "fspId"];
-                }
+                errorResponse.list = errorList;
                 errorResponse.errorCode = Enums.ServerErrorCodes.INTERNAL_SERVER_ERROR;
                 errorResponse.errorDescription = message.payload.errorDescription;
                 break;
