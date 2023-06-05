@@ -47,7 +47,7 @@ const errorMessages = {
  */
 
 export const validateHeaders = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  	const resource = req.path.replace(/^\//, "").split("/")[0];
+	const resource = req.path.replace(/^\//, "").split("/")[0];
 
 	// Only validate requests for the requested resources
 	if (!defaultProtocolResources.includes(resource)) {
@@ -87,7 +87,7 @@ export const validateHeaders = (req: express.Request, res: express.Response, nex
 			});
 		}
 
-     	 if (req.headers.accept === undefined) {
+		if (req.headers.accept === undefined) {
 			return res.status(400).json({
 				errorInformation: {
 					errorCode: FSPIOPErrorCodes.MISSING_ELEMENT,
@@ -112,11 +112,11 @@ export const validateHeaders = (req: express.Request, res: express.Response, nex
 				.split(",")
 				.forEach((e) => e.split("=")
                 .reduce((p:string, c:string):any => { // eslint-disable-line @typescript-eslint/no-explicit-any
-                  	resourceVersionMap[p] = {
+					resourceVersionMap[p] = {
 						contentVersion: c,
 						acceptVersion: c.split(".")[0]
 					};
-                  	return null;
+					return null;
                 }));
             return resourceVersionMap;
 		};
@@ -161,7 +161,7 @@ export const validateHeaders = (req: express.Request, res: express.Response, nex
 				tempDate = date;
 			}
 		}
-  	}
+	}
 
 	if(req.headers["date"]) {
 		// Determine which library to use to validate dates
