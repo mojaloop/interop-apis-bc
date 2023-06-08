@@ -63,12 +63,18 @@ export enum ErrorCode {
     SERVICE_UNAVAILABLE = "6991"
 }
 
-export enum CommunicationErrorCodes {
-    COMMUNCATION_ERROR = "1000",
-    DESTINATION_COMMUNICATION_ERROR = "1001"
-}
+export const CommunicationErrors = {
+    COMMUNCATION_ERROR: {
+        code: "1000",
+        description: "Generic communication error."
+    },
+    DESTINATION_COMMUNICATION_ERROR: {
+        code: "1001",
+        description: "Destination of the request failed to be reached. This usually indicates that a Peer FSP failed to respond from an intermediate entity."
+    },
+} as const;
 
-export const ServerErrorCodes = {
+export const ServerErrors = {
     GENERIC_SERVER_ERROR: {
         code: "2000",
         description: "Generic server error to be used in order not to disclose information that may be considered private."
@@ -95,7 +101,7 @@ export const ServerErrorCodes = {
     },
 } as const;
 
-export const ClientErrorCodes = {
+export const ClientErrors = {
     GENERIC_CLIENT_ERROR: {
         code: "3000",
         description: "Generic client error, used in order not to disclose information that may be considered private."
@@ -206,7 +212,7 @@ export const ClientErrorCodes = {
     },
 } as const;
 
-export const PayerErrorCodes = {
+export const PayerErrors = {
     GENERIC_PAYER_ERROR: {
         code: "4000",
         description: "Generic error related to the Payer or Payer FSP. Used for protecting information that may be considered private."
@@ -245,7 +251,7 @@ export const PayerErrorCodes = {
     }
 } as const;
 
-export const PayeeErrorCodes = {
+export const PayeeErrors = {
     GENERIC_PAYEE_ERROR: {
         code: "5000",
         description: "Generic error due to the Payer or Payer FSP, to be used in order not to disclose information that may be considered private."
@@ -294,7 +300,7 @@ export const PayeeErrorCodes = {
         code: "5400",
         description: "Generic Payee Blocked error, the Payee is blocked or has failed regulatory screenings."
     }
-}
+} as const;
 
 export enum PartyIdentifier {
     MSISDN = "MSISDN",

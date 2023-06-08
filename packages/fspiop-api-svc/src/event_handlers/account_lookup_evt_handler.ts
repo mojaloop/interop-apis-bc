@@ -130,8 +130,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 headers: message.fspiopOpaqueState.headers,
                 id: [partyType, partyId, partySubType],
                 errorResponse: {
-                    errorCode: Enums.ServerErrorCodes.GENERIC_SERVER_ERROR.code,
-                    errorDescription: Enums.ServerErrorCodes.GENERIC_SERVER_ERROR.description,
+                    errorCode: Enums.ServerErrors.GENERIC_SERVER_ERROR.code,
+                    errorDescription: Enums.ServerErrors.GENERIC_SERVER_ERROR.description,
                     sourceFspId: requesterFspId,
                     destinationFspId: null
                 },
@@ -179,8 +179,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
     private buildErrorResponseBasedOnErrorEvent(message: IDomainMessage, sourceFspId:string, destinationFspId:string): { errorCode: string, errorDescription: string, sourceFspId: string, destinationFspId: string | null } {
         const errorResponse: { errorCode: string, errorDescription: string, sourceFspId: string, destinationFspId: string | null } =
         {
-            errorCode : "1000", // Default error code
-            errorDescription : "Unknown error event type received for account lookup",
+            errorCode : Enums.CommunicationErrors.COMMUNCATION_ERROR.code,
+            errorDescription : Enums.CommunicationErrors.COMMUNCATION_ERROR.description,
             sourceFspId : sourceFspId,
             destinationFspId: null
         };
@@ -188,30 +188,30 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         switch (message.msgName) {
             case AccountLookupBCUnableToAssociateParticipantErrorEvent.name:
             case AccountLookupBCUnableToDisassociateParticipantErrorEvent.name: {
-                errorResponse.errorCode = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR.code;
-                errorResponse.errorDescription = Enums.ServerErrorCodes.GENERIC_SERVER_ERROR.description;
+                errorResponse.errorCode = Enums.ServerErrors.GENERIC_SERVER_ERROR.code;
+                errorResponse.errorDescription = Enums.ServerErrors.GENERIC_SERVER_ERROR.description;
                 break;
             }
             case AccountLookupBCParticipantNotFoundErrorEvent.name:
             case AccountLookupBCUnableToGetParticipantFspIdErrorEvent.name:
             case AccountLookupBCParticipantFspIdNotFoundErrorEvent.name: {
                 if (destinationFspId === message.payload.fspId) {
-                    errorResponse.errorCode = Enums.ClientErrorCodes.PAYER_FSP_ID_NOT_FOUND.code;
-                    errorResponse.errorDescription = Enums.ClientErrorCodes.PAYER_FSP_ID_NOT_FOUND.description;
+                    errorResponse.errorCode = Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.code;
+                    errorResponse.errorDescription = Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.description;
                 } else {
-                    errorResponse.errorCode = Enums.ClientErrorCodes.PAYEE_FSP_ID_NOT_FOUND.code;
-                    errorResponse.errorDescription = Enums.ClientErrorCodes.PAYEE_FSP_ID_NOT_FOUND.description;
+                    errorResponse.errorCode = Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.code;
+                    errorResponse.errorDescription = Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.description;
                 }
                 break;
             }
             case AccountLookupBCInvalidParticipantIdErrorEvent.name: {
                 //TODO: Create error event in account lookup for destination and source participants
                 if (destinationFspId === message.payload.fspId) {
-                    errorResponse.errorCode = Enums.ClientErrorCodes.GENERIC_CLIENT_ERROR.code;
-                    errorResponse.errorDescription = Enums.ClientErrorCodes.GENERIC_CLIENT_ERROR.description;
+                    errorResponse.errorCode = Enums.ClientErrors.GENERIC_CLIENT_ERROR.code;
+                    errorResponse.errorDescription = Enums.ClientErrors.GENERIC_CLIENT_ERROR.description;
                 } else {
-                    errorResponse.errorCode = Enums.ClientErrorCodes.DESTINATION_FSP_ERROR.code;
-                    errorResponse.errorDescription = Enums.ClientErrorCodes.DESTINATION_FSP_ERROR.description;
+                    errorResponse.errorCode = Enums.ClientErrors.DESTINATION_FSP_ERROR.code;
+                    errorResponse.errorDescription = Enums.ClientErrors.DESTINATION_FSP_ERROR.description;
                 }
                 break;
             }
@@ -220,13 +220,13 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             case AccountLookupBCUnableToGetOracleFromOracleFinderErrorEvent.name:
             case AccountLookupBCOracleNotFoundErrorEvent.name:
             case AccountLookupBCOracleAdapterNotFoundErrorEvent.name: {
-                errorResponse.errorCode = Enums.ClientErrorCodes.GENERIC_CLIENT_ERROR.code;
-                errorResponse.errorDescription = Enums.ClientErrorCodes.GENERIC_CLIENT_ERROR.description;
+                errorResponse.errorCode = Enums.ClientErrors.GENERIC_CLIENT_ERROR.code;
+                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_CLIENT_ERROR.description;
                 break;
             }
             case AccountLookUpUnknownErrorEvent.name: {
-                errorResponse.errorCode = Enums.ServerErrorCodes.INTERNAL_SERVER_ERROR.code;
-                errorResponse.errorDescription = Enums.ServerErrorCodes.INTERNAL_SERVER_ERROR.description;
+                errorResponse.errorCode = Enums.ServerErrors.INTERNAL_SERVER_ERROR.code;
+                errorResponse.errorDescription = Enums.ServerErrors.INTERNAL_SERVER_ERROR.description;
                 break;
             }
             default: {
