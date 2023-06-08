@@ -126,7 +126,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                     destinationFspId: null
                 },
                 extensionList: [{
-                    key: QuotingEventHandler.name,
+                    key: HandlerNames.Quotes,
                     value: (error as Error).message
                 }]
             });

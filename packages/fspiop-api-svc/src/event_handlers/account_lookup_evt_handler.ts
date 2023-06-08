@@ -136,7 +136,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                     destinationFspId: null
                 },
                 extensionList: [{
-                    key: AccountLookupEventHandler.name,
+                    key: HandlerNames.AccountLookUp,
                     value: (error as Error).message
                 }]
             });

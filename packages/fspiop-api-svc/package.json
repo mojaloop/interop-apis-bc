@@ -53,7 +53,7 @@
     "@mojaloop/participant-bc-public-types-lib": "~0.0.10",
     "@mojaloop/participants-bc-client-lib": "~0.1.6",
     "@mojaloop/platform-shared-lib-public-messages-lib": "~0.1.107",
-    "@mojaloop/platform-shared-lib-messaging-types-lib": "~0.2.98",
+    "@mojaloop/platform-shared-lib-messaging-types-lib": "~0.2.99",
     "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "~0.3.59",
     "@mojaloop/security-bc-client-lib": "^0.1.31",
     "ajv": "^8.12.0",

@@ -167,7 +167,7 @@ export class TransferEventHandler extends BaseEventHandler {
                     destinationFspId: null
                 },
                 extensionList: [{
-                    key: TransferEventHandler.name,
+                    key: HandlerNames.Transfers,
                     value: (error as Error).message
                 }]
             });
