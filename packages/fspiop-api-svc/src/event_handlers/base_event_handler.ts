@@ -139,6 +139,8 @@ export abstract class BaseEventHandler implements IEventHandler {
             value: string;
         }[]
     }):Promise<void>{
+        // We always have a sourceFsp to send info to, depending on the stage of the 
+        // event when the error occurred it should also deliver to the destination
         const fspIds = [errorResponse.sourceFspId];
         
         if(errorResponse.destinationFspId) {

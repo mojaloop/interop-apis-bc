@@ -32,7 +32,7 @@
 "use strict";
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import {DomainErrorEventMsg, IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {
     TransferPreparedEvt,
@@ -77,6 +77,9 @@ import {
 import { Constants, Request, Enums, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { BaseEventHandler, HandlerNames } from "./base_event_handler";
 import { IParticipantService } from "../interfaces/infrastructure";
+import { TransferPrepareRequestedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { TransferFulfilCommittedRequestedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { TransferRejectRequestedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 
 export class TransferEventHandler extends BaseEventHandler {
     constructor(
@@ -143,7 +146,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 case TransferPayeeNotActiveEvt.name:
                 case TransferPayeeNotApprovedEvt.name:
                 case TransfersBCUnknownErrorEvent.name:
-                    await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState.headers);
+                    await this._handleErrorReceivedEvt(message as DomainErrorEventMsg, message.fspiopOpaqueState.headers);
                     break;
                 default:
                     this.logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
@@ -178,7 +181,7 @@ export class TransferEventHandler extends BaseEventHandler {
         return;
     }
 
-    async _handleErrorReceivedEvt(message: IDomainMessage, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
+    async _handleErrorReceivedEvt(message: DomainErrorEventMsg, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
         this.logger.info("_handleTransferErrorReceivedEvt -> start");
 
         const { payload } = message;
@@ -204,7 +207,7 @@ export class TransferEventHandler extends BaseEventHandler {
         return;
     }
 
-    private buildErrorResponseBasedOnErrorEvent (message: IDomainMessage, sourceFspId:string, destinationFspId:string) : { errorCode: string, errorDescription: string, sourceFspId: string, destinationFspId: string | null } {
+    private buildErrorResponseBasedOnErrorEvent (message: DomainErrorEventMsg, sourceFspId:string, destinationFspId:string) : { errorCode: string, errorDescription: string, sourceFspId: string, destinationFspId: string | null } {
         const errorResponse: { errorCode: string, errorDescription: string, sourceFspId: string, destinationFspId: string | null } =
         {
             errorCode : "1000", // Default error code
@@ -212,6 +215,14 @@ export class TransferEventHandler extends BaseEventHandler {
             sourceFspId : sourceFspId,
             destinationFspId: null
         };
+
+        switch(message.sourceMessageName) {
+            case TransferFulfilCommittedRequestedEvt.name:
+            case TransferRejectRequestedEvt.name: {
+                errorResponse.destinationFspId = destinationFspId;
+                break;
+            }
+        }
 
         switch (message.msgName) {
             case TransferInvalidMessagePayloadEvt.name:
