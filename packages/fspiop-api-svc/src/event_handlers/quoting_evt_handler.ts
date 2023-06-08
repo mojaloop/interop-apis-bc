@@ -118,13 +118,17 @@ export class QuotingEventHandler extends BaseEventHandler {
             await this._sendErrorFeedbackToFsp({
                 message: message,
                 headers: message.fspiopOpaqueState.headers,
-                source: requesterFspId,
                 id: [quoteId],
                 errorResponse: {
-                    list: [],
-                    errorCode: Enums.ServerErrorCodes.GENERIC_SERVER_ERROR,
-                    errorDescription: (error as Error).message
-                }
+                    errorCode: Enums.ServerErrorCodes.GENERIC_SERVER_ERROR.code,
+                    errorDescription: Enums.ServerErrorCodes.GENERIC_SERVER_ERROR.description,
+                    sourceFspId: requesterFspId,
+                    destinationFspId: null
+                },
+                extensionList: [{
+                    key: QuotingEventHandler.name,
+                    value: (error as Error).message
+                }]
             });
         }
 
@@ -140,19 +144,18 @@ export class QuotingEventHandler extends BaseEventHandler {
         const { payload } = message;
 
         const clonedHeaders = fspiopOpaqueState;
-        const requesterFspId = clonedHeaders["fspiop-source"] as string;
+        const sourceFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
         const quoteId = payload.quoteId as string;
         const bulkQuoteId = payload.bulkQuoteId as string;
 
         // TODO validate vars above
 
         const isQuoteType = quoteId ? true : false;
-        const errorResponse = this.buildErrorResponseBasedOnErrorEvent(message, isQuoteType);
+        const errorResponse = this.buildErrorResponseBasedOnErrorEvent(message, sourceFspId, isQuoteType);
 
         await this._sendErrorFeedbackToFsp({
             message: message,
             headers: clonedHeaders,
-            source: requesterFspId,
             id: quoteId ? [quoteId] : [bulkQuoteId],
             errorResponse: errorResponse
         });
@@ -162,15 +165,14 @@ export class QuotingEventHandler extends BaseEventHandler {
         return;
     }
 
-    private buildErrorResponseBasedOnErrorEvent(message: IDomainMessage, isQuoteType: boolean): { list: string[]; errorCode: string; errorDescription: string} {
-        const errorResponse: { list: string[], errorCode: string, errorDescription: string } =
+    private buildErrorResponseBasedOnErrorEvent(message: IDomainMessage, sourceFspId:string, isQuoteType: boolean): { errorCode: string; errorDescription: string, sourceFspId: string, destinationFspId: string | null } {
+        const errorResponse: { errorCode: string, errorDescription: string, sourceFspId: string, destinationFspId: string | null } =
         {
-            list : [],
             errorCode : "1000", // Default error code
             errorDescription : "Unknown error event type received for quoting",
+            sourceFspId : sourceFspId,
+            destinationFspId: null
         };
-
-        const errorList = (isQuoteType)? ["quoteId", "fspId"] : ["bulkQuoteId", "fspId"];
 
         switch (message.msgName) {
             case QuoteBCInvalidMessagePayloadErrorEvent.name:
@@ -178,28 +180,24 @@ export class QuotingEventHandler extends BaseEventHandler {
             case QuoteBCInvalidBulkQuoteLengthErrorEvent.name:
             case QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent.name:
             {
-                errorResponse.list = errorList;
-                errorResponse.errorCode = Enums.ClientErrorCodes.GENERIC_VALIDATION_ERROR;
-                errorResponse.errorDescription = message.payload.errorDescription;
+                errorResponse.errorCode = Enums.ClientErrorCodes.GENERIC_VALIDATION_ERROR.code;
+                errorResponse.errorDescription = Enums.ClientErrorCodes.GENERIC_VALIDATION_ERROR.description;
                 break;
             }
             case QuoteBCQuoteNotFoundErrorEvent.name:
             {
-                errorResponse.list = errorList;
-                errorResponse.errorCode = Enums.ClientErrorCodes.QUOTE_ID_NOT_FOUND;
-                errorResponse.errorDescription = message.payload.errorDescription;
+                errorResponse.errorCode = Enums.ClientErrorCodes.QUOTE_ID_NOT_FOUND.code;
+                errorResponse.errorDescription = Enums.ClientErrorCodes.QUOTE_ID_NOT_FOUND.description;
                 break;
             }
             case QuoteBCBulkQuoteNotFoundErrorEvent.name: {
-                errorResponse.list = errorList;
-                errorResponse.errorCode = Enums.ClientErrorCodes.BULK_QUOTE_ID_NOT_FOUND;
-                errorResponse.errorDescription = message.payload.errorDescription;
+                errorResponse.errorCode = Enums.ClientErrorCodes.BULK_QUOTE_ID_NOT_FOUND.code;
+                errorResponse.errorDescription = Enums.ClientErrorCodes.BULK_QUOTE_ID_NOT_FOUND.description;
                 break;
             }
             case QuoteBCInvalidDestinationFspIdErrorEvent.name:{
-                errorResponse.list = errorList;
-                errorResponse.errorCode = Enums.ClientErrorCodes.DESTINATION_FSP_ERROR;
-                errorResponse.errorDescription = message.payload.errorDescription;
+                errorResponse.errorCode = Enums.ClientErrorCodes.DESTINATION_FSP_ERROR.code;
+                errorResponse.errorDescription = Enums.ClientErrorCodes.DESTINATION_FSP_ERROR.description;
                 break;
             }
             case QuoteBCDuplicateQuoteErrorEvent.name:
@@ -211,23 +209,19 @@ export class QuotingEventHandler extends BaseEventHandler {
             case QuoteBCRequiredParticipantIsNotActiveErrorEvent.name:
             case QuoteBCInvalidRequesterFspIdErrorEvent.name:
             {
-                errorResponse.list = errorList;
-                errorResponse.errorCode = Enums.ClientErrorCodes.GENERIC_CLIENT_ERROR;
-                errorResponse.errorDescription = message.payload.errorDescription;
+                errorResponse.errorCode = Enums.ClientErrorCodes.GENERIC_CLIENT_ERROR.code;
+                errorResponse.errorDescription = Enums.ClientErrorCodes.GENERIC_CLIENT_ERROR.description;
                 break;
             }
             case QuoteBCQuoteExpiredErrorEvent.name:
             case QuoteBCBulkQuoteExpiredErrorEvent.name: {
-                errorList.push("expiration");
-                errorResponse.list = errorList;
-                errorResponse.errorCode = Enums.ClientErrorCodes.QUOTE_EXPIRED;
-                errorResponse.errorDescription = message.payload.errorDescription;
+                errorResponse.errorCode = Enums.ClientErrorCodes.QUOTE_EXPIRED.code;
+                errorResponse.errorDescription = Enums.ClientErrorCodes.QUOTE_EXPIRED.description;
                 break;
             }
             case QuoteBCUnknownErrorEvent.name: {
-                errorResponse.list = errorList;
-                errorResponse.errorCode = Enums.ServerErrorCodes.INTERNAL_SERVER_ERROR;
-                errorResponse.errorDescription = message.payload.errorDescription;
+                errorResponse.errorCode = Enums.ServerErrorCodes.INTERNAL_SERVER_ERROR.code;
+                errorResponse.errorDescription = Enums.ServerErrorCodes.INTERNAL_SERVER_ERROR.description;
                 break;
             }
             default: {

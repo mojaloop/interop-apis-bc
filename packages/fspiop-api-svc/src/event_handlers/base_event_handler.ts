@@ -121,65 +121,77 @@ export abstract class BaseEventHandler implements IEventHandler {
     protected async _sendErrorFeedbackToFsp({
         message,
         headers,
-        source,
         id,
         errorResponse,
+        extensionList = []
     }: {
         message: IDomainMessage;
         headers: Request.FspiopHttpHeaders;
-        source: string;
         id: string[];
         errorResponse: {
-            list: string[];
             errorCode: string;
             errorDescription: string;
+            sourceFspId : string;
+            destinationFspId: string | null;
         };
+        extensionList?: {
+            key: string;
+            value: string;
+        }[]
     }):Promise<void>{
-        try {
-            const endpoint = (await this._validateParticipantAndGetEndpoint(source));
-
-            if(!endpoint) {
-                throw Error(`fspId ${source} has no valid participant associated`);
-            }
-
-            const url = this.buildFspFeedbackUrl(endpoint, id, message);
-
-            const extensionList = [];
-            const errorList = errorResponse.list;
-
-            for(let i=0 ; i<errorList.length ; i+=1){
-                if(message.payload[errorList[i]]) {
-                    extensionList.push({
-                        key: errorList[i],
-                        value: message.payload[errorList[i]]
-                    });
-                }
-            }
-
-            await Request.sendRequest({
-                url: url,
-                headers: headers,
-                source: source,
-                destination: headers[Constants.FSPIOP_HEADERS_DESTINATION] || null,
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadError({
-                    errorCode: errorResponse.errorCode,
-                    errorDescription: errorResponse.errorDescription,
-                    extensionList: (Array.isArray(extensionList) && extensionList.length > 0) ? {
-                        extension: extensionList
-                    } : null
-                })
-            });
-        } catch(err: unknown) {
-            const error = (err as Error).message;
-
-            this.logger.error(error);
-
-            await this.handleErrorEventForFspFeedbackFailure(message, error).catch((err: unknown) => {
-                this.logger.error(`handleErrorEventForFspFeedbackFailure failed with error: ${err}`);
-            });
+        const fspIds = [errorResponse.sourceFspId];
+        
+        if(errorResponse.destinationFspId) {
+            fspIds.push(errorResponse.destinationFspId);
         }
 
+        for(const fspId of fspIds ) {
+            try {
+                const endpoint = (await this._validateParticipantAndGetEndpoint(fspId));
+
+                if(!endpoint) {
+                    throw Error(`fspId ${fspId} has no valid participant associated`);
+                }
+
+                const url = this.buildFspFeedbackUrl(endpoint, id, message);
+
+                // Build the extension list with all the available
+                // non-null fields from the message payload
+                for (const [key, value] of Object.entries(message.payload)) {
+                    if(value) {
+                        extensionList.push({
+                            key: key,
+                            value: value as string
+                        });
+                    }
+                }
+
+          
+                await Request.sendRequest({
+                    url: url,
+                    headers: headers,
+                    source: fspId,
+                    destination: headers[Constants.FSPIOP_HEADERS_DESTINATION] || null,
+                    method: Enums.FspiopRequestMethodsEnum.PUT,
+                    payload: Transformer.transformPayloadError({
+                        errorCode: errorResponse.errorCode,
+                        errorDescription: errorResponse.errorDescription,
+                        extensionList: extensionList.length > 0 ? {
+                            extension: extensionList
+                        } : null
+                    })
+                });
+                
+            } catch(err: unknown) {
+                const error = (err as Error).message;
+
+                this.logger.error(error);
+
+                await this.handleErrorEventForFspFeedbackFailure(message, error).catch((err: unknown) => {
+                    this.logger.error(`handleErrorEventForFspFeedbackFailure failed with error: ${err}`);
+                });
+            }
+        }
         return;
     }
 
@@ -213,7 +225,7 @@ export abstract class BaseEventHandler implements IEventHandler {
             case HandlerNames.Transfers: {
                 const payload: TransfersBCOperatorErrorPayload = {
                     transferId: message?.payload.transferId,
-                    fspId: message?.payload.transferId,
+                    payerFspId: message?.payload.payerFspId,
                     errorDescription: error
                 };
 

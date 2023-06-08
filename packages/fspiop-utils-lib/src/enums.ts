@@ -68,70 +68,232 @@ export enum CommunicationErrorCodes {
     DESTINATION_COMMUNICATION_ERROR = "1001"
 }
 
-export enum ServerErrorCodes {
-    GENERIC_SERVER_ERROR = "2000",
-    INTERNAL_SERVER_ERROR = "2001",
-	NOT_IMPLEMENTED = "2002",
-	SERVICE_CURRENTLY_UNAVAILABLE = "2003",
-	SERVER_TIMED_OUT = "2004",
-	SERVER_BUSY = "2005"
-}
+export const ServerErrorCodes = {
+    GENERIC_SERVER_ERROR: {
+        code: "2000",
+        description: "Generic server error to be used in order not to disclose information that may be considered private."
+    },
+    INTERNAL_SERVER_ERROR: {
+        code: "2001",
+        description: "Generic unexpected exception. This usually indicates a bug or unhandled error case."
+    },
+	NOT_IMPLEMENTED: {
+        code: "2002",
+        description: "Service requested is not supported by the server."
+    },
+	SERVICE_CURRENTLY_UNAVAILABLE: {
+        code: "2003",
+        description: "Service requested is currently unavailable on the server. This could be because maintenance is taking place, or because of a temporary failure."
+    },
+	SERVER_TIMED_OUT: {
+        code: "2004",
+        description: "Timeout has occurred, meaning the next Party in the chain did not send a callback in time. This could be because a timeout is set too low or because something took longer than expected."
+    },
+	SERVER_BUSY: {
+        code: "2005",
+        description: "Server is rejecting requests due to overloading. Try again later.	"
+    },
+} as const;
 
-export enum ClientErrorCodes {
-    GENERIC_CLIENT_ERROR = "3000",
-    UNACCEPTABLE_VERSION_REQUESTED = "3001",
-    UNKNOWN_URI = "3002",
-    ADD_PARTY_INFORMATION_ERROR = "3003",
-    GENERIC_VALIDATION_ERROR = "3100",
-    MALFORMED_SYNTAX = "3101",
-    MISSING_MANDATORY_ELEMENT = "3102",
-    TOO_MANY_ELEMENTS = "3103",
-    TOO_LARGE_PAYLOAD = "3104",
-    INVALID_SIGNATURE = "3105",
-    MODIFIED_REQUEST = "3106",
-    MISSING_MANDATORY_EXTENSION_PARAMETER = "3107",
-    GENERIC_ID_NOT_FOUND = "3200",
-    DESTINATION_FSP_ERROR = "3201",
-	PAYER_FSP_ID_NOT_FOUND = "3202",
-	PAYEE_FSP_ID_NOT_FOUND = "3203",
-	PARTY_NOT_FOUND = "3204",
-    QUOTE_ID_NOT_FOUND = "3205",
-    TRANSACTION_REQUEST_ID_NOT_FOUND = "3206",
-    TRANSACTION_ID_NOT_FOUND = "3207",
-    TRANSFER_ID_NOT_FOUND = "3208",
-    BULK_QUOTE_ID_NOT_FOUND = "3209",
-    BULKD_TRANSFER_ID_NOT_FOUND = "3210",
-    GENERIC_EXPIRED_ERROR = "3300",
-    TRANSACTION_REQUEST_EXPIRED = "3301",
-    QUOTE_EXPIRED = "3302",
-    TRANSFER_EXPIRED = "3303"
-}
+export const ClientErrorCodes = {
+    GENERIC_CLIENT_ERROR: {
+        code: "3000",
+        description: "Generic client error, used in order not to disclose information that may be considered private."
+    },
+    UNACCEPTABLE_VERSION_REQUESTED: {
+        code: "3001",
+        description: "Client requested to use a protocol version which is not supported by the server."
+    },
+    UNKNOWN_URI: {
+        code: "3002",
+        description: "Provided URI was unknown to the server."
+    },
+    ADD_PARTY_INFORMATION_ERROR: {
+        code: "3003",
+        description: "Error occurred while adding or updating information regarding a Party."
+    },
+    GENERIC_VALIDATION_ERROR: {
+        code: "3100",
+        description: "Generic validation error to be used in order not to disclose information that may be considered private."
+    },
+    MALFORMED_SYNTAX: {
+        code: "3101",
+        description: "Format of the parameter is not valid. For example, amount set to 5.ABC. The error description field should specify which information element is erroneous."
+    },
+    MISSING_MANDATORY_ELEMENT: {
+        code: "3102",
+        description: "Mandatory element in the data model was missing."
+    },
+    TOO_MANY_ELEMENTS: {
+        code: "3103",
+        description: "Number of elements of an array exceeds the maximum number allowed."
+    },
+    TOO_LARGE_PAYLOAD: {
+        code: "3104",
+        description: "Size of the payload exceeds the maximum size."
+    },
+    INVALID_SIGNATURE: {
+        code: "3105",
+        description: "Some parameters have changed in the message, making the signature invalid. This may indicate that the message may have been modified maliciously."
+    },
+    MODIFIED_REQUEST: {
+        code: "3106",
+        description: "Request with the same ID has previously been processed in which the parameters are not the same."
+    },
+    MISSING_MANDATORY_EXTENSION_PARAMETER: {
+        code: "3107",
+        description: "Scheme-mandatory extension parameter was missing."
+    },
+    GENERIC_ID_NOT_FOUND: {
+        code: "3200",
+        description: "Generic ID error provided by the client."
+    },
+    DESTINATION_FSP_ERROR: {
+        code: "3201",
+        description: "Destination FSP does not exist or cannot be found."
+    },
+	PAYER_FSP_ID_NOT_FOUND: {
+        code: "3202",
+        description: "Provided Payer FSP ID not found."
+    },
+	PAYEE_FSP_ID_NOT_FOUND: {
+        code: "3203",
+        description: "Provided Payee FSP ID not found."
+    },
+	PARTY_NOT_FOUND: {
+        code: "3204",
+        description: "Party with the provided identifier, identifier type, and optional sub id or type was not found."
+    },
+    QUOTE_ID_NOT_FOUND: {
+        code: "3205",
+        description: "Provided Quote ID was not found on the server."
+    },
+    TRANSACTION_REQUEST_ID_NOT_FOUND: {
+        code: "3206",
+        description: "Provided Transaction Request ID was not found on the server."
+    },
+    TRANSACTION_ID_NOT_FOUND: {
+        code: "3207",
+        description: "Provided Transaction ID was not found on the server."
+    },
+    TRANSFER_ID_NOT_FOUND: {
+        code: "3208",
+        description: "Provided Transfer ID was not found on the server."
+    },
+    BULK_QUOTE_ID_NOT_FOUND: {
+        code: "3209",
+        description: "Provided Bulk Quote ID was not found on the server."
+    },
+    BULKD_TRANSFER_ID_NOT_FOUND: {
+        code: "3210",
+        description: "Provided Bulk Transfer ID was not found on the server."
+    },
+    GENERIC_EXPIRED_ERROR: {
+        code: "3300",
+        description: "Generic expired object error, to be used in order not to disclose information that may be considered private."
+    },
+    TRANSACTION_REQUEST_EXPIRED: {
+        code: "3301",
+        description: "Client requested to use a transaction request that has already expired."
+    },
+    QUOTE_EXPIRED: {
+        code: "3302",
+        description: "Client requested to use a quote that has already expired."
+    },
+    TRANSFER_EXPIRED: {
+        code: "3303",
+        description: "Client requested to use a transfer that has already expired."
+    },
+} as const;
 
-export enum PayerErrorCodes {
-    GENERIC_PAYER_ERROR = "4000",
-    PAYER_FSP_INSUFFICIENT_LIQUIDITY = "4001",
-    GENERIC_PAYER_REJECTION = "4100",
-    PAYER_REJECTED_TRANSACTION_REQUEST = "4101",
-    PAYER_FSP_UNSUPPORTED_TRANSACTION_TYPE = "4102",
-    PAYER_UNSUPPORTED_CURRENCY = "4103",
-    PAYER_LIMIT_ERROR = "4200",
-    PAYER_PERMISSION_ERROR = "4300",
-    GENERIC_PAYER_BLOCKED_ERROR = "4400"
-}
+export const PayerErrorCodes = {
+    GENERIC_PAYER_ERROR: {
+        code: "4000",
+        description: "Generic error related to the Payer or Payer FSP. Used for protecting information that may be considered private."
+    },
+    PAYER_FSP_INSUFFICIENT_LIQUIDITY: {
+        code: "4001",
+        description: "Payer FSP has insufficient liquidity to perform the transfer."
+    },
+    GENERIC_PAYER_REJECTION: {
+        code: "4100",
+        description: "Payer or Payer FSP rejected the request."
+    },
+    PAYER_REJECTED_TRANSACTION_REQUEST: {
+        code: "4101",
+        description: "Payer rejected the transaction request from the Payee."
+    },
+    PAYER_FSP_UNSUPPORTED_TRANSACTION_TYPE: {
+        code: "4102",
+        description: "Payer FSP does not support or rejected the requested transaction type."
+    },
+    PAYER_UNSUPPORTED_CURRENCY: {
+        code: "4103",
+        description: "Payer does not have an account which supports the requested currency."
+    },
+    PAYER_LIMIT_ERROR: {
+        code: "4200",
+        description: "Generic limit error, for example, the Payer is making more payments per day or per month than they are allowed to, or is making a payment which is larger than the allowed maximum per transaction."
+    },
+    PAYER_PERMISSION_ERROR: {
+        code: "4300",
+        description: "Generic permission error, the Payer or Payer FSP does not have the access rights to perform the service."
+    },
+    GENERIC_PAYER_BLOCKED_ERROR: {
+        code: "4400",
+        description: "Generic Payer blocked error; the Payer is blocked or has failed regulatory screenings."
+    }
+} as const;
 
-export enum PayeeErrorCodes {
-    GENERIC_PAYEE_ERROR = "5000",
-    PAYEE_FSP_INSUFFICIENT_LIQUIDITY = "5001",
-    GENERIC_PAYEE_REJECTION = "5100",
-    PAYEE_REJECTED_QUOTE = "5101",
-    PAYEE_FSP_UNSUPPORTED_TRANSACTION_TYPE = "5102",
-    PAYEE_FSP_REJECTED_QUOTE = "5103",
-    PAYEE_REJECTED_TRANSACTION = "5104",
-    PAYEE_FSP_REJECTED_TRANSACTION = "5105",
-    PAYEE_UNSUPPORTED_CURRENCY = "5106",
-    PAYEE_LIMIT_ERROR = "5200",
-    PAYEE_PERMISSION_ERROR = "5300",
-    GENERIC_PAYEE_BLOCKED_ERROR = "5400",
+export const PayeeErrorCodes = {
+    GENERIC_PAYEE_ERROR: {
+        code: "5000",
+        description: "Generic error due to the Payer or Payer FSP, to be used in order not to disclose information that may be considered private."
+    },
+    PAYEE_FSP_INSUFFICIENT_LIQUIDITY: {
+        code: "5001",
+        description: "Payee FSP has insufficient liquidity to perform the transfer."
+    },
+    GENERIC_PAYEE_REJECTION: {
+        code: "5100",
+        description: "Payee or Payee FSP rejected the request."
+    },
+    PAYEE_REJECTED_QUOTE: {
+        code: "5101",
+        description: "Payee does not want to proceed with the financial transaction after receiving a quote."
+    },
+    PAYEE_FSP_UNSUPPORTED_TRANSACTION_TYPE: {
+        code: "5102",
+        description: "Payee FSP does not support or has rejected the requested transaction type."
+    },
+    PAYEE_FSP_REJECTED_QUOTE: {
+        code: "5103",
+        description: "Payee FSP does not want to proceed with the financial transaction after receiving a quote."
+    },
+    PAYEE_REJECTED_TRANSACTION: {
+        code: "5104",
+        description: "Payee rejected the financial transaction."
+    },
+    PAYEE_FSP_REJECTED_TRANSACTION: {
+        code: "5105",
+        description: "Payee FSP rejected the financial transaction."
+    },
+    PAYEE_UNSUPPORTED_CURRENCY: {
+        code: "5106",
+        description: "Payee does not have an account that supports the requested currency."
+    },
+    PAYEE_LIMIT_ERROR: {
+        code: "5200",
+        description: "Generic limit error, for example, the Payee is receiving more payments per day or per month than they are allowed to, or is receiving a payment that is larger than the allowed maximum per transaction."
+    },
+    PAYEE_PERMISSION_ERROR: {
+        code: "5300",
+        description: "Generic permission error, the Payee or Payee FSP does not have the access rights to perform the service."
+    },
+    GENERIC_PAYEE_BLOCKED_ERROR: {
+        code: "5400",
+        description: "Generic Payee Blocked error, the Payee is blocked or has failed regulatory screenings."
+    }
 }
 
 export enum PartyIdentifier {
