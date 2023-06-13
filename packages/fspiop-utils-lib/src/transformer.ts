@@ -289,6 +289,7 @@ export const transformPayloadTransferRequestGet = (payload: TransferQueryRespons
 		transferId: payload.transferId,
 		transferState: payload.transferState,
 		completedTimestamp: payload.completedTimestamp,
+		fulfilment: payload.fulfilment,
 		extensionList: payload.extensionList
 	};
 

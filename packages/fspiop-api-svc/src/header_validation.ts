@@ -30,7 +30,7 @@ const errorMessages = {
   REQUESTED_VERSION_NOT_SUPPORTED: "The Client requested an unsupported version, see extension list for supported version(s).",
   INVALID_ACCEPT_HEADER: "Invalid accept header",
   INVALID_CONTENT_TYPE_HEADER: "Invalid content-type header",
-  REQUIRE_ACCEPT_HEADER: "Accept is required",
+  REQUIRE_ACCEPT_HEADER: "accept is required",
   REQUIRE_CONTENT_TYPE_HEADER: "Content-type is required",
   SUPPLIED_VERSION_NOT_SUPPORTED: "Client supplied a protocol version which is not supported by the server"
 };
@@ -53,7 +53,7 @@ export const validateHeaders = (req: express.Request, res: express.Response, nex
 	if (!defaultProtocolResources.includes(resource)) {
 		return res.status(400).json({
 			errorInformation: {
-				errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX,
+				errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
 				errorDescription: errorMessages.INVALID_CONTENT_TYPE_HEADER
 			}
 		});
@@ -72,8 +72,8 @@ export const validateHeaders = (req: express.Request, res: express.Response, nex
 		if (req.headers["content-type"] === undefined || !req.headers["content-type"] || req.headers["content-type"] === "application/json") {
 			return res.status(400).json({
 				errorInformation: {
-					errorCode: "3102",
-					errorDescription: "Missing content-type or wrong header/body format"
+					errorCode: FSPIOPErrorCodes.MISSING_ELEMENT.code,
+					errorDescription: errorMessages.REQUIRE_ACCEPT_HEADER
 				}
 			});
 		}
@@ -81,7 +81,7 @@ export const validateHeaders = (req: express.Request, res: express.Response, nex
 		if (!contentType.valid) {
 			return res.status(400).json({
 				errorInformation: {
-					errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX,
+					errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
 					errorDescription: errorMessages.INVALID_CONTENT_TYPE_HEADER
 				}
 			});
@@ -90,7 +90,7 @@ export const validateHeaders = (req: express.Request, res: express.Response, nex
 		if (req.headers.accept === undefined) {
 			return res.status(400).json({
 				errorInformation: {
-					errorCode: FSPIOPErrorCodes.MISSING_ELEMENT,
+					errorCode: FSPIOPErrorCodes.MISSING_ELEMENT.code,
 					errorDescription: errorMessages.REQUIRE_ACCEPT_HEADER
 				}
 			});
@@ -100,7 +100,7 @@ export const validateHeaders = (req: express.Request, res: express.Response, nex
         if (!accept.valid) {
 			return res.status(400).json({
 				errorInformation: {
-				errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX,
+				errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
 				errorDescription: errorMessages.INVALID_ACCEPT_HEADER
 				}
 			});

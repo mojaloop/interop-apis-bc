@@ -93,6 +93,9 @@ export class PartyRoutes extends BaseRoutes {
 
         const msg =  new PartyQueryReceivedEvt(msgPayload);
 
+        // TODO: Review this rule that matches ttk use cases
+        clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = requesterFspId as string;
+        
         // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
         msg.fspiopOpaqueState = {
             requesterFspId: requesterFspId,

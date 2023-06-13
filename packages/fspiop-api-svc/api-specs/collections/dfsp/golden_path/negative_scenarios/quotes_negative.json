@@ -110,6 +110,13 @@
                 ]
               },
               {
+                "id": 7,
+                "description": "Callback content-type to be quotes",
+                "exec": [
+                  "expect(callback.headers['content-type']).to.equal('application/vnd.interoperability.quotes+json;version=1.0')"
+                ]
+              },
+              {
                 "id": 8,
                 "description": "Request amountType to be SEND",
                 "exec": [
@@ -135,6 +142,113 @@
                 "description": "Request transactionType initiatorType to be CONSUMER",
                 "exec": [
                   "expect('{$request.body.transactionType.initiatorType}').to.equal('CONSUMER')"
+                ]
+              }
+            ]
+          },
+          "params": {
+            "Type": "MSISDN",
+            "ID": "{$inputs.toIdValue}"
+          },
+          "path": "/quotes"
+        },
+        {
+          "id": 4,
+          "meta": {
+            "info": "Post Quote - Missing content header (BUG)"
+          },
+          "description": "Post Quote - Missing content header (BUG)",
+          "apiVersion": {
+            "minorVersion": 1,
+            "majorVersion": 1,
+            "type": "fspiop",
+            "asynchronous": true
+          },
+          "operationPath": "/quotes",
+          "method": "post",
+          "headers": {
+            "Accept": "{$inputs.acceptQuotes}",
+            "Date": "{$function.generic.curDate}",
+            "FSPIOP-Source": "{$inputs.fromFspId}"
+          },
+          "body": {
+            "quoteId": "{$function.generic.generateUUID}",
+            "transactionId": "{$function.generic.generateUUID}",
+            "payer": {
+              "partyIdInfo": {
+                "partyIdType": "{$inputs.fromIdType}",
+                "partyIdentifier": "{$inputs.fromIdValue}",
+                "fspId": "{$inputs.fromFspId}"
+              },
+              "personalInfo": {
+                "complexName": {
+                  "firstName": "{$inputs.fromFirstName}",
+                  "lastName": "{$inputs.fromLastName}"
+                },
+                "dateOfBirth": "{$inputs.fromDOB}"
+              }
+            },
+            "payee": {
+              "partyIdInfo": {
+                "partyIdType": "{$inputs.toIdType}",
+                "partyIdentifier": "{$inputs.toIdValue}",
+                "fspId": "{$inputs.fromFspId}"
+              }
+            },
+            "amountType": "SEND",
+            "amount": {
+              "amount": "{$inputs.amount}",
+              "currency": "{$inputs.currency}"
+            },
+            "transactionType": {
+              "scenario": "TRANSFER",
+              "initiator": "PAYER",
+              "initiatorType": "CONSUMER"
+            },
+            "note": "{$inputs.note}"
+          },
+          "tests": {
+            "assertions": [
+              {
+                "id": 1,
+                "description": "Response status to be 400",
+                "exec": [
+                  "expect(response.status).to.equal(400)"
+                ]
+              },
+              {
+                "id": 2,
+                "description": "Response statusText be Bad Request",
+                "exec": [
+                  "expect(response.statusText).to.equal('Bad Request')"
+                ]
+              },
+              {
+                "id": 3,
+                "description": "Response should contain error information",
+                "exec": [
+                  "expect(response.body).to.have.property('errorInformation')"
+                ]
+              },
+              {
+                "id": 4,
+                "description": "Response should contain error code",
+                "exec": [
+                  "expect(response.body.errorInformation).to.have.property('errorCode')"
+                ]
+              },
+              {
+                "id": 5,
+                "description": "Response error description should contain body",
+                "exec": [
+                  "expect(response.body.errorInformation.errorDescription).to.include('body')"
+                ]
+              },
+              {
+                "id": 6,
+                "description": "Response should contain '3102'",
+                "exec": [
+                  "expect(response.body.errorInformation.errorCode).to.include('3102')"
                 ]
               }
             ]
@@ -228,6 +342,20 @@
                 "description": "Response should contain error code",
                 "exec": [
                   "expect(response.body.errorInformation).to.have.property('errorCode')"
+                ]
+              },
+              {
+                "id": 5,
+                "description": "Response should contain Accept",
+                "exec": [
+                  "expect(response.body.errorInformation.errorDescription).to.include('accept')"
+                ]
+              },
+              {
+                "id": 6,
+                "description": "Response should contain '3102'",
+                "exec": [
+                  "expect(response.body.errorInformation.errorCode).to.include('3102')"
                 ]
               }
             ]
@@ -329,6 +457,13 @@
                 "exec": [
                   "expect(response.body.errorInformation.errorDescription).to.include('date')"
                 ]
+              },
+              {
+                "id": 6,
+                "description": "Response should contain '3102'",
+                "exec": [
+                  "expect(response.body.errorInformation.errorCode).to.include('3102')"
+                ]
               }
             ]
           },
@@ -428,6 +563,13 @@
                 "description": "Response should contain fspiop",
                 "exec": [
                   "expect(response.body.errorInformation.errorDescription).to.include('fspiop')"
+                ]
+              },
+              {
+                "id": 6,
+                "description": "Response should contain '3102'",
+                "exec": [
+                  "expect(response.body.errorInformation.errorCode).to.include('3102')"
                 ]
               }
             ]
@@ -592,6 +734,114 @@
           "path": "/quotes"
         },
         {
+          "id": 4,
+          "meta": {
+            "info": "Post Quote - Wrong content header (BUG)"
+          },
+          "description": "Post Quote - Wrong content header (BUG)",
+          "apiVersion": {
+            "minorVersion": 1,
+            "majorVersion": 1,
+            "type": "fspiop",
+            "asynchronous": true
+          },
+          "operationPath": "/quotes",
+          "method": "post",
+          "headers": {
+            "Accept": "{$inputs.acceptQuotes}",
+            "Date": "{$function.generic.curDate}",
+            "FSPIOP-Source": "{$inputs.fromFspId}",
+            "Content-Type": "application/vnd.interoperability.quotes+xml;version=5.0"
+          },
+          "body": {
+            "quoteId": "{$function.generic.generateUUID}",
+            "transactionId": "{$function.generic.generateUUID}",
+            "payer": {
+              "partyIdInfo": {
+                "partyIdType": "{$inputs.fromIdType}",
+                "partyIdentifier": "{$inputs.fromIdValue}",
+                "fspId": "{$inputs.fromFspId}"
+              },
+              "personalInfo": {
+                "complexName": {
+                  "firstName": "{$inputs.fromFirstName}",
+                  "lastName": "{$inputs.fromLastName}"
+                },
+                "dateOfBirth": "{$inputs.fromDOB}"
+              }
+            },
+            "payee": {
+              "partyIdInfo": {
+                "partyIdType": "{$inputs.toIdType}",
+                "partyIdentifier": "{$inputs.toIdValue}",
+                "fspId": "{$inputs.fromFspId}"
+              }
+            },
+            "amountType": "SEND",
+            "amount": {
+              "amount": "{$inputs.amount}",
+              "currency": "{$inputs.currency}"
+            },
+            "transactionType": {
+              "scenario": "TRANSFER",
+              "initiator": "PAYER",
+              "initiatorType": "CONSUMER"
+            },
+            "note": "{$inputs.note}"
+          },
+          "tests": {
+            "assertions": [
+              {
+                "id": 1,
+                "description": "Response status to be 400",
+                "exec": [
+                  "expect(response.status).to.equal(400)"
+                ]
+              },
+              {
+                "id": 2,
+                "description": "Response statusText be Bad Request",
+                "exec": [
+                  "expect(response.statusText).to.equal('Bad Request')"
+                ]
+              },
+              {
+                "id": 3,
+                "description": "Response should contain error information",
+                "exec": [
+                  "expect(response.body).to.have.property('errorInformation')"
+                ]
+              },
+              {
+                "id": 4,
+                "description": "Response should contain error code",
+                "exec": [
+                  "expect(response.body.errorInformation).to.have.property('errorCode')"
+                ]
+              },
+              {
+                "id": 5,
+                "description": "Response should contain body",
+                "exec": [
+                  "expect(response.body.errorInformation.errorDescription).to.include('body')"
+                ]
+              },
+              {
+                "id": 6,
+                "description": "Response should contain '3102'",
+                "exec": [
+                  "expect(response.body.errorInformation.errorCode).to.include('3102')"
+                ]
+              }
+            ]
+          },
+          "params": {
+            "Type": "MSISDN",
+            "ID": "{$inputs.toIdValue}"
+          },
+          "path": "/quotes"
+        },
+        {
           "id": 5,
           "meta": {
             "info": "Post Quote - Missing Accept header (BUG)"
@@ -674,6 +924,121 @@
                 "description": "Response should contain error code",
                 "exec": [
                   "expect(response.body.errorInformation).to.have.property('errorCode')"
+                ]
+              },
+              {
+                "id": 5,
+                "description": "Response should contain Accept",
+                "exec": [
+                  "expect(response.body.errorInformation.errorDescription).to.include('accept')"
+                ]
+              },
+              {
+                "id": 6,
+                "description": "Response should contain '3102'",
+                "exec": [
+                  "expect(response.body.errorInformation.errorCode).to.include('3102')"
+                ]
+              }
+            ]
+          },
+          "params": {
+            "Type": "MSISDN",
+            "ID": "{$inputs.toIdValue}"
+          },
+          "path": "/quotes"
+        },
+        {
+          "id": 6,
+          "meta": {
+            "info": "Post Quote - Wrong Date header (BUG)"
+          },
+          "description": "Post Quote - Wrong Date header (BUG)",
+          "apiVersion": {
+            "minorVersion": 1,
+            "majorVersion": 1,
+            "type": "fspiop",
+            "asynchronous": true
+          },
+          "operationPath": "/quotes",
+          "method": "post",
+          "headers": {
+            "Accept": "{$inputs.acceptQuotes}",
+            "FSPIOP-Source": "{$inputs.fromFspId}",
+            "Content-Type": "{$inputs.contentTypeQuotes}",
+            "Date": "Th12312412"
+          },
+          "body": {
+            "quoteId": "{$function.generic.generateUUID}",
+            "transactionId": "{$function.generic.generateUUID}",
+            "payer": {
+              "partyIdInfo": {
+                "partyIdType": "{$inputs.fromIdType}",
+                "partyIdentifier": "{$inputs.fromIdValue}",
+                "fspId": "{$inputs.fromFspId}"
+              },
+              "personalInfo": {
+                "complexName": {
+                  "firstName": "{$inputs.fromFirstName}",
+                  "lastName": "{$inputs.fromLastName}"
+                },
+                "dateOfBirth": "{$inputs.fromDOB}"
+              }
+            },
+            "payee": {
+              "partyIdInfo": {
+                "partyIdType": "{$inputs.toIdType}",
+                "partyIdentifier": "{$inputs.toIdValue}",
+                "fspId": "{$inputs.fromFspId}"
+              }
+            },
+            "amountType": "SEND",
+            "amount": {
+              "amount": "{$inputs.amount}",
+              "currency": "{$inputs.currency}"
+            },
+            "transactionType": {
+              "scenario": "TRANSFER",
+              "initiator": "PAYER",
+              "initiatorType": "CONSUMER"
+            },
+            "note": "{$inputs.note}"
+          },
+          "tests": {
+            "assertions": [
+              {
+                "id": 1,
+                "description": "Response status to be 400",
+                "exec": [
+                  "expect(response.status).to.equal(400)"
+                ]
+              },
+              {
+                "id": 2,
+                "description": "Response statusText be Bad Request",
+                "exec": [
+                  "expect(response.statusText).to.equal('Bad Request')"
+                ]
+              },
+              {
+                "id": 3,
+                "description": "Response should contain error information",
+                "exec": [
+                  "expect(response.body).to.have.property('errorInformation')"
+                ]
+              },
+              {
+                "id": 4,
+                "description": "Response should contain error code",
+                "exec": [
+                  "expect(response.body.errorInformation).to.have.property('errorCode')"
+                ]
+              },
+              {
+                "id": 5,
+                "description": "Response should contain date",
+                "exec": [
+                  "expect(response.body.errorInformation.errorDescription).to.include('date')"
                 ]
               }
             ]
@@ -780,6 +1145,13 @@
                 ]
               },
               {
+                "id": 5,
+                "description": "Response should contain quote",
+                "exec": [
+                  "expect(response.body.errorInformation.errorDescription).to.include('quote')"
+                ]
+              },
+              {
                 "id": 6,
                 "description": "Response should contain '3100'",
                 "exec": [
@@ -881,6 +1253,13 @@
                 ]
               },
               {
+                "id": 5,
+                "description": "Response should contain transaction",
+                "exec": [
+                  "expect(response.body.errorInformation.errorDescription).to.include('transaction')"
+                ]
+              },
+              {
                 "id": 6,
                 "description": "Response should contain '3100'",
                 "exec": [
@@ -975,6 +1354,13 @@
                 "description": "Response should contain error code",
                 "exec": [
                   "expect(response.body.errorInformation).to.have.property('errorCode')"
+                ]
+              },
+              {
+                "id": 5,
+                "description": "Response should contain payer",
+                "exec": [
+                  "expect(response.body.errorInformation.errorDescription).to.include('payer')"
                 ]
               },
               {
@@ -1079,6 +1465,13 @@
                 ]
               },
               {
+                "id": 5,
+                "description": "Response should contain amount",
+                "exec": [
+                  "expect(response.body.errorInformation.errorDescription).to.include('amount')"
+                ]
+              },
+              {
                 "id": 6,
                 "description": "Response should contain '3100'",
                 "exec": [
@@ -1177,6 +1570,13 @@
                 "description": "Response should contain error code",
                 "exec": [
                   "expect(response.body.errorInformation).to.have.property('errorCode')"
+                ]
+              },
+              {
+                "id": 5,
+                "description": "Response should contain amount",
+                "exec": [
+                  "expect(response.body.errorInformation.errorDescription).to.include('amount')"
                 ]
               },
               {
@@ -1281,6 +1681,13 @@
                 ]
               },
               {
+                "id": 5,
+                "description": "Response should contain currency",
+                "exec": [
+                  "expect(response.body.errorInformation.errorDescription).to.include('currency')"
+                ]
+              },
+              {
                 "id": 6,
                 "description": "Response should contain '3100'",
                 "exec": [
@@ -1379,6 +1786,13 @@
                 "description": "Response should contain error code",
                 "exec": [
                   "expect(response.body.errorInformation).to.have.property('errorCode')"
+                ]
+              },
+              {
+                "id": 5,
+                "description": "Response should contain transactionType",
+                "exec": [
+                  "expect(response.body.errorInformation.errorDescription).to.include('transactionType')"
                 ]
               },
               {
@@ -1483,6 +1897,13 @@
                 ]
               },
               {
+                "id": 5,
+                "description": "Response should contain transactionType",
+                "exec": [
+                  "expect(response.body.errorInformation.errorDescription).to.include('transactionType')"
+                ]
+              },
+              {
                 "id": 6,
                 "description": "Response should contain '3100'",
                 "exec": [
@@ -1581,6 +2002,13 @@
                 "description": "Response should contain error code",
                 "exec": [
                   "expect(response.body.errorInformation).to.have.property('errorCode')"
+                ]
+              },
+              {
+                "id": 5,
+                "description": "Response should contain transactionType",
+                "exec": [
+                  "expect(response.body.errorInformation.errorDescription).to.include('transactionType')"
                 ]
               },
               {
@@ -1907,6 +2335,13 @@
                 ]
               },
               {
+                "id": 4,
+                "description": "Response should contain currency",
+                "exec": [
+                  "expect(response.body.errorInformation.errorDescription).to.include('currency')"
+                ]
+              },
+              {
                 "id": 5,
                 "description": "Response should contain '3102'",
                 "exec": [
@@ -1976,6 +2411,13 @@
                 "description": "Response should contain error code",
                 "exec": [
                   "expect(response.body.errorInformation).to.have.property('errorCode')"
+                ]
+              },
+              {
+                "id": 4,
+                "description": "Response should contain amount",
+                "exec": [
+                  "expect(response.body.errorInformation.errorDescription).to.include('amount')"
                 ]
               },
               {
@@ -2051,6 +2493,13 @@
                 ]
               },
               {
+                "id": 4,
+                "description": "Response should contain transferId",
+                "exec": [
+                  "expect(response.body.errorInformation.errorDescription).to.include('transferId')"
+                ]
+              },
+              {
                 "id": 5,
                 "description": "Response should contain '3102'",
                 "exec": [
@@ -2120,6 +2569,13 @@
                 "description": "Response should contain error code",
                 "exec": [
                   "expect(response.body.errorInformation).to.have.property('errorCode')"
+                ]
+              },
+              {
+                "id": 4,
+                "description": "Response should contain expiration",
+                "exec": [
+                  "expect(response.body.errorInformation.errorDescription).to.include('expiration')"
                 ]
               },
               {

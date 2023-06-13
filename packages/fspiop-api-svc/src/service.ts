@@ -357,7 +357,7 @@ export class Service {
             }
 
             res.status(statusCode).json(errorResponseBuilder(errorCode, `${err.data[0].message} - path: ${err.data[0].instancePath}`, { extensionList: { extension: extensionList} }));
-            next();
+            // next();
         });
 
         app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {

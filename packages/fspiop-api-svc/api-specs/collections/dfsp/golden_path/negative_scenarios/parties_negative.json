@@ -1,14 +1,11 @@
 {
-  "name": "multi",
+  "name": "parties_negative",
   "test_cases": [
     {
       "id": 1,
       "name": "Party info with missing header",
       "meta": {
         "info": "Party info with missing header"
-      },
-      "fileInfo": {
-        "path": "golden_path/negative_scenarios/parties_negative.json"
       },
       "requests": [
         {
@@ -69,6 +66,13 @@
                 "description": "Response should contain fspiop",
                 "exec": [
                   "expect(response.body.errorInformation.errorDescription).to.include('fspiop-source')"
+                ]
+              },
+              {
+                "id": 5,
+                "description": "Response should contain '3102'",
+                "exec": [
+                  "expect(response.body.errorInformation.errorCode).to.include('3102')"
                 ]
               }
             ]
@@ -133,6 +137,13 @@
                 "exec": [
                   "expect(response.body.errorInformation.errorDescription).to.include('date')"
                 ]
+              },
+              {
+                "id": 5,
+                "description": "Response should contain '3102'",
+                "exec": [
+                  "expect(response.body.errorInformation.errorCode).to.include('3102')"
+                ]
               }
             ]
           }
@@ -196,6 +207,13 @@
                 "exec": [
                   "expect(response.body.errorInformation.errorDescription).to.include('content')"
                 ]
+              },
+              {
+                "id": 5,
+                "description": "Response should contain '3102'",
+                "exec": [
+                  "expect(response.body.errorInformation.errorCode).to.include('3102')"
+                ]
               }
             ]
           }
@@ -252,6 +270,20 @@
                 "exec": [
                   "expect(response.body.errorInformation).to.have.property('errorCode')"
                 ]
+              },
+              {
+                "id": 4,
+                "description": "Response should contain '3102'",
+                "exec": [
+                  "expect(response.body.errorInformation.errorCode).to.include('3102')"
+                ]
+              },
+              {
+                "id": 5,
+                "description": "Response should contain accept",
+                "exec": [
+                  "expect(response.body.errorInformation.errorDescription).to.include('accept')"
+                ]
               }
             ]
           }
@@ -263,9 +295,6 @@
       "name": "Party info of unprovisioned party",
       "meta": {
         "info": "Party info of unprovisioned party"
-      },
-      "fileInfo": {
-        "path": "golden_path/negative_scenarios/parties_negative.json"
       },
       "requests": [
         {
@@ -321,10 +350,38 @@
                 "exec": [
                   "expect('{$request.headers['FSPIOP-Source']}').to.equal('{$inputs.fromFspId}')"
                 ]
+              },
+              {
+                "id": 5,
+                "description": "Response should contain error information",
+                "exec": [
+                  "expect(callback.body).to.have.property('errorInformation')",
+                  ""
+                ]
+              },
+              {
+                "id": 6,
+                "description": "Response should contain error code",
+                "exec": [
+                  "expect(callback.body.errorInformation).to.have.property('errorCode')"
+                ]
+              },
+              {
+                "id": 7,
+                "description": "Response should contain error description",
+                "exec": [
+                  "expect(callback.body.errorInformation).to.have.property('errorDescription')"
+                ]
+              },
+              {
+                "id": 8,
+                "description": "Callback error should be 3200",
+                "exec": [
+                  "expect(callback.body.errorInformation.errorCode).to.equal('3200')"
+                ]
               }
             ]
-          },
-          "disabled": false
+          }
         },
         {
           "id": 2,
@@ -379,6 +436,35 @@
                 "exec": [
                   "expect('{$request.headers['FSPIOP-Source']}').to.equal('{$inputs.fromFspId}')"
                 ]
+              },
+              {
+                "id": 5,
+                "description": "Response should contain error information",
+                "exec": [
+                  "expect(callback.body).to.have.property('errorInformation')",
+                  ""
+                ]
+              },
+              {
+                "id": 6,
+                "description": "Response should contain error code",
+                "exec": [
+                  "expect(callback.body.errorInformation).to.have.property('errorCode')"
+                ]
+              },
+              {
+                "id": 7,
+                "description": "Response should contain error description",
+                "exec": [
+                  "expect(callback.body.errorInformation).to.have.property('errorDescription')"
+                ]
+              },
+              {
+                "id": 8,
+                "description": "Callback error should be 3200",
+                "exec": [
+                  "expect(callback.body.errorInformation.errorCode).to.equal('3200')"
+                ]
               }
             ]
           },
@@ -391,9 +477,6 @@
       "name": "Party info with wrong header values",
       "meta": {
         "info": "Party info with wrong header values"
-      },
-      "fileInfo": {
-        "path": "golden_path/negative_scenarios/parties_negative.json"
       },
       "requests": [
         {
@@ -421,7 +504,43 @@
             "ID": "{$inputs.toIdValue}"
           },
           "tests": {
-            "assertions": []
+            "assertions": [
+              {
+                "id": 1,
+                "description": "Response should be 400",
+                "exec": [
+                  "expect(response.status).to.equal(400)"
+                ]
+              },
+              {
+                "id": 2,
+                "description": "Response statusText be Bad Request",
+                "exec": [
+                  "expect(response.statusText).to.equal('Bad Request')"
+                ]
+              },
+              {
+                "id": 3,
+                "description": "Response should contain error information",
+                "exec": [
+                  "expect(response.body).to.have.property('errorInformation')"
+                ]
+              },
+              {
+                "id": 3,
+                "description": "Response should contain error code",
+                "exec": [
+                  "expect(response.body.errorInformation).to.have.property('errorCode')"
+                ]
+              },
+              {
+                "id": 4,
+                "description": "Response should contain date",
+                "exec": [
+                  "expect(response.body.errorInformation.errorDescription).to.include('date')"
+                ]
+              }
+            ]
           }
         },
         {
@@ -449,7 +568,43 @@
             "ID": "{$inputs.toIdValue}"
           },
           "tests": {
-            "assertions": []
+            "assertions": [
+              {
+                "id": 1,
+                "description": "Response should be 400",
+                "exec": [
+                  "expect(response.status).to.equal(400)"
+                ]
+              },
+              {
+                "id": 2,
+                "description": "Response statusText be Bad Request",
+                "exec": [
+                  "expect(response.statusText).to.equal('Bad Request')"
+                ]
+              },
+              {
+                "id": 3,
+                "description": "Response should contain error information",
+                "exec": [
+                  "expect(response.body).to.have.property('errorInformation')"
+                ]
+              },
+              {
+                "id": 3,
+                "description": "Response should contain error code",
+                "exec": [
+                  "expect(response.body.errorInformation).to.have.property('errorCode')"
+                ]
+              },
+              {
+                "id": 4,
+                "description": "Response should contain content-type",
+                "exec": [
+                  "expect(response.body.errorInformation.errorDescription).to.include('content')"
+                ]
+              }
+            ]
           }
         },
         {
@@ -512,13 +667,10 @@
       ]
     },
     {
-      "id": 4,
+      "id": 14,
       "name": "Get Party with wrong optional headers",
       "meta": {
         "info": "Get Party with wrong optional headers"
-      },
-      "fileInfo": {
-        "path": "golden_path/negative_scenarios/parties_negative.json"
       },
       "requests": [
         {

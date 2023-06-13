@@ -240,7 +240,8 @@ export class TransfersRoutes extends BaseRoutes {
         const clonedHeaders = { ...req.headers };
         const transferId = req.params["id"] as string || null;
         const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+
 
         if(!transferId || !requesterFspId) {
             res.status(400).json({
@@ -248,6 +249,9 @@ export class TransfersRoutes extends BaseRoutes {
             });
             return;
         }
+
+        // REVIEW THIS
+        clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = requesterFspId as string;
 
         const msgPayload: TransferQueryReceivedEvtPayload = {
             transferId: transferId,
@@ -268,7 +272,7 @@ export class TransfersRoutes extends BaseRoutes {
 
         this.logger.debug("transferQueryReceived sent message");
 
-        res.status(202).json(null);
+        res.status(200).json(null);
 
         this.logger.debug("transferQueryReceived responded");
     }

@@ -1,0 +1,61 @@
+{
+  "name": "Test1",
+  "test_cases": [
+    {
+      "id": 1,
+      "name": "P2P Transfer Happy Path",
+      "meta": {
+        "info": "P2P Transfer Happy Path"
+      },
+      "requests": [
+        {
+          "id": 2,
+          "meta": {
+            "info": "Delete Party"
+          },
+          "description": "Delete Party",
+          "apiVersion": {
+            "minorVersion": 1,
+            "majorVersion": 0,
+            "type": "mojaloop_simulator"
+          },
+          "operationPath": "/repository/parties/{idType}/{idValue}",
+          "path": "/repository/parties/MSISDN/{$inputs.toIdValue}",
+          "method": "delete",
+          "params": {
+            "idType": "MSISDN",
+            "idValue": "{$inputs.toIdValue}",
+            "Type": "",
+            "ID": ""
+          },
+          "url": "http://sim:3003"
+        },
+        {
+          "id": 3,
+          "meta": {
+            "info": "Add Party"
+          },
+          "description": "Add Party",
+          "apiVersion": {
+            "minorVersion": 1,
+            "majorVersion": 0,
+            "type": "mojaloop_simulator"
+          },
+          "operationPath": "/repository/parties",
+          "path": "/repository/parties",
+          "method": "post",
+          "url": "http://sim:3003",
+          "body": {
+            "displayName": "asdf",
+            "firstName": "asdf",
+            "middleName": "asdf",
+            "lastName": "asdf",
+            "dateOfBirth": "1970-01-01",
+            "idType": "{$inputs.toIdType}",
+            "idValue": "{$inputs.toIdValue}"
+          }
+        }
+      ]
+    }
+  ]
+}

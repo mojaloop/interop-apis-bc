@@ -149,6 +149,9 @@ export abstract class BaseEventHandler implements IEventHandler {
 
         for(const fspId of fspIds ) {
             try {
+                const finalExtensionList:{ key: string; value: string; }[] = [];
+                finalExtensionList.concat(extensionList)
+                
                 const endpoint = (await this._validateParticipantAndGetEndpoint(fspId));
 
                 if(!endpoint) {
@@ -161,7 +164,7 @@ export abstract class BaseEventHandler implements IEventHandler {
                 // non-null fields from the message payload
                 for (const [key, value] of Object.entries(message.payload)) {
                     if(value) {
-                        extensionList.push({
+                        finalExtensionList.push({
                             key: key,
                             value: value as string
                         });
@@ -178,8 +181,8 @@ export abstract class BaseEventHandler implements IEventHandler {
                     payload: Transformer.transformPayloadError({
                         errorCode: errorResponse.errorCode,
                         errorDescription: errorResponse.errorDescription,
-                        extensionList: extensionList.length > 0 ? {
-                            extension: extensionList
+                        extensionList: finalExtensionList.length > 0 ? {
+                            extension: finalExtensionList
                         } : null
                     })
                 });

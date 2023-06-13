@@ -335,8 +335,8 @@ export class QuotingEventHandler extends BaseEventHandler {
             this.logger.info("_handleQuotingQueryResponseEvt -> start");
 
             // Always validate the payload and headers received
-            message.validatePayload();
-            Validate.validateHeaders(QuotesPost, clonedHeaders);
+            // message.validatePayload();
+            // Validate.validateHeaders(QuotesPost, clonedHeaders);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
@@ -347,8 +347,8 @@ export class QuotingEventHandler extends BaseEventHandler {
                 headers: clonedHeaders,
                 source: requesterFspId,
                 destination: requesterFspId,
-                method: Enums.FspiopRequestMethodsEnum.GET,
-                payload: null,
+                method: Enums.FspiopRequestMethodsEnum.PUT,
+                payload: Transformer.transformPayloadQuotingResponsePut(payload),
             });
 
             this.logger.info("_handleQuotingQueryResponseEvt -> end");

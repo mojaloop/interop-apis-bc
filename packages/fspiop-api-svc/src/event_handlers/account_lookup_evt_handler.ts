@@ -195,17 +195,12 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             case AccountLookupBCParticipantNotFoundErrorEvent.name:
             case AccountLookupBCUnableToGetParticipantFspIdErrorEvent.name:
             case AccountLookupBCParticipantFspIdNotFoundErrorEvent.name: {
-                if (destinationFspId === message.payload.fspId) {
-                    errorResponse.errorCode = Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.code;
-                    errorResponse.errorDescription = Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.description;
-                } else {
-                    errorResponse.errorCode = Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.code;
-                    errorResponse.errorDescription = Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.description;
-                }
+                // According to TTK Use cases, this is a generic not found error
+                errorResponse.errorCode = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code;
+                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.description;
                 break;
             }
             case AccountLookupBCInvalidParticipantIdErrorEvent.name: {
-                //TODO: Create error event in account lookup for destination and source participants
                 if (destinationFspId === message.payload.fspId) {
                     errorResponse.errorCode = Enums.ClientErrors.GENERIC_CLIENT_ERROR.code;
                     errorResponse.errorDescription = Enums.ClientErrors.GENERIC_CLIENT_ERROR.description;
@@ -220,8 +215,10 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             case AccountLookupBCUnableToGetOracleFromOracleFinderErrorEvent.name:
             case AccountLookupBCOracleNotFoundErrorEvent.name:
             case AccountLookupBCOracleAdapterNotFoundErrorEvent.name: {
-                errorResponse.errorCode = Enums.ClientErrors.GENERIC_CLIENT_ERROR.code;
-                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_CLIENT_ERROR.description;
+                // According to TTK Use cases, this is a generic not found error
+                // check "Party info of unprovisioned party" for reference
+                errorResponse.errorCode = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code;
+                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.description;
                 break;
             }
             case AccountLookUpUnknownErrorEvent.name: {

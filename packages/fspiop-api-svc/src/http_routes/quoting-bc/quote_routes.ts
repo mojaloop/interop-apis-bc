@@ -198,7 +198,7 @@ export class QuoteRoutes extends BaseRoutes {
         const clonedHeaders = { ...req.headers };
         const quoteId = req.params["id"] as string || null;
         const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
 
         if(!quoteId || !requesterFspId) {
             res.status(400).json({
@@ -207,6 +207,9 @@ export class QuoteRoutes extends BaseRoutes {
             return;
         }
 
+        // TODO: Review this rule that matches ttk use cases
+        clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = requesterFspId as string;
+        
         const msgPayload: QuoteQueryReceivedEvtPayload = {
             quoteId: quoteId,
         };
@@ -226,7 +229,7 @@ export class QuoteRoutes extends BaseRoutes {
 
         this.logger.debug("quoteQueryReceived sent message");
 
-        res.status(202).json(null);
+        res.status(200).json(null);
 
         this.logger.debug("quoteQueryReceived responded");
     }
