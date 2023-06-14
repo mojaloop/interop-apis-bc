@@ -206,10 +206,10 @@ export abstract class BaseEventHandler implements IEventHandler {
         switch (this.handlerName) {
             case HandlerNames.AccountLookUp: {
                 const payload: AccountLookUpBCOperatorErrorPayload = {
+                    fspId: message?.payload.fspId,
                     partyId: message?.payload.partyId,
-                    partyType: message?.payload.partyId,
-                    fspId: message?.payload.partyId,
-                    partySubType: message?.payload.partyId,
+                    partyType: message?.payload.partyType,
+                    currency: message?.payload.currency,
                     errorDescription: error
                 };
 

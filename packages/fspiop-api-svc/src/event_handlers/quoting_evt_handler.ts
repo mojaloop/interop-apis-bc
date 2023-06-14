@@ -44,8 +44,8 @@ import {
     QuoteBCBulkQuoteNotFoundErrorEvent,
     QuoteBCQuoteNotFoundErrorEvent,
     QuoteBCInvalidMessageTypeErrorEvent,
-    QuoteBCParticipantNotFoundErrorEvent,
-    QuoteBCRequiredParticipantIsNotActiveErrorEvent,
+    // QuoteBCParticipantNotFoundErrorEvent,
+    // QuoteBCRequiredParticipantIsNotActiveErrorEvent,
     QuoteBCInvalidRequesterFspIdErrorEvent,
     QuoteBCInvalidDestinationFspIdErrorEvent,
     QuoteBCUnknownErrorEvent,
@@ -199,15 +199,14 @@ export class QuotingEventHandler extends BaseEventHandler {
                 errorResponse.errorDescription = Enums.ClientErrors.DESTINATION_FSP_ERROR.description;
                 break;
             }
+            // case QuoteBCParticipantNotFoundErrorEvent.name:
+            // case QuoteBCRequiredParticipantIsNotActiveErrorEvent.name:
             case QuoteBCDuplicateQuoteErrorEvent.name:
             case QuoteBCUnableToAddQuoteToDatabaseErrorEvent.name:
             case QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent.name:
             case QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent.name:
             case QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent.name:
-            case QuoteBCParticipantNotFoundErrorEvent.name:
-            case QuoteBCRequiredParticipantIsNotActiveErrorEvent.name:
-            case QuoteBCInvalidRequesterFspIdErrorEvent.name:
-            {
+            case QuoteBCInvalidRequesterFspIdErrorEvent.name: {
                 errorResponse.errorCode = Enums.ClientErrors.GENERIC_CLIENT_ERROR.code;
                 errorResponse.errorDescription = Enums.ClientErrors.GENERIC_CLIENT_ERROR.description;
                 break;

@@ -46,15 +46,15 @@ import {
     ParticipantQueryResponseEvt,
     AccountLookupBCInvalidMessagePayloadErrorEvent,
     AccountLookupBCInvalidMessageTypeErrorEvent,
-    AccountLookupBCInvalidParticipantIdErrorEvent,
-    AccountLookupBCOracleAdapterNotFoundErrorEvent,
-    AccountLookupBCOracleNotFoundErrorEvent,
-    AccountLookupBCParticipantNotFoundErrorEvent,
-    AccountLookupBCParticipantFspIdNotFoundErrorEvent,
+    // AccountLookupBCInvalidParticipantIdErrorEvent,
+    // AccountLookupBCOracleAdapterNotFoundErrorEvent,
+    // AccountLookupBCOracleNotFoundErrorEvent,
+    // AccountLookupBCParticipantNotFoundErrorEvent,
+    // AccountLookupBCParticipantFspIdNotFoundErrorEvent,
     AccountLookupBCUnableToAssociateParticipantErrorEvent,
     AccountLookupBCUnableToDisassociateParticipantErrorEvent,
-    AccountLookupBCUnableToGetOracleFromOracleFinderErrorEvent,
-    AccountLookupBCUnableToGetParticipantFspIdErrorEvent
+    // AccountLookupBCUnableToGetOracleFromOracleFinderErrorEvent,
+    // AccountLookupBCUnableToGetParticipantFspIdErrorEvent
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { ParticipantsPutId, ParticipantsPutTypeAndId, PartiesPutTypeAndId, PartiesPutTypeAndIdAndSubId } from "../errors";
@@ -103,13 +103,13 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 case AccountLookupBCInvalidMessageTypeErrorEvent.name:
                 case AccountLookupBCUnableToAssociateParticipantErrorEvent.name:
                 case AccountLookupBCUnableToDisassociateParticipantErrorEvent.name:
-                case AccountLookupBCParticipantNotFoundErrorEvent.name:
-                case AccountLookupBCInvalidParticipantIdErrorEvent.name:
-                case AccountLookupBCUnableToGetOracleFromOracleFinderErrorEvent.name:
-                case AccountLookupBCOracleNotFoundErrorEvent.name:
-                case AccountLookupBCOracleAdapterNotFoundErrorEvent.name:
-                case AccountLookupBCUnableToGetParticipantFspIdErrorEvent.name:
-                case AccountLookupBCParticipantFspIdNotFoundErrorEvent.name:
+                // case AccountLookupBCParticipantNotFoundErrorEvent.name:
+                // case AccountLookupBCInvalidParticipantIdErrorEvent.name:
+                // case AccountLookupBCUnableToGetOracleFromOracleFinderErrorEvent.name:
+                // case AccountLookupBCOracleNotFoundErrorEvent.name:
+                // case AccountLookupBCOracleAdapterNotFoundErrorEvent.name:
+                // case AccountLookupBCUnableToGetParticipantFspIdErrorEvent.name:
+                // case AccountLookupBCParticipantFspIdNotFoundErrorEvent.name:
                     await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState.headers);
                     break;
                 default:
@@ -176,6 +176,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         return;
     }
 
+    /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
     private buildErrorResponseBasedOnErrorEvent(message: IDomainMessage, sourceFspId:string, destinationFspId:string): { errorCode: string, errorDescription: string, sourceFspId: string, destinationFspId: string | null } {
         const errorResponse: { errorCode: string, errorDescription: string, sourceFspId: string, destinationFspId: string | null } =
         {
@@ -192,29 +193,29 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 errorResponse.errorDescription = Enums.ServerErrors.GENERIC_SERVER_ERROR.description;
                 break;
             }
-            case AccountLookupBCParticipantNotFoundErrorEvent.name:
-            case AccountLookupBCUnableToGetParticipantFspIdErrorEvent.name:
-            case AccountLookupBCParticipantFspIdNotFoundErrorEvent.name: {
-                // According to TTK Use cases, this is a generic not found error
-                errorResponse.errorCode = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code;
-                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.description;
-                break;
-            }
-            case AccountLookupBCInvalidParticipantIdErrorEvent.name: {
-                if (destinationFspId === message.payload.fspId) {
-                    errorResponse.errorCode = Enums.ClientErrors.GENERIC_CLIENT_ERROR.code;
-                    errorResponse.errorDescription = Enums.ClientErrors.GENERIC_CLIENT_ERROR.description;
-                } else {
-                    errorResponse.errorCode = Enums.ClientErrors.DESTINATION_FSP_ERROR.code;
-                    errorResponse.errorDescription = Enums.ClientErrors.DESTINATION_FSP_ERROR.description;
-                }
-                break;
-            }
+            // case AccountLookupBCParticipantNotFoundErrorEvent.name:
+            // case AccountLookupBCUnableToGetParticipantFspIdErrorEvent.name:
+            // case AccountLookupBCParticipantFspIdNotFoundErrorEvent.name: {
+            //     // According to TTK Use cases, this is a generic not found error
+            //     errorResponse.errorCode = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code;
+            //     errorResponse.errorDescription = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.description;
+            //     break;
+            // }
+            // case AccountLookupBCInvalidParticipantIdErrorEvent.name: {
+            //     if (destinationFspId === message.payload.fspId) {
+            //         errorResponse.errorCode = Enums.ClientErrors.GENERIC_CLIENT_ERROR.code;
+            //         errorResponse.errorDescription = Enums.ClientErrors.GENERIC_CLIENT_ERROR.description;
+            //     } else {
+            //         errorResponse.errorCode = Enums.ClientErrors.DESTINATION_FSP_ERROR.code;
+            //         errorResponse.errorDescription = Enums.ClientErrors.DESTINATION_FSP_ERROR.description;
+            //     }
+            //     break;
+            // }
             case AccountLookupBCInvalidMessagePayloadErrorEvent.name:
-            case AccountLookupBCInvalidMessageTypeErrorEvent.name:
-            case AccountLookupBCUnableToGetOracleFromOracleFinderErrorEvent.name:
-            case AccountLookupBCOracleNotFoundErrorEvent.name:
-            case AccountLookupBCOracleAdapterNotFoundErrorEvent.name: {
+            case AccountLookupBCInvalidMessageTypeErrorEvent.name: {
+            // case AccountLookupBCUnableToGetOracleFromOracleFinderErrorEvent.name:
+            // case AccountLookupBCOracleNotFoundErrorEvent.name:
+            // case AccountLookupBCOracleAdapterNotFoundErrorEvent.name:
                 // According to TTK Use cases, this is a generic not found error
                 // check "Party info of unprovisioned party" for reference
                 errorResponse.errorCode = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code;
