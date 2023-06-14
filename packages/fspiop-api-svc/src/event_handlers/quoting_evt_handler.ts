@@ -59,9 +59,9 @@ import {
     QuoteBCInvalidBulkQuoteLengthErrorEvent,
     QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Request, Enums, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { BaseEventHandler, HandlerNames } from "./base_event_handler";
-import { QuotesPost } from "../errors";
+// import { QuotesPost } from "../errors";
 import { IParticipantService } from "../interfaces/infrastructure";
 
 export class QuotingEventHandler extends BaseEventHandler {

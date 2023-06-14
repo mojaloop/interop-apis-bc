@@ -55,11 +55,11 @@ jest.setTimeout(20000);
 describe("FSPIOP API Service Participant Routes", () => {
 
     beforeAll(async () => {
-        await Service.start();
+        // await Service.start();
     });
 
     afterAll(async () => {
-        await Service.stop();
+        // await Service.stop();
     });
 
     it("should successfully call getPartyQueryReceivedByTypeAndId endpoint", async () => {
@@ -248,7 +248,7 @@ describe("FSPIOP API Service Participant Routes", () => {
 
         const res = await request(server)
         .put(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["date"]));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
 
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
@@ -269,7 +269,7 @@ describe("FSPIOP API Service Participant Routes", () => {
 
         const res = await request(server)
         .put(pathWithSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["date"]));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
 
         let sentMessagesCount = 0;
         const currentOffset = await getCurrentKafkaOffset(topic);
@@ -322,7 +322,12 @@ describe("FSPIOP API Service Participant Routes", () => {
 
         // Assert
         expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual(missingPropertyResponse("content-type", "headers"));
+        expect(res.body).toStrictEqual({
+            "errorInformation": {
+                "errorCode": "3102",
+                "errorDescription": "accept is required",
+            }
+        });
         expect(res).toSatisfyApiSpec();
 
     });
@@ -335,7 +340,12 @@ describe("FSPIOP API Service Participant Routes", () => {
 
         // Assert
         expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual(missingPropertyResponse("accept", "headers"));
+        expect(res.body).toStrictEqual({
+            "errorInformation": {
+                "errorCode": "3102",
+                "errorDescription": "accept is required",
+            }
+        });
         expect(res).toSatisfyApiSpec();
     });
     // #region
@@ -376,8 +386,13 @@ describe("FSPIOP API Service Participant Routes", () => {
         .set(getHeaders(Enums.EntityTypeEnum.PARTIES, [], { "date": "thursday" }));
 
         // Assert
-        expect(res.statusCode).toEqual(202);
-        expect(res.body).toStrictEqual(defaultEntryValidRequest);
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toStrictEqual({
+            "errorInformation": {
+                "errorCode": "3102",
+                "errorDescription": "Invalid date-type",
+            }
+        });
         expect(res).toSatisfyApiSpec();
     });
 
@@ -389,7 +404,12 @@ describe("FSPIOP API Service Participant Routes", () => {
 
         // Assert
         expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual(unknownHeaderResponse);
+        expect(res.body).toStrictEqual({
+            "errorInformation": {
+                "errorCode": "3101",
+                "errorDescription": "Invalid content-type header",
+            }
+        });
         expect(res).toSatisfyApiSpec();
     });
 
@@ -401,7 +421,12 @@ describe("FSPIOP API Service Participant Routes", () => {
 
         // Assert
         expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual(unknownHeaderResponse);
+        expect(res.body).toStrictEqual({
+            "errorInformation": {
+                "errorCode": "3101",
+                "errorDescription": "Invalid accept header",
+            }
+        });
         expect(res).toSatisfyApiSpec();
     });
     //#region

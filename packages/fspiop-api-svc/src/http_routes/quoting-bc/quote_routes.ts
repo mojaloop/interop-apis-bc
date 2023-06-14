@@ -229,7 +229,7 @@ export class QuoteRoutes extends BaseRoutes {
 
         this.logger.debug("quoteQueryReceived sent message");
 
-        res.status(200).json(null);
+        res.status(202).json(null);
 
         this.logger.debug("quoteQueryReceived responded");
     }

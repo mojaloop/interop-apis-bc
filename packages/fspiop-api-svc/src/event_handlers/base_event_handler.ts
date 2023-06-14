@@ -86,7 +86,7 @@ export abstract class BaseEventHandler implements IEventHandler {
             this.kafkaConsumer.setTopics(this.kafkaTopics);
             this.kafkaConsumer.setCallbackFn(this.processMessage.bind(this));
             await this.kafkaConsumer.connect();
-            await this.kafkaConsumer.start();
+            await this.kafkaConsumer.startAndWaitForRebalance();
             await this.kafkaProducer.connect();
         }
         catch(error: unknown) {
@@ -150,7 +150,7 @@ export abstract class BaseEventHandler implements IEventHandler {
         for(const fspId of fspIds ) {
             try {
                 const finalExtensionList:{ key: string; value: string; }[] = [];
-                finalExtensionList.concat(extensionList)
+                finalExtensionList.concat(extensionList);
                 
                 const endpoint = (await this._validateParticipantAndGetEndpoint(fspId));
 

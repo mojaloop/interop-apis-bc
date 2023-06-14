@@ -98,24 +98,35 @@ export const badStatusResponse = (options: {
 };
 
 export const missingPropertyResponse = (field: string, type: string) => {
-    return badStatusResponse({
-        "code": "3100",
-        "description": `must have required property "${field}"`,
+    const result = badStatusResponse({
+        "code": type === "body" ? "3100" :"3102",
+        "description": field === "date" ? "Invalid date-type" : `must have required property '${field}' - path: /${type}`,
         "extensionList": [
-                {
-                    "key": "keyword",
-                    "value": "required",
-                },
-                {
-                    "key": "instancePath",
-                    "value": `/${type}`,
-                },
-                {
-                    "key": "missingProperty",
-                    "value": field
-                },
-            ]
+            {
+                "key": "keyword",
+                "value": "required",
+            },
+            {
+                "key": "instancePath",
+                "value": `/${type}`,
+            },
+            {
+                "key": "missingProperty",
+                "value": field
+            },
+        ]
     });
+
+    if(field === "date") {
+        return {
+            errorInformation: {
+                "errorCode": result.errorInformation.errorCode,
+                "errorDescription": result.errorInformation.errorDescription,
+            }
+        };
+    }
+
+    return result;
 };
 
 export const unknownHeaderResponse = {
