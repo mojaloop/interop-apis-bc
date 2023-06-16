@@ -41,11 +41,12 @@ import {
     BulkQuoteReceivedEvt,
     BulkQuoteAcceptedEvt,
     QuoteBCDuplicateQuoteErrorEvent,
-    QuoteBCBulkQuoteNotFoundErrorEvent,
     QuoteBCQuoteNotFoundErrorEvent,
+    QuoteBCBulkQuoteNotFoundErrorEvent,
     QuoteBCInvalidMessageTypeErrorEvent,
-    // QuoteBCParticipantNotFoundErrorEvent,
-    // QuoteBCRequiredParticipantIsNotActiveErrorEvent,
+    QuoteBCDestinationParticipantNotFoundErrorEvent,
+    QuoteBCRequesterParticipantNotFoundErrorEvent,
+    QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent,
     QuoteBCInvalidRequesterFspIdErrorEvent,
     QuoteBCInvalidDestinationFspIdErrorEvent,
     QuoteBCUnknownErrorEvent,
@@ -100,11 +101,29 @@ export class QuotingEventHandler extends BaseEventHandler {
                 case BulkQuoteAcceptedEvt.name:
                     await this._handleBulkQuoteAcceptedResponseEvt(new BulkQuoteAcceptedEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
-                //case QuoteBCInvalidIdErrorEvent.name:
-                //    await this._handleErrorReceivedEvt(new QuoteBCInvalidIdErrorEvent(message.payload), message.fspiopOpaqueState.headers);
-                //    break;
+                case QuoteBCDuplicateQuoteErrorEvent.name:
+                case QuoteBCQuoteNotFoundErrorEvent.name:
+                case QuoteBCBulkQuoteNotFoundErrorEvent.name:
+                case QuoteBCInvalidMessageTypeErrorEvent.name:
+                case QuoteBCDestinationParticipantNotFoundErrorEvent.name:
+                case QuoteBCRequesterParticipantNotFoundErrorEvent.name:
+                case QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent.name:
+                case QuoteBCInvalidRequesterFspIdErrorEvent.name:
+                case QuoteBCInvalidDestinationFspIdErrorEvent.name:
+                case QuoteBCUnknownErrorEvent.name:
+                case QuoteBCQuoteExpiredErrorEvent.name:
+                case QuoteBCBulkQuoteExpiredErrorEvent.name:
+                case QuoteBCInvalidMessagePayloadErrorEvent.name:
+                case QuoteBCUnableToAddQuoteToDatabaseErrorEvent.name:
+                case QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent.name:
+                case QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent.name:
+                case QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent.name:
+                case QuoteBCInvalidBulkQuoteLengthErrorEvent.name:
+                case QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent.name:
+                    await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState.headers);
+                    break;
                 default:
-                 this.logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
+                    this.logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
                     break;
             }
 
@@ -173,60 +192,61 @@ export class QuotingEventHandler extends BaseEventHandler {
             destinationFspId: null
         };
 
-        switch (message.msgName) {
-            case QuoteBCInvalidMessagePayloadErrorEvent.name:
-            case QuoteBCInvalidMessageTypeErrorEvent.name:
-            case QuoteBCInvalidBulkQuoteLengthErrorEvent.name:
-            case QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent.name:
-            {
-                errorResponse.errorCode = Enums.ClientErrors.GENERIC_VALIDATION_ERROR.code;
-                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_VALIDATION_ERROR.description;
-                break;
-            }
-            case QuoteBCQuoteNotFoundErrorEvent.name:
-            {
-                errorResponse.errorCode = Enums.ClientErrors.QUOTE_ID_NOT_FOUND.code;
-                errorResponse.errorDescription = Enums.ClientErrors.QUOTE_ID_NOT_FOUND.description;
-                break;
-            }
-            case QuoteBCBulkQuoteNotFoundErrorEvent.name: {
-                errorResponse.errorCode = Enums.ClientErrors.BULK_QUOTE_ID_NOT_FOUND.code;
-                errorResponse.errorDescription = Enums.ClientErrors.BULK_QUOTE_ID_NOT_FOUND.description;
-                break;
-            }
-            case QuoteBCInvalidDestinationFspIdErrorEvent.name:{
-                errorResponse.errorCode = Enums.ClientErrors.DESTINATION_FSP_ERROR.code;
-                errorResponse.errorDescription = Enums.ClientErrors.DESTINATION_FSP_ERROR.description;
-                break;
-            }
-            // case QuoteBCParticipantNotFoundErrorEvent.name:
-            // case QuoteBCRequiredParticipantIsNotActiveErrorEvent.name:
-            case QuoteBCDuplicateQuoteErrorEvent.name:
-            case QuoteBCUnableToAddQuoteToDatabaseErrorEvent.name:
-            case QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent.name:
-            case QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent.name:
-            case QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent.name:
-            case QuoteBCInvalidRequesterFspIdErrorEvent.name: {
-                errorResponse.errorCode = Enums.ClientErrors.GENERIC_CLIENT_ERROR.code;
-                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_CLIENT_ERROR.description;
-                break;
-            }
-            case QuoteBCQuoteExpiredErrorEvent.name:
-            case QuoteBCBulkQuoteExpiredErrorEvent.name: {
-                errorResponse.errorCode = Enums.ClientErrors.QUOTE_EXPIRED.code;
-                errorResponse.errorDescription = Enums.ClientErrors.QUOTE_EXPIRED.description;
-                break;
-            }
-            case QuoteBCUnknownErrorEvent.name: {
-                errorResponse.errorCode = Enums.ServerErrors.INTERNAL_SERVER_ERROR.code;
-                errorResponse.errorDescription = Enums.ServerErrors.INTERNAL_SERVER_ERROR.description;
-                break;
-            }
-            default: {
-                this.logger.warn(`Cannot handle error message of type: ${message.msgName}, ignoring`);
-                break;
-            }
-        }
+        // switch (message.msgName) {
+        //     case QuoteBCInvalidMessagePayloadErrorEvent.name:
+        //     case QuoteBCInvalidMessageTypeErrorEvent.name:
+        //     case QuoteBCInvalidBulkQuoteLengthErrorEvent.name:
+        //     case QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent.name:
+        //     case QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent.name:
+        //     {
+        //         errorResponse.errorCode = Enums.ClientErrors.GENERIC_VALIDATION_ERROR.code;
+        //         errorResponse.errorDescription = Enums.ClientErrors.GENERIC_VALIDATION_ERROR.description;
+        //         break;
+        //     }
+        //     case QuoteBCQuoteNotFoundErrorEvent.name:
+        //     {
+        //         errorResponse.errorCode = Enums.ClientErrors.QUOTE_ID_NOT_FOUND.code;
+        //         errorResponse.errorDescription = Enums.ClientErrors.QUOTE_ID_NOT_FOUND.description;
+        //         break;
+        //     }
+        //     case QuoteBCBulkQuoteNotFoundErrorEvent.name: {
+        //         errorResponse.errorCode = Enums.ClientErrors.BULK_QUOTE_ID_NOT_FOUND.code;
+        //         errorResponse.errorDescription = Enums.ClientErrors.BULK_QUOTE_ID_NOT_FOUND.description;
+        //         break;
+        //     }
+        //     case QuoteBCInvalidDestinationFspIdErrorEvent.name:{
+        //         errorResponse.errorCode = Enums.ClientErrors.DESTINATION_FSP_ERROR.code;
+        //         errorResponse.errorDescription = Enums.ClientErrors.DESTINATION_FSP_ERROR.description;
+        //         break;
+        //     }
+        //     case QuoteBCRequesterParticipantNotFoundErrorEvent.name:
+        //     case QuoteBCDestinationParticipantNotFoundErrorEvent.name:
+        //     case QuoteBCDuplicateQuoteErrorEvent.name:
+        //     case QuoteBCUnableToAddQuoteToDatabaseErrorEvent.name:
+        //     case QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent.name:
+        //     case QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent.name:
+        //     case QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent.name:
+        //     case QuoteBCInvalidRequesterFspIdErrorEvent.name: {
+        //         errorResponse.errorCode = Enums.ClientErrors.GENERIC_CLIENT_ERROR.code;
+        //         errorResponse.errorDescription = Enums.ClientErrors.GENERIC_CLIENT_ERROR.description;
+        //         break;
+        //     }
+        //     case QuoteBCQuoteExpiredErrorEvent.name:
+        //     case QuoteBCBulkQuoteExpiredErrorEvent.name: {
+        //         errorResponse.errorCode = Enums.ClientErrors.QUOTE_EXPIRED.code;
+        //         errorResponse.errorDescription = Enums.ClientErrors.QUOTE_EXPIRED.description;
+        //         break;
+        //     }
+        //     case QuoteBCUnknownErrorEvent.name: {
+        //         errorResponse.errorCode = Enums.ServerErrors.INTERNAL_SERVER_ERROR.code;
+        //         errorResponse.errorDescription = Enums.ServerErrors.INTERNAL_SERVER_ERROR.description;
+        //         break;
+        //     }
+        //     default: {
+        //         this.logger.warn(`Cannot handle error message of type: ${message.msgName}, ignoring`);
+        //         break;
+        //     }
+        // }
         return errorResponse;
     }
 
