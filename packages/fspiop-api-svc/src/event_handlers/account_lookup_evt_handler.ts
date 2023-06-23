@@ -54,6 +54,7 @@ import {
     AccountLookupBCInvalidDestinationParticipantErrorEvent,
     AccountLookupBCRequesterParticipantNotFoundErrorEvent,
     AccountLookupBCInvalidRequesterParticipantErrorEvent,
+    GetPartyQueryRejectedResponseEvt,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { ParticipantsPutId, ParticipantsPutTypeAndId, PartiesPutTypeAndId, PartiesPutTypeAndIdAndSubId } from "../errors";
@@ -108,6 +109,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 case AccountLookupBCInvalidDestinationParticipantErrorEvent.name:
                 case AccountLookupBCRequesterParticipantNotFoundErrorEvent.name:
                 case AccountLookupBCInvalidRequesterParticipantErrorEvent.name:
+                case GetPartyQueryRejectedResponseEvt.name:
                     await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState.headers);
                     break;
                 default:
@@ -216,6 +218,11 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 // check "Party info of unprovisioned party" for reference
                 errorResponse.errorCode = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code;
                 errorResponse.errorDescription = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.description;
+                break;
+            }
+            case GetPartyQueryRejectedResponseEvt.name: {
+                errorResponse.errorCode = Enums.ClientErrors.PARTY_NOT_FOUND.code;
+                errorResponse.errorDescription = Enums.ClientErrors.PARTY_NOT_FOUND.description;
                 break;
             }
             case AccountLookUpUnknownErrorEvent.name: {

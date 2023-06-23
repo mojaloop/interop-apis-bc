@@ -38,7 +38,14 @@ import express from "express";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { Constants, Validate } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import { PartyQueryReceivedEvt, PartyQueryReceivedEvtPayload, PartyInfoAvailableEvt, PartyInfoAvailableEvtPayload} from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { 
+    PartyQueryReceivedEvt, 
+    PartyQueryReceivedEvtPayload, 
+    PartyInfoAvailableEvt, 
+    PartyInfoAvailableEvtPayload,
+    GetPartyQueryRejectedEvt,
+    GetPartyQueryRejectedEvtPayload
+} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { PutParty } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/transformer";
 import { BaseRoutes } from "../_base_router";
 import { PartiesPutTypeAndIdAndSubId } from "../../errors";
@@ -61,6 +68,10 @@ export class PartyRoutes extends BaseRoutes {
         this.router.put("/:type/:id/", this.getPartyInfoAvailableByTypeAndId.bind(this));
         // PUT Parties by Type, ID & SubId
         this.router.put("/:type/:id/:subid", this.getPartyInfoAvailableByTypeAndIdAndSubId.bind(this));
+        // PUT ERROR Party by Type & ID
+        this.router.put("/:type/:id/error", this.getPartyByTypeAndIdQueryReject.bind(this));
+        // PUT ERROR Parties by Type, ID & SubId
+        this.router.put("/:type/:id/:subid/error", this.getPartyByTypeAndIdAndSubIdQueryReject.bind(this));
     }
 
     private async getPartyQueryReceivedByTypeAndId(req: express.Request, res: express.Response): Promise<void> {
@@ -263,4 +274,110 @@ export class PartyRoutes extends BaseRoutes {
 
         this.logger.debug("getPartyInfoAvailableByTypeAndIdAndSubId responded");
     }
+
+    private async getPartyByTypeAndIdQueryReject(req: express.Request, res: express.Response): Promise<void> {
+        this.logger.debug("Got getPartyByTypeAndIdQueryReject request");
+          
+        // Headers
+        const clonedHeaders = { ...req.headers };
+        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+        
+        // Date Model
+        const type = req.params["type"] as string || null;
+        const id = req.params["id"] as string || null;
+        const currency = req.query["currency"] as string || null;
+        const errorInformation = req.body["errorInformation"] || null;
+
+        if(!type || !id || !requesterFspId || !errorInformation) {
+            res.status(400).json({
+                status: "not ok"
+            });
+            return;
+        }
+
+        const msgPayload: GetPartyQueryRejectedEvtPayload = {
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId,
+            partyType: type,
+            partyId: id,
+            partySubType: null,
+            currency: currency,
+            errorInformation: errorInformation
+        };
+
+        const msg =  new GetPartyQueryRejectedEvt(msgPayload);
+
+        msg.validatePayload();
+
+        msg.fspiopOpaqueState = {
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId,
+            headers: clonedHeaders
+        };
+
+        await this.kafkaProducer.send(msg);
+
+        this.logger.debug("getPartyByTypeAndIdQueryReject sent message");
+
+        res.status(202).json({
+            status: "ok"
+        });
+
+        this.logger.debug("getPartyByTypeAndIdQueryReject responded");
+    }
+
+    private async getPartyByTypeAndIdAndSubIdQueryReject(req: express.Request, res: express.Response): Promise<void> {
+        this.logger.debug("Got getPartyByTypeAndIdAndSubIdQueryReject request");
+          
+        // Headers
+        const clonedHeaders = { ...req.headers };
+        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+        
+        // Date Model
+        const type = req.params["type"] as string || null;
+        const id = req.params["id"] as string || null;
+        const currency = req.query["currency"] as string || null;
+        const partySubIdOrType = req.params["subid"] as string || null;
+        const errorInformation = req.body["errorInformation"] || null;
+
+        if(!type || !id || !requesterFspId || !errorInformation) {
+            res.status(400).json({
+                status: "not ok"
+            });
+            return;
+        }
+
+        const msgPayload: GetPartyQueryRejectedEvtPayload = {
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId,
+            partyType: type,
+            partyId: id,
+            partySubType: partySubIdOrType,
+            currency: currency,
+            errorInformation: errorInformation
+        };
+
+        const msg =  new GetPartyQueryRejectedEvt(msgPayload);
+
+        msg.validatePayload();
+
+        msg.fspiopOpaqueState = {
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId,
+            headers: clonedHeaders
+        };
+
+        await this.kafkaProducer.send(msg);
+
+        this.logger.debug("getPartyByTypeAndIdAndSubIdQueryReject sent message");
+
+        res.status(202).json({
+            status: "ok"
+        });
+
+        this.logger.debug("getPartyByTypeAndIdAndSubIdQueryReject responded");
+    }
+
 }

@@ -338,12 +338,4 @@ export class ParticipantRoutes extends BaseRoutes {
 
         this.logger.debug("disassociatePartyByTypeAndIdAndSubId responded");
     }
-    
-    async init(): Promise<void>{
-        await this.kafkaProducer.connect();
-    }
-
-    async destroy(): Promise<void>{
-        await this.kafkaProducer.destroy();
-    }
 }
