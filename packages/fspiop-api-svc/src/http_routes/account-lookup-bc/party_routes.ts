@@ -201,8 +201,8 @@ export class PartyRoutes extends BaseRoutes {
             partyId: id,
             partySubType: null,
             currency: currency,
-            partyName: `${putPartyBody?.personalInfo?.complexName?.firstName} ${putPartyBody?.personalInfo?.complexName?.lastName}`,
-            partyDoB: putPartyBody?.personalInfo?.dateOfBirth
+            partyName: `${putPartyBody?.party.personalInfo?.complexName?.firstName} ${putPartyBody?.party.personalInfo?.complexName?.lastName}`,
+            partyDoB: putPartyBody?.party.personalInfo?.dateOfBirth
         };
 
 

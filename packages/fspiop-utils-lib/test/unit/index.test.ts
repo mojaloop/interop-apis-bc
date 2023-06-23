@@ -407,22 +407,22 @@ describe("FSPIOP Utils Lib", () => {
 
         // Assert
         expect(result).toEqual({
-            "name": "test-party-name",
             "party": {
+                "name": "test-party-name",
                 "partyIdInfo": {
                     "fspId": "test-fspiop-source",
                     "partyIdType": "MSISDN",
                     "partyIdentifier": "123456789",
                 },
-            },
-           "personalInfo": {
-                "complexName": {
-                    "firstName": "test-party-name",
-                    "lastName": "test-party-name",
-                    "middleName": "test-party-name",
-                },
-                "dateOfBirth": payload.partyDoB
-            },
+                "personalInfo": {
+                    "complexName": {
+                        "firstName": "test-party-name",
+                        "lastName": "test-party-name",
+                        "middleName": "test-party-name",
+                    },
+                    "dateOfBirth": payload.partyDoB
+                }
+            }
         });
     });
 

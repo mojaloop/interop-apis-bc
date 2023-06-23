@@ -303,6 +303,7 @@ export class Service {
         app.use(`/${TRANSFERS_URL_RESOURCE_NAME}`, this.transfersRoutes.router);
 
 
+        /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
         app.use((err: FspiopHttpRequestError, req: express.Request, res: express.Response, next: express.NextFunction) => {
             const errorResponseBuilder = (errorCode: string, errorDescription: string, additionalProperties = {}) => {
                 return {

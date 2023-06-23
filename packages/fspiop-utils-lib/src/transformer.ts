@@ -92,17 +92,17 @@ export interface PutParty {
 			partySubIdOrType: string | null,
 			fspId: string,
 			extensionList?: ExtensionList
-		}
-	},
-	merchantClassificationCode?: string,
-	name: string,
-	personalInfo: {
-		complexName: {
-			firstName: string,
-			middleName: string,
-			lastName: string
 		},
-		dateOfBirth: Date | null
+		merchantClassificationCode?: string,
+		name: string,
+		personalInfo: {
+			complexName: {
+				firstName: string,
+				middleName: string,
+				lastName: string
+			},
+			dateOfBirth: Date | null
+		}
 	}
 }
 
@@ -121,7 +121,7 @@ export const transformPayloadPartyAssociationPut = (payload: ParticipantAssociat
 	return removeEmpty(info);
 };
 
-export const transformPayloadPartyDisassociationPut = (payload: ParticipantAssociationRemovedEvtPayload):Pick<PutParty, 'party'> => {
+export const transformPayloadPartyDisassociationPut = (payload: ParticipantAssociationRemovedEvtPayload):any => {
 	const info = {
 		party: {
 			partyIdInfo: {
@@ -136,7 +136,7 @@ export const transformPayloadPartyDisassociationPut = (payload: ParticipantAssoc
 	return removeEmpty(info);
 };
 
-export const transformPayloadPartyInfoRequestedPut = (payload: PartyInfoRequestedEvtPayload):Pick<PutParty, 'party'> => {
+export const transformPayloadPartyInfoRequestedPut = (payload: PartyInfoRequestedEvtPayload):any => {
 	return {
 		party: {
 			partyIdInfo: {
@@ -157,16 +157,16 @@ export const transformPayloadPartyInfoReceivedPut = (payload: PartyQueryResponse
 				partyIdentifier: payload.partyId,
 				partySubIdOrType: payload.partySubType,
 				fspId: payload.requesterFspId,
-			}
-		},
-		name: payload.partyName,
-		personalInfo: {
-			complexName: {
-				firstName: payload.partyName,
-				middleName: payload.partyName,
-				lastName: payload.partyName
 			},
-			dateOfBirth: payload.partyDoB
+			name: payload.partyName,
+			personalInfo: {
+				complexName: {
+					firstName: payload.partyName,
+					middleName: payload.partyName,
+					lastName: payload.partyName
+				},
+				dateOfBirth: payload.partyDoB
+			}
 		}
 	};
 
@@ -277,7 +277,7 @@ export const transformPayloadTransferRequestPut = (payload: TransferCommittedFul
 		transferId: payload.transferId,
 		transferState: "COMMITTED",
 		fulfilment: payload.fulfilment,
-		completedTimestamp: payload.completedTimestamp,
+		completedTimestamp: new Date(payload.completedTimestamp).toJSON(),
 		extensionList: payload.extensionList
 	};
 

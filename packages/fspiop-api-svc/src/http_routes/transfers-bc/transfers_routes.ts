@@ -156,7 +156,7 @@ export class TransfersRoutes extends BaseRoutes {
             transferId: transferId,
             transferState: transferState,
             fulfilment: fulfilment,
-            completedTimestamp: completedTimestamp,
+            completedTimestamp: new Date(completedTimestamp).valueOf(),
             extensionList: extensionList
         };
 
