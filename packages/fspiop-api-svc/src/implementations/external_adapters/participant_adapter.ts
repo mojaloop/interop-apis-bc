@@ -36,8 +36,7 @@
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import { ParticipantsHttpClient} from "@mojaloop/participants-bc-client-lib";
 import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
-import { ILocalCache, LocalCache } from "../local_cache";
-import { IAuthenticatedHttpRequester } from "@mojaloop/security-bc-client-lib";
+import { IAuthenticatedHttpRequester } from "@mojaloop/security-bc-public-types-lib";
 import { IParticipantService } from "../../interfaces/infrastructure";
 
 export class ParticipantAdapter implements IParticipantService {
@@ -46,37 +45,22 @@ export class ParticipantAdapter implements IParticipantService {
 	private readonly _clientBaseUrl: string;
 	private readonly _externalParticipantClient :ParticipantsHttpClient;
 	private readonly _authRequester :IAuthenticatedHttpRequester;
-	private readonly _timeoutMs :number;
-	private validateStatus = (status: number): boolean => status === 200;
 
 	constructor(
 		logger: ILogger,
 		clientBaseUrl: string,
-		authRequester: IAuthenticatedHttpRequester,
-		timeoutMs: number,
-		localCache?: ILocalCache,
+		authRequester: IAuthenticatedHttpRequester
 	) {
 		this._logger = logger;
 		this._clientBaseUrl = clientBaseUrl;
 		this._authRequester = authRequester;
-		this._timeoutMs = timeoutMs;
-		this._externalParticipantClient = new ParticipantsHttpClient(this._logger, this._clientBaseUrl, this._authRequester, this._timeoutMs);
-		// this._localCache = localCache ?? new LocalCache(logger);
+
+		this._externalParticipantClient = new ParticipantsHttpClient(this._logger, this._clientBaseUrl, this._authRequester);
 	}
 
 	async getParticipantInfo(fspId: string): Promise<IParticipant| null> {
-		// const result = this._localCache.get("getParticipantInfo", fspId) as IParticipant;
-		//
-		// if (result) {
-		// 	this._logger.debug(`getParticipantInfo: returning cached result for fspId: ${fspId}`);
-		// 	return result;
-		// }
-
 		try {
 			const result = await this._externalParticipantClient.getParticipantById(fspId);
-			// if(result) {
-			// 	this._localCache.set(result, "getParticipantInfo", fspId);
-			// }
 			return result;
 		} catch (e: unknown) {
 			this._logger.error(`getParticipantInfo: error getting participant info for fspId: ${fspId} - ${e}`);
@@ -86,28 +70,8 @@ export class ParticipantAdapter implements IParticipantService {
 
 	async getParticipantsInfo(fspIds: string[]): Promise<IParticipant[]|null> {
 		const result: IParticipant[] = [];
-		// const missingFspIds: string[] = [];
-		//
-		// for (const fspId of fspIds) {
-		// 	const cachedResult = this._localCache.get("getParticipantInfo", fspId) as IParticipant;
-		// 	if (cachedResult) {
-		// 		result.push(cachedResult);
-		// 	} else {
-		// 		missingFspIds.push(fspId);
-		// 	}
-		// }
-		//
-		// if (missingFspIds.length === 0) {
-		// 	this._logger.debug(`getParticipantsInfo: returning cached result for fspIds: ${fspIds}`);
-		// 	return result;
-		// }
-
 		try {
 			const participants = await this._externalParticipantClient.getParticipantsByIds(fspIds);
-			// if(participants) {
-			// 	participants.forEach((participant:IParticipant) => this._localCache.set(participant, "getParticipantInfo", participant.id));
-			// 	result = result.concat(participants);
-			// }
 			return participants;
 
 		} catch (e: unknown) {

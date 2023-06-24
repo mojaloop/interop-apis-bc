@@ -78,7 +78,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
             if(!message.fspiopOpaqueState || !message.fspiopOpaqueState.headers){
-                this.logger.error(`received message of type: ${message.msgName}, without fspiopOpaqueState or fspiopOpaqueState.headers, ignoring`);
+                this._logger.error(`received message of type: ${message.msgName}, without fspiopOpaqueState or fspiopOpaqueState.headers, ignoring`);
                 return;
             }
 
@@ -113,7 +113,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                     await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState.headers);
                     break;
                 default:
-                    this.logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
+                    this._logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
                     break;
             }
         } catch (error: unknown) {
@@ -149,7 +149,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
     }
 
     async _handleErrorReceivedEvt(message: IDomainMessage, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
-        this.logger.info("_handleAccountLookupErrorReceivedEvt -> start");
+        this._logger.info("_handleAccountLookupErrorReceivedEvt -> start");
 
         const { payload } = message;
 
@@ -171,7 +171,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             errorResponse: errorResponse
         });
 
-        this.logger.info("_handleAccountLookupErrorReceivedEvt -> end");
+        this._logger.info("_handleAccountLookupErrorReceivedEvt -> end");
 
         return;
     }
@@ -231,7 +231,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 break;
             }
             default: {
-                this.logger.warn(`Cannot handle error message of type: ${message.msgName}, ignoring`);
+                this._logger.warn(`Cannot handle error message of type: ${message.msgName}, ignoring`);
                 break;
             }
         }
@@ -240,7 +240,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
     }
 
     private async _handleParticipantAssociationRequestReceivedEvt(message: ParticipantAssociationCreatedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
-        this.logger.info("_handleParticipantAssociationRequestReceivedEvt -> start");
+        this._logger.info("_handleParticipantAssociationRequestReceivedEvt -> start");
 
         try {
             const { payload } = message;
@@ -272,10 +272,10 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 payload: Transformer.transformPayloadPartyAssociationPut(payload),
             });
 
-            this.logger.info("_handleParticipantAssociationRequestReceivedEvt -> end");
+            this._logger.info("_handleParticipantAssociationRequestReceivedEvt -> end");
 
         } catch (error: unknown) {
-            this.logger.error(error,"_handleParticipantAssociationRequestReceivedEvt -> error");
+            this._logger.error(error,"_handleParticipantAssociationRequestReceivedEvt -> error");
             throw Error("_handleParticipantAssociationRequestReceivedEvt -> error");
         }
 
@@ -283,7 +283,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
     }
 
     private async _handleParticipantDisassociateRequestReceivedEvt(message: ParticipantAssociationRemovedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
-        this.logger.info("_handleParticipantDisassociateRequestReceivedEvt -> start");
+        this._logger.info("_handleParticipantDisassociateRequestReceivedEvt -> start");
 
         try {
             const { payload } = message;
@@ -321,10 +321,10 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 payload: Transformer.transformPayloadPartyDisassociationPut(payload),
             });
 
-            this.logger.info("_handleParticipantDisassociateRequestReceivedEvt -> end");
+            this._logger.info("_handleParticipantDisassociateRequestReceivedEvt -> end");
 
         } catch (error: unknown) {
-            this.logger.error(error,"_handleParticipantDisassociateRequestReceivedEvt -> error");
+            this._logger.error(error,"_handleParticipantDisassociateRequestReceivedEvt -> error");
             throw Error("_handleParticipantDisassociateRequestReceivedEvt -> error");
         }
 
@@ -332,7 +332,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
     }
 
     private async _handlePartyInfoRequestedEvt(message: PartyInfoRequestedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
-        this.logger.info("_handlePartyInfoRequestedEvt -> start");
+        this._logger.info("_handlePartyInfoRequestedEvt -> start");
 
         try {
 
@@ -379,10 +379,10 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 payload: Transformer.transformPayloadPartyInfoRequestedPut(payload),
             });
 
-            this.logger.info("_handlePartyInfoRequestedEvt -> end");
+            this._logger.info("_handlePartyInfoRequestedEvt -> end");
 
         } catch (error: unknown) {
-            this.logger.error(error,"_handlePartyInfoRequestedEvt -> error");
+            this._logger.error(error,"_handlePartyInfoRequestedEvt -> error");
             throw Error("_handlePartyInfoRequestedEvt -> error");
         }
 
@@ -390,7 +390,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
     }
 
     private async _handlePartyQueryResponseEvt(message: PartyQueryResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
-        this.logger.info("_handlePartyQueryResponseEvt -> start");
+        this._logger.info("_handlePartyQueryResponseEvt -> start");
 
         try {
             const { payload } = message;
@@ -436,9 +436,9 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 payload: Transformer.transformPayloadPartyInfoReceivedPut(payload),
             });
 
-            this.logger.info("_handlePartyQueryResponseEvt -> end");
+            this._logger.info("_handlePartyQueryResponseEvt -> end");
         } catch (error: unknown) {
-            this.logger.error(error,"_handlePartyQueryResponseEvt -> error");
+            this._logger.error(error,"_handlePartyQueryResponseEvt -> error");
             throw Error("_handlePartyQueryResponseEvt -> error");
         }
 
@@ -447,7 +447,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
 
     private async _handleParticipantQueryResponseEvt(message: ParticipantQueryResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
-        this.logger.info("_handleParticipantQueryResponseEvt -> start");
+        this._logger.info("_handleParticipantQueryResponseEvt -> start");
 
         try {
             const { payload } = message;
@@ -488,9 +488,9 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 payload: Transformer.transformPayloadParticipantPut(payload),
             });
 
-            this.logger.info("_handleParticipantQueryResponseEvt -> end");
+            this._logger.info("_handleParticipantQueryResponseEvt -> end");
         } catch (error: unknown) {
-            this.logger.error(error,"_handleParticipantQueryResponseEvt -> error");
+            this._logger.error(error,"_handleParticipantQueryResponseEvt -> error");
             throw Error("_handleParticipantQueryResponseEvt -> error");
         }
 

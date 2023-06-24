@@ -96,7 +96,7 @@ export class TransferEventHandler extends BaseEventHandler {
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
             if(!message.fspiopOpaqueState || !message.fspiopOpaqueState.headers){
-                this.logger.error(`received message of type: ${message.msgName}, without fspiopOpaqueState or fspiopOpaqueState.headers, ignoring`);
+                this._logger.error(`received message of type: ${message.msgName}, without fspiopOpaqueState or fspiopOpaqueState.headers, ignoring`);
                 return;
             }
 
@@ -148,7 +148,7 @@ export class TransferEventHandler extends BaseEventHandler {
                     await this._handleErrorReceivedEvt(message as DomainErrorEventMsg, message.fspiopOpaqueState.headers);
                     break;
                 default:
-                    this.logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
+                    this._logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
                     break;
             }
         } catch (error: unknown) {
@@ -181,7 +181,7 @@ export class TransferEventHandler extends BaseEventHandler {
     }
 
     async _handleErrorReceivedEvt(message: DomainErrorEventMsg, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
-        this.logger.info("_handleTransferErrorReceivedEvt -> start");
+        this._logger.info("_handleTransferErrorReceivedEvt -> start");
 
         const { payload } = message;
 
@@ -201,7 +201,7 @@ export class TransferEventHandler extends BaseEventHandler {
             errorResponse: errorResponse
         });
 
-        this.logger.info("_handleTransferErrorReceivedEvt -> end");
+        this._logger.info("_handleTransferErrorReceivedEvt -> end");
 
         return;
     }
@@ -233,23 +233,23 @@ export class TransferEventHandler extends BaseEventHandler {
                 errorResponse.errorDescription = Enums.ServerErrors.GENERIC_SERVER_ERROR.description;
                 break;
             }
-            case TransferUnableToAddEvt.name: 
+            case TransferUnableToAddEvt.name:
             case TransferUnableToUpdateEvt.name: {
                 errorResponse.errorCode = Enums.ServerErrors.INTERNAL_SERVER_ERROR.code;
                 errorResponse.errorDescription = Enums.ServerErrors.INTERNAL_SERVER_ERROR.description;
                 break;
             }
-            case TransferHubNotFoundFailedEvt.name: 
+            case TransferHubNotFoundFailedEvt.name:
             case TransferHubAccountNotFoundFailedEvt.name: {
                 errorResponse.errorCode = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code;
                 errorResponse.errorDescription = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.description;
                 break;
             }
-            case TransferPayerNotFoundFailedEvt.name: 
+            case TransferPayerNotFoundFailedEvt.name:
             case TransferPayeePositionAccountNotFoundFailedEvt.name:
             case TransferPayeeLiquidityAccountNotFoundFailedEvt.name:
-            case TransferQueryInvalidPayerCheckFailedEvt.name: 
-            case TransferQueryPayerNotFoundFailedEvt.name: { 
+            case TransferQueryInvalidPayerCheckFailedEvt.name:
+            case TransferQueryPayerNotFoundFailedEvt.name: {
                 errorResponse.errorCode = Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.code;
                 errorResponse.errorDescription = Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.description;
                 break;
@@ -257,7 +257,7 @@ export class TransferEventHandler extends BaseEventHandler {
             case TransferPayerPositionAccountNotFoundFailedEvt.name:
             case TransferPayerLiquidityAccountNotFoundFailedEvt.name:
             case TransferPayeeNotFoundFailedEvt.name:
-            case TransferQueryInvalidPayeeCheckFailedEvt.name: 
+            case TransferQueryInvalidPayeeCheckFailedEvt.name:
             case TransferQueryPayeeNotFoundFailedEvt.name: {
                 errorResponse.errorCode = Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.code;
                 errorResponse.errorDescription = Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.description;
@@ -300,7 +300,7 @@ export class TransferEventHandler extends BaseEventHandler {
             }
             case TransferPayerNotActiveEvt.name:
             case TransferPayerNotApprovedEvt.name:
-            case TransferPrepareInvalidPayerCheckFailedEvt.name: 
+            case TransferPrepareInvalidPayerCheckFailedEvt.name:
             case TransferQueryInvalidPayerParticipantIdEvt.name: {
                 errorResponse.errorCode = Enums.PayerErrors.GENERIC_PAYER_ERROR.code;
                 errorResponse.errorDescription = Enums.PayerErrors.GENERIC_PAYER_ERROR.description;
@@ -308,7 +308,7 @@ export class TransferEventHandler extends BaseEventHandler {
             }
             case TransferPayeeNotActiveEvt.name:
             case TransferPayeeNotApprovedEvt.name:
-            case TransferPrepareInvalidPayeeCheckFailedEvt.name: 
+            case TransferPrepareInvalidPayeeCheckFailedEvt.name:
             case TransferQueryInvalidPayeeParticipantIdEvt.name: {
                 errorResponse.errorCode = Enums.PayeeErrors.GENERIC_PAYEE_ERROR.code;
                 errorResponse.errorDescription = Enums.PayeeErrors.GENERIC_PAYEE_ERROR.description;
@@ -317,7 +317,7 @@ export class TransferEventHandler extends BaseEventHandler {
 
             default: {
                 const errorMessage = `Cannot handle error message of type: ${message.msgName}, ignoring`;
-                this.logger.warn(errorMessage);
+                this._logger.warn(errorMessage);
             }
         }
 
@@ -340,7 +340,7 @@ export class TransferEventHandler extends BaseEventHandler {
         }
 
         try {
-            this.logger.info("_handleTransferPreparedEvt -> start");
+            this._logger.info("_handleTransferPreparedEvt -> start");
 
             // Always validate the payload and headers received
             message.validatePayload();
@@ -357,10 +357,10 @@ export class TransferEventHandler extends BaseEventHandler {
                 payload: Transformer.transformPayloadTransferRequestPost(payload),
             });
 
-            this.logger.info("_handleTransferPreparedEvt -> end");
+            this._logger.info("_handleTransferPreparedEvt -> end");
 
         } catch (error: unknown) {
-            this.logger.error(error, "_handleTransferPreparedEvt -> error");
+            this._logger.error(error, "_handleTransferPreparedEvt -> error");
             throw Error("_handleTransferPreparedEvt -> error");
         }
 
@@ -383,7 +383,7 @@ export class TransferEventHandler extends BaseEventHandler {
         }
 
         try {
-            this.logger.info("_handleTransferCommittedFulfiledEvt -> start");
+            this._logger.info("_handleTransferCommittedFulfiledEvt -> start");
 
             // Always validate the payload and headers received
             message.validatePayload();
@@ -401,10 +401,10 @@ export class TransferEventHandler extends BaseEventHandler {
                 payload: Transformer.transformPayloadTransferRequestPut(payload),
             });
 
-            this.logger.info("_handleTransferCommittedFulfiledEvt -> end");
+            this._logger.info("_handleTransferCommittedFulfiledEvt -> end");
 
         } catch (error: unknown) {
-            this.logger.error(error, "_handleTransferCommittedFulfiledEvt -> error");
+            this._logger.error(error, "_handleTransferCommittedFulfiledEvt -> error");
             throw Error("_handleTransferCommittedFulfiledEvt -> error");
         }
 
@@ -426,7 +426,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 throw Error(`fspId ${requesterFspId} has no valid participant associated`);
             }
 
-            this.logger.info("_handleTransferQueryResponseEvt -> start");
+            this._logger.info("_handleTransferQueryResponseEvt -> start");
 
             // Always validate the payload and headers received
             message.validatePayload();
@@ -444,10 +444,10 @@ export class TransferEventHandler extends BaseEventHandler {
                 payload: Transformer.transformPayloadTransferRequestGet(payload),
             });
 
-            this.logger.info("_handleTransferQueryResponseEvt -> end");
+            this._logger.info("_handleTransferQueryResponseEvt -> end");
 
         } catch (error: unknown) {
-            this.logger.error("_handleTransferQueryResponseEvt -> error");
+            this._logger.error("_handleTransferQueryResponseEvt -> error");
             throw Error("_handleTransferQueryResponseEvt -> error");
         }
 
