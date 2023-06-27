@@ -33,8 +33,6 @@
 
 import request from 'axios';
 import { FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION,FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_CONTENT_TYPE, FSPIOP_HEADERS_ACCEPT, FSPIOP_HEADERS_DATE } from './constants';
-import { FspiopError, PutParticipant, PutParty } from './transformer';
-import {ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload, ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvt, AccountLookUpUnknownErrorPayload, AccountLookUpUnknownErrorEvent} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { FspiopRequestMethodsEnum, ResponseTypeEnum } from './enums';
 import HeaderBuilder from './headers/header_builder';
 
