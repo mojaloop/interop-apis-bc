@@ -28,6 +28,7 @@ optionally within square brackets <email>.
 --------------
 ******/
 
+
 "use strict";
 import {existsSync} from "fs";
 import {Server} from "http";
@@ -73,14 +74,15 @@ import util from "util";
 
 const API_SPEC_FILE_PATH = process.env["API_SPEC_FILE_PATH"] || "../dist/api_spec.yaml";
 
-
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const packageJSON = require("../package.json");
 
 const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
 const LOGLEVEL:LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
 
 const BC_NAME = "interop-apis-bc";
 const APP_NAME = "fspiop-api-svc";
-const APP_VERSION = process.env.npm_package_version || "0.0.0";
+const APP_VERSION = packageJSON.version;
 
 const SVC_DEFAULT_HTTP_PORT = 4000;
 
@@ -108,7 +110,8 @@ const AUTH_N_SVC_TOKEN_URL = AUTH_N_SVC_BASEURL + "/token"; // TODO this should 
 
 const PARTICIPANTS_SVC_URL = process.env["PARTICIPANTS_SVC_URL"] || "http://localhost:3010";
 
-const SERVICE_START_TIMEOUT_MS = 30_000;
+// this service has more handlers, might take longer than the usual 30 sec
+const SERVICE_START_TIMEOUT_MS = 60_000;
 
 const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
     kafkaBrokerList: KAFKA_URL,
@@ -200,6 +203,7 @@ export class Service {
         }
         this.participantService = participantService;
 
+        await Service.setupEventHandlers();
 
         // Create and initialise the http hanlders
         this.participantRoutes = new ParticipantRoutes(kafkaJsonProducerOptions, AccountLookupBCTopics.DomainEvents, this.logger);
@@ -214,10 +218,7 @@ export class Service {
         await this.bulkQuotesRoutes.init();
         await this.transfersRoutes.init();
 
-
         await Service.setupExpress();
-
-        await Service.setupEventHandlers();
 
         this.logger.info(`Fspiop-api service v: ${APP_VERSION} started`);
 
@@ -371,7 +372,8 @@ export class Service {
             }
 
             this.expressServer = this.app.listen(portNum, () => {
-                console.log(`🚀 Server ready at: http://localhost:${portNum}`);
+                this.logger.info(`🚀 Server ready at: http://localhost:${portNum}`);
+                this.logger.info(`FSPIOP-API-SVC Service started, version: ${APP_VERSION}`);
                 resolve();
             });
         });
