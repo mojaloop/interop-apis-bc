@@ -156,14 +156,15 @@ export const transformPayloadPartyInfoReceivedPut = (payload: PartyQueryResponse
 				partyIdType: payload.partyType,
 				partyIdentifier: payload.partyId,
 				partySubIdOrType: payload.partySubType,
-				fspId: payload.requesterFspId,
+				fspId: payload.ownerFspId,
 			},
-			name: payload.partyName,
+			merchantClassificationCode: payload.merchantClassificationCode,
+			name: payload.name,
 			personalInfo: {
 				complexName: {
-					firstName: payload.partyName,
-					middleName: payload.partyName,
-					lastName: payload.partyName
+					firstName: payload.firstName,
+					middleName: payload.middleName,
+					lastName: payload.lastName
 				},
 				dateOfBirth: payload.partyDoB
 			}

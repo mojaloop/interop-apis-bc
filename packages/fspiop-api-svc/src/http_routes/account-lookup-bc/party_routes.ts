@@ -46,7 +46,6 @@ import {
     GetPartyQueryRejectedEvt,
     GetPartyQueryRejectedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { PutParty } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/transformer";
 import { BaseRoutes } from "../_base_router";
 import { PartiesPutTypeAndIdAndSubId } from "../../errors";
 
@@ -172,18 +171,21 @@ export class PartyRoutes extends BaseRoutes {
 
     private async getPartyInfoAvailableByTypeAndId(req: express.Request, res: express.Response): Promise<void> {
         this.logger.debug("Got getPartyInfoAvailableByTypeAndId request");
-        console.log(JSON.stringify(req.headers));
-
-        const putPartyBody: PutParty = req.body?.party;
 
         const clonedHeaders = { ...req.headers };
         const type = req.params["type"] as string || null;
         const id = req.params["id"] as string || null;
         const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
         const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
-        const ownerFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const ownerFspId = req.body.party.partyIdInfo["fspId"] || null;        
         const currency = req.query["currency"] as string || null;
-
+        const name = req.body.party["name"] || null;
+        const merchantClassificationCode = req.body.party["merchantClassificationCode"] || null;
+        const firstName = req.body.party.personalInfo.complexName["firstName"] || null;
+        const middleName = req.body.party.personalInfo.complexName["middleName"] || null;
+        const lastName = req.body.party.personalInfo.complexName["lastName"] || null;
+        const partyDoB = req.body.party.personalInfo["dateOfBirth"] || null; 
+        
         const isValidHeaders = Validate.validateHeaders(PartiesPutTypeAndIdAndSubId, clonedHeaders);
 
         if(!isValidHeaders || !type || !id || !requesterFspId || !ownerFspId){
@@ -192,7 +194,7 @@ export class PartyRoutes extends BaseRoutes {
             });
             return;
         }
-
+          
         const msgPayload: PartyInfoAvailableEvtPayload = {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId,
@@ -201,8 +203,12 @@ export class PartyRoutes extends BaseRoutes {
             partyId: id,
             partySubType: null,
             currency: currency,
-            partyName: `${putPartyBody?.party.personalInfo?.complexName?.firstName} ${putPartyBody?.party.personalInfo?.complexName?.lastName}`,
-            partyDoB: putPartyBody?.party.personalInfo?.dateOfBirth
+            merchantClassificationCode: merchantClassificationCode,
+            name: name,
+            firstName: firstName,
+            middleName: middleName,
+            lastName: lastName,
+            partyDoB: partyDoB
         };
 
 
@@ -233,8 +239,14 @@ export class PartyRoutes extends BaseRoutes {
         const partySubIdOrType = req.params["subid"] as string || null;
         const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
         const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
-        const ownerFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const ownerFspId = req.body.party.partyIdInfo["fspId"] || null;        
         const currency = req.query["currency"] as string || null;
+        const merchantClassificationCode = req.body.party["merchantClassificationCode"] || null;
+        const name = req.body.party["name"] || null;
+        const firstName = req.body.party.personalInfo.complexName["firstName"] || null;
+        const middleName = req.body.party.personalInfo.complexName["middleName"] || null;
+        const lastName = req.body.party.personalInfo.complexName["lastName"] || null;
+        const partyDoB = req.body.party.personalInfo["dateOfBirth"] || null; 
 
         const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.parties, clonedHeaders);
 
@@ -253,8 +265,12 @@ export class PartyRoutes extends BaseRoutes {
             partyId: id,
             partySubType: partySubIdOrType,
             currency: currency,
-            partyName: "partynmame",
-            partyDoB: new Date(),
+            merchantClassificationCode: merchantClassificationCode,
+            name: name,
+            firstName: firstName,
+            middleName: middleName,
+            lastName: lastName,
+            partyDoB: partyDoB
         };
 
         const msg =  new PartyInfoAvailableEvt(msgPayload);

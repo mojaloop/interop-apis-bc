@@ -358,6 +358,7 @@ export class Service {
                 res.status(statusCode).json(errorResponseBuilder(errorCode, `${err.data[0].message} - path: ${err.data[0].instancePath}`, { extensionList: { extension: extensionList} }));
             });
 
+            /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
             this.app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
                 // catch all
                 this.logger.warn(`Received unhandled request to url: ${req.url}`);

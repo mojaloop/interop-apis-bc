@@ -396,7 +396,11 @@ describe("FSPIOP Utils Lib", () => {
             ownerFspId: "test-fspiop-owner",
             partyId: "123456789",
             partyType: "MSISDN",
-            partyName: "test-party-name",
+            merchantClassificationCode: "18",
+            name: "test-party-name",
+            firstName: "test-first-name",
+            middleName: "test-middle-name",
+            lastName: "test-last-name",
             partyDoB: new Date(),
             partySubType: null,
             currency: null
@@ -409,16 +413,17 @@ describe("FSPIOP Utils Lib", () => {
         expect(result).toEqual({
             "party": {
                 "name": "test-party-name",
+                "merchantClassificationCode": payload.merchantClassificationCode,
                 "partyIdInfo": {
-                    "fspId": "test-fspiop-source",
                     "partyIdType": "MSISDN",
                     "partyIdentifier": "123456789",
+                    "fspId": "test-fspiop-owner"
                 },
                 "personalInfo": {
                     "complexName": {
-                        "firstName": "test-party-name",
-                        "lastName": "test-party-name",
-                        "middleName": "test-party-name",
+                        "firstName": "test-first-name",
+                        "middleName": "test-middle-name",
+                        "lastName": "test-last-name"
                     },
                     "dateOfBirth": payload.partyDoB
                 }

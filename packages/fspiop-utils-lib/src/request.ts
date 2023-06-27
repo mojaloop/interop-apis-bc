@@ -49,9 +49,6 @@ export interface FspiopHttpHeaders {
 
 }
 
-// eslint-disable-next-line
-type EventPayload = AccountLookUpUnknownErrorEvent | FspiopError | PutParticipant | ParticipantQueryResponseEvtPayload | PartyInfoRequestedEvtPayload | PartyQueryResponseEvtPayload  | ParticipantAssociationCreatedEvtPayload | ParticipantAssociationRemovedEvt | AccountLookUpUnknownErrorPayload | PutParty | Pick<PutParty, "party"> | null;
-
 type RequestOptions = {
   url: string, 
   headers: FspiopHttpHeaders, 
