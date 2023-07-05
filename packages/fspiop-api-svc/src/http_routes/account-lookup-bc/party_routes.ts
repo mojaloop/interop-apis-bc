@@ -63,14 +63,14 @@ export class PartyRoutes extends BaseRoutes {
         this.router.get("/:type/:id/:subid", this.getPartyQueryReceivedByTypeAndIdSubId.bind(this));
 
         // Callbacks
-        // PUT Party by Type & ID
-        this.router.put("/:type/:id/", this.getPartyInfoAvailableByTypeAndId.bind(this));
-        // PUT Parties by Type, ID & SubId
-        this.router.put("/:type/:id/:subid", this.getPartyInfoAvailableByTypeAndIdAndSubId.bind(this));
         // PUT ERROR Party by Type & ID
         this.router.put("/:type/:id/error", this.getPartyByTypeAndIdQueryReject.bind(this));
         // PUT ERROR Parties by Type, ID & SubId
         this.router.put("/:type/:id/:subid/error", this.getPartyByTypeAndIdAndSubIdQueryReject.bind(this));
+        // PUT Party by Type & ID
+        this.router.put("/:type/:id/", this.getPartyInfoAvailableByTypeAndId.bind(this));
+        // PUT Parties by Type, ID & SubId
+        this.router.put("/:type/:id/:subid", this.getPartyInfoAvailableByTypeAndIdAndSubId.bind(this));
     }
 
     private async getPartyQueryReceivedByTypeAndId(req: express.Request, res: express.Response): Promise<void> {
