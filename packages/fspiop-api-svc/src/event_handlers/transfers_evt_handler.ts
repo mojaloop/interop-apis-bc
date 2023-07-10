@@ -72,7 +72,8 @@ import {
     TransferPayerNotActiveEvt,
     TransferPayerNotApprovedEvt,
     TransferPayeeNotActiveEvt,
-    TransferPayeeNotApprovedEvt
+    TransferPayeeNotApprovedEvt,
+    TransferUnableToDeleteTransferReminderEvt
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { BaseEventHandler, HandlerNames } from "./base_event_handler";
@@ -144,6 +145,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 case TransferPayerNotApprovedEvt.name:
                 case TransferPayeeNotActiveEvt.name:
                 case TransferPayeeNotApprovedEvt.name:
+                case TransferUnableToDeleteTransferReminderEvt.name:
                 case TransfersBCUnknownErrorEvent.name:
                     await this._handleErrorReceivedEvt(message as DomainErrorEventMsg, message.fspiopOpaqueState.headers);
                     break;
@@ -234,7 +236,8 @@ export class TransferEventHandler extends BaseEventHandler {
                 break;
             }
             case TransferUnableToAddEvt.name:
-            case TransferUnableToUpdateEvt.name: {
+            case TransferUnableToUpdateEvt.name: 
+            case TransferUnableToDeleteTransferReminderEvt.name: {
                 errorResponse.errorCode = Enums.ServerErrors.INTERNAL_SERVER_ERROR.code;
                 errorResponse.errorDescription = Enums.ServerErrors.INTERNAL_SERVER_ERROR.description;
                 break;

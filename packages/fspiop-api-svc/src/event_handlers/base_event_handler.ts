@@ -168,7 +168,7 @@ export abstract class BaseEventHandler  {
                     if(value) {
                         finalExtensionList.push({
                             key: key,
-                            value: value as string
+                            value: (value as string).substring(0, 128) // TODO: limit messages to 128 characters in all BCs errors (guid max size + text), otherwise the error message is invalid 
                         });
                     }
                 }
