@@ -169,11 +169,7 @@ export class TransferEventHandler extends BaseEventHandler {
                     errorDescription: Enums.ServerErrors.GENERIC_SERVER_ERROR.description,
                     sourceFspId: requesterFspId,
                     destinationFspId: null
-                },
-                extensionList: [{
-                    key: HandlerNames.Transfers,
-                    value: (error as Error).message
-                }]
+                }
             });
         }
 
@@ -196,7 +192,7 @@ export class TransferEventHandler extends BaseEventHandler {
 
         const errorResponse = this.buildErrorResponseBasedOnErrorEvent(message, sourceFspId, destinationFspId);
 
-        this._sendErrorFeedbackToFsp({
+        await this._sendErrorFeedbackToFsp({
             message: message,
             headers: clonedHeaders,
             id: [transferId],

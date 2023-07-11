@@ -143,11 +143,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                     errorDescription: Enums.ServerErrors.GENERIC_SERVER_ERROR.description,
                     sourceFspId: requesterFspId,
                     destinationFspId: null
-                },
-                extensionList: [{
-                    key: HandlerNames.Quotes,
-                    value: (error as Error).message
-                }]
+                }
             });
         }
 

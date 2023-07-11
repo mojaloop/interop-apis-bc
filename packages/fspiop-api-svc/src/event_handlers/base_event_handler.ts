@@ -124,8 +124,7 @@ export abstract class BaseEventHandler  {
         message,
         headers,
         id,
-        errorResponse,
-        extensionList = []
+        errorResponse
     }: {
         message: IDomainMessage;
         headers: Request.FspiopHttpHeaders;
@@ -136,10 +135,6 @@ export abstract class BaseEventHandler  {
             sourceFspId : string;
             destinationFspId: string | null;
         };
-        extensionList?: {
-            key: string;
-            value: string;
-        }[]
     }):Promise<void>{
         // We always have a sourceFsp to send info to, depending on the stage of the
         // event when the error occurred it should also deliver to the destination
@@ -151,27 +146,14 @@ export abstract class BaseEventHandler  {
 
         for(const fspId of fspIds ) {
             try {
-                const finalExtensionList:{ key: string; value: string; }[] = [];
-                finalExtensionList.concat(extensionList);
 
-                const endpoint = (await this._validateParticipantAndGetEndpoint(fspId));
+                const endpoint = await this._validateParticipantAndGetEndpoint(fspId);
 
                 if(!endpoint) {
                     throw Error(`fspId ${fspId} has no valid participant associated`);
                 }
 
                 const url = this.buildFspFeedbackUrl(endpoint, id, message);
-
-                // Build the extension list with all the available
-                // non-null fields from the message payload
-                for (const [key, value] of Object.entries(message.payload)) {
-                    if(value) {
-                        finalExtensionList.push({
-                            key: key,
-                            value: (value as string).substring(0, 128) // TODO: limit messages to 128 characters in all BCs errors (guid max size + text), otherwise the error message is invalid 
-                        });
-                    }
-                }
 
 
                 await Request.sendRequest({
@@ -183,9 +165,7 @@ export abstract class BaseEventHandler  {
                     payload: Transformer.transformPayloadError({
                         errorCode: errorResponse.errorCode,
                         errorDescription: errorResponse.errorDescription,
-                        extensionList: finalExtensionList.length > 0 ? {
-                            extension: finalExtensionList
-                        } : null
+                        extensionList: message.payload.errorInformation.extensionList ?? null
                     })
                 });
 

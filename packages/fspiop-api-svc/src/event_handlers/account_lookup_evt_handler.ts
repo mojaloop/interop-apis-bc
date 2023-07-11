@@ -134,11 +134,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                     errorDescription: Enums.ServerErrors.GENERIC_SERVER_ERROR.description,
                     sourceFspId: requesterFspId,
                     destinationFspId: null
-                },
-                extensionList: [{
-                    key: HandlerNames.AccountLookUp,
-                    value: (error as Error).message
-                }]
+                }
             });
         }
 
