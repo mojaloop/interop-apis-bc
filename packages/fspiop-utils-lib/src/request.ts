@@ -32,7 +32,7 @@
  "use strict";
 
 import request from 'axios';
-import { FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION,FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_CONTENT_TYPE, FSPIOP_HEADERS_ACCEPT, FSPIOP_HEADERS_DATE } from './constants';
+import { FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION,FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_CONTENT_TYPE, FSPIOP_HEADERS_ACCEPT, FSPIOP_HEADERS_DATE, CUSTOM_SENDER_KEY } from './constants';
 import { FspiopRequestMethodsEnum, ResponseTypeEnum } from './enums';
 import HeaderBuilder from './headers/header_builder';
 
@@ -44,6 +44,7 @@ export interface FspiopHttpHeaders {
   [FSPIOP_HEADERS_HTTP_METHOD]: string;
   [FSPIOP_HEADERS_SIGNATURE]: string;
   [FSPIOP_HEADERS_DATE]: string;
+  [CUSTOM_SENDER_KEY]: string;
 
 }
 
@@ -97,7 +98,8 @@ export const sendRequest = async ({
     builder.setFspiopSource(headers[FSPIOP_HEADERS_SOURCE]);
     builder.setFspiopDestination(headers[FSPIOP_HEADERS_DESTINATION]);
     builder.setFspiopHttpMethod(headers[FSPIOP_HEADERS_HTTP_METHOD], config);
-
+    builder.setCustomSenderKey(headers[CUSTOM_SENDER_KEY]);
+    
     const transformedHeaders = builder.getResult().build();
 
     

@@ -33,7 +33,7 @@
 "use strict";
 
 
-import { FSPIOP_HEADERS_ACCEPT, FSPIOP_HEADERS_CONTENT_LENGTH, FSPIOP_HEADERS_CONTENT_TYPE, FSPIOP_HEADERS_DATE, FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION, FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_ENCRYPTION, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_URI, FSPIOP_HEADERS_X_FORWARDED_FOR } from "../../src/constants";
+import { FSPIOP_HEADERS_ACCEPT, FSPIOP_HEADERS_CONTENT_LENGTH, FSPIOP_HEADERS_CONTENT_TYPE, FSPIOP_HEADERS_DATE, FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION, FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_ENCRYPTION, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_URI, FSPIOP_HEADERS_X_FORWARDED_FOR, CUSTOM_SENDER_KEY } from "../../src/constants";
 import { EntityTypeEnum, ErrorCode, FspiopRequestMethodsEnum } from "../../src/enums";
 import { validateHeaders } from "../../src/validate";
 import axios from "axios";
@@ -71,6 +71,7 @@ describe("FSPIOP Utils Lib", () => {
                 [FSPIOP_HEADERS_HTTP_METHOD]: "1",
                 [FSPIOP_HEADERS_SIGNATURE]: "1",
                 [FSPIOP_HEADERS_DATE]: "1",
+                [CUSTOM_SENDER_KEY]:"1"
             },
             source: "1",
             destination: "2",
@@ -90,7 +91,7 @@ describe("FSPIOP Utils Lib", () => {
                 "accept": "1",
                 "content-length": undefined,
                 "content-type": "1",
-                "date": "Mon, 01 Jan 2001 00:00:00 GMT",
+                "date": "Sun, 31 Dec 2000 17:30:00 GMT",
                 "fspiop-destination": "1",
                 "fspiop-encryption": undefined,
                 "fspiop-http-method": "PUT",
@@ -98,6 +99,7 @@ describe("FSPIOP Utils Lib", () => {
                 "fspiop-source": "1",
                 "fspiop-uri": undefined,
                 "x-forwarded-for": undefined,
+                "custom-sender-key": "1",
             },
             "method": "PUT",
             "responseType": "json",
@@ -120,7 +122,8 @@ describe("FSPIOP Utils Lib", () => {
             "fspiop-http-method": FspiopRequestMethodsEnum.PUT,
             "fspiop-signature": "test-fspiop-signature",
             "fspiop-uri": "test-fspiop-uri",
-            "x-forwarded-for": "test-fspiop-x-forwarded-for"
+            "x-forwarded-for": "test-fspiop-x-forwarded-for",
+            "custom-sender-key":"test-custom-sender-key"
         };
 
         const config =  {
@@ -147,6 +150,7 @@ describe("FSPIOP Utils Lib", () => {
         builder.setFspiopSignature(headers[FSPIOP_HEADERS_SIGNATURE]);
         builder.setFspiopUri(headers[FSPIOP_HEADERS_URI]);
         builder.setFspiopHttpMethod(headers[FSPIOP_HEADERS_HTTP_METHOD], config);
+        builder.setCustomSenderKey(headers[CUSTOM_SENDER_KEY]);
 
         const result = builder.getResult().build();
 
@@ -160,7 +164,8 @@ describe("FSPIOP Utils Lib", () => {
             "fspiop-http-method": FspiopRequestMethodsEnum.PUT,
             "fspiop-signature": "test-fspiop-signature",
             "fspiop-uri": "test-fspiop-uri",
-            "x-forwarded-for": "test-fspiop-x-forwarded-for"
+            "x-forwarded-for": "test-fspiop-x-forwarded-for",
+            "custom-sender-key":"test-custom-sender-key"
         });
     });
 
@@ -239,7 +244,8 @@ describe("FSPIOP Utils Lib", () => {
             "fspiop-http-method": FspiopRequestMethodsEnum.PUT,
             "fspiop-signature": "test-fspiop-signature",
             "fspiop-uri": "test-fspiop-uri",
-            "x-forwarded-for": "test-fspiop-x-forwarded-for"
+            "x-forwarded-for": "test-fspiop-x-forwarded-for",
+            "custom-sender-key":"test-custom-sender-key"
         };
 
         // Act

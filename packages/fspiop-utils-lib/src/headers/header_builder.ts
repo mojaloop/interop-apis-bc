@@ -138,6 +138,12 @@ export default class HeaderBuilder implements IHeaderBuilder {
         return this;
     }
 
+    setCustomSenderKey(customSenderKey: string): this {
+        this.headers.customSenderKey = customSenderKey;
+
+        return this;
+    }
+    
     getResult(): Header {
         return this.headers;
     }

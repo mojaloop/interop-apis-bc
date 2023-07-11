@@ -57,6 +57,7 @@ export const FSPIOP_HEADERS_CONTENT_TYPE_CONTENT = "content-length";
 export const FSPIOP_HEADERS_HOST = "host";
 export const FSPIOP_HEADERS_X_FORWARDED_FOR = "x-forwarded-for";
 export const FSPIOP_HEADERS_ENCRYPTION = "fspiop-encryption";
+export const CUSTOM_SENDER_KEY = "custom-sender-key";
 
 // these are http defaults, not sure if we need them
 export const FSPIOP_HEADERS_DATE = "date";

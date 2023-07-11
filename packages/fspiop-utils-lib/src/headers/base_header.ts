@@ -43,6 +43,7 @@ type HeaderResult = {
     'fspiop-signature'?: string,
     'fspiop-uri': string,
     'fspiop-http-method': string,
+    'custom-sender-key': string,
 }
 
 export default class Header {
@@ -57,6 +58,7 @@ export default class Header {
     fspiopSignature!: string;
     fspiopUri!: string;
     fspiopHttpMethod!: string;
+    customSenderKey!: string;
 
     build(): HeaderResult {
         const headers: HeaderResult = {
@@ -71,6 +73,7 @@ export default class Header {
             'fspiop-signature': this.fspiopSignature,
             'fspiop-uri': this.fspiopUri,
             'fspiop-http-method': this.fspiopHttpMethod,
+            'custom-sender-key': this.customSenderKey,
         };
 
         return headers;
@@ -90,5 +93,6 @@ export interface IHeaderBuilder {
     setFspiopSignature(fspiopSignature: string): this
     setFspiopUri(fspiopUri: string): this
     setFspiopHttpMethod(fspiopHttpMethod: string, config: any): this // eslint-disable-line @typescript-eslint/no-explicit-any
+    setCustomSenderKey(customSenderKey: string): this
     getResult(): Header
 }
