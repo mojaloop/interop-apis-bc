@@ -151,8 +151,8 @@ export abstract class BaseEventHandler  {
 
         for(const fspId of fspIds ) {
             try {
-                const finalExtensionList:{ key: string; value: string; }[] = [];
-                finalExtensionList.concat(extensionList);
+                // const finalExtensionList:{ key: string; value: string; }[] = [];
+                // finalExtensionList.concat(extensionList);
 
                 const endpoint = (await this._validateParticipantAndGetEndpoint(fspId));
 
@@ -162,16 +162,16 @@ export abstract class BaseEventHandler  {
 
                 const url = this.buildFspFeedbackUrl(endpoint, id, message);
 
-                // Build the extension list with all the available
-                // non-null fields from the message payload
-                for (const [key, value] of Object.entries(message.payload)) {
-                    if(value) {
-                        finalExtensionList.push({
-                            key: key,
-                            value: value as string
-                        });
-                    }
-                }
+                // // Build the extension list with all the available
+                // // non-null fields from the message payload
+                // for (const [key, value] of Object.entries(message.payload)) {
+                //     if(value) {
+                //         finalExtensionList.push({
+                //             key: key,
+                //             value: value as string
+                //         });
+                //     }
+                // }
 
 
                 await Request.sendRequest({
@@ -183,9 +183,10 @@ export abstract class BaseEventHandler  {
                     payload: Transformer.transformPayloadError({
                         errorCode: errorResponse.errorCode,
                         errorDescription: errorResponse.errorDescription,
-                        extensionList: finalExtensionList.length > 0 ? {
-                            extension: finalExtensionList
-                        } : null
+                        extensionList: message.payload.errorInformation?.extensionList || null
+                        // extensionList: finalExtensionList.length > 0 ? {
+                        //     extension: finalExtensionList
+                        // } : null
                     })
                 });
 
