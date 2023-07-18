@@ -358,7 +358,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             message.validatePayload();
             Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
 
-            if (clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === "") {
+            if (!clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === "") {
                 clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = destinationFspId;
             }
 
@@ -413,10 +413,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             if(fspiopOpaqueState) {
                 if (!clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === "") {
-                    clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+                    clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = destinationFspId;
                 }
-                clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
-
             }
 
             const urlBuilder = new Request.URLBuilder(destinationEndpoint.value);

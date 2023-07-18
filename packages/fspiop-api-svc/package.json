@@ -48,7 +48,7 @@
   "dependencies": {
     "@mojaloop/auditing-bc-client-lib": "~0.0.14",
     "@mojaloop/auditing-bc-public-types-lib": "~0.0.15",
-    "@mojaloop/logging-bc-client-lib": "~0.1.24",
+    "@mojaloop/logging-bc-client-lib": "~0.1.25",
     "@mojaloop/logging-bc-public-types-lib": "^0.1.19",
     "@mojaloop/participant-bc-public-types-lib": "~0.0.14",
     "@mojaloop/participants-bc-client-lib": "~0.1.13",
