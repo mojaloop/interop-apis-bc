@@ -31,37 +31,39 @@
 
 "use strict";
 
-import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
+import { BaseEventHandler, HandlerNames } from "./base_event_handler";
+import {
+    BulkQuoteAcceptedEvt,
+    BulkQuoteReceivedEvt,
+    GetPartyQueryRejectedEvt,
+    QuoteBCBulkQuoteExpiredErrorEvent,
+    QuoteBCBulkQuoteNotFoundErrorEvent,
+    QuoteBCDestinationParticipantNotFoundErrorEvent,
+    QuoteBCDuplicateQuoteErrorEvent,
+    QuoteBCInvalidBulkQuoteLengthErrorEvent,
+    QuoteBCInvalidDestinationFspIdErrorEvent,
+    QuoteBCInvalidMessagePayloadErrorEvent,
+    QuoteBCInvalidMessageTypeErrorEvent,
+    QuoteBCInvalidRequesterFspIdErrorEvent,
+    QuoteBCQuoteExpiredErrorEvent,
+    QuoteBCQuoteNotFoundErrorEvent,
+    QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent,
+    QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent,
+    QuoteBCRequesterParticipantNotFoundErrorEvent,
+    QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent,
+    QuoteBCUnableToAddQuoteToDatabaseErrorEvent,
+    QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent,
+    QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent,
+    QuoteBCUnknownErrorEvent,
+    QuoteQueryResponseEvt,
+    QuoteRequestAcceptedEvt,
+    QuoteResponseAccepted
+} from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { Constants, Enums, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import {
-    QuoteRequestAcceptedEvt,
-    QuoteResponseAccepted,
-    QuoteQueryResponseEvt,
-    BulkQuoteReceivedEvt,
-    BulkQuoteAcceptedEvt,
-    QuoteBCDuplicateQuoteErrorEvent,
-    QuoteBCQuoteNotFoundErrorEvent,
-    QuoteBCBulkQuoteNotFoundErrorEvent,
-    QuoteBCInvalidMessageTypeErrorEvent,
-    QuoteBCDestinationParticipantNotFoundErrorEvent,
-    QuoteBCRequesterParticipantNotFoundErrorEvent,
-    QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent,
-    QuoteBCInvalidRequesterFspIdErrorEvent,
-    QuoteBCInvalidDestinationFspIdErrorEvent,
-    QuoteBCUnknownErrorEvent,
-    QuoteBCQuoteExpiredErrorEvent,
-    QuoteBCBulkQuoteExpiredErrorEvent,
-    QuoteBCInvalidMessagePayloadErrorEvent,
-    QuoteBCUnableToAddQuoteToDatabaseErrorEvent,
-    QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent,
-    QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent,
-    QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent,
-    QuoteBCInvalidBulkQuoteLengthErrorEvent,
-    QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent
-} from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { Constants, Request, Enums, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { BaseEventHandler, HandlerNames } from "./base_event_handler";
+
+import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 // import { QuotesPost } from "../errors";
 import { IParticipantService } from "../interfaces/infrastructure";
 
@@ -101,6 +103,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 case BulkQuoteAcceptedEvt.name:
                     await this._handleBulkQuoteAcceptedResponseEvt(new BulkQuoteAcceptedEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
+                case GetPartyQueryRejectedEvt.name:
                 case QuoteBCDuplicateQuoteErrorEvent.name:
                 case QuoteBCQuoteNotFoundErrorEvent.name:
                 case QuoteBCBulkQuoteNotFoundErrorEvent.name:
