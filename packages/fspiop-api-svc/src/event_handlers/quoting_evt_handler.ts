@@ -203,6 +203,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 break;
             }
             case QuoteBCQuoteNotFoundErrorEvent.name:
+            case GetPartyQueryRejectedEvt.name:
             {
                 errorResponse.errorCode = Enums.ClientErrors.QUOTE_ID_NOT_FOUND.code;
                 errorResponse.errorDescription = Enums.ClientErrors.QUOTE_ID_NOT_FOUND.description;
@@ -239,11 +240,6 @@ export class QuotingEventHandler extends BaseEventHandler {
             case QuoteBCUnknownErrorEvent.name: {
                 errorResponse.errorCode = Enums.ServerErrors.INTERNAL_SERVER_ERROR.code;
                 errorResponse.errorDescription = Enums.ServerErrors.INTERNAL_SERVER_ERROR.description;
-                break;
-            }
-            case GetPartyQueryRejectedEvt.name: {
-                errorResponse.errorCode = Enums.ClientErrors.QUOTE_ID_NOT_FOUND.code;
-                errorResponse.errorDescription = Enums.ClientErrors.QUOTE_ID_NOT_FOUND.description;
                 break;
             }
             default: {
