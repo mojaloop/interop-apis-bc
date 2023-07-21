@@ -381,8 +381,7 @@ describe("FSPIOP Utils Lib", () => {
                     "partyIdInfo": {
                     "fspId": "test-fspiop-source",
                     "partyIdType": "MSISDN",
-                    "partyIdentifier": "123456789",
-                    "partySubIdOrType": null,
+                    "partyIdentifier": "123456789"
                 },
             },
         });

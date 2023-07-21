@@ -29,7 +29,7 @@
  --------------
  ******/
 
- 'use strict';
+'use strict';
 
 import {
 	BulkQuoteReceivedEvtPayload,
@@ -66,7 +66,7 @@ export interface FspiopError {
 
 
 export const removeEmpty = (obj: any) => {
-	Object.entries(obj).forEach(([key, val])  =>
+	Object.entries(obj).forEach(([key, val]) =>
 		(val && typeof val === 'object') && removeEmpty(val) ||
 		(val === null || val === "") && delete obj[key]
 	);
@@ -78,7 +78,7 @@ export interface PutParticipant {
 	fspId: string,
 }
 
-export const transformPayloadParticipantPut = (payload: ParticipantQueryResponseEvtPayload):PutParticipant => {
+export const transformPayloadParticipantPut = (payload: ParticipantQueryResponseEvtPayload): PutParticipant => {
 	return {
 		fspId: payload.ownerFspId
 	};
@@ -92,21 +92,21 @@ export interface PutParty {
 			partySubIdOrType: string | null,
 			fspId: string,
 			extensionList?: ExtensionList
-		},
-		merchantClassificationCode?: string,
-		name: string,
-		personalInfo: {
-			complexName: {
-				firstName: string,
-				middleName: string,
-				lastName: string
-			},
-			dateOfBirth: Date | null
 		}
+	},
+	merchantClassificationCode?: string,
+	name: string,
+	personalInfo: {
+		complexName: {
+			firstName: string,
+			middleName: string,
+			lastName: string
+		},
+		dateOfBirth: Date | null
 	}
 }
 
-export const transformPayloadPartyAssociationPut = (payload: ParticipantAssociationCreatedEvtPayload):PutParty => {
+export const transformPayloadPartyAssociationPut = (payload: ParticipantAssociationCreatedEvtPayload): PutParty => {
 	const info = {
 		party: {
 			partyIdInfo: {
@@ -121,7 +121,7 @@ export const transformPayloadPartyAssociationPut = (payload: ParticipantAssociat
 	return removeEmpty(info);
 };
 
-export const transformPayloadPartyDisassociationPut = (payload: ParticipantAssociationRemovedEvtPayload):any => {
+export const transformPayloadPartyDisassociationPut = (payload: ParticipantAssociationRemovedEvtPayload): PutParty => {
 	const info = {
 		party: {
 			partyIdInfo: {
@@ -136,20 +136,21 @@ export const transformPayloadPartyDisassociationPut = (payload: ParticipantAssoc
 	return removeEmpty(info);
 };
 
-export const transformPayloadPartyInfoRequestedPut = (payload: PartyInfoRequestedEvtPayload):any => {
-	return {
+export const transformPayloadPartyInfoRequestedPut = (payload: PartyInfoRequestedEvtPayload): PutParty => {
+	const info = {
 		party: {
 			partyIdInfo: {
 				partyIdType: payload.partyType,
 				partyIdentifier: payload.partyId,
 				partySubIdOrType: payload.partySubType,
-				fspId: payload.requesterFspId,
+				fspId: payload.requesterFspId
 			}
 		},
 	};
+	return removeEmpty(info);
 };
 
-export const transformPayloadPartyInfoReceivedPut = (payload: PartyQueryResponseEvtPayload):PutParty => {
+export const transformPayloadPartyInfoReceivedPut = (payload: PartyQueryResponseEvtPayload): PutParty => {
 	const correctPayload = {
 		party: {
 			partyIdInfo: {
@@ -175,32 +176,270 @@ export const transformPayloadPartyInfoReceivedPut = (payload: PartyQueryResponse
 };
 
 export const transformPayloadError = ({
-		errorCode,
-		errorDescription,
-		extensionList = null
-	}:{
-		errorCode: string,
-		errorDescription: string,
-		extensionList?: ExtensionList | null
-	}):FspiopError => {
-		const payload:FspiopError = {
-			errorInformation: {
-				errorCode: errorCode,
-				errorDescription: errorDescription,
-			}
-		};
-
-		if(extensionList) {
-			payload.errorInformation.extensionList = extensionList;
+	errorCode,
+	errorDescription,
+	extensionList = null
+}: {
+	errorCode: string,
+	errorDescription: string,
+	extensionList?: ExtensionList | null
+}): FspiopError => {
+	const payload: FspiopError = {
+		errorInformation: {
+			errorCode: errorCode,
+			errorDescription: errorDescription,
 		}
-
-		return payload;
 	};
+
+	if (extensionList) {
+		payload.errorInformation.extensionList = extensionList;
+	}
+
+	return payload;
+};
 
 // Quoting
 
-export const transformPayloadQuotingRequestPost = (payload: QuoteRequestAcceptedEvtPayload):any => {
-	const info = {
+export interface PostQuote {
+	quoteId: string,
+	transactionId: string,
+	payee: {
+		partyIdInfo: {
+			partyIdType: string;
+			partyIdentifier: string;
+			partySubIdOrType: string | null;
+			fspId: string | null;
+		};
+		merchantClassificationCode: string | null;
+		name: string | null;
+		personalInfo: {
+			complexName: {
+				firstName: string | null;
+				middleName: string | null;
+				lastName: string | null;
+			} | null;
+			dateOfBirth: string | null;
+		} | null;
+	},
+	payer: {
+		partyIdInfo: {
+			partyIdType: string;
+			partyIdentifier: string;
+			partySubIdOrType: string | null;
+			fspId: string | null;
+		};
+		merchantClassificationCode: string | null;
+		name: string | null;
+		personalInfo: {
+			complexName: {
+				firstName: string | null;
+				middleName: string | null;
+				lastName: string | null;
+			} | null;
+			dateOfBirth: string | null;
+		} | null;
+	},
+	amountType: "SEND" | "RECEIVE",
+	amount: {
+		currency: string;
+		amount: string;
+	},
+	transactionType: {
+		scenario: string;
+		subScenario: string | null;
+		initiator: string;
+		initiatorType: string;
+		refundInfo: {
+			originalTransactionId: string;
+			refundReason: string | null;
+		} | null;
+		balanceOfPayments: string | null;
+	}
+}
+
+export interface PutQuote {
+	quoteId: string,
+	transferAmount: {
+		currency: string,
+		amount: string,
+	},
+	expiration: string,
+	ilpPacket: string,
+	condition: string,
+	payeeReceiveAmount: {
+		currency: string,
+		amount: string,
+	} | null,
+	payeeFspFee: {
+		currency: string,
+		amount: string,
+	} | null,
+	payeeFspCommission: {
+		currency: string,
+		amount: string,
+	} | null,
+	geoCode: {
+		latitude: string,
+		longitude: string,
+	} | null,
+	extensionList: {
+		extension: {
+			key: string,
+			value: string,
+		}[],
+	} | null
+}
+
+export interface PostBulkQuote {
+	bulkQuoteId: string,
+	payer: {
+		partyIdInfo: {
+			partyIdType: string,
+			partyIdentifier: string,
+			partySubIdOrType: string | null,
+			fspId: string | null,
+		};
+		merchantClassificationCode: string | null,
+		name: string | null,
+		personalInfo: {
+			complexName: {
+				firstName: string | null,
+				middleName: string | null,
+				lastName: string | null,
+			} | null,
+			dateOfBirth: string | null,
+		} | null,
+	},
+	geoCode: {
+		latitude: string,
+		longitude: string,
+	} | null,
+	expiration: string | null,
+	individualQuotes: {
+		quoteId: string,
+		transactionId: string,
+		payee: {
+			partyIdInfo: {
+				partyIdType: string,
+				partyIdentifier: string,
+				partySubIdOrType: string | null,
+				fspId: string | null,
+			},
+			merchantClassificationCode: string | null,
+			name: string | null,
+			personalInfo: {
+				complexName: {
+					firstName: string | null,
+					middleName: string | null,
+					lastName: string | null,
+				} | null,
+				dateOfBirth: string | null,
+			} | null,
+		},
+		amountType: "SEND" | "RECEIVE",
+		amount: {
+			currency: string,
+			amount: string,
+		},
+		fees: {
+			currency: string,
+			amount: string,
+		} | null,
+		transactionType: {
+			scenario: string,
+			subScenario: string | null,
+			initiator: string,
+			initiatorType: string,
+			refundInfo: {
+				originalTransactionId: string,
+				refundReason: string | null,
+			} | null,
+			balanceOfPayments: string | null,
+		},
+		note: string | null,
+		extensionList: {
+			extension: {
+				key: string,
+				value: string,
+			}[],
+		} | null,
+	}[],
+	extensionList: {
+		extension: {
+			key: string,
+			value: string,
+		}[],
+	} | null
+}
+
+export interface PutBulkQuote {
+	bulkQuoteId: string,
+	individualQuoteResults: {
+		quoteId: string,
+		payee: {
+			partyIdInfo: {
+				partyIdType: string,
+				partyIdentifier: string,
+				partySubIdOrType: string | null,
+				fspId: string | null,
+			},
+			merchantClassificationCode: string | null,
+			name: string | null,
+			personalInfo: {
+				complexName: {
+					firstName: string | null,
+					middleName: string | null,
+					lastName: string | null,
+				} | null,
+				dateOfBirth: string | null,
+			} | null,
+		} | null,
+		transferAmount: {
+			currency: string,
+			amount: string,
+		} | null,
+		payeeReceiveAmount: {
+			currency: string,
+			amount: string,
+		} | null,
+		payeeFspFee: {
+			currency: string,
+			amount: string,
+		} | null,
+		payeeFspCommission: {
+			currency: string,
+			amount: string,
+		} | null,
+		ilpPacket: string,
+		condition: string,
+		errorInformation: {
+			errorCode: string,
+			errorDescription: string,
+			extensionList: {
+				extension: {
+					key: string,
+					value: string,
+				}[],
+			},
+		} | null,
+		extensionList: {
+			extension: {
+				key: string,
+				value: string,
+			}[],
+		} | null,
+	}[],
+	expiration: string | null,
+	extensionList: {
+		extension: {
+			key: string,
+			value: string,
+		}[],
+	} | null,
+}
+
+export const transformPayloadQuotingRequestPost = (payload: QuoteRequestAcceptedEvtPayload): PostQuote => {
+	const info: PostQuote = {
 		quoteId: payload.quoteId,
 		transactionId: payload.transactionId,
 		payee: payload.payee,
@@ -213,8 +452,8 @@ export const transformPayloadQuotingRequestPost = (payload: QuoteRequestAccepted
 	return removeEmpty(info);
 };
 
-export const transformPayloadQuotingResponsePut = (payload: QuoteResponseAcceptedEvtPayload):any => {
-	const info = {
+export const transformPayloadQuotingResponsePut = (payload: QuoteResponseAcceptedEvtPayload): PutQuote => {
+	const info: PutQuote = {
 		quoteId: payload.quoteId,
 		transferAmount: payload.transferAmount,
 		expiration: payload.expiration,
@@ -230,34 +469,72 @@ export const transformPayloadQuotingResponsePut = (payload: QuoteResponseAccepte
 	return removeEmpty(info);
 };
 
-export const transformPayloadBulkQuotingResponsePost = (payload: BulkQuoteReceivedEvtPayload):any => {
-	const info = {
-        bulkQuoteId: payload.bulkQuoteId,
-        payer: payload.payer,
+export const transformPayloadBulkQuotingResponsePost = (payload: BulkQuoteReceivedEvtPayload): PostBulkQuote => {
+	const info: PostBulkQuote = {
+		bulkQuoteId: payload.bulkQuoteId,
+		payer: payload.payer,
 		geoCode: payload.geoCode,
 		expiration: payload.expiration,
-        individualQuotes: payload.individualQuotes,
+		individualQuotes: payload.individualQuotes,
 		extensionList: payload.extensionList
-    };
+	};
 
 	return removeEmpty(info);
 };
 
-export const transformPayloadBulkQuotingResponsePut = (payload: BulkQuoteAcceptedEvtPayload):any => {
-	const info = {
+export const transformPayloadBulkQuotingResponsePut = (payload: BulkQuoteAcceptedEvtPayload): PutBulkQuote => {
+	const info: PutBulkQuote = {
 		bulkQuoteId: payload.bulkQuoteId,
 		individualQuoteResults: payload.individualQuoteResults,
 		expiration: payload.expiration,
 		extensionList: payload.extensionList
-    };
+	};
 
 	return removeEmpty(info);
 };
 
 // Transfer
+export interface PostTransfer {
+	transferId: string,
+	payeeFsp: string,
+	payerFsp: string,
+	amount: {
+		currency: string;
+		amount: string;
+	},
+	ilpPacket: string,
+	condition: string,
+	expiration: number
+}
 
-export const transformPayloadTransferRequestPost = (payload: TransferPreparedEvtPayload):any => {
-	const info = {
+export interface PutTransfer {
+	transferId: string,
+	transferState: string,
+	fulfilment: string | null,
+	completedTimestamp: string,
+	extensionList: {
+		extension: {
+			key: string,
+			value: string,
+		}[],
+	} | null
+}
+
+export interface GetTransfer {
+	transferId: string,
+	transferState: string,
+	fulfilment: string | null,
+	completedTimestamp: number | null,
+	extensionList: {
+		extension: {
+			key: string,
+			value: string,
+		}[],
+	} | null
+}
+
+export const transformPayloadTransferRequestPost = (payload: TransferPreparedEvtPayload): PostTransfer => {
+	const info: PostTransfer = {
 		transferId: payload.transferId,
 		payeeFsp: payload.payeeFsp,
 		payerFsp: payload.payerFsp,
@@ -273,8 +550,8 @@ export const transformPayloadTransferRequestPost = (payload: TransferPreparedEvt
 	return removeEmpty(info);
 };
 
-export const transformPayloadTransferRequestPut = (payload: TransferCommittedFulfiledEvtPayload):any => {
-	const info = {
+export const transformPayloadTransferRequestPut = (payload: TransferCommittedFulfiledEvtPayload): PutTransfer => {
+	const info: PutTransfer = {
 		transferId: payload.transferId,
 		transferState: "COMMITTED",
 		fulfilment: payload.fulfilment,
@@ -285,8 +562,8 @@ export const transformPayloadTransferRequestPut = (payload: TransferCommittedFul
 	return removeEmpty(info);
 };
 
-export const transformPayloadTransferRequestGet = (payload: TransferQueryResponseEvtPayload):any => {
-	const info = {
+export const transformPayloadTransferRequestGet = (payload: TransferQueryResponseEvtPayload): GetTransfer => {
+	const info: GetTransfer = {
 		transferId: payload.transferId,
 		transferState: payload.transferState,
 		completedTimestamp: payload.completedTimestamp,
