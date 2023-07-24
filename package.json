@@ -54,7 +54,7 @@
     "jest": "^29.5.0",
     "jest-openapi": "^0.14.2",
     "kafkajs": "^2.2.4",
-    "npm-check-updates": "^16.10.15",
+    "npm-check-updates": "^16.10.16",
     "nyc": "^15.1.0",
     "supertest": "^6.3.3",
     "ts-jest": "^29.1.1",
