@@ -29,16 +29,16 @@
  --------------
  ******/
 
- "use strict";
+"use strict";
 
 import express from "express";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import { Constants } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import { 
+import {
     TransferPrepareRequestedEvt,
-    TransferPrepareRequestedEvtPayload, 
-    TransferFulfilCommittedRequestedEvt, 
+    TransferPrepareRequestedEvtPayload,
+    TransferFulfilCommittedRequestedEvt,
     TransferFulfilCommittedRequestedEvtPayload,
     TransferRejectRequestedEvt,
     TransferRejectRequestedEvtPayload,
@@ -46,6 +46,7 @@ import {
     TransferQueryReceivedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseRoutes } from "../_base_router";
+import { FSPIOPErrorCodes } from "../../validation";
 
 export class TransfersRoutes extends BaseRoutes {
 
@@ -53,10 +54,10 @@ export class TransfersRoutes extends BaseRoutes {
         super(producerOptions, kafkaTopic, logger);
 
         // bind routes
-        
+
         // GET Transfer by ID
         this.router.get("/:id/", this.transferQueryReceived.bind(this));
-        
+
         // POST Transfers
         this.router.post("/", this.transferPrepareRequested.bind(this));
 
@@ -69,211 +70,261 @@ export class TransfersRoutes extends BaseRoutes {
 
     private async transferPrepareRequested(req: express.Request, res: express.Response): Promise<void> {
         this.logger.debug("Got transferPrepareRequested request");
-        
-        // Headers
-        const clonedHeaders = { ...req.headers };
-        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+        try {
+            // Headers
+            const clonedHeaders = { ...req.headers };
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
 
-        // Data Model
-        const transferId = req.body["transferId"] || null;
-        const payeeFsp = req.body["payeeFsp"] || null;
-        const payerFsp = req.body["payerFsp"] || null;
-        const amount:{currency: string, amount:string} = req.body["amount"] || null;
-        const ilpPacket = req.body["ilpPacket"] || null;
-        const condition = req.body["condition"] || null;
-        const expiration = req.body["expiration"] || null;
-        const extensionList = req.body["extensionList"] || null;
+            // Data Model
+            const transferId = req.body["transferId"] || null;
+            const payeeFsp = req.body["payeeFsp"] || null;
+            const payerFsp = req.body["payerFsp"] || null;
+            const amount: { currency: string, amount: string } = req.body["amount"] || null;
+            const ilpPacket = req.body["ilpPacket"] || null;
+            const condition = req.body["condition"] || null;
+            const expiration = req.body["expiration"] || null;
+            const extensionList = req.body["extensionList"] || null;
 
-        if(!transferId || !payeeFsp || !payerFsp || !amount || !ilpPacket || !condition || !expiration) {
-            res.status(400).json({
-                status: "not ok"
-            });
-            return;
+            if (!transferId || !payeeFsp || !payerFsp || !amount || !ilpPacket || !condition || !expiration) {
+                res.status(400).json({
+                    errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
+                    errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
+                    extensionList: null
+                });
+                return;
+            }
+
+            const msgPayload: TransferPrepareRequestedEvtPayload = {
+                transferId: transferId,
+                payeeFsp: payeeFsp,
+                payerFsp: payerFsp,
+                amount: amount.amount,
+                currencyCode: amount.currency,
+                ilpPacket: ilpPacket,
+                condition: condition,
+                expiration: expiration,
+                extensionList: extensionList
+            };
+
+            const msg = new TransferPrepareRequestedEvt(msgPayload);
+
+            // Since we don't export the types of the body (but we validate them in the entrypoint of the route),
+            // we can use the builtin method of validatePayload of the evt messages to make sure consistency 
+            // is shared between both
+            msg.validatePayload();
+
+            // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
+            msg.fspiopOpaqueState = {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
+                headers: clonedHeaders
+            };
+
+            await this.kafkaProducer.send(msg);
+
+            this.logger.debug("transferPrepareRequested sent message");
+
+            res.status(202).json(null);
+
+            this.logger.debug("transferPrepareRequested responded");
         }
+        catch (error: any) {
+            if (error) {
+                const transformError = Transformer.transformPayloadError({
+                    errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
+                    errorDescription: error.message,
+                    extensionList: null
+                })
 
-        const msgPayload: TransferPrepareRequestedEvtPayload = {
-            transferId: transferId,
-            payeeFsp: payeeFsp,
-            payerFsp: payerFsp,
-            amount: amount.amount,
-            currencyCode: amount.currency,
-            ilpPacket: ilpPacket,
-            condition: condition,
-            expiration: expiration,
-            extensionList: extensionList
-        };
-
-        const msg =  new TransferPrepareRequestedEvt(msgPayload);
-
-        // Since we don't export the types of the body (but we validate them in the entrypoint of the route),
-        // we can use the builtin method of validatePayload of the evt messages to make sure consistency 
-        // is shared between both
-        msg.validatePayload();
-
-        // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
-        msg.fspiopOpaqueState = {
-            requesterFspId: requesterFspId,
-            destinationFspId: destinationFspId,
-            headers: clonedHeaders
-        };
-
-        await this.kafkaProducer.send(msg);
-
-        this.logger.debug("transferPrepareRequested sent message");
-
-        res.status(202).json({
-            status: "ok"
-        });
-
-        this.logger.debug("transferPrepareRequested responded");
+                res.status(500).json(transformError);
+            }
+        }
     }
 
     private async transferFulfilCommittedRequested(req: express.Request, res: express.Response): Promise<void> {
         this.logger.debug("Got transferFulfilCommittedRequested request");
-          
-        // Headers
-        const clonedHeaders = { ...req.headers };
-        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
-        
-        // Date Model
-        const transferId = req.params["id"] as string || null;
-        const transferState = req.body["transferState"] || null;
-        const fulfilment = req.body["fulfilment"] || null;
-        const completedTimestamp = req.body["completedTimestamp"] || null;
-        const extensionList = req.body["extensionList"] || null;
+        try {
+            // Headers
+            const clonedHeaders = { ...req.headers };
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+
+            // Date Model
+            const transferId = req.params["id"] as string || null;
+            const transferState = req.body["transferState"] || null;
+            const fulfilment = req.body["fulfilment"] || null;
+            const completedTimestamp = req.body["completedTimestamp"] || null;
+            const extensionList = req.body["extensionList"] || null;
 
 
-        if(!transferId || !transferState) {
-            res.status(400).json({
-                status: "not ok"
-            });
-            return;
+            if (!transferId || !transferState) {
+                res.status(400).json({
+                    errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
+                    errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
+                    extensionList: null
+                });
+                return;
+            }
+
+            const msgPayload: TransferFulfilCommittedRequestedEvtPayload = {
+                transferId: transferId,
+                transferState: transferState,
+                fulfilment: fulfilment,
+                completedTimestamp: new Date(completedTimestamp).valueOf(),
+                extensionList: extensionList
+            };
+
+            const msg = new TransferFulfilCommittedRequestedEvt(msgPayload);
+
+            // Since we don't export the types of the body (but we validate them in the entrypoint of the route),
+            // we can use the builtin method of validatePayload of the evt messages to make sure consistency 
+            // is shared between both
+            msg.validatePayload();
+
+            // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
+            msg.fspiopOpaqueState = {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
+                headers: clonedHeaders
+            };
+
+            await this.kafkaProducer.send(msg);
+
+            this.logger.debug("transferFulfilCommittedRequested sent message");
+
+            res.status(202).json(null);
+
+            this.logger.debug("transferFulfilCommittedRequested responded");
         }
+        catch (error: any) {
+            if (error) {
+                const transformError = Transformer.transformPayloadError({
+                    errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
+                    errorDescription: error.message,
+                    extensionList: null
+                })
 
-        const msgPayload: TransferFulfilCommittedRequestedEvtPayload = {
-            transferId: transferId,
-            transferState: transferState,
-            fulfilment: fulfilment,
-            completedTimestamp: new Date(completedTimestamp).valueOf(),
-            extensionList: extensionList
-        };
-
-        const msg =  new TransferFulfilCommittedRequestedEvt(msgPayload);
-
-        // Since we don't export the types of the body (but we validate them in the entrypoint of the route),
-        // we can use the builtin method of validatePayload of the evt messages to make sure consistency 
-        // is shared between both
-        msg.validatePayload();
-
-        // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
-        msg.fspiopOpaqueState = {
-            requesterFspId: requesterFspId,
-            destinationFspId: destinationFspId,
-            headers: clonedHeaders
-        };
-
-        await this.kafkaProducer.send(msg);
-
-        this.logger.debug("transferFulfilCommittedRequested sent message");
-
-        res.status(202).json({
-            status: "ok"
-        });
-
-        this.logger.debug("transferFulfilCommittedRequested responded");
+                res.status(500).json(transformError);
+            }
+        }
     }
 
     private async transferRejectRequested(req: express.Request, res: express.Response): Promise<void> {
         this.logger.debug("Got transferRejectRequested request");
-          
-        // Headers
-        const clonedHeaders = { ...req.headers };
-        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
-        
-        // Date Model
-        const transferId = req.params["id"] as string || null;
-        const errorInformation = req.body["errorInformation"] || null;
+        try {
+            // Headers
+            const clonedHeaders = { ...req.headers };
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
 
-        if(!transferId || !errorInformation) {
-            res.status(400).json({
-                status: "not ok"
-            });
-            return;
+            // Date Model
+            const transferId = req.params["id"] as string || null;
+            const errorInformation = req.body["errorInformation"] || null;
+
+            if (!transferId || !errorInformation) {
+                res.status(400).json({
+                    errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
+                    errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
+                    extensionList: null
+                });
+                return;
+            }
+
+            const msgPayload: TransferRejectRequestedEvtPayload = {
+                transferId: transferId,
+                errorInformation: errorInformation
+            };
+
+            const msg = new TransferRejectRequestedEvt(msgPayload);
+
+            // Since we don't export the types of the body (but we validate them in the entrypoint of the route),
+            // we can use the builtin method of validatePayload of the evt messages to make sure consistency 
+            // is shared between both
+            msg.validatePayload();
+
+            // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
+            msg.fspiopOpaqueState = {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
+                headers: clonedHeaders
+            };
+
+            await this.kafkaProducer.send(msg);
+
+            this.logger.debug("transferRejectRequested sent message");
+
+            res.status(202).json(null);
+
+            this.logger.debug("transferRejectRequested responded");
         }
+        catch (error: any) {
+            if (error) {
+                const transformError = Transformer.transformPayloadError({
+                    errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
+                    errorDescription: error.message,
+                    extensionList: null
+                })
 
-        const msgPayload: TransferRejectRequestedEvtPayload = {
-            transferId: transferId,
-            errorInformation: errorInformation
-        };
-
-        const msg =  new TransferRejectRequestedEvt(msgPayload);
-
-        // Since we don't export the types of the body (but we validate them in the entrypoint of the route),
-        // we can use the builtin method of validatePayload of the evt messages to make sure consistency 
-        // is shared between both
-        msg.validatePayload();
-
-        // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
-        msg.fspiopOpaqueState = {
-            requesterFspId: requesterFspId,
-            destinationFspId: destinationFspId,
-            headers: clonedHeaders
-        };
-
-        await this.kafkaProducer.send(msg);
-
-        this.logger.debug("transferRejectRequested sent message");
-
-        res.status(202).json({
-            status: "ok"
-        });
-
-        this.logger.debug("transferRejectRequested responded");
+                res.status(500).json(transformError);
+            }
+        }
     }
 
     private async transferQueryReceived(req: express.Request, res: express.Response): Promise<void> {
         this.logger.debug("Got transferQueryReceived request");
+        try {
+            const clonedHeaders = { ...req.headers };
+            const transferId = req.params["id"] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
 
-        const clonedHeaders = { ...req.headers };
-        const transferId = req.params["id"] as string || null;
-        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
 
+            if (!transferId || !requesterFspId) {
+                res.status(400).json({
+                    errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
+                    errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
+                    extensionList: null
+                });
+                return;
+            }
 
-        if(!transferId || !requesterFspId) {
-            res.status(400).json({
-                status: "not ok"
-            });
-            return;
+            // REVIEW THIS
+            clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = requesterFspId as string;
+
+            const msgPayload: TransferQueryReceivedEvtPayload = {
+                transferId: transferId,
+            };
+
+            const msg = new TransferQueryReceivedEvt(msgPayload);
+
+            msg.validatePayload();
+
+            // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
+            msg.fspiopOpaqueState = {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
+                headers: clonedHeaders
+            };
+
+            await this.kafkaProducer.send(msg);
+
+            this.logger.debug("transferQueryReceived sent message");
+
+            res.status(200).json(null);
+
+            this.logger.debug("transferQueryReceived responded");
         }
+        catch (error: any) {
+            if (error) {
+                const transformError = Transformer.transformPayloadError({
+                    errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
+                    errorDescription: error.message,
+                    extensionList: null
+                })
 
-        // REVIEW THIS
-        clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = requesterFspId as string;
-
-        const msgPayload: TransferQueryReceivedEvtPayload = {
-            transferId: transferId,
-        };
-
-        const msg =  new TransferQueryReceivedEvt(msgPayload);
-
-        msg.validatePayload();
-
-        // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
-        msg.fspiopOpaqueState = {
-            requesterFspId: requesterFspId,
-            destinationFspId: destinationFspId,
-            headers: clonedHeaders
-        };
-
-        await this.kafkaProducer.send(msg);
-
-        this.logger.debug("transferQueryReceived sent message");
-
-        res.status(200).json(null);
-
-        this.logger.debug("transferQueryReceived responded");
+                res.status(500).json(transformError);
+            }
+        }
     }
 }

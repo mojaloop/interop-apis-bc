@@ -32,22 +32,23 @@
 "use strict";
 
 import express from "express";
-import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import {Constants} from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import {MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
+import { Constants, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { BulkQuotePendingReceivedEvt, BulkQuotePendingReceivedEvtPayload, BulkQuoteRequestedEvt, BulkQuoteRequestedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseRoutes } from "../_base_router";
- 
+import { FSPIOPErrorCodes } from "../../validation";
+
 export class QuoteBulkRoutes extends BaseRoutes {
 
     constructor(producerOptions: MLKafkaJsonProducerOptions, kafkaTopic: string, logger: ILogger) {
         super(producerOptions, kafkaTopic, logger);
 
         // bind routes
- 
+
         // // GET Quote by ID
         // this.router.get("/:id/", this.quoteQueryReceived.bind(this));
-        
+
         // POST Quote Calculation
         this.router.post("/", this.bulkQuoteRequest.bind(this));
 
@@ -59,115 +60,138 @@ export class QuoteBulkRoutes extends BaseRoutes {
         return this.router;
     }
 
-    
+
     private async bulkQuoteRequest(req: express.Request, res: express.Response): Promise<void> {
         this.logger.debug("Got bulkQuoteRequest request");
-          
-        // Headers
-        const clonedHeaders = { ...req.headers };
-        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
-        
-        // Date Model
-        const bulkQuoteId = req.body["bulkQuoteId"] || null;
-        const payer = req.body["payer"] || null;
-        const geoCode = req.body["geoCode"] || null;
-        const expiration = req.body["expiration"] || null;
-        const individualQuotes = req.body["individualQuotes"] || null;
-        const extensionList = req.body["extensionList"] || null;
+        try {
+            // Headers
+            const clonedHeaders = { ...req.headers };
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
 
-        if(!requesterFspId || !bulkQuoteId || !payer || !individualQuotes) {
-            res.status(400).json({
-                status: "not ok"
-            });
-            return;
+            // Date Model
+            const bulkQuoteId = req.body["bulkQuoteId"] || null;
+            const payer = req.body["payer"] || null;
+            const geoCode = req.body["geoCode"] || null;
+            const expiration = req.body["expiration"] || null;
+            const individualQuotes = req.body["individualQuotes"] || null;
+            const extensionList = req.body["extensionList"] || null;
+
+            if (!requesterFspId || !bulkQuoteId || !payer || !individualQuotes) {
+                res.status(400).json({
+                    errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
+                    errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
+                    extensionList: null
+                });
+                return;
+            }
+
+            const msgPayload: BulkQuoteRequestedEvtPayload = {
+                bulkQuoteId: bulkQuoteId,
+                payer: payer,
+                geoCode: geoCode,
+                expiration: expiration,
+                individualQuotes: individualQuotes,
+                extensionList: extensionList,
+            } as BulkQuoteRequestedEvtPayload;
+
+            const msg = new BulkQuoteRequestedEvt(msgPayload);
+
+            // Since we don't export the types of the body (but we validate them in the entrypoint of the route),
+            // we can use the builtin method of validatePayload of the evt messages to make sure consistency 
+            // is shared between both
+            msg.validatePayload();
+
+            // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
+            msg.fspiopOpaqueState = {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
+                headers: clonedHeaders
+            };
+
+            await this.kafkaProducer.send(msg);
+
+            this.logger.debug("bulkQuoteRequest sent message");
+
+            res.status(202).json(null);
+
+            this.logger.debug("bulkQuoteRequest responded");
         }
-        
-        const msgPayload: BulkQuoteRequestedEvtPayload = {
-            bulkQuoteId: bulkQuoteId,
-            payer: payer,
-            geoCode: geoCode,
-            expiration: expiration,
-            individualQuotes: individualQuotes,
-            extensionList: extensionList,
-        } as BulkQuoteRequestedEvtPayload;
+        catch (error: any) {
+            if (error) {
+                const transformError = Transformer.transformPayloadError({
+                    errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
+                    errorDescription: error.message,
+                    extensionList: null
+                })
 
-        const msg =  new BulkQuoteRequestedEvt(msgPayload);
-
-        // Since we don't export the types of the body (but we validate them in the entrypoint of the route),
-        // we can use the builtin method of validatePayload of the evt messages to make sure consistency 
-        // is shared between both
-        msg.validatePayload();
-
-        // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
-        msg.fspiopOpaqueState = {
-            requesterFspId: requesterFspId,
-            destinationFspId: destinationFspId,
-            headers: clonedHeaders
-        };
-
-        await this.kafkaProducer.send(msg);
-
-        this.logger.debug("bulkQuoteRequest sent message");
-
-        res.status(202).json({
-            status: "ok"
-        });
-
-        this.logger.debug("bulkQuoteRequest responded");
+                res.status(500).json(transformError);
+            }
+        }
     }
 
     private async bulkQuotePending(req: express.Request, res: express.Response): Promise<void> {
         this.logger.debug("Got bulkQuotePending request");
-        
-        // Headers
-        const clonedHeaders = { ...req.headers };
-        const bulkQuoteId = req.params["id"] as string || null;
-        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
-        
-        // Date Model
-        const expiration = req.body["expiration"] || null;
-        const individualQuoteResults = req.body["individualQuoteResults"] || null;
-        const extensionList = req.body["extensionList"] || null;
+        try {
+            // Headers
+            const clonedHeaders = { ...req.headers };
+            const bulkQuoteId = req.params["id"] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
 
-        if(!bulkQuoteId || !requesterFspId || !individualQuoteResults) {
-            res.status(400).json({
-                status: "not ok"
-            });
-            return;
+            // Date Model
+            const expiration = req.body["expiration"] || null;
+            const individualQuoteResults = req.body["individualQuoteResults"] || null;
+            const extensionList = req.body["extensionList"] || null;
+
+            if (!bulkQuoteId || !requesterFspId || !individualQuoteResults) {
+                res.status(400).json({
+                    errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
+                    errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
+                    extensionList: null
+                });
+                return;
+            }
+
+            const msgPayload: BulkQuotePendingReceivedEvtPayload = {
+                bulkQuoteId: bulkQuoteId,
+                expiration: expiration,
+                individualQuoteResults: individualQuoteResults,
+                extensionList: extensionList,
+            };
+
+            const msg = new BulkQuotePendingReceivedEvt(msgPayload);
+
+            // Since we don't export the types of the body (but we validate them in the entrypoint of the route),
+            // we can use the builtin method of validatePayload of the evt messages to make sure consistency 
+            // is shared between both
+            msg.validatePayload();
+
+            // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
+            msg.fspiopOpaqueState = {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
+                headers: clonedHeaders
+            };
+
+            await this.kafkaProducer.send(msg);
+
+            this.logger.debug("bulkQuotePending sent message");
+
+            res.status(202).json(null);
+
+            this.logger.debug("bulkQuotePending responded");
         }
-        
-        const msgPayload: BulkQuotePendingReceivedEvtPayload = {
-            bulkQuoteId: bulkQuoteId,
-            expiration: expiration,
-            individualQuoteResults: individualQuoteResults,
-            extensionList: extensionList,
-        };
+        catch (error: any) {
+            if (error) {
+                const transformError = Transformer.transformPayloadError({
+                    errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
+                    errorDescription: error.message,
+                    extensionList: null
+                })
 
-        const msg =  new BulkQuotePendingReceivedEvt(msgPayload);
-
-        // Since we don't export the types of the body (but we validate them in the entrypoint of the route),
-        // we can use the builtin method of validatePayload of the evt messages to make sure consistency 
-        // is shared between both
-        msg.validatePayload();
-
-        // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
-        msg.fspiopOpaqueState = {
-            requesterFspId: requesterFspId,
-            destinationFspId: destinationFspId,
-            headers: clonedHeaders
-        };
-
-        await this.kafkaProducer.send(msg);
-
-        this.logger.debug("bulkQuotePending sent message");
-
-        res.status(202).json({
-            status: "ok"
-        });
-
-        this.logger.debug("bulkQuotePending responded");
+                res.status(500).json(transformError);
+            }
+        }
     }
 }
- 
