@@ -31,37 +31,39 @@
 
 "use strict";
 
-import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
+import { BaseEventHandler, HandlerNames } from "./base_event_handler";
+import {
+    BulkQuoteAcceptedEvt,
+    BulkQuoteReceivedEvt,
+    GetPartyQueryRejectedEvt,
+    QuoteBCBulkQuoteExpiredErrorEvent,
+    QuoteBCBulkQuoteNotFoundErrorEvent,
+    QuoteBCDestinationParticipantNotFoundErrorEvent,
+    QuoteBCDuplicateQuoteErrorEvent,
+    QuoteBCInvalidBulkQuoteLengthErrorEvent,
+    QuoteBCInvalidDestinationFspIdErrorEvent,
+    QuoteBCInvalidMessagePayloadErrorEvent,
+    QuoteBCInvalidMessageTypeErrorEvent,
+    QuoteBCInvalidRequesterFspIdErrorEvent,
+    QuoteBCQuoteExpiredErrorEvent,
+    QuoteBCQuoteNotFoundErrorEvent,
+    QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent,
+    QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent,
+    QuoteBCRequesterParticipantNotFoundErrorEvent,
+    QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent,
+    QuoteBCUnableToAddQuoteToDatabaseErrorEvent,
+    QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent,
+    QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent,
+    QuoteBCUnknownErrorEvent,
+    QuoteQueryResponseEvt,
+    QuoteRequestAcceptedEvt,
+    QuoteResponseAccepted
+} from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { Constants, Enums, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import {
-    QuoteRequestAcceptedEvt,
-    QuoteResponseAccepted,
-    QuoteQueryResponseEvt,
-    BulkQuoteReceivedEvt,
-    BulkQuoteAcceptedEvt,
-    QuoteBCDuplicateQuoteErrorEvent,
-    QuoteBCQuoteNotFoundErrorEvent,
-    QuoteBCBulkQuoteNotFoundErrorEvent,
-    QuoteBCInvalidMessageTypeErrorEvent,
-    QuoteBCDestinationParticipantNotFoundErrorEvent,
-    QuoteBCRequesterParticipantNotFoundErrorEvent,
-    QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent,
-    QuoteBCInvalidRequesterFspIdErrorEvent,
-    QuoteBCInvalidDestinationFspIdErrorEvent,
-    QuoteBCUnknownErrorEvent,
-    QuoteBCQuoteExpiredErrorEvent,
-    QuoteBCBulkQuoteExpiredErrorEvent,
-    QuoteBCInvalidMessagePayloadErrorEvent,
-    QuoteBCUnableToAddQuoteToDatabaseErrorEvent,
-    QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent,
-    QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent,
-    QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent,
-    QuoteBCInvalidBulkQuoteLengthErrorEvent,
-    QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent
-} from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { Constants, Request, Enums, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { BaseEventHandler, HandlerNames } from "./base_event_handler";
+
+import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 // import { QuotesPost } from "../errors";
 import { IParticipantService } from "../interfaces/infrastructure";
 
@@ -101,6 +103,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 case BulkQuoteAcceptedEvt.name:
                     await this._handleBulkQuoteAcceptedResponseEvt(new BulkQuoteAcceptedEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
+                case GetPartyQueryRejectedEvt.name:
                 case QuoteBCDuplicateQuoteErrorEvent.name:
                 case QuoteBCQuoteNotFoundErrorEvent.name:
                 case QuoteBCBulkQuoteNotFoundErrorEvent.name:
@@ -188,61 +191,62 @@ export class QuotingEventHandler extends BaseEventHandler {
             destinationFspId: null
         };
 
-        // switch (message.msgName) {
-        //     case QuoteBCInvalidMessagePayloadErrorEvent.name:
-        //     case QuoteBCInvalidMessageTypeErrorEvent.name:
-        //     case QuoteBCInvalidBulkQuoteLengthErrorEvent.name:
-        //     case QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent.name:
-        //     case QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent.name:
-        //     {
-        //         errorResponse.errorCode = Enums.ClientErrors.GENERIC_VALIDATION_ERROR.code;
-        //         errorResponse.errorDescription = Enums.ClientErrors.GENERIC_VALIDATION_ERROR.description;
-        //         break;
-        //     }
-        //     case QuoteBCQuoteNotFoundErrorEvent.name:
-        //     {
-        //         errorResponse.errorCode = Enums.ClientErrors.QUOTE_ID_NOT_FOUND.code;
-        //         errorResponse.errorDescription = Enums.ClientErrors.QUOTE_ID_NOT_FOUND.description;
-        //         break;
-        //     }
-        //     case QuoteBCBulkQuoteNotFoundErrorEvent.name: {
-        //         errorResponse.errorCode = Enums.ClientErrors.BULK_QUOTE_ID_NOT_FOUND.code;
-        //         errorResponse.errorDescription = Enums.ClientErrors.BULK_QUOTE_ID_NOT_FOUND.description;
-        //         break;
-        //     }
-        //     case QuoteBCInvalidDestinationFspIdErrorEvent.name:{
-        //         errorResponse.errorCode = Enums.ClientErrors.DESTINATION_FSP_ERROR.code;
-        //         errorResponse.errorDescription = Enums.ClientErrors.DESTINATION_FSP_ERROR.description;
-        //         break;
-        //     }
-        //     case QuoteBCRequesterParticipantNotFoundErrorEvent.name:
-        //     case QuoteBCDestinationParticipantNotFoundErrorEvent.name:
-        //     case QuoteBCDuplicateQuoteErrorEvent.name:
-        //     case QuoteBCUnableToAddQuoteToDatabaseErrorEvent.name:
-        //     case QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent.name:
-        //     case QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent.name:
-        //     case QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent.name:
-        //     case QuoteBCInvalidRequesterFspIdErrorEvent.name: {
-        //         errorResponse.errorCode = Enums.ClientErrors.GENERIC_CLIENT_ERROR.code;
-        //         errorResponse.errorDescription = Enums.ClientErrors.GENERIC_CLIENT_ERROR.description;
-        //         break;
-        //     }
-        //     case QuoteBCQuoteExpiredErrorEvent.name:
-        //     case QuoteBCBulkQuoteExpiredErrorEvent.name: {
-        //         errorResponse.errorCode = Enums.ClientErrors.QUOTE_EXPIRED.code;
-        //         errorResponse.errorDescription = Enums.ClientErrors.QUOTE_EXPIRED.description;
-        //         break;
-        //     }
-        //     case QuoteBCUnknownErrorEvent.name: {
-        //         errorResponse.errorCode = Enums.ServerErrors.INTERNAL_SERVER_ERROR.code;
-        //         errorResponse.errorDescription = Enums.ServerErrors.INTERNAL_SERVER_ERROR.description;
-        //         break;
-        //     }
-        //     default: {
-        //         this.logger.warn(`Cannot handle error message of type: ${message.msgName}, ignoring`);
-        //         break;
-        //     }
-        // }
+        switch (message.msgName) {
+            case QuoteBCInvalidMessagePayloadErrorEvent.name:
+            case QuoteBCInvalidMessageTypeErrorEvent.name:
+            case QuoteBCInvalidBulkQuoteLengthErrorEvent.name:
+            case QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent.name:
+            case QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent.name:
+            {
+                errorResponse.errorCode = Enums.ClientErrors.GENERIC_VALIDATION_ERROR.code;
+                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_VALIDATION_ERROR.description;
+                break;
+            }
+            case QuoteBCQuoteNotFoundErrorEvent.name:
+            case GetPartyQueryRejectedEvt.name:
+            {
+                errorResponse.errorCode = Enums.ClientErrors.QUOTE_ID_NOT_FOUND.code;
+                errorResponse.errorDescription = Enums.ClientErrors.QUOTE_ID_NOT_FOUND.description;
+                break;
+            }
+            case QuoteBCBulkQuoteNotFoundErrorEvent.name: {
+                errorResponse.errorCode = Enums.ClientErrors.BULK_QUOTE_ID_NOT_FOUND.code;
+                errorResponse.errorDescription = Enums.ClientErrors.BULK_QUOTE_ID_NOT_FOUND.description;
+                break;
+            }
+            case QuoteBCInvalidDestinationFspIdErrorEvent.name:{
+                errorResponse.errorCode = Enums.ClientErrors.DESTINATION_FSP_ERROR.code;
+                errorResponse.errorDescription = Enums.ClientErrors.DESTINATION_FSP_ERROR.description;
+                break;
+            }
+            case QuoteBCRequesterParticipantNotFoundErrorEvent.name:
+            case QuoteBCDestinationParticipantNotFoundErrorEvent.name:
+            case QuoteBCDuplicateQuoteErrorEvent.name:
+            case QuoteBCUnableToAddQuoteToDatabaseErrorEvent.name:
+            case QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent.name:
+            case QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent.name:
+            case QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent.name:
+            case QuoteBCInvalidRequesterFspIdErrorEvent.name: {
+                errorResponse.errorCode = Enums.ClientErrors.GENERIC_CLIENT_ERROR.code;
+                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_CLIENT_ERROR.description;
+                break;
+            }
+            case QuoteBCQuoteExpiredErrorEvent.name:
+            case QuoteBCBulkQuoteExpiredErrorEvent.name: {
+                errorResponse.errorCode = Enums.ClientErrors.QUOTE_EXPIRED.code;
+                errorResponse.errorDescription = Enums.ClientErrors.QUOTE_EXPIRED.description;
+                break;
+            }
+            case QuoteBCUnknownErrorEvent.name: {
+                errorResponse.errorCode = Enums.ServerErrors.INTERNAL_SERVER_ERROR.code;
+                errorResponse.errorDescription = Enums.ServerErrors.INTERNAL_SERVER_ERROR.description;
+                break;
+            }
+            default: {
+                this._logger.warn(`Cannot handle error message of type: ${message.msgName}, ignoring`);
+                break;
+            }
+        }
         return errorResponse;
     }
 

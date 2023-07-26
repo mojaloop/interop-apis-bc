@@ -34,31 +34,32 @@
 
 "use strict";
 
-import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {
+    AccountLookUpUnableToGetParticipantFromOracleErrorEvent,
     AccountLookUpUnknownErrorEvent,
-    PartyInfoRequestedEvt,
-    PartyQueryResponseEvt,
-    ParticipantAssociationCreatedEvt,
-    ParticipantAssociationRemovedEvt,
-    ParticipantQueryResponseEvt,
+    AccountLookupBCDestinationParticipantNotFoundErrorEvent,
+    AccountLookupBCInvalidDestinationParticipantErrorEvent,
     AccountLookupBCInvalidMessagePayloadErrorEvent,
     AccountLookupBCInvalidMessageTypeErrorEvent,
+    AccountLookupBCInvalidRequesterParticipantErrorEvent,
+    AccountLookupBCRequesterParticipantNotFoundErrorEvent,
     AccountLookupBCUnableToAssociateParticipantErrorEvent,
     AccountLookupBCUnableToDisassociateParticipantErrorEvent,
     AccountLookupBCUnableToGetOracleAdapterErrorEvent,
-    AccountLookUpUnableToGetParticipantFromOracleErrorEvent,
-    AccountLookupBCDestinationParticipantNotFoundErrorEvent,
-    AccountLookupBCInvalidDestinationParticipantErrorEvent,
-    AccountLookupBCRequesterParticipantNotFoundErrorEvent,
-    AccountLookupBCInvalidRequesterParticipantErrorEvent,
     GetPartyQueryRejectedResponseEvt,
+    ParticipantAssociationCreatedEvt,
+    ParticipantAssociationRemovedEvt,
+    ParticipantQueryResponseEvt,
+    PartyInfoRequestedEvt,
+    PartyQueryResponseEvt,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { Constants, Request, Enums, Validate, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { ParticipantsPutId, ParticipantsPutTypeAndId, PartiesPutTypeAndId, PartiesPutTypeAndIdAndSubId } from "../errors";
 import { BaseEventHandler, HandlerNames } from "./base_event_handler";
+import { Constants, Enums, Request, Transformer, Validate } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import { ParticipantsPutId, ParticipantsPutTypeAndId, PartiesPutTypeAndId, PartiesPutTypeAndIdAndSubId } from "../errors";
+
+import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import { IParticipantService } from "../interfaces/infrastructure";
 
 export class AccountLookupEventHandler extends BaseEventHandler {
@@ -98,6 +99,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 case ParticipantQueryResponseEvt.name:
                     await this._handleParticipantQueryResponseEvt(new ParticipantQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
+                case GetPartyQueryRejectedResponseEvt.name:
                 case AccountLookUpUnknownErrorEvent.name:
                 case AccountLookupBCInvalidMessagePayloadErrorEvent.name:
                 case AccountLookupBCInvalidMessageTypeErrorEvent.name:
@@ -109,7 +111,6 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 case AccountLookupBCInvalidDestinationParticipantErrorEvent.name:
                 case AccountLookupBCRequesterParticipantNotFoundErrorEvent.name:
                 case AccountLookupBCInvalidRequesterParticipantErrorEvent.name:
-                case GetPartyQueryRejectedResponseEvt.name:
                     await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState.headers);
                     break;
                 default:

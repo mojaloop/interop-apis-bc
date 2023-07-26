@@ -165,7 +165,7 @@ export abstract class BaseEventHandler  {
                     payload: Transformer.transformPayloadError({
                         errorCode: errorResponse.errorCode,
                         errorDescription: errorResponse.errorDescription,
-                        extensionList: message.payload.errorInformation.extensionList ?? null
+                        extensionList: message.payload.errorInformation ? message.payload.errorInformation.extensionList : null
                     })
                 });
 
