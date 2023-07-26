@@ -29,14 +29,15 @@
  --------------
  ******/
 
- "use strict";
+"use strict";
 
 import express from "express";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import { Constants } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { QuoteRequestReceivedEvt, QuoteRequestReceivedEvtPayload, QuoteResponseReceivedEvt, QuoteResponseReceivedEvtPayload, QuoteQueryReceivedEvt, QuoteQueryReceivedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseRoutes } from "../_base_router";
+import { FSPIOPErrorCodes } from "../../validation";
 
 export class QuoteRoutes extends BaseRoutes {
 
@@ -47,7 +48,7 @@ export class QuoteRoutes extends BaseRoutes {
 
         // GET Quote by ID
         this.router.get("/:id/", this.quoteQueryReceived.bind(this));
-        
+
         // POST Quote Calculation
         this.router.post("/", this.quoteRequestReceived.bind(this));
 
@@ -57,180 +58,222 @@ export class QuoteRoutes extends BaseRoutes {
 
     private async quoteRequestReceived(req: express.Request, res: express.Response): Promise<void> {
         this.logger.debug("Got quoteRequestReceived request");
+        try {
+            // Headers
+            const clonedHeaders = { ...req.headers };
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
 
-        // Headers
-        const clonedHeaders = { ...req.headers };
-        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
-        
-        // Date Model
-        const quoteId = req.body["quoteId"] || null;
-        const transactionId = req.body["transactionId"] || null;
-        const transactionRequestId = req.body["transactionRequestId"] || null;
-        const payee = req.body["payee"] || null;
-        const payer = req.body["payer"] || null;
-        const amountType = req.body["amountType"] || null;
-        const amount = req.body["amount"] || null;
-        const fees = req.body["fees"] || null;
-        const transactionType = req.body["transactionType"] || null;
-        const geoCode = req.body["geoCode"] || null;
-        const note = req.body["note"] || null;
-        const expiration = req.body["expiration"] || null;
-        const extensionList = req.body["extensionList"] || null;
+            // Date Model
+            const quoteId = req.body["quoteId"] || null;
+            const transactionId = req.body["transactionId"] || null;
+            const transactionRequestId = req.body["transactionRequestId"] || null;
+            const payee = req.body["payee"] || null;
+            const payer = req.body["payer"] || null;
+            const amountType = req.body["amountType"] || null;
+            const amount = req.body["amount"] || null;
+            const fees = req.body["fees"] || null;
+            const transactionType = req.body["transactionType"] || null;
+            const geoCode = req.body["geoCode"] || null;
+            const note = req.body["note"] || null;
+            const expiration = req.body["expiration"] || null;
+            const extensionList = req.body["extensionList"] || null;
 
-        if(!requesterFspId || !quoteId || !transactionId || !payee || !payer || !amountType || !amount || !transactionType) {
-            res.status(400).json({
-                status: "not ok"
-            });
-            return;
+            if (!requesterFspId || !quoteId || !transactionId || !payee || !payer || !amountType || !amount || !transactionType) {
+                res.status(400).json({
+                    errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
+                    errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
+                    extensionList: null
+                });
+                return;
+            }
+
+            const msgPayload: QuoteRequestReceivedEvtPayload = {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
+                quoteId: quoteId,
+                transactionId: transactionId,
+                transactionRequestId: transactionRequestId,
+                payee: payee,
+                payer: payer,
+                amountType: amountType,
+                amount: amount,
+                fees: fees,
+                transactionType: transactionType,
+                geoCode: geoCode,
+                note: note,
+                expiration: expiration,
+                extensionList: extensionList,
+            } as QuoteRequestReceivedEvtPayload;
+
+            const msg = new QuoteRequestReceivedEvt(msgPayload);
+
+            // Since we don't export the types of the body (but we validate them in the entrypoint of the route),
+            // we can use the builtin method of validatePayload of the evt messages to make sure consistency 
+            // is shared between both
+            msg.validatePayload();
+
+            // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
+            msg.fspiopOpaqueState = {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
+                headers: clonedHeaders
+            };
+
+            await this.kafkaProducer.send(msg);
+
+            this.logger.debug("quoteRequestReceived sent message");
+
+            res.status(202).json(null);
+
+            this.logger.debug("quoteRequestReceived responded");
         }
+        catch (error: any) {
+            if (error) {
+                const transformError = Transformer.transformPayloadError({
+                    errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
+                    errorDescription: error.message,
+                    extensionList: null
+                })
 
-        const msgPayload: QuoteRequestReceivedEvtPayload = {
-            requesterFspId: requesterFspId,
-            destinationFspId: destinationFspId,
-            quoteId: quoteId,
-            transactionId: transactionId,
-            transactionRequestId: transactionRequestId,
-            payee: payee,
-            payer: payer,
-            amountType: amountType,
-            amount: amount,
-            fees: fees,
-            transactionType: transactionType,
-            geoCode: geoCode,
-            note: note,
-            expiration: expiration,
-            extensionList: extensionList,
-        } as QuoteRequestReceivedEvtPayload;
-
-        const msg =  new QuoteRequestReceivedEvt(msgPayload);
-
-        // Since we don't export the types of the body (but we validate them in the entrypoint of the route),
-        // we can use the builtin method of validatePayload of the evt messages to make sure consistency 
-        // is shared between both
-        msg.validatePayload();
-
-        // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
-        msg.fspiopOpaqueState = {
-            requesterFspId: requesterFspId,
-            destinationFspId: destinationFspId,
-            headers: clonedHeaders
-        };
-
-        await this.kafkaProducer.send(msg);
-
-        this.logger.debug("quoteRequestReceived sent message");
-
-        res.status(202).json(null);
-
-        this.logger.debug("quoteRequestReceived responded");
+                res.status(500).json(transformError);
+            }
+        }
     }
 
     private async quoteResponseReceived(req: express.Request, res: express.Response): Promise<void> {
         this.logger.debug("Got quoteResponseReceived request");
-          
-        // Headers
-        const clonedHeaders = { ...req.headers };
-        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
-        
-        // Date Model
-        const quoteId = req.params["id"] || null;
-        const transferAmount = req.body["transferAmount"] || null;
-        const expiration = req.body["expiration"] || null;
-        const ilpPacket = req.body["ilpPacket"] || null;
-        const condition = req.body["condition"] || null;
-        const payeeReceiveAmount = req.body["payeeReceiveAmount"] || null;
-        const payeeFspFee = req.body["payeeFspFee"] || null;
-        const payeeFspCommission = req.body["payeeFspCommission"] || null;
-        const geoCode = req.body["geoCode"] || null;
-        const extensionList = req.body["extensionList"] || null;
+        try {
+            // Headers
+            const clonedHeaders = { ...req.headers };
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+
+            // Date Model
+            const quoteId = req.params["id"] || null;
+            const transferAmount = req.body["transferAmount"] || null;
+            const expiration = req.body["expiration"] || null;
+            const ilpPacket = req.body["ilpPacket"] || null;
+            const condition = req.body["condition"] || null;
+            const payeeReceiveAmount = req.body["payeeReceiveAmount"] || null;
+            const payeeFspFee = req.body["payeeFspFee"] || null;
+            const payeeFspCommission = req.body["payeeFspCommission"] || null;
+            const geoCode = req.body["geoCode"] || null;
+            const extensionList = req.body["extensionList"] || null;
 
 
-        if(!requesterFspId || !quoteId || !transferAmount || !expiration || !ilpPacket || !condition) {
-            res.status(400).json({
-                status: "not ok"
-            });
-            return;
+            if (!requesterFspId || !quoteId || !transferAmount || !expiration || !ilpPacket || !condition) {
+                res.status(400).json({
+                    errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
+                    errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
+                    extensionList: null
+                });
+                return;
+            }
+
+            const msgPayload: QuoteResponseReceivedEvtPayload = {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
+                quoteId: quoteId,
+                transferAmount: transferAmount,
+                expiration: expiration,
+                ilpPacket: ilpPacket,
+                condition: condition,
+                payeeReceiveAmount: payeeReceiveAmount,
+                payeeFspFee: payeeFspFee,
+                payeeFspCommission: payeeFspCommission,
+                geoCode: geoCode,
+                extensionList: extensionList
+            } as QuoteResponseReceivedEvtPayload;
+
+            const msg = new QuoteResponseReceivedEvt(msgPayload);
+
+            // Since we don't export the types of the body (but we validate them in the entrypoint of the route),
+            // we can use the builtin method of validatePayload of the evt messages to make sure consistency 
+            // is shared between both 
+            msg.validatePayload();
+
+            // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
+            msg.fspiopOpaqueState = {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
+                headers: clonedHeaders
+            };
+
+            await this.kafkaProducer.send(msg);
+
+            this.logger.debug("quoteResponseReceived sent message");
+
+            res.status(200).json(null);
+
+            this.logger.debug("quoteResponseReceived responded");
         }
+        catch (error: any) {
+            if (error) {
+                const transformError = Transformer.transformPayloadError({
+                    errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
+                    errorDescription: error.message,
+                    extensionList: null
+                })
 
-        const msgPayload: QuoteResponseReceivedEvtPayload = {
-            requesterFspId: requesterFspId,
-            destinationFspId: destinationFspId,
-            quoteId: quoteId,
-            transferAmount: transferAmount,
-            expiration: expiration,
-            ilpPacket: ilpPacket,
-            condition: condition,
-            payeeReceiveAmount: payeeReceiveAmount,
-            payeeFspFee: payeeFspFee,
-            payeeFspCommission: payeeFspCommission,
-            geoCode: geoCode,
-            extensionList: extensionList
-        } as QuoteResponseReceivedEvtPayload;
-
-        const msg =  new QuoteResponseReceivedEvt(msgPayload);
-
-        // Since we don't export the types of the body (but we validate them in the entrypoint of the route),
-        // we can use the builtin method of validatePayload of the evt messages to make sure consistency 
-        // is shared between both 
-        msg.validatePayload();
-
-        // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
-        msg.fspiopOpaqueState = {
-            requesterFspId: requesterFspId,
-            destinationFspId: destinationFspId,
-            headers: clonedHeaders
-        };
-
-        await this.kafkaProducer.send(msg);
-
-        this.logger.debug("quoteResponseReceived sent message");
-
-        res.status(200).json(null);
-
-        this.logger.debug("quoteResponseReceived responded");
+                res.status(500).json(transformError);
+            }
+        }
     }
 
     private async quoteQueryReceived(req: express.Request, res: express.Response): Promise<void> {
         this.logger.debug("Got quoteQueryReceived request");
+        try {
+            const clonedHeaders = { ...req.headers };
+            const quoteId = req.params["id"] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
 
-        const clonedHeaders = { ...req.headers };
-        const quoteId = req.params["id"] as string || null;
-        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+            if (!quoteId || !requesterFspId) {
+                res.status(400).json({
+                    errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
+                    errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
+                    extensionList: null
+                });
+                return;
+            }
 
-        if(!quoteId || !requesterFspId) {
-            res.status(400).json({
-                status: "not ok"
-            });
-            return;
+            // TODO: Review this rule that matches ttk use cases
+            clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = requesterFspId as string;
+
+            const msgPayload: QuoteQueryReceivedEvtPayload = {
+                quoteId: quoteId,
+            };
+
+            const msg = new QuoteQueryReceivedEvt(msgPayload);
+
+            msg.validatePayload();
+
+            // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
+            msg.fspiopOpaqueState = {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
+                headers: clonedHeaders
+            };
+
+            await this.kafkaProducer.send(msg);
+
+            this.logger.debug("quoteQueryReceived sent message");
+
+            res.status(202).json(null);
+
+            this.logger.debug("quoteQueryReceived responded");
         }
+        catch (error: any) {
+            if (error) {
+                const transformError = Transformer.transformPayloadError({
+                    errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
+                    errorDescription: error.message,
+                    extensionList: null
+                })
 
-        // TODO: Review this rule that matches ttk use cases
-        clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = requesterFspId as string;
-        
-        const msgPayload: QuoteQueryReceivedEvtPayload = {
-            quoteId: quoteId,
-        };
-
-        const msg =  new QuoteQueryReceivedEvt(msgPayload);
-
-        msg.validatePayload();
-
-        // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
-        msg.fspiopOpaqueState = {
-            requesterFspId: requesterFspId,
-            destinationFspId: destinationFspId,
-            headers: clonedHeaders
-        };
-
-        await this.kafkaProducer.send(msg);
-
-        this.logger.debug("quoteQueryReceived sent message");
-
-        res.status(202).json(null);
-
-        this.logger.debug("quoteQueryReceived responded");
+                res.status(500).json(transformError);
+            }
+        }
     }
 }
