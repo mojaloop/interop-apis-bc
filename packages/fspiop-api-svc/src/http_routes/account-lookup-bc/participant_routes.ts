@@ -118,7 +118,7 @@ export class ParticipantRoutes extends BaseRoutes {
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: error.message,
                     extensionList: null
-                })
+                });
 
                 res.status(500).json(transformError);
             }
@@ -178,7 +178,7 @@ export class ParticipantRoutes extends BaseRoutes {
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: error.message,
                     extensionList: null
-                })
+                });
 
                 res.status(500).json(transformError);
             }
@@ -238,7 +238,7 @@ export class ParticipantRoutes extends BaseRoutes {
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: error.message,
                     extensionList: null
-                })
+                });
 
                 res.status(500).json(transformError);
             }
@@ -299,7 +299,7 @@ export class ParticipantRoutes extends BaseRoutes {
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: error.message,
                     extensionList: null
-                })
+                });
 
                 res.status(500).json(transformError);
             }
@@ -358,7 +358,7 @@ export class ParticipantRoutes extends BaseRoutes {
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: error.message,
                     extensionList: null
-                })
+                });
 
                 res.status(500).json(transformError);
             }
@@ -417,7 +417,7 @@ export class ParticipantRoutes extends BaseRoutes {
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: error.message,
                     extensionList: null
-                })
+                });
 
                 res.status(500).json(transformError);
             }

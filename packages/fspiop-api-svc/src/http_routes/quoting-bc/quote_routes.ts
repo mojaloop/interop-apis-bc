@@ -31,13 +31,14 @@
 
 "use strict";
 
-import express from "express";
-import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { Constants, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import { QuoteRequestReceivedEvt, QuoteRequestReceivedEvtPayload, QuoteResponseReceivedEvt, QuoteResponseReceivedEvtPayload, QuoteQueryReceivedEvt, QuoteQueryReceivedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { GetQuoteQueryRejectedEvt, GetQuoteQueryRejectedEvtPayload, QuoteQueryReceivedEvt, QuoteQueryReceivedEvtPayload, QuoteRequestReceivedEvt, QuoteRequestReceivedEvtPayload, QuoteResponseReceivedEvt, QuoteResponseReceivedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
+import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
+import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import express from "express";
 
 export class QuoteRoutes extends BaseRoutes {
 
@@ -54,6 +55,9 @@ export class QuoteRoutes extends BaseRoutes {
 
         // PUT Quote Created
         this.router.put("/:id", this.quoteResponseReceived.bind(this));
+
+        // Errors
+        this.router.put("/:id/error", this.quoteRejectRequest.bind(this));
     }
 
     private async quoteRequestReceived(req: express.Request, res: express.Response): Promise<void> {
@@ -109,7 +113,7 @@ export class QuoteRoutes extends BaseRoutes {
             const msg = new QuoteRequestReceivedEvt(msgPayload);
 
             // Since we don't export the types of the body (but we validate them in the entrypoint of the route),
-            // we can use the builtin method of validatePayload of the evt messages to make sure consistency 
+            // we can use the builtin method of validatePayload of the evt messages to make sure consistency
             // is shared between both
             msg.validatePayload();
 
@@ -134,7 +138,7 @@ export class QuoteRoutes extends BaseRoutes {
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: error.message,
                     extensionList: null
-                })
+                });
 
                 res.status(500).json(transformError);
             }
@@ -189,8 +193,8 @@ export class QuoteRoutes extends BaseRoutes {
             const msg = new QuoteResponseReceivedEvt(msgPayload);
 
             // Since we don't export the types of the body (but we validate them in the entrypoint of the route),
-            // we can use the builtin method of validatePayload of the evt messages to make sure consistency 
-            // is shared between both 
+            // we can use the builtin method of validatePayload of the evt messages to make sure consistency
+            // is shared between both
             msg.validatePayload();
 
             // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
@@ -214,7 +218,7 @@ export class QuoteRoutes extends BaseRoutes {
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: error.message,
                     extensionList: null
-                })
+                });
 
                 res.status(500).json(transformError);
             }
@@ -270,10 +274,53 @@ export class QuoteRoutes extends BaseRoutes {
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: error.message,
                     extensionList: null
-                })
+                });
 
                 res.status(500).json(transformError);
             }
         }
+    }
+
+    private async quoteRejectRequest(req: express.Request, res: express.Response): Promise<void> {
+        this.logger.debug("Got quote rejected request");
+
+        const clonedHeaders = { ...req.headers };
+        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+
+        const quoteId = req.params["quoteId"] as string || null;
+        const errorInformation = req.body["errorInformation"] || null;
+
+        if(!quoteId || !errorInformation) {
+            res.status(400).json({
+                status: "No quoteId or errorInformation provided"
+            });
+            return;
+        }
+
+        const msgPayload: GetQuoteQueryRejectedEvtPayload = {
+            quoteId: quoteId,
+            errorInformation: errorInformation
+        };
+
+        const msg =  new GetQuoteQueryRejectedEvt(msgPayload);
+
+        msg.validatePayload();
+
+        msg.fspiopOpaqueState = {
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId,
+            headers: clonedHeaders
+        };
+
+        await this.kafkaProducer.send(msg);
+
+        this.logger.debug("quote rejected sent message");
+
+        res.status(202).json({
+            status: "ok"
+        });
+
+        this.logger.debug("quote rejected responded");
     }
 }
