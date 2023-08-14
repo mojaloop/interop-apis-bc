@@ -309,6 +309,11 @@ export class Service {
 
             /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
             this.app.use((err: FspiopHttpRequestError, req: express.Request, res: express.Response, next: express.NextFunction) => {
+                if(!err.data) {
+                    next();
+                    return;
+                }
+                
                 const errorResponseBuilder = (errorCode: string, errorDescription: string, additionalProperties = {}) => {
                     return {
                         errorInformation: {
@@ -363,7 +368,14 @@ export class Service {
             this.app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
                 // catch all
                 this.logger.warn(`Received unhandled request to url: ${req.url}`);
-                res.sendStatus(404);
+                res.status(404).json({
+                    errorInformation: {
+                        errorCode: "3002",
+                        errorDescription: "Unknown URI"
+                    }
+                })
+
+                next();
             });
 
             let portNum = SVC_DEFAULT_HTTP_PORT;

@@ -66,6 +66,7 @@ export const validateHeaders = (req: express.Request, res: express.Response, nex
 	}
   
 	const supportedProtocolAcceptVersions = defaultProtocolVersions;
+	const supportedProtocolContentTypeVersions = defaultProtocolVersions;
 	// Always validate the accept header for a get request, or optionally if it has been
 	// supplied
 	if (req.method.toLowerCase() === "get" || req.headers.accept) {
@@ -133,11 +134,38 @@ export const validateHeaders = (req: express.Request, res: express.Response, nex
         }
 
 		if (!supportedProtocolAcceptVersions.some(supportedVer => accept.versions.has(supportedVer))) {
+			// TODO: Check which response is right: one is implemented, the other is asserted in some TTK tests
+
 			// const supportedVersionExtensionListMap = convertSupportedVersionToExtensionList(supportedProtocolAcceptVersions)
+			// return res.status(400).json({
+			// 	errorInformation: {
+			// 		errorCode: FSPIOPErrorCodes.MISSING_ELEMENT.code,
+			// 		errorDescription: errorMessages.INVALID_ACCEPT_HEADER,
+			// 	}
+			// });
+			return res.status(406).json({
+				errorInformation: {
+					errorCode: FSPIOPErrorCodes.UNACCEPTABLE_VERSION.code,
+					errorDescription: FSPIOPErrorCodes.UNACCEPTABLE_VERSION.message,
+				}
+			});
+		}
+
+		if (!supportedProtocolContentTypeVersions.some(supportedVer => supportedVer === contentType.version)) {
+			// TODO: Same reason as before, except here one implementation doens't exist, the other is asserted in some TTK tests
+			return res.status(406).json({
+				errorInformation: {
+					errorCode: FSPIOPErrorCodes.UNACCEPTABLE_VERSION.code,
+					errorDescription: FSPIOPErrorCodes.UNACCEPTABLE_VERSION.message,
+				}
+			});
+		}
+
+		if(!req.headers["date"]) {
 			return res.status(400).json({
 				errorInformation: {
-					errorCode: FSPIOPErrorCodes.MISSING_ELEMENT.code,
-					errorDescription: errorMessages.INVALID_ACCEPT_HEADER,
+					errorCode: "3102",
+					errorDescription: "Missing mandatory element"
 				}
 			});
 		}
