@@ -15,8 +15,7 @@ COPY package*.json ./
 COPY packages/fspiop-utils-lib/package*.json ./packages/fspiop-utils-lib/
 COPY packages/fspiop-api-svc/package*.json ./packages/fspiop-api-svc/
 
-# If you are building your code for production
-#RUN npm ci --only=production
+# Our images don't need devDependencies
 RUN BUILD_LIBRDKAFKA=0 npm install --omit=dev
 
 # Note on BUILD_LIBRDKAFKA:
