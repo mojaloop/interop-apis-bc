@@ -34,7 +34,9 @@
 import { BaseEventHandler, HandlerNames } from "./base_event_handler";
 import {
     BulkQuoteAcceptedEvt,
+    BulkQuoteQueryResponseEvt,
     BulkQuoteReceivedEvt,
+    GetBulkQuoteQueryRejectedEvt,
     GetPartyQueryRejectedEvt,
     QuoteBCBulkQuoteExpiredErrorEvent,
     QuoteBCBulkQuoteNotFoundErrorEvent,
@@ -103,7 +105,11 @@ export class QuotingEventHandler extends BaseEventHandler {
                 case BulkQuoteAcceptedEvt.name:
                     await this._handleBulkQuoteAcceptedResponseEvt(new BulkQuoteAcceptedEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
+                case BulkQuoteQueryResponseEvt.name:
+                    await this._handleBulkQuotingQueryResponseEvt(new BulkQuoteQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
+                    break;
                 case GetPartyQueryRejectedEvt.name:
+                case GetBulkQuoteQueryRejectedEvt.name:
                 case QuoteBCDuplicateQuoteErrorEvent.name:
                 case QuoteBCQuoteNotFoundErrorEvent.name:
                 case QuoteBCBulkQuoteNotFoundErrorEvent.name:
@@ -465,4 +471,47 @@ export class QuotingEventHandler extends BaseEventHandler {
 
         return;
     }
+
+    private async _handleBulkQuotingQueryResponseEvt(message: BulkQuoteQueryResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders): Promise<void> {
+        try{
+            const { payload } = message;
+            const clonedHeaders = fspiopOpaqueState;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+
+            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
+
+            if(!requestedEndpoint) {
+                throw Error(`fspId ${requesterFspId} has no valid participant associated`);
+            }
+
+            this._logger.info("_handleBulkQuoteQueryResponseEvt -> start");
+
+            // Always validate the payload and headers received
+            // message.validatePayload();
+            // Validate.validateHeaders(QuotesPost, clonedHeaders);
+
+            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
+            urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);
+            urlBuilder.setId(payload.bulkQuoteId);
+
+            await Request.sendRequest({
+                url: urlBuilder.build(),
+                headers: clonedHeaders,
+                source: requesterFspId,
+                destination: requesterFspId,
+                method: Enums.FspiopRequestMethodsEnum.PUT,
+                payload: Transformer.transformPayloadBulkQuotingResponsePut(payload),
+            });
+
+            this._logger.info("_handleBulkQuoteQueryResponseEvt -> end");
+
+        } catch (error: unknown) {
+            this._logger.error(error,"_handleBulkQuoteQueryResponseEvt -> error");
+            throw Error("_handleBulkQuoteQueryResponseEvt -> error");
+        }
+
+    }
 }
+
+
+
