@@ -17,7 +17,7 @@ COPY packages/fspiop-api-svc/package*.json ./packages/fspiop-api-svc/
 
 # If you are building your code for production
 #RUN npm ci --only=production
-RUN BUILD_LIBRDKAFKA=0 npm install
+RUN BUILD_LIBRDKAFKA=0 npm install --omit=dev
 
 # Note on BUILD_LIBRDKAFKA:
 #   Use BUILD_LIBRDKAFKA=0 only if we have installed librdkafka-dev in
