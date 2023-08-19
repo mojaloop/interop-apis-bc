@@ -284,43 +284,56 @@ export class QuoteRoutes extends BaseRoutes {
     private async quoteRejectRequest(req: express.Request, res: express.Response): Promise<void> {
         this.logger.debug("Got quote rejected request");
 
-        const clonedHeaders = { ...req.headers };
-        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+        try{
+            const clonedHeaders = { ...req.headers };
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
 
-        const quoteId = req.params["quoteId"] as string || null;
-        const errorInformation = req.body["errorInformation"] || null;
+            const quoteId = req.params["id"] as string || null;
+            const errorInformation = req.body["errorInformation"] || null;
 
-        if(!quoteId || !errorInformation) {
-            res.status(400).json({
-                status: "No quoteId or errorInformation provided"
+            if(!quoteId || !errorInformation) {
+                res.status(400).json({
+                    status: "No quoteId or errorInformation provided"
+                });
+                return;
+            }
+
+            const msgPayload: GetQuoteQueryRejectedEvtPayload = {
+                quoteId: quoteId,
+                errorInformation: errorInformation
+            };
+
+            const msg =  new GetQuoteQueryRejectedEvt(msgPayload);
+
+            msg.validatePayload();
+
+            msg.fspiopOpaqueState = {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
+                headers: clonedHeaders
+            };
+
+            await this.kafkaProducer.send(msg);
+
+            this.logger.debug("quote rejected sent message");
+
+            res.status(202).json({
+                status: "ok"
             });
-            return;
+
+            this.logger.debug("quote rejected responded");
         }
+        catch (error: any) {
+            if (error) {
+                const transformError = Transformer.transformPayloadError({
+                    errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
+                    errorDescription: error.message,
+                    extensionList: null
+                });
 
-        const msgPayload: GetQuoteQueryRejectedEvtPayload = {
-            quoteId: quoteId,
-            errorInformation: errorInformation
-        };
-
-        const msg =  new GetQuoteQueryRejectedEvt(msgPayload);
-
-        msg.validatePayload();
-
-        msg.fspiopOpaqueState = {
-            requesterFspId: requesterFspId,
-            destinationFspId: destinationFspId,
-            headers: clonedHeaders
-        };
-
-        await this.kafkaProducer.send(msg);
-
-        this.logger.debug("quote rejected sent message");
-
-        res.status(202).json({
-            status: "ok"
-        });
-
-        this.logger.debug("quote rejected responded");
+                res.status(500).json(transformError);
+            }
+        }
     }
 }
