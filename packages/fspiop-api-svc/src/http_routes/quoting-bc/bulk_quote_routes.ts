@@ -31,13 +31,14 @@
 
 "use strict";
 
-import express from "express";
-import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
+import { BulkQuotePendingReceivedEvt, BulkQuotePendingReceivedEvtPayload, BulkQuoteQueryReceivedEvt, BulkQuoteQueryReceivedEvtPayload, BulkQuoteRequestedEvt, BulkQuoteRequestedEvtPayload, GetBulkQuoteQueryRejectedEvt, GetBulkQuoteQueryRejectedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import { BulkQuotePendingReceivedEvt, BulkQuotePendingReceivedEvtPayload, BulkQuoteRequestedEvt, BulkQuoteRequestedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
+import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
+import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import express from "express";
 
 export class QuoteBulkRoutes extends BaseRoutes {
 
@@ -46,20 +47,76 @@ export class QuoteBulkRoutes extends BaseRoutes {
 
         // bind routes
 
-        // // GET Quote by ID
-        // this.router.get("/:id/", this.quoteQueryReceived.bind(this));
+        // GET Bulk Quote by ID
+        this.router.get("/:id/", this.bulkQuoteQueryReceived.bind(this));
 
-        // POST Quote Calculation
+        // POST Bulk Quote Calculation
         this.router.post("/", this.bulkQuoteRequest.bind(this));
 
-        // PUT Quote Created
+        // PUT Bulk Quote Created
         this.router.put("/:id", this.bulkQuotePending.bind(this));
+
+        // Errors
+        this.router.put("/:id/error", this.bulkQuoteRejectRequest.bind(this));
+
     }
 
     get Router(): express.Router {
         return this.router;
     }
 
+    private async bulkQuoteQueryReceived(req: express.Request, res: express.Response): Promise<void> {
+        this.logger.debug("Got bulkQuoteQueryReceived request");
+        try {
+            // Headers
+            const clonedHeaders = { ...req.headers };
+            const bulkQuoteId = req.params["id"] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+
+            if (!bulkQuoteId || !requesterFspId) {
+                res.status(400).json({
+                    errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
+                    errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
+                    extensionList: null
+                });
+                return;
+            }
+
+            const msgPayload: BulkQuoteQueryReceivedEvtPayload = {
+                bulkQuoteId: bulkQuoteId,
+            };
+
+            const msg = new BulkQuoteQueryReceivedEvt(msgPayload);
+
+            msg.validatePayload();
+
+            msg.fspiopOpaqueState = {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
+                headers: clonedHeaders
+            };
+
+            await this.kafkaProducer.send(msg);
+
+            this.logger.debug("bulkQuoteQueryReceived sent message");
+
+            res.status(202).json(null);
+
+            this.logger.debug("bulkQuoteQueryReceived responded");
+
+        }
+        catch (error: any) {
+            if (error) {
+                const transformError = Transformer.transformPayloadError({
+                    errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
+                    errorDescription: error.message,
+                    extensionList: null
+                });
+                res.status(500).json(transformError);
+            }
+        }
+    }
 
     private async bulkQuoteRequest(req: express.Request, res: express.Response): Promise<void> {
         this.logger.debug("Got bulkQuoteRequest request");
@@ -98,7 +155,7 @@ export class QuoteBulkRoutes extends BaseRoutes {
             const msg = new BulkQuoteRequestedEvt(msgPayload);
 
             // Since we don't export the types of the body (but we validate them in the entrypoint of the route),
-            // we can use the builtin method of validatePayload of the evt messages to make sure consistency 
+            // we can use the builtin method of validatePayload of the evt messages to make sure consistency
             // is shared between both
             msg.validatePayload();
 
@@ -163,7 +220,7 @@ export class QuoteBulkRoutes extends BaseRoutes {
             const msg = new BulkQuotePendingReceivedEvt(msgPayload);
 
             // Since we don't export the types of the body (but we validate them in the entrypoint of the route),
-            // we can use the builtin method of validatePayload of the evt messages to make sure consistency 
+            // we can use the builtin method of validatePayload of the evt messages to make sure consistency
             // is shared between both
             msg.validatePayload();
 
@@ -181,6 +238,62 @@ export class QuoteBulkRoutes extends BaseRoutes {
             res.status(202).json(null);
 
             this.logger.debug("bulkQuotePending responded");
+        }
+        catch (error: any) {
+            if (error) {
+                const transformError = Transformer.transformPayloadError({
+                    errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
+                    errorDescription: error.message,
+                    extensionList: null
+                });
+
+                res.status(500).json(transformError);
+            }
+        }
+    }
+
+    private async bulkQuoteRejectRequest(req: express.Request, res: express.Response): Promise<void> {
+        this.logger.debug("Got bulk quote rejected request");
+
+        try{
+            const clonedHeaders = { ...req.headers };
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+
+            const bulkQuoteId = req.params["id"] as string || null;
+            const errorInformation = req.body["errorInformation"] || null;
+
+            if(!bulkQuoteId || !errorInformation) {
+                res.status(400).json({
+                    status: "No bulkQuoteId or errorInformation provided"
+                });
+                return;
+            }
+
+            const msgPayload: GetBulkQuoteQueryRejectedEvtPayload = {
+                bulkQuoteId,
+                errorInformation: errorInformation
+            };
+
+            const msg =  new GetBulkQuoteQueryRejectedEvt(msgPayload);
+
+            msg.validatePayload();
+
+            msg.fspiopOpaqueState = {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
+                headers: clonedHeaders
+            };
+
+            await this.kafkaProducer.send(msg);
+
+            this.logger.debug("bulk quote rejected sent message");
+
+            res.status(202).json({
+                status: "ok"
+            });
+
+            this.logger.debug("bulk quote rejected responded");
         }
         catch (error: any) {
             if (error) {
