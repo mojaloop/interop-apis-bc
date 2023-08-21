@@ -53,14 +53,24 @@ import {
     QuotingBCTopics
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Service } from "@mojaloop/interop-apis-bc-fspiop-api-svc";
-import KafkaProducer, { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
+import {ConsoleLogger} from "@mojaloop/logging-bc-public-types-lib";
 
 // Sets the location of your OpenAPI Specification file
 jestOpenAPI(path.join(__dirname, "../../../../packages/fspiop-api-svc/api-specs/api_spec.yaml"));
 
-const kafkaProducer = new KafkaProducer();
+import  { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
 
-const KAFKA_QUOTING_TOPIC = process.env["KAFKA_QUOTING_TOPIC"] || QuotingBCTopics.DomainEvents;
+const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
+const logger = new ConsoleLogger();
+
+import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+let producerOptions: MLKafkaJsonProducerOptions = {
+    kafkaBrokerList: KAFKA_URL,
+    producerClientId: 'test_producer_' + Date.now()
+};
+const kafkaProducer = new MLKafkaJsonProducer(producerOptions, logger);
+
+
 const KAFKA_OPERATOR_ERROR_TOPIC = process.env["KAFKA_OPERATOR_ERROR_TOPIC"] || "OperatorBcErrors";
 
 const quoteEntity = "quotes";
@@ -267,7 +277,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
     beforeAll(async () => {
         await Service.start();
-        await kafkaProducer.init();
+        await kafkaProducer.connect();
     });
 
     beforeEach(async () => {
@@ -316,7 +326,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         const requestSpy = jest.spyOn(Request, "sendRequest");
 
         // Act
-        kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
+        kafkaProducer.send(event);
 
         jest.spyOn(Request, "sendRequest");
 
@@ -363,7 +373,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
 
-        kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
+        kafkaProducer.send(event);
 
         await new Promise((r) => setTimeout(r, 5000));
 
@@ -409,7 +419,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
 
         // Act
-        kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
+        kafkaProducer.send(event);
 
         jest.spyOn(Request, "sendRequest");
 
@@ -437,7 +447,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         event.msgName = "non-existing-message-name";
 
         // Act
-        kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
+        kafkaProducer.send(event);
 
         jest.spyOn(Request, "sendRequest");
 
@@ -476,7 +486,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
 
-        kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
+        kafkaProducer.send(event);
 
         await new Promise((r) => setTimeout(r, 2000));
 
@@ -522,7 +532,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         });
 
         // Act
-        kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
+        kafkaProducer.send(event);
 
 
         const apiSpy = jest.spyOn(Request, "sendRequest");
@@ -566,7 +576,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         const requestSpy = jest.spyOn(Request, "sendRequest");
 
         // Act
-        kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
+        kafkaProducer.send(event);
 
         jest.spyOn(Request, "sendRequest");
 
@@ -609,7 +619,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
 
-        kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
+        kafkaProducer.send(event);
 
         await new Promise((r) => setTimeout(r, 2000));
 
@@ -656,7 +666,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         });
 
         // Act
-        kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
+        kafkaProducer.send(event);
 
 
         const apiSpy = jest.spyOn(Request, "sendRequest");
@@ -700,7 +710,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         const requestSpy = jest.spyOn(Request, "sendRequest");
 
         // Act
-        kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
+        kafkaProducer.send(event);
 
         jest.spyOn(Request, "sendRequest");
 
@@ -743,7 +753,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
 
-        kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
+        kafkaProducer.send(event);
 
         await new Promise((r) => setTimeout(r, 2000));
 
@@ -790,7 +800,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         });
 
         // Act
-        kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
+        kafkaProducer.send(event);
 
 
         const apiSpy = jest.spyOn(Request, "sendRequest");
@@ -834,7 +844,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         const requestSpy = jest.spyOn(Request, "sendRequest");
 
         // Act
-        kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
+        kafkaProducer.send(event);
 
         jest.spyOn(Request, "sendRequest");
 
@@ -877,7 +887,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
 
-        kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
+        kafkaProducer.send(event);
 
         await new Promise((r) => setTimeout(r, 2000));
 
@@ -924,7 +934,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         });
 
         // Act
-        kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
+        kafkaProducer.send(event);
 
 
         const apiSpy = jest.spyOn(Request, "sendRequest");
@@ -968,7 +978,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         const requestSpy = jest.spyOn(Request, "sendRequest");
 
         // Act
-        kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
+        kafkaProducer.send(event);
 
         jest.spyOn(Request, "sendRequest");
 
@@ -1011,7 +1021,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
 
-        kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
+        kafkaProducer.send(event);
 
         await new Promise((r) => setTimeout(r, 2000));
 
@@ -1058,7 +1068,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         });
 
         // Act
-        kafkaProducer.sendMessage(KAFKA_QUOTING_TOPIC, event);
+        kafkaProducer.send(event);
 
 
         const apiSpy = jest.spyOn(Request, "sendRequest");

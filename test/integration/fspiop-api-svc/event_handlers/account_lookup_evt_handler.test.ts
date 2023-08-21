@@ -48,6 +48,7 @@ import {
     PartyQueryResponseEvt,
     PartyQueryResponseEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import {ConsoleLogger} from "@mojaloop/logging-bc-public-types-lib";
 import waitForExpect from "wait-for-expect";
 import jestOpenAPI from "jest-openapi";
 import path from "path";
@@ -56,9 +57,17 @@ import { Service } from "@mojaloop/interop-apis-bc-fspiop-api-svc";
 // Sets the location of your OpenAPI Specification file
 jestOpenAPI(path.join(__dirname, "../../../../packages/fspiop-api-svc/api-specs/api_spec.yaml"));
 
-import KafkaProducer, { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
+import { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
 
-const kafkaProducer = new KafkaProducer();
+const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
+const logger = new ConsoleLogger();
+
+import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+let producerOptions: MLKafkaJsonProducerOptions = {
+    kafkaBrokerList: KAFKA_URL,
+    producerClientId: 'test_producer_' + Date.now()
+};
+const kafkaProducer = new MLKafkaJsonProducer(producerOptions, logger);
 
 const KAFKA_ACCOUNTS_LOOKUP_TOPIC = process.env["KAFKA_ACCOUNTS_LOOKUP_TOPIC"] || AccountLookupBCTopics.DomainEvents;
 const KAFKA_OPERATOR_ERROR_TOPIC = process.env["KAFKA_OPERATOR_ERROR_TOPIC"] || AccountLookupBCTopics.DomainErrors;
@@ -73,7 +82,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
 
     beforeAll(async () => {
         await Service.start();
-        await kafkaProducer.init();
+        await kafkaProducer.connect();
     });
 
     afterEach(() => {
@@ -112,7 +121,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         const requestSpy = jest.spyOn(Request, "sendRequest");
 
         // Act
-        kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
+        kafkaProducer.send(event);
 
         jest.spyOn(Request, "sendRequest");
 
@@ -157,7 +166,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         const requestSpy = jest.spyOn(Request, "sendRequest");
 
         // Act
-        kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
+        kafkaProducer.send(event);
 
         jest.spyOn(Request, "sendRequest");
 
@@ -203,7 +212,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
 
-        kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
+        kafkaProducer.send(event);
 
         await new Promise((r) => setTimeout(r, 5000));
 
@@ -248,7 +257,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
 
 
         // Act
-        kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
+        kafkaProducer.send(event);
 
         jest.spyOn(Request, "sendRequest");
 
@@ -278,7 +287,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         event.msgName = "non-existing-message-name";
 
         // Act
-        kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
+        kafkaProducer.send(event);
 
         jest.spyOn(Request, "sendRequest");
 
@@ -317,7 +326,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
 
-        kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
+        kafkaProducer.send(event);
 
         await new Promise((r) => setTimeout(r, 5000));
 
@@ -368,7 +377,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
 
-        kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
+        kafkaProducer.send(event);
 
         await new Promise((r) => setTimeout(r, 5000));
 
@@ -417,7 +426,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
 
         // Act
 
-        kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
+        kafkaProducer.send(event);
 
 
         const res = async () => {
@@ -459,7 +468,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
 
-        kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
+        kafkaProducer.send(event);
 
         await new Promise((r) => setTimeout(r, 5000));
 
@@ -510,7 +519,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
 
-        kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
+        kafkaProducer.send(event);
 
         await new Promise((r) => setTimeout(r, 5000));
 
@@ -560,7 +569,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         const requestSpy = jest.spyOn(Request, "sendRequest");
 
         // Act
-        kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
+        kafkaProducer.send(event);
 
         const res = async () => {
             return await requestSpy.mock.results[requestSpy.mock.results.length-1].value;
@@ -603,7 +612,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
 
-        kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
+        kafkaProducer.send(event);
 
         await new Promise((r) => setTimeout(r, 5000));
 
@@ -651,7 +660,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
 
-        kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
+        kafkaProducer.send(event);
 
         await new Promise((r) => setTimeout(r, 10000));
 
@@ -704,7 +713,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         const requestSpy = jest.spyOn(Request, "sendRequest");
 
         // Act
-        kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
+        kafkaProducer.send(event);
 
         jest.spyOn(Request, "sendRequest");
 
@@ -752,7 +761,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
 
-        kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
+        kafkaProducer.send(event);
 
         await new Promise((r) => setTimeout(r, 5000));
 
@@ -802,7 +811,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
 
-        kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
+        kafkaProducer.send(event);
 
         await new Promise((r) => setTimeout(r, 10000));
 
@@ -853,7 +862,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         const requestSpy = jest.spyOn(Request, "sendRequest");
 
         // Act
-        kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
+        kafkaProducer.send(event);
 
         jest.spyOn(Request, "sendRequest");
 
@@ -898,7 +907,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
 
-        kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
+        kafkaProducer.send(event);
 
         await new Promise((r) => setTimeout(r, 5000));
 
@@ -951,7 +960,7 @@ describe("FSPIOP API Service AccountLookup Handler", () => {
         // Act
         const expectedOffset = await getCurrentKafkaOffset(KAFKA_OPERATOR_ERROR_TOPIC);
 
-        kafkaProducer.sendMessage(KAFKA_ACCOUNTS_LOOKUP_TOPIC, event);
+        kafkaProducer.send(event);
 
         await new Promise((r) => setTimeout(r, 5000));
 
