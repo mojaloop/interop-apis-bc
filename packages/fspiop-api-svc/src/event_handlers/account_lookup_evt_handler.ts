@@ -209,17 +209,17 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             }
             case AccountLookupBCInvalidMessagePayloadErrorEvent.name:
             case AccountLookupBCInvalidMessageTypeErrorEvent.name:
-            case AccountLookupBCUnableToGetOracleAdapterErrorEvent.name:
-            case AccountLookUpUnableToGetParticipantFromOracleErrorEvent.name: {
+            case AccountLookupBCUnableToGetOracleAdapterErrorEvent.name: {
                 // According to TTK Use cases, this is a generic not found error
                 // check "Party info of unprovisioned party" for reference
                 errorResponse.errorCode = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code;
                 errorResponse.errorDescription = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.description;
                 break;
             }
-            case GetPartyQueryRejectedResponseEvt.name: {
+            case GetPartyQueryRejectedResponseEvt.name:
+            case AccountLookUpUnableToGetParticipantFromOracleErrorEvent.name: {
                 errorResponse.errorCode = Enums.ClientErrors.PARTY_NOT_FOUND.code;
-                errorResponse.errorDescription = Enums.ClientErrors.PARTY_NOT_FOUND.description;
+                errorResponse.errorDescription = Enums.ClientErrors.PARTY_NOT_FOUND.name;
                 break;
             }
             case AccountLookUpUnknownErrorEvent.name: {

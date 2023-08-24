@@ -415,7 +415,8 @@ export class TransferEventHandler extends BaseEventHandler {
             const { payload } = message;
 
             const clonedHeaders = fspiopOpaqueState;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SWITCH] as string;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
 
             // TODO validate vars above
 
@@ -438,7 +439,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 url: urlBuilder.build(),
                 headers: clonedHeaders,
                 source: requesterFspId,
-                destination: requesterFspId,
+                destination: destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: Transformer.transformPayloadTransferRequestGet(payload),
             });

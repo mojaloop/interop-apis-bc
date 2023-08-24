@@ -258,7 +258,6 @@ export interface PostQuote {
 }
 
 export interface PutQuote {
-	quoteId: string,
 	transferAmount: {
 		currency: string,
 		amount: string,
@@ -454,7 +453,6 @@ export const transformPayloadQuotingRequestPost = (payload: QuoteRequestAccepted
 
 export const transformPayloadQuotingResponsePut = (payload: QuoteResponseAcceptedEvtPayload): PutQuote => {
 	const info: PutQuote = {
-		quoteId: payload.quoteId,
 		transferAmount: payload.transferAmount,
 		expiration: payload.expiration,
 		ilpPacket: payload.ilpPacket,
@@ -508,7 +506,6 @@ export interface PostTransfer {
 }
 
 export interface PutTransfer {
-	transferId: string,
 	transferState: string,
 	fulfilment: string | null,
 	completedTimestamp: string,
@@ -521,10 +518,9 @@ export interface PutTransfer {
 }
 
 export interface GetTransfer {
-	transferId: string,
 	transferState: string,
 	fulfilment: string | null,
-	completedTimestamp: number | null,
+	completedTimestamp: string | null,
 	extensionList: {
 		extension: {
 			key: string,
@@ -552,7 +548,6 @@ export const transformPayloadTransferRequestPost = (payload: TransferPreparedEvt
 
 export const transformPayloadTransferRequestPut = (payload: TransferCommittedFulfiledEvtPayload): PutTransfer => {
 	const info: PutTransfer = {
-		transferId: payload.transferId,
 		transferState: "COMMITTED",
 		fulfilment: payload.fulfilment,
 		completedTimestamp: new Date(payload.completedTimestamp).toJSON(),
@@ -564,10 +559,9 @@ export const transformPayloadTransferRequestPut = (payload: TransferCommittedFul
 
 export const transformPayloadTransferRequestGet = (payload: TransferQueryResponseEvtPayload): GetTransfer => {
 	const info: GetTransfer = {
-		transferId: payload.transferId,
-		transferState: payload.transferState,
-		completedTimestamp: payload.completedTimestamp,
+		transferState: "COMMITTED",
 		fulfilment: payload.fulfilment,
+		completedTimestamp: payload.completedTimestamp ? new Date(payload.completedTimestamp).toJSON() : null,
 		extensionList: payload.extensionList
 	};
 

@@ -205,7 +205,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             case QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent.name:
             {
                 errorResponse.errorCode = Enums.ClientErrors.GENERIC_VALIDATION_ERROR.code;
-                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_VALIDATION_ERROR.description;
+                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_VALIDATION_ERROR.name;
                 break;
             }
             case QuoteBCQuoteNotFoundErrorEvent.name:

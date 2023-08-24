@@ -120,6 +120,7 @@ export const ClientErrors = {
     },
     GENERIC_VALIDATION_ERROR: {
         code: "3100",
+        name: "Generic validation error",
         description: "Generic validation error to be used in order not to disclose information that may be considered private."
     },
     MALFORMED_SYNTAX: {
@@ -128,6 +129,7 @@ export const ClientErrors = {
     },
     MISSING_MANDATORY_ELEMENT: {
         code: "3102",
+        name: "Missing mandatory element",
         description: "Mandatory element in the data model was missing."
     },
     TOO_MANY_ELEMENTS: {
@@ -168,6 +170,7 @@ export const ClientErrors = {
     },
 	PARTY_NOT_FOUND: {
         code: "3204",
+        name: "Party not found",
         description: "Party with the provided identifier, identifier type, and optional sub id or type was not found."
     },
     QUOTE_ID_NOT_FOUND: {

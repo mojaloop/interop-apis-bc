@@ -28,6 +28,7 @@
     "standard": "npm run --no-progress --stream lint'",
     "lint": "npm -ws run lint",
     "lint:fix": "npm -ws run lint:fix",
+    "test": "npm run test:unit && npm run test:integration",
     "test:unit": "npm run test:unit --forceExit -ws",
     "test:coverage": "npm -ws run test:coverage",
     "test:coverage-check": "npm -ws run test:coverage-check",
