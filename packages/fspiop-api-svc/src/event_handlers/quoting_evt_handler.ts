@@ -212,21 +212,19 @@ export class QuotingEventHandler extends BaseEventHandler {
             case GetPartyQueryRejectedEvt.name:
             {
                 errorResponse.errorCode = Enums.ClientErrors.QUOTE_ID_NOT_FOUND.code;
-                errorResponse.errorDescription = Enums.ClientErrors.QUOTE_ID_NOT_FOUND.description;
+                errorResponse.errorDescription = Enums.ClientErrors.QUOTE_ID_NOT_FOUND.name;
                 break;
             }
             case QuoteBCBulkQuoteNotFoundErrorEvent.name: {
                 errorResponse.errorCode = Enums.ClientErrors.BULK_QUOTE_ID_NOT_FOUND.code;
-                errorResponse.errorDescription = Enums.ClientErrors.BULK_QUOTE_ID_NOT_FOUND.description;
+                errorResponse.errorDescription = Enums.ClientErrors.BULK_QUOTE_ID_NOT_FOUND.name;
                 break;
             }
             case QuoteBCInvalidDestinationFspIdErrorEvent.name:{
                 errorResponse.errorCode = Enums.ClientErrors.DESTINATION_FSP_ERROR.code;
-                errorResponse.errorDescription = Enums.ClientErrors.DESTINATION_FSP_ERROR.description;
+                errorResponse.errorDescription = Enums.ClientErrors.DESTINATION_FSP_ERROR.name;
                 break;
-            }
-            case QuoteBCRequesterParticipantNotFoundErrorEvent.name:
-            case QuoteBCDestinationParticipantNotFoundErrorEvent.name:
+            }            
             case QuoteBCDuplicateQuoteErrorEvent.name:
             case QuoteBCUnableToAddQuoteToDatabaseErrorEvent.name:
             case QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent.name:
@@ -234,18 +232,28 @@ export class QuotingEventHandler extends BaseEventHandler {
             case QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent.name:
             case QuoteBCInvalidRequesterFspIdErrorEvent.name: {
                 errorResponse.errorCode = Enums.ClientErrors.GENERIC_CLIENT_ERROR.code;
-                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_CLIENT_ERROR.description;
+                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_CLIENT_ERROR.name;
+                break;
+            }
+            case QuoteBCRequesterParticipantNotFoundErrorEvent.name: {
+                errorResponse.errorCode = Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.code;
+                errorResponse.errorDescription = Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.name;
+                break;
+            }
+            case QuoteBCDestinationParticipantNotFoundErrorEvent.name: {
+                errorResponse.errorCode = Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.code;
+                errorResponse.errorDescription = Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.name;
                 break;
             }
             case QuoteBCQuoteExpiredErrorEvent.name:
             case QuoteBCBulkQuoteExpiredErrorEvent.name: {
                 errorResponse.errorCode = Enums.ClientErrors.QUOTE_EXPIRED.code;
-                errorResponse.errorDescription = Enums.ClientErrors.QUOTE_EXPIRED.description;
+                errorResponse.errorDescription = Enums.ClientErrors.QUOTE_EXPIRED.name;
                 break;
             }
             case QuoteBCUnknownErrorEvent.name: {
                 errorResponse.errorCode = Enums.ServerErrors.INTERNAL_SERVER_ERROR.code;
-                errorResponse.errorDescription = Enums.ServerErrors.INTERNAL_SERVER_ERROR.description;
+                errorResponse.errorDescription = Enums.ServerErrors.INTERNAL_SERVER_ERROR.name;
                 break;
             }
             default: {
@@ -373,7 +381,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 source: requesterFspId,
                 destination: requesterFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadQuotingResponsePut(payload),
+                payload: Transformer.transformPayloadQuotingResponseGet(payload),
             });
 
             this._logger.info("_handleQuotingQueryResponseEvt -> end");

@@ -467,6 +467,22 @@ export const transformPayloadQuotingResponsePut = (payload: QuoteResponseAccepte
 	return removeEmpty(info);
 };
 
+export const transformPayloadQuotingResponseGet = (payload: QuoteResponseAcceptedEvtPayload): PutQuote => {
+	const info: PutQuote = {
+		transferAmount: payload.transferAmount,
+		expiration: payload.expiration,
+		ilpPacket: payload.ilpPacket,
+		condition: payload.condition,
+		payeeReceiveAmount: payload.payeeReceiveAmount,
+		payeeFspFee: payload.payeeFspFee,
+		payeeFspCommission: payload.payeeFspCommission,
+		geoCode: payload.geoCode,
+		extensionList: payload.extensionList
+	};
+
+	return removeEmpty(info);
+};
+
 export const transformPayloadBulkQuotingResponsePost = (payload: BulkQuoteReceivedEvtPayload): PostBulkQuote => {
 	const info: PostBulkQuote = {
 		bulkQuoteId: payload.bulkQuoteId,

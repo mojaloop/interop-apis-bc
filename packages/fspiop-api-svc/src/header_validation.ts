@@ -73,7 +73,7 @@ export const validateHeaders = (req: express.Request, res: express.Response, nex
 			return res.status(400).json({
 				errorInformation: {
 					errorCode: FSPIOPErrorCodes.MISSING_ELEMENT.code,
-					errorDescription: errorMessages.REQUIRE_ACCEPT_HEADER
+					errorDescription: errorMessages.REQUIRE_CONTENT_TYPE_HEADER
 				}
 			});
 		}

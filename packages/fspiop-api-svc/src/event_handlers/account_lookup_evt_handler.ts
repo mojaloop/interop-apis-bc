@@ -132,7 +132,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 id: [partyType, partyId, partySubType],
                 errorResponse: {
                     errorCode: Enums.ServerErrors.GENERIC_SERVER_ERROR.code,
-                    errorDescription: Enums.ServerErrors.GENERIC_SERVER_ERROR.description,
+                    errorDescription: Enums.ServerErrors.GENERIC_SERVER_ERROR.name,
                     sourceFspId: requesterFspId,
                     destinationFspId: null
                 }
@@ -178,7 +178,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         const errorResponse: { errorCode: string, errorDescription: string, sourceFspId: string, destinationFspId: string | null } =
         {
             errorCode : Enums.CommunicationErrors.COMMUNCATION_ERROR.code,
-            errorDescription : Enums.CommunicationErrors.COMMUNCATION_ERROR.description,
+            errorDescription : Enums.CommunicationErrors.COMMUNCATION_ERROR.name,
             sourceFspId : sourceFspId,
             destinationFspId: null
         };
@@ -187,24 +187,24 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             case AccountLookupBCUnableToAssociateParticipantErrorEvent.name:
             case AccountLookupBCUnableToDisassociateParticipantErrorEvent.name: {
                 errorResponse.errorCode = Enums.ServerErrors.GENERIC_SERVER_ERROR.code;
-                errorResponse.errorDescription = Enums.ServerErrors.GENERIC_SERVER_ERROR.description;
+                errorResponse.errorDescription = Enums.ServerErrors.GENERIC_SERVER_ERROR.name;
                 break;
             }
             case AccountLookupBCDestinationParticipantNotFoundErrorEvent.name:
             case AccountLookupBCRequesterParticipantNotFoundErrorEvent.name: {
                 // According to TTK Use cases, this is a generic not found error
                 errorResponse.errorCode = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code;
-                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.description;
+                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.name;
                 break;
             }
             case AccountLookupBCInvalidDestinationParticipantErrorEvent.name: {
                     errorResponse.errorCode = Enums.ClientErrors.GENERIC_CLIENT_ERROR.code;
-                    errorResponse.errorDescription = Enums.ClientErrors.GENERIC_CLIENT_ERROR.description;
+                    errorResponse.errorDescription = Enums.ClientErrors.GENERIC_CLIENT_ERROR.name;
                     break;
             }
             case AccountLookupBCInvalidRequesterParticipantErrorEvent.name: {
                 errorResponse.errorCode = Enums.ClientErrors.DESTINATION_FSP_ERROR.code;
-                errorResponse.errorDescription = Enums.ClientErrors.DESTINATION_FSP_ERROR.description;
+                errorResponse.errorDescription = Enums.ClientErrors.DESTINATION_FSP_ERROR.name;
                 break;
             }
             case AccountLookupBCInvalidMessagePayloadErrorEvent.name:
@@ -213,7 +213,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 // According to TTK Use cases, this is a generic not found error
                 // check "Party info of unprovisioned party" for reference
                 errorResponse.errorCode = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code;
-                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.description;
+                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.name;
                 break;
             }
             case GetPartyQueryRejectedResponseEvt.name:
@@ -224,7 +224,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             }
             case AccountLookUpUnknownErrorEvent.name: {
                 errorResponse.errorCode = Enums.ServerErrors.INTERNAL_SERVER_ERROR.code;
-                errorResponse.errorDescription = Enums.ServerErrors.INTERNAL_SERVER_ERROR.description;
+                errorResponse.errorDescription = Enums.ServerErrors.INTERNAL_SERVER_ERROR.name;
                 break;
             }
             default: {
