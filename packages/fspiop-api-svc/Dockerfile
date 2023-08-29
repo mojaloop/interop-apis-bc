@@ -15,8 +15,8 @@ COPY package*.json ./
 COPY packages/fspiop-utils-lib/package*.json ./packages/fspiop-utils-lib/
 COPY packages/fspiop-api-svc/package*.json ./packages/fspiop-api-svc/
 
-# Our images don't need devDependencies
-RUN BUILD_LIBRDKAFKA=0 npm install --omit=dev
+# install devDependencies on builder image
+RUN BUILD_LIBRDKAFKA=0 npm install
 
 # Note on BUILD_LIBRDKAFKA:
 #   Use BUILD_LIBRDKAFKA=0 only if we have installed librdkafka-dev in
@@ -47,4 +47,4 @@ COPY --from=builder /app .
 # kafka handler, no http server yet
 EXPOSE 4000
 
-CMD [ "npm", "run", "start:fspiop-api-svc" ]
+CMD [ "node", "packages/fspiop-api-svc/dist/index.js" ]

@@ -90,7 +90,7 @@ const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
 
 const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
-const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || "/app/data/audit_private_key.pem";
+const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || path.join(__dirname, "../dist/tmp_key_file");
 
 // Account Lookup
 const PARTICIPANTS_URL_RESOURCE_NAME = "participants";
@@ -309,6 +309,11 @@ export class Service {
 
             /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
             this.app.use((err: FspiopHttpRequestError, req: express.Request, res: express.Response, next: express.NextFunction) => {
+                if(!err.data) {
+                    next();
+                    return;
+                }
+                
                 const errorResponseBuilder = (errorCode: string, errorDescription: string, additionalProperties = {}) => {
                     return {
                         errorInformation: {
@@ -363,7 +368,14 @@ export class Service {
             this.app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
                 // catch all
                 this.logger.warn(`Received unhandled request to url: ${req.url}`);
-                res.sendStatus(404);
+                res.status(404).json({
+                    errorInformation: {
+                        errorCode: "3002",
+                        errorDescription: "Unknown URI"
+                    }
+                })
+
+                next();
             });
 
             let portNum = SVC_DEFAULT_HTTP_PORT;

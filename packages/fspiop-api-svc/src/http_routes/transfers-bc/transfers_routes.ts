@@ -311,7 +311,7 @@ export class TransfersRoutes extends BaseRoutes {
 
             this.logger.debug("transferQueryReceived sent message");
 
-            res.status(200).json(null);
+            res.status(202).json(null);
 
             this.logger.debug("transferQueryReceived responded");
         }

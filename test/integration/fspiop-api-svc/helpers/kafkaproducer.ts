@@ -30,7 +30,7 @@
  ******/
 
  "use strict"
- 
+
 import * as kafka from "kafka-node";
 
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
@@ -41,10 +41,10 @@ export const getCurrentKafkaOffset = (topic: string): Promise<kafka.Message> => 
     });
 
     const offset = new kafka.Offset(client);
-    
+
     return new Promise((resolve, reject) => offset.fetchLatestOffsets([topic], (error: any, data: any) => {
         const offsetA = JSON.stringify(data[topic][0]) as unknown as number;
-        
+
         let consumer = new kafka.Consumer(
             client,
             [
@@ -60,7 +60,7 @@ export const getCurrentKafkaOffset = (topic: string): Promise<kafka.Message> => 
         );
         consumer.on('message', async function (message) {
             error? reject(error) : resolve(message);
-            
+
             consumer.close(false, () => {
                 client.close();
             });
@@ -69,43 +69,43 @@ export const getCurrentKafkaOffset = (topic: string): Promise<kafka.Message> => 
         return;
     }));
 };
+//
+// class KafkaProducer {
+//     private producer: kafka.Producer;
+//
+//     public async init() {
+//         this.producer = await this.create();
+//     }
+//
+//     public async destroy(): Promise<void> {
+//         this.producer.close()
+//         this.producer
+//
+//     }
+//
+//     public sendMessage(topic: string, message: any) {
+//         const payload = { topic, messages: Buffer.from(JSON.stringify(message)), attributes: 0, partition: 0, key: message.partyId };
+//         return new Promise((resolve, reject) => {
+//             this.producer.send([payload], function (err: any, data: kafka.Message) {
+//                 (err) ? reject(err) : resolve(data);
+//             });
+//         });
+//     }
+//
+//     private create(): Promise<kafka.Producer> {
+//         const client = new kafka.KafkaClient({
+//             kafkaHost: KAFKA_URL
+//         });
+//
+//         const producer = new kafka.Producer(client);
+//
+//         return new Promise((resolve, reject) => {
+//             producer.on("ready", () => {
+//                 resolve(producer)
+//             });
+//         });
+//     }
+//
+// }
 
-class KafkaProducer {
-    private producer: kafka.Producer;
-
-    public async init() {
-        this.producer = await this.create();
-    }
-
-    public async destroy(): Promise<void> {
-        this.producer.close()
-        this.producer
-
-    }
-
-    public sendMessage(topic: string, message: any) {
-        const payload = { topic, messages: Buffer.from(JSON.stringify(message)), attributes: 0, partition: 0, key: message.partyId };
-        return new Promise((resolve, reject) => {
-            this.producer.send([payload], function (err: any, data: kafka.Message) {
-                (err) ? reject(err) : resolve(data);
-            });
-        });
-    }
-
-    private create(): Promise<kafka.Producer> {
-        const client = new kafka.KafkaClient({
-            kafkaHost: KAFKA_URL
-        });
-
-        const producer = new kafka.Producer(client);
-
-        return new Promise((resolve, reject) => {
-            producer.on("ready", () => {
-                resolve(producer)
-            });
-        });
-    }
-
-}
-
-export default KafkaProducer;
+// export default KafkaProducer;
