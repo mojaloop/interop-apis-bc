@@ -355,14 +355,19 @@ export class QuotingEventHandler extends BaseEventHandler {
             const { payload } = message;
 
             const clonedHeaders = fspiopOpaqueState;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+
+            clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
+
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
             // TODO validate vars above
 
-            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
+            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
             if(!requestedEndpoint) {
-                throw Error(`fspId ${requesterFspId} has no valid participant associated`);
+                throw Error(`fspId ${destinationFspId} has no valid participant associated`);
             }
 
             this._logger.info("_handleQuotingQueryResponseEvt -> start");
@@ -371,15 +376,16 @@ export class QuotingEventHandler extends BaseEventHandler {
             // message.validatePayload();
             // Validate.validateHeaders(QuotesPost, clonedHeaders);
 
+            
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
             urlBuilder.setId(payload.quoteId);
-
+            
             await Request.sendRequest({
                 url: urlBuilder.build(),
                 headers: clonedHeaders,
                 source: requesterFspId,
-                destination: requesterFspId,
+                destination: destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: Transformer.transformPayloadQuotingResponseGet(payload),
             });

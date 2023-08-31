@@ -289,9 +289,6 @@ export class TransfersRoutes extends BaseRoutes {
                 return;
             }
 
-            // REVIEW THIS
-            clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = requesterFspId as string;
-
             const msgPayload: TransferQueryReceivedEvtPayload = {
                 transferId: transferId,
             };

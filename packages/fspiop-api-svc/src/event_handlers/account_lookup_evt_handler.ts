@@ -450,25 +450,26 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             const partyType = payload.partyType;
             const partyId = payload.partyId;
             const partySubType = payload.partySubType as string;
-            const requesterFspId = payload.requesterFspId;
             const clonedHeaders = fspiopOpaqueState;
+
+            clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
+
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
             // TODO validate vars above
 
-            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
+            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
             if(!requestedEndpoint) {
-                throw Error(`fspId ${requesterFspId} has no valid participant associated`);
+                throw Error(`fspId ${destinationFspId} has no valid participant associated`);
             }
 
             // Always validate the payload and headers received
             message.validatePayload();
             Validate.validateHeaders(partySubType ? ParticipantsPutTypeAndId : ParticipantsPutId, clonedHeaders);
 
-            if (!clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === "") {
-                clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
-            }
-            clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
@@ -478,7 +479,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 url: urlBuilder.build(),
                 headers: clonedHeaders,
                 source: requesterFspId,
-                destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null,
+                destination: destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: Transformer.transformPayloadParticipantPut(payload),
             });

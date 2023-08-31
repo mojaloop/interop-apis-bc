@@ -242,9 +242,6 @@ export class QuoteRoutes extends BaseRoutes {
                 return;
             }
 
-            // TODO: Review this rule that matches ttk use cases
-            clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = requesterFspId as string;
-
             const msgPayload: QuoteQueryReceivedEvtPayload = {
                 quoteId: quoteId,
             };

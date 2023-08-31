@@ -415,15 +415,19 @@ export class TransferEventHandler extends BaseEventHandler {
             const { payload } = message;
 
             const clonedHeaders = fspiopOpaqueState;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SWITCH] as string;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+            
+            clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
+
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
             // TODO validate vars above
 
-            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
+            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
             if(!requestedEndpoint) {
-                throw Error(`fspId ${requesterFspId} has no valid participant associated`);
+                throw Error(`fspId ${destinationFspId} has no valid participant associated`);
             }
 
             this._logger.info("_handleTransferQueryResponseEvt -> start");
