@@ -154,13 +154,17 @@ export abstract class BaseEventHandler  {
                 }
 
                 const url = this.buildFspFeedbackUrl(endpoint, id, message);
+                const clonedHeaders = { ...headers };
 
+                if (!clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === "") {
+                    clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = headers[Constants.FSPIOP_HEADERS_SOURCE];
+                }
 
                 await Request.sendRequest({
                     url: url,
-                    headers: headers,
+                    headers: clonedHeaders,
                     source: fspId,
-                    destination: headers[Constants.FSPIOP_HEADERS_DESTINATION] || null,
+                    destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null,
                     method: Enums.FspiopRequestMethodsEnum.PUT,
                     payload: Transformer.transformPayloadError({
                         errorCode: errorResponse.errorCode,

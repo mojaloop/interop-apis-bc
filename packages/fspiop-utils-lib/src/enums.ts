@@ -38,7 +38,8 @@ export enum FspiopRequestMethodsEnum {
     GET = "GET",
     POST = "POST",
     PUT = "PUT",
-    DELETE = "DELETE"
+    DELETE = "DELETE",
+    PATCH = "PATCH"
 }
 
 export enum PartyIdType {
