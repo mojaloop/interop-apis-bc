@@ -33,7 +33,7 @@
 "use strict";
 
 
-import { FSPIOP_HEADERS_ACCEPT, FSPIOP_HEADERS_CONTENT_LENGTH, FSPIOP_HEADERS_CONTENT_TYPE, FSPIOP_HEADERS_DATE, FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION, FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_ENCRYPTION, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_URI, FSPIOP_HEADERS_X_FORWARDED_FOR } from "../../src/constants";
+import { FSPIOP_HEADERS_ACCEPT, FSPIOP_HEADERS_CONTENT_LENGTH, FSPIOP_HEADERS_CONTENT_TYPE, FSPIOP_HEADERS_DATE, FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION, FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_ENCRYPTION, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_SWITCH, FSPIOP_HEADERS_URI, FSPIOP_HEADERS_X_FORWARDED_FOR } from "../../src/constants";
 import { EntityTypeEnum, ErrorCode, FspiopRequestMethodsEnum } from "../../src/enums";
 import { validateHeaders } from "../../src/validate";
 import axios from "axios";
@@ -71,6 +71,8 @@ describe("FSPIOP Utils Lib", () => {
                 [FSPIOP_HEADERS_HTTP_METHOD]: "1",
                 [FSPIOP_HEADERS_SIGNATURE]: "1",
                 [FSPIOP_HEADERS_DATE]: "1",
+                [FSPIOP_HEADERS_URI]: "1",
+                [FSPIOP_HEADERS_SWITCH]: "1",
             },
             source: "1",
             destination: "2",
@@ -94,9 +96,9 @@ describe("FSPIOP Utils Lib", () => {
                 "fspiop-destination": "1",
                 "fspiop-encryption": undefined,
                 "fspiop-http-method": "PUT",
-                "fspiop-signature": undefined,
+                "fspiop-signature": "1",
                 "fspiop-source": "1",
-                "fspiop-uri": undefined,
+                "fspiop-uri": "1",
                 "x-forwarded-for": undefined,
             },
             "method": "PUT",
