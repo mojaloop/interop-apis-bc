@@ -398,8 +398,9 @@ export class Service {
         // if (this.auditClient) await this.auditClient.destroy();
         // if (this.logger && this.logger instanceof KafkaLogger) await this.logger.destroy();
         if (this.expressServer){
-            const closeExpress = util.promisify(this.expressServer.close);
-            await closeExpress();
+            await this.expressServer.close();
+            // const closeExpress = util.promisify(this.expressServer.close);
+            // await closeExpress();
         }
 
         await accountEvtHandler.destroy();

@@ -35,10 +35,11 @@ import path from "path";
 import request from "supertest";
 import jestOpenAPI from "jest-openapi";
 import { QuoteQueryReceivedEvt, QuoteRequestReceivedEvt, QuoteResponseReceivedEvt, QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { Service } from "@mojaloop/interop-apis-bc-fspiop-api-svc";
-import { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
+import { Service } from "../../../../packages/fspiop-api-svc/src";
+import KafkaConsumer, { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
 import { getHeaders, missingPropertyResponse } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import waitForExpect from "wait-for-expect";
 
 // Sets the location of your OpenAPI Specification file
 jestOpenAPI(path.join(__dirname, "../../../../packages/fspiop-api-svc/dist/api_spec.yaml"));
@@ -100,197 +101,160 @@ const validPutPayload = {
     }
 };
 
-jest.setTimeout(400000);
+jest.setTimeout(60000);
 
 const topic = process.env["KAFKA_QUOTING_TOPIC"] || QuotingBCTopics.DomainRequests;
 
 const pathWithoutQuoteId = `/${Enums.EntityTypeEnum.QUOTES}`;
 const pathWithQuoteId = `/${Enums.EntityTypeEnum.QUOTES}/123456789`;
 
+const consumer = new KafkaConsumer([QuotingBCTopics.DomainRequests])
+
 describe("FSPIOP API Service Quote Routes", () => {
 
     beforeAll(async () => {
-        // await Service.start();
+        await Service.start();
+        await consumer.init()
     });
 
     afterAll(async () => {
-        // await Service.stop();
+        await Service.stop();
+        await consumer.destroy()
+    });
+
+    beforeEach(async () => {
+        await consumer.clearEvents()
     });
 
     it("should successfully call quoteQueryReceived endpoint", async () => {
         // Act
-        const expectedOffset = await getCurrentKafkaOffset(topic);
-
         const res = await request(server)
         .get(pathWithQuoteId)
         .set(getHeaders(Enums.EntityTypeEnum.QUOTES));
 
-
-        let sentMessagesCount = 0;
-        let expectedOffsetMessage;
-
-        const currentOffset = await getCurrentKafkaOffset(topic);
-
-        if (currentOffset.offset && expectedOffset.offset) {
-            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
-            expectedOffsetMessage = JSON.parse(currentOffset.value as string);
-        }
+        const messages = consumer.getEvents();
 
         // Assert
-        expect(res.statusCode).toEqual(202);
-        expect(res.body).toStrictEqual(null);
-        expect(sentMessagesCount).toBe(1);
-        expect(expectedOffsetMessage.msgName).toBe(QuoteQueryReceivedEvt.name);
-        expect(res).toSatisfyApiSpec();
+        await waitForExpect(() => {
+            expect(res.statusCode).toEqual(202);
+            expect(res.body).toStrictEqual(null);
+            expect(messages.length).toBe(1);
+            expect(messages[0].msgName).toBe(QuoteQueryReceivedEvt.name);
+            expect(res).toSatisfyApiSpec();
+        });
     });
 
     it("should successfully call quoteRequestReceived endpoint", async () => {
         // Act
-        const expectedOffset = await getCurrentKafkaOffset(topic);
-
         const res = await request(server)
         .post(pathWithoutQuoteId)
         .send(validPostPayload)
         .set(getHeaders(Enums.EntityTypeEnum.QUOTES));
 
-
-        let sentMessagesCount = 0;
-        let expectedOffsetMessage;
-        const currentOffset = await getCurrentKafkaOffset(topic);
-
-        if (currentOffset.offset && expectedOffset.offset) {
-            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
-            expectedOffsetMessage = JSON.parse(currentOffset.value as string);
-        }
+        const messages = consumer.getEvents();
 
         // Assert
-        expect(res.statusCode).toEqual(202);
-        expect(res.body).toStrictEqual(null);
-        expect(sentMessagesCount).toBe(1);
-        expect(expectedOffsetMessage.msgName).toBe(QuoteRequestReceivedEvt.name);
-        expect(res).toSatisfyApiSpec();
+        await waitForExpect(() => {
+            expect(res.statusCode).toEqual(202);
+            expect(res.body).toStrictEqual(null);
+            expect(messages.length).toBe(1);
+            expect(messages[0].msgName).toBe(QuoteRequestReceivedEvt.name);
+            expect(res).toSatisfyApiSpec();
+        });
     });
 
     it("should successfully call quoteResponseReceived endpoint", async () => {
         // Act
-        const expectedOffset = await getCurrentKafkaOffset(topic);
-
         const res = await request(server)
         .put(pathWithQuoteId)
         .send(validPutPayload)
         .set(getHeaders(Enums.EntityTypeEnum.QUOTES));
 
-
-        let sentMessagesCount = 0;
-        let expectedOffsetMessage;
-        const currentOffset = await getCurrentKafkaOffset(topic);
-
-        if (currentOffset.offset && expectedOffset.offset) {
-            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
-            expectedOffsetMessage = JSON.parse(currentOffset.value as string);
-        }
+        const messages = consumer.getEvents();
 
         // Assert
-        expect(res.statusCode).toEqual(200);
-        expect(res.body).toStrictEqual(null);
-        expect(sentMessagesCount).toBe(1);
-        expect(expectedOffsetMessage.msgName).toBe(QuoteResponseReceivedEvt.name);
-        expect(res).toSatisfyApiSpec();
+        await waitForExpect(() => {
+            expect(res.statusCode).toEqual(200);
+            expect(res.body).toStrictEqual(null);
+            expect(messages.length).toBe(1);
+            expect(messages[0].msgName).toBe(QuoteResponseReceivedEvt.name);
+            expect(res).toSatisfyApiSpec();
+        });
     });
 
     it("should throw with an unprocessable entity error code calling quoteRequestReceived endpoint", async () => {
         // Act
-        const expectedOffset = await getCurrentKafkaOffset(topic);
-
         const res = await request(server)
         .post(pathWithoutQuoteId)
         .set(getHeaders(Enums.EntityTypeEnum.QUOTES));
 
-        let sentMessagesCount = 0;
-        const currentOffset = await getCurrentKafkaOffset(topic);
-
-        if (currentOffset.offset && expectedOffset.offset) {
-            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
-        }
+        const messages = consumer.getEvents();
 
         // Assert
-        expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual(missingPropertyResponse("quoteId", "body"));
-        expect(sentMessagesCount).toBe(0);
+        await waitForExpect(() => {
+            expect(res.statusCode).toEqual(400);
+            expect(res.body).toStrictEqual(missingPropertyResponse("quoteId", "body"));
+            expect(messages.length).toBe(0);
+        });
     });
 
     it("should throw with an unprocessable entity error code calling quoteResponseReceived endpoint", async () => {
         // Act
-        const expectedOffset = await getCurrentKafkaOffset(topic);
-
         const res = await request(server)
         .put(pathWithQuoteId)
         .set(getHeaders(Enums.EntityTypeEnum.QUOTES));
 
-        let sentMessagesCount = 0;
-        const currentOffset = await getCurrentKafkaOffset(topic);
-
-        if (currentOffset.offset && expectedOffset.offset) {
-            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
-        }
+        const messages = consumer.getEvents();
 
         // Assert
-        expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual(missingPropertyResponse("transferAmount", "body"));
-        expect(sentMessagesCount).toBe(0);
+        await waitForExpect(() => {
+            expect(res.statusCode).toEqual(400);
+            expect(res.body).toStrictEqual(missingPropertyResponse("transferAmount", "body"));
+            expect(messages.length).toBe(0);
+        });
     });
 
     it("should give a bad request calling quoteQueryReceived endpoint", async () => {
         // Act
-        const expectedOffset = await getCurrentKafkaOffset(topic);
-
         const res = await request(server)
         .get(pathWithQuoteId)
         .set(getHeaders(Enums.EntityTypeEnum.QUOTES, ["date"]));
 
-        let sentMessagesCount = 0;
-        const currentOffset = await getCurrentKafkaOffset(topic);
-
-        if (currentOffset.offset && expectedOffset.offset) {
-            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
-        }
+        const messages = consumer.getEvents();
 
         // Assert
-        expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual({
-            "errorInformation": {
-                "errorCode": "3102",
-                "errorDescription": "Invalid date-type",
-            }
+        await waitForExpect(() => {
+            expect(res.statusCode).toEqual(400);
+            expect(res.body).toStrictEqual({
+                "errorInformation": {
+                    "errorCode": "3102",
+                    "errorDescription": "Invalid date-type",
+                }
+            });
+            expect(messages.length).toBe(0);
         });
-        expect(sentMessagesCount).toBe(0);
     });
 
 
     it("should give a bad request calling quoteRequestReceived endpoint", async () => {
         // Act
-        const expectedOffset = await getCurrentKafkaOffset(topic);
-
         const res = await request(server)
         .put(pathWithQuoteId)
         .send(validPutPayload)
         .set(getHeaders(Enums.EntityTypeEnum.QUOTES, ["date"]));
 
-        let sentMessagesCount = 0;
-        const currentOffset = await getCurrentKafkaOffset(topic);
-
-        if (currentOffset.offset && expectedOffset.offset) {
-            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
-        }
+        const messages = consumer.getEvents();
 
         // Assert
-        expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual({
-            "errorInformation": {
-                "errorCode": "3102",
-                "errorDescription": "Invalid date-type",
-            }
+        await waitForExpect(() => {
+            expect(res.statusCode).toEqual(400);
+            expect(res.body).toStrictEqual({
+                "errorInformation": {
+                    "errorCode": "3102",
+                    "errorDescription": "Invalid date-type",
+                }
+            });
+            expect(messages.length).toBe(0);
         });
-        expect(sentMessagesCount).toBe(0);
     });
 });

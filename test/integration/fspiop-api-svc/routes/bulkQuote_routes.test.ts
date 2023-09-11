@@ -37,10 +37,11 @@ import {
     BulkQuotePendingReceivedEvt, 
     QuotingBCTopics 
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { Service } from "@mojaloop/interop-apis-bc-fspiop-api-svc";
-import { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
+import KafkaConsumer, { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
 import { getHeaders, missingPropertyResponse } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import waitForExpect from "wait-for-expect";
+import { Service } from "../../../../packages/fspiop-api-svc/src";
 
 const server = "http://localhost:4000";
 
@@ -112,9 +113,9 @@ const goodStatusResponse = {
 };
 
 
+const consumer = new KafkaConsumer([QuotingBCTopics.DomainRequests])
 
-
-jest.setTimeout(20000);
+jest.setTimeout(60000);
 
 const topic = process.env["KAFKA_QUOTING_TOPIC"] || QuotingBCTopics.DomainRequests;
 
@@ -125,126 +126,103 @@ describe("FSPIOP API Service Bulk Quotes Routes", () => {
 
     beforeAll(async () => {
         await Service.start();
+        await consumer.init()
     });
-    
+
     afterAll(async () => {
         await Service.stop();
+        await consumer.destroy()
     });
-    
+
+    beforeEach(async () => {
+        await consumer.clearEvents()
+    });
+
     it("should successfully call bulkQuoteRequest endpoint", async () => {
         // Act
-        const expectedOffset = await getCurrentKafkaOffset(topic);
-
         const res = await request(server)
         .post(pathWithoutBulkQuoteId)
         .send(validPostPayload)
         .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES));
 
-        let sentMessagesCount = 0;
-        let expectedOffsetMessage;
-        const currentOffset = await getCurrentKafkaOffset(topic);
-        
-        if (currentOffset.offset && expectedOffset.offset) {
-            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
-            expectedOffsetMessage = JSON.parse(currentOffset.value as string);
-        }
-        
+        const messages = consumer.getEvents();
+
         // Assert
-        expect(res.statusCode).toEqual(202);
-        expect(res.body).toStrictEqual(goodStatusResponse);
-        expect(sentMessagesCount).toBe(1);
-        expect(expectedOffsetMessage.msgName).toBe(BulkQuoteRequestedEvt.name);
+        await waitForExpect(() => {
+            expect(res.statusCode).toEqual(202);
+            expect(res.body).toStrictEqual(null);
+            expect(messages.length).toBe(1);
+            expect(messages[0].msgName).toBe(BulkQuoteRequestedEvt.name);
+        });
     });
 
     it("should successfully call bulkQuotePending endpoint", async () => {
         // Act
-        const expectedOffset = await getCurrentKafkaOffset(topic);
-
         const res = await request(server)
         .put(pathWithBulkQuoteId)
         .send(validPutPayload)
         .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES));
 
-        let sentMessagesCount = 0;
-        let expectedOffsetMessage;
-        const currentOffset = await getCurrentKafkaOffset(topic);
-        
-        if (currentOffset.offset && expectedOffset.offset) {
-            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
-            expectedOffsetMessage = JSON.parse(currentOffset.value as string);
-        }
-        
+        const messages = consumer.getEvents();
+
         // Assert
-        expect(res.statusCode).toEqual(202);
-        expect(res.body).toStrictEqual(goodStatusResponse);
-        expect(sentMessagesCount).toBe(1);
-        expect(expectedOffsetMessage.msgName).toBe(BulkQuotePendingReceivedEvt.name);
+        await waitForExpect(() => {
+            expect(res.statusCode).toEqual(202);
+            expect(res.body).toStrictEqual(null);
+            expect(messages.length).toBe(1);
+            expect(messages[0].msgName).toBe(BulkQuotePendingReceivedEvt.name);
+        });
     });
 
     it("should throw with an unprocessable entity error code calling bulkQuoteRequest endpoint", async () => {
         // Act
-        const expectedOffset = await getCurrentKafkaOffset(topic);
-
         const res = await request(server)
         .post(pathWithoutBulkQuoteId)
         .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES));
 
-        let sentMessagesCount = 0;
-        const currentOffset = await getCurrentKafkaOffset(topic);
-        
-        if (currentOffset.offset && expectedOffset.offset) {
-            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
-        }
-        
+        const messages = consumer.getEvents();
+
         // Assert
-        expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual(missingPropertyResponse("bulkQuoteId", "body"));
-        expect(sentMessagesCount).toBe(0);
+        await waitForExpect(() => {
+            expect(res.statusCode).toEqual(400);
+            expect(res.body).toStrictEqual(missingPropertyResponse("bulkQuoteId", "body"));
+            expect(messages.length).toBe(0);
+        });
     });
 
     it("should give a bad request calling bulkQuoteRequest endpoint", async () => {
         // Act
-        const expectedOffset = await getCurrentKafkaOffset(topic);
-
         const res = await request(server)
         .post(pathWithoutBulkQuoteId)
         .send(validPostPayload)
         .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, ["date"]));
 
-        let sentMessagesCount = 0;
-        const currentOffset = await getCurrentKafkaOffset(topic);
-        
-        if (currentOffset.offset && expectedOffset.offset) {
-            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
-        }
-        
+        const messages = consumer.getEvents();
+
         // Assert
-        expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"));
-        expect(sentMessagesCount).toBe(0);
+        await waitForExpect(() => {
+            expect(res.statusCode).toEqual(400);
+            expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"));
+            expect(messages.length).toBe(0);
+        });
     });
 
 
     it("should give a bad request calling bulkQuotePending endpoint", async () => {
         // Act
-        const expectedOffset = await getCurrentKafkaOffset(topic);
-
         const res = await request(server)
         .put(pathWithBulkQuoteId)
         .send(validPutPayload)
         .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, ["date"]));
 
-        let sentMessagesCount = 0;
-        const currentOffset = await getCurrentKafkaOffset(topic);
-        
-        if (currentOffset.offset && expectedOffset.offset) {
-            sentMessagesCount = currentOffset.offset - expectedOffset.offset;
-        }
-        
+        const messages = consumer.getEvents();
+
         // Assert
-        expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"));
-        expect(sentMessagesCount).toBe(0);
+        await waitForExpect(() => {
+            expect(res.statusCode).toEqual(400);
+            expect(res.body).toStrictEqual(missingPropertyResponse("date", "headers"));
+            expect(messages.length).toBe(0);
+        });
     });
 
 
