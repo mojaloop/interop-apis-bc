@@ -22,4 +22,5 @@ module.exports = {
     //         "statements": -10
     //     }
     // }
+    "testSequencer": "./test/testSequencer.js"
 }

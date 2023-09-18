@@ -150,22 +150,28 @@ class KafkaConsumer {
         await (logger as KafkaLogger).init();
         const accountEvtHandlerConsumerOptions: MLKafkaJsonConsumerOptions = {
             kafkaBrokerList: KAFKA_URL,
-            kafkaGroupId: `${BC_NAME}_${APP_NAME}_AccountLookupEventHandler`,
+            kafkaGroupId: `${BC_NAME}_${APP_NAME}_test`,
         };
         
-        const _logger = logger.createChild("this.constructor.name");
 
-        this._consumer = new MLKafkaJsonConsumer(accountEvtHandlerConsumerOptions, _logger);
+        this._consumer = new MLKafkaJsonConsumer(accountEvtHandlerConsumerOptions, logger);
  
         this._consumer.setTopics(this._topics);
+        this._consumer.setCallbackFn(this.handler.bind(this));
+
         await this._consumer.connect();
-        
         await this._consumer.startAndWaitForRebalance();
 
-        this._consumer.on('data', async (message:any) => {
-                const messageJSON = JSON.parse(Buffer.from(message.value).toString());
-                this.addEvent(messageJSON)
-        });
+        // this._consumer.on("data", async (message:any) => {
+        //     const messageJSON = JSON.parse(Buffer.from(message.value).toString());
+        //     this.addEvent(messageJSON)
+        // });
+    }
+
+    private async handler(message: any): Promise<void> {
+        console.log(`Got message in handler: ${JSON.stringify(message, null, 2)}`);
+        this._events.push(message);
+        return;
     }
 
     public async destroy(): Promise<void> {
@@ -185,30 +191,6 @@ class KafkaConsumer {
     public getEvents(): any {
         return this._events;
     }
-
-    // public sendMessage(topic: string, message: any) {
-    //     const payload = { topic, messages: Buffer.from(JSON.stringify(message)), attributes: 0, partition: 0, key: message.partyId };
-    //     return new Promise((resolve, reject) => {
-    //         this._consumer.send([payload], function (err: any, data: kafka.Message) {
-    //             (err) ? reject(err) : resolve(data);
-    //         });
-    //     });
-    // }
-
-    // private create(): Promise<kafka.consumer> {
-    //     const client = new kafka.KafkaClient({
-    //         kafkaHost: KAFKA_URL
-    //     });
-
-    //     const consumer = new kafka.consumer(client);
-
-    //     return new Promise((resolve, reject) => {
-    //         consumer.on("ready", () => {
-    //             resolve(consumer)
-    //         });
-    //     });
-    // }
-
 }
 
 export default KafkaConsumer;

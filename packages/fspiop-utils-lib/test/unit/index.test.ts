@@ -34,14 +34,12 @@
 
 
 import { FSPIOP_HEADERS_ACCEPT, FSPIOP_HEADERS_CONTENT_LENGTH, FSPIOP_HEADERS_CONTENT_TYPE, FSPIOP_HEADERS_DATE, FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION, FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_ENCRYPTION, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_SWITCH, FSPIOP_HEADERS_URI, FSPIOP_HEADERS_X_FORWARDED_FOR } from "../../src/constants";
-import { EntityTypeEnum, ErrorCode, FspiopRequestMethodsEnum } from "../../src/enums";
-import { validateHeaders } from "../../src/validate";
+import { Enums, Constants, Request } from "../../src";
 import axios from "axios";
 import HeaderBuilder from "../../src/headers/header_builder";
 import { ParticipantsPutTypeAndId } from "../../../fspiop-api-svc/src/errors";
 import { removeEmpty, transformPayloadError, transformPayloadParticipantPut, transformPayloadPartyAssociationPut, transformPayloadPartyDisassociationPut, transformPayloadPartyInfoReceivedPut, transformPayloadPartyInfoRequestedPut } from "../../src/transformer";
 import { ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvtPayload, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { sendRequest } from "../../src/request"
 
 jest.mock("axios");
 
@@ -61,7 +59,7 @@ describe("FSPIOP Utils Lib", () => {
         (axios as unknown as jest.Mock).mockResolvedValueOnce(response)
 
         // Act
-        await sendRequest({
+        await Request.sendRequest({
             url: "testurl",
             headers: {
                 [FSPIOP_HEADERS_CONTENT_TYPE]: "1",
@@ -76,7 +74,7 @@ describe("FSPIOP Utils Lib", () => {
             },
             source: "1",
             destination: "2",
-            method: FspiopRequestMethodsEnum.PUT,
+            method: Enums.FspiopRequestMethodsEnum.PUT,
             payload: {
                 fspId: "1",
             },
@@ -119,7 +117,7 @@ describe("FSPIOP Utils Lib", () => {
             "date": "Mon, 01 Jan 2001 00:00:00 GMT",
             "fspiop-destination": "test-fspiop-destination",
             "fspiop-encryption": "test-fspiop-encryption",
-            "fspiop-http-method": FspiopRequestMethodsEnum.PUT,
+            "fspiop-http-method": Enums.FspiopRequestMethodsEnum.PUT,
             "fspiop-signature": "test-fspiop-signature",
             "fspiop-uri": "test-fspiop-uri",
             "x-forwarded-for": "test-fspiop-x-forwarded-for"
@@ -159,7 +157,7 @@ describe("FSPIOP Utils Lib", () => {
             "date": "Mon, 01 Jan 2001 00:00:00 GMT",
             "fspiop-destination": "test-fspiop-destination",
             "fspiop-encryption": "test-fspiop-encryption",
-            "fspiop-http-method": FspiopRequestMethodsEnum.PUT,
+            "fspiop-http-method": Enums.FspiopRequestMethodsEnum.PUT,
             "fspiop-signature": "test-fspiop-signature",
             "fspiop-uri": "test-fspiop-uri",
             "x-forwarded-for": "test-fspiop-x-forwarded-for"
@@ -224,48 +222,6 @@ describe("FSPIOP Utils Lib", () => {
         expect(result).toMatchObject(expect.objectContaining({
             "date": "invalid-date",
         }));
-    });
-    //#endregion
-
-    //#region Validate
-    test("it should be valid with all the required keys for type", async()=>{
-        // Arrange
-        const headers = {
-            "accept":"application/vnd.interoperability.parties+json;version=1.0",
-            "content-type":"application/vnd.interoperability.parties+json;version=1.0",
-            "fspiop-source":"test-fspiop-source",
-            "content-length": 0,
-            "date": "Mon, 01 Jan 2001 00:00:00 GMT",
-            "fspiop-destination": "test-fspiop-destination",
-            "fspiop-encryption": "test-fspiop-encryption",
-            "fspiop-http-method": FspiopRequestMethodsEnum.PUT,
-            "fspiop-signature": "test-fspiop-signature",
-            "fspiop-uri": "test-fspiop-uri",
-            "x-forwarded-for": "test-fspiop-x-forwarded-for"
-        };
-
-        // Act
-        const result = validateHeaders(ParticipantsPutTypeAndId, headers);
-
-        // Assert
-        expect(result).toBeTruthy();
-    });
-
-    test("it should throw when missing one or more keys for a type", async()=>{
-        // Arrange
-        const headers = {
-            "accept":"application/vnd.interoperability.parties+json;version=1.0",
-            "content-type":"application/vnd.interoperability.parties+json;version=1.0",
-            "fspiop-source":"test-fspiop-source",
-
-        };
-
-        // Act && Assert
-        try {
-            validateHeaders(ParticipantsPutTypeAndId, headers)
-        } catch (e: any) {
-            expect(e.message).toBe("Headers are missing the following keys: date");
-        }
     });
     //#endregion
 
@@ -435,7 +391,7 @@ describe("FSPIOP Utils Lib", () => {
     test("should be able to get correct result from transformPayloadError", async()=>{
         // Arrange
         const payload = {
-            errorCode: ErrorCode.BAD_REQUEST,
+            errorCode: Enums.ErrorCode.BAD_REQUEST,
             errorDescription: "test-error-description"
         };
 

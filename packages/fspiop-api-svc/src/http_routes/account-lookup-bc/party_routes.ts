@@ -36,7 +36,7 @@
 
 import express from "express";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import { Constants, Transformer, Validate } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {
     PartyQueryReceivedEvt,
@@ -84,9 +84,7 @@ export class PartyRoutes extends BaseRoutes {
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
             const currency = req.query["currency"] as string || null;
 
-            const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.parties, clonedHeaders);
-
-            if (!isValidHeaders || !type || !id || !requesterFspId) {
+            if (!type || !id || !requesterFspId) {
                 res.status(400).json({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
@@ -149,9 +147,7 @@ export class PartyRoutes extends BaseRoutes {
             const destinationFspId = req.headers[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
             const currency = req.query["currency"] as string || null;
 
-            const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.parties, clonedHeaders);
-
-            if (!isValidHeaders || !type || !id || !requesterFspId) {
+            if (!type || !id || !requesterFspId) {
                 res.status(400).json({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
@@ -217,9 +213,7 @@ export class PartyRoutes extends BaseRoutes {
             const lastName = req.body.party.personalInfo.complexName["lastName"] || null;
             const partyDoB = req.body.party.personalInfo["dateOfBirth"] || null;
 
-            const isValidHeaders = Validate.validateHeaders(PartiesPutTypeAndIdAndSubId, clonedHeaders);
-
-            if (!isValidHeaders || !type || !id || !requesterFspId || !ownerFspId) {
+            if (!type || !id || !requesterFspId || !ownerFspId) {
                 res.status(400).json({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
@@ -295,9 +289,7 @@ export class PartyRoutes extends BaseRoutes {
             const lastName = req.body.party.personalInfo.complexName["lastName"] || null;
             const partyDoB = req.body.party.personalInfo["dateOfBirth"] || null;
 
-            const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.parties, clonedHeaders);
-
-            if (!isValidHeaders || !type || !id || !requesterFspId || !ownerFspId) {
+            if (!type || !id || !requesterFspId || !ownerFspId) {
                 res.status(400).json({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,

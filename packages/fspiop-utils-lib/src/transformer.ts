@@ -73,6 +73,9 @@ export const removeEmpty = (obj: any) => {
 	return obj;
 };
 
+export interface PostParticipant {
+	fspId: string;
+}
 
 export interface PutParticipant {
 	fspId: string,
@@ -254,7 +257,8 @@ export interface PostQuote {
 			refundReason: string | null;
 		} | null;
 		balanceOfPayments: string | null;
-	}
+	},
+	expiration: string | null;
 }
 
 export interface PutQuote {
@@ -445,7 +449,8 @@ export const transformPayloadQuotingRequestPost = (payload: QuoteRequestAccepted
 		payer: payload.payer,
 		amountType: payload.amountType,
 		amount: payload.amount,
-		transactionType: payload.transactionType
+		transactionType: payload.transactionType,
+		expiration: payload.expiration,
 	};
 
 	return removeEmpty(info);

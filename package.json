@@ -50,6 +50,7 @@
     "eslint": "^8.43.0",
     "jest": "^29.5.0",
     "jest-openapi": "^0.14.2",
+    "mongodb": "^5.3.0",
     "npm-check-updates": "^16.10.17",
     "nyc": "^15.1.0",
     "supertest": "^6.3.3",

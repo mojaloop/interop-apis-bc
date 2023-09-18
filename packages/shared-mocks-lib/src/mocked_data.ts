@@ -36,7 +36,8 @@ export const getHeaders = (entity: string, remove?: string[], override?: Unknown
         "accept": `application/vnd.interoperability.${entity}+json;version=1.1`,
         "content-type": `application/vnd.interoperability.${entity}+json;version=1.1`,
         "date": "Mon, 10 Apr 2023 04:04:04 GMT",
-        "fspiop-source": "testingtoolkitdfsp",
+        "fspiop-source": "bluebank",
+        "fspiop-destination": "greenbank",
         "traceparent": "00-aabb8e170bb7474d09e73aebcdf0b293-0123456789abcdef0-00"
     };
 
@@ -58,7 +59,7 @@ export const getBody = (remove: string[], override: UnknownProperties): UnknownP
         "accept": "application/json",
         "content-type": "application/vnd.interoperability.parties+json;version=1.1",
         "date": "Tue Apr 04 2023 15:10:56 GMT+0100 (Western European Summer Time)",
-        "fspiop-source": "testingtoolkitdfsp",
+        "fspiop-source": "bluebank",
     };
 
     const result: UnknownProperties  = {

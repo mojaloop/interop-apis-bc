@@ -374,8 +374,6 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             // Always validate the payload and headers received
             // message.validatePayload();
-            // Validate.validateHeaders(QuotesPost, clonedHeaders);
-
             
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
@@ -502,7 +500,6 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             // Always validate the payload and headers received
             // message.validatePayload();
-            // Validate.validateHeaders(QuotesPost, clonedHeaders);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);

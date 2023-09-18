@@ -109,9 +109,6 @@ export class TransferEventHandler extends BaseEventHandler {
                 case TransferCommittedFulfiledEvt.name:
                     await this._handleTransferCommittedFulfiledEvt(new TransferCommittedFulfiledEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
-                case TransferReserveFulfiledEvt.name:
-                    await this._handleTransferReserveFulfiledEvt(new TransferReserveFulfiledEvt(message.payload), message.fspiopOpaqueState.headers);
-                    break;
                 case TransferQueryResponseEvt.name:
                     await this._handleTransferQueryResponseEvt(new TransferQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
@@ -414,68 +411,68 @@ export class TransferEventHandler extends BaseEventHandler {
         return;
     }
 
-    private async _handleTransferReserveFulfiledEvt(message: TransferReserveFulfiledEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
-        const { payload } = message;
+    // private async _handleTransferReserveFulfiledEvt(message: TransferReserveFulfiledEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
+    //     const { payload } = message;
 
-        const clonedHeaders = fspiopOpaqueState;
-        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+    //     const clonedHeaders = fspiopOpaqueState;
+    //     const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+    //     const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
 
-        // TODO validate vars above
+    //     // TODO validate vars above
 
-        const requestedEndpointPayer = await this._validateParticipantAndGetEndpoint(destinationFspId);
+    //     const requestedEndpointPayer = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
-        if(!requestedEndpointPayer) {
-            throw Error(`fspId ${destinationFspId} has no valid participant associated`);
-        }
+    //     if(!requestedEndpointPayer) {
+    //         throw Error(`fspId ${destinationFspId} has no valid participant associated`);
+    //     }
 
-        const requestedEndpointPayee = await this._validateParticipantAndGetEndpoint(requesterFspId);
+    //     const requestedEndpointPayee = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
-        if(!requestedEndpointPayee) {
-            throw Error(`fspId ${requesterFspId} has no valid participant associated`);
-        }
+    //     if(!requestedEndpointPayee) {
+    //         throw Error(`fspId ${requesterFspId} has no valid participant associated`);
+    //     }
 
-        try {
-            this._logger.info("_handleTransferReserveFulfiledEvt -> start");
+    //     try {
+    //         this._logger.info("_handleTransferReserveFulfiledEvt -> start");
 
-            // Always validate the payload and headers received
-            message.validatePayload();
+    //         // Always validate the payload and headers received
+    //         message.validatePayload();
 
-            const urlBuilderPayer = new Request.URLBuilder(requestedEndpointPayer.value);
-            urlBuilderPayer.setEntity(Enums.EntityTypeEnum.TRANSFERS);
-            urlBuilderPayer.setLocation([payload.transferId]);
+    //         const urlBuilderPayer = new Request.URLBuilder(requestedEndpointPayer.value);
+    //         urlBuilderPayer.setEntity(Enums.EntityTypeEnum.TRANSFERS);
+    //         urlBuilderPayer.setLocation([payload.transferId]);
 
-            await Request.sendRequest({
-                url: urlBuilderPayer.build(),
-                headers: clonedHeaders,
-                source: requesterFspId,
-                destination: destinationFspId,
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadTransferRequestPut(payload),
-            });
+    //         await Request.sendRequest({
+    //             url: urlBuilderPayer.build(),
+    //             headers: clonedHeaders,
+    //             source: requesterFspId,
+    //             destination: destinationFspId,
+    //             method: Enums.FspiopRequestMethodsEnum.PUT,
+    //             payload: Transformer.transformPayloadTransferRequestPut(payload),
+    //         });
 
-            const urlBuilderPayee = new Request.URLBuilder(requestedEndpointPayee.value);
-            urlBuilderPayee.setEntity(Enums.EntityTypeEnum.TRANSFERS);
-            urlBuilderPayee.setLocation([payload.transferId]);
+    //         const urlBuilderPayee = new Request.URLBuilder(requestedEndpointPayee.value);
+    //         urlBuilderPayee.setEntity(Enums.EntityTypeEnum.TRANSFERS);
+    //         urlBuilderPayee.setLocation([payload.transferId]);
 
-            await Request.sendRequest({
-                url: urlBuilderPayee.build(),
-                headers: clonedHeaders,
-                source: requesterFspId,
-                destination: destinationFspId,
-                method: Enums.FspiopRequestMethodsEnum.PATCH,
-                payload: Transformer.transformPayloadTransferRequestPut(payload),
-            });
+    //         await Request.sendRequest({
+    //             url: urlBuilderPayee.build(),
+    //             headers: clonedHeaders,
+    //             source: requesterFspId,
+    //             destination: destinationFspId,
+    //             method: Enums.FspiopRequestMethodsEnum.PATCH,
+    //             payload: Transformer.transformPayloadTransferRequestPut(payload),
+    //         });
 
-            this._logger.info("_handleTransferReserveFulfiledEvt -> end");
+    //         this._logger.info("_handleTransferReserveFulfiledEvt -> end");
 
-        } catch (error: unknown) {
-            this._logger.error(error, "_handleTransferReserveFulfiledEvt -> error");
-            throw Error("_handleTransferReserveFulfiledEvt -> error");
-        }
+    //     } catch (error: unknown) {
+    //         this._logger.error(error, "_handleTransferReserveFulfiledEvt -> error");
+    //         throw Error("_handleTransferReserveFulfiledEvt -> error");
+    //     }
 
-        return;
-    }
+    //     return;
+    // }
     
     private async _handleTransferQueryResponseEvt(message: TransferQueryResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
         try {

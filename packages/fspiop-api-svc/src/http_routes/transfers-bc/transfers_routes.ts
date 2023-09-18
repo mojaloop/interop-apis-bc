@@ -193,7 +193,7 @@ export class TransfersRoutes extends BaseRoutes {
 
             this.logger.debug("transferFulfilCommittedRequested sent message");
 
-            res.status(202).json(null);
+            res.status(200).json(null);
 
             this.logger.debug("transferFulfilCommittedRequested responded");
         }

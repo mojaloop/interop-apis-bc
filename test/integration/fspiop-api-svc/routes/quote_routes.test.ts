@@ -65,7 +65,7 @@ const validPostPayload = {
     },
     "amountType": "SEND",
     "amount": {
-      "currency": "EUR",
+      "currency": "USD",
       "amount": "1"
     },
     "transactionType": {
@@ -77,14 +77,14 @@ const validPostPayload = {
 
 const validPutPayload = {
     "transferAmount": {
-        "currency": "EUR",
+        "currency": "USD",
         "amount": "1"
     },
     "expiration": "2022-12-06T09:47:12.783Z",
     "ilpPacket": "AYICFwAAAAAAAABkFGcudW5kZWZpbmVkLm1zaXNkbi4xggH2ZXlKMGNtRnVjMkZqZEdsdmJrbGtJam9pTjJZMVpEazNPRFF0TTJFMU55MDFPRFkxTFRsaFlUQXROMlJrWlRjM09URTFORGhoSWl3aWNYVnZkR1ZKWkNJNklqSXlORE5tWkdKbExUVmtaV0V0TTJGaVpDMWhNakV3TFRNM09EQmxOMll5WmpGbU5DSXNJbkJoZVdWbElqcDdJbkJoY25SNVNXUkpibVp2SWpwN0luQmhjblI1U1dSVWVYQmxJam9pVFZOSlUwUk9JaXdpY0dGeWRIbEpaR1Z1ZEdsbWFXVnlJam9pTVNKOWZTd2ljR0Y1WlhJaU9uc2ljR0Z5ZEhsSlpFbHVabThpT25zaWNHRnlkSGxKWkZSNWNHVWlPaUpOVTBsVFJFNGlMQ0p3WVhKMGVVbGtaVzUwYVdacFpYSWlPaUl4SW4xOUxDSmhiVzkxYm5RaU9uc2lZM1Z5Y21WdVkza2lPaUpGVlZJaUxDSmhiVzkxYm5RaU9pSXhJbjBzSW5SeVlXNXpZV04wYVc5dVZIbHdaU0k2ZXlKelkyVnVZWEpwYnlJNklrUkZVRTlUU1ZRaUxDSnBibWwwYVdGMGIzSWlPaUpRUVZsRlVpSXNJbWx1YVhScFlYUnZjbFI1Y0dVaU9pSkNWVk5KVGtWVFV5SjlmUQA",
     "condition": "xmHnYE0iQnMvi1CshISk9iYCf7MG3_ZsMNN9I4HKnAo",
     "payeeFspCommission": {
-        "currency": "EUR",
+        "currency": "USD",
         "amount": "0.3"
     },
     "geoCode": {
@@ -92,11 +92,11 @@ const validPutPayload = {
         "longitude": "-7.882352"
     },
     "payeeReceiveAmount": {
-        "currency": "EUR",
+        "currency": "USD",
         "amount": "1"
     },
     "payeeFspFee": {
-        "currency": "EUR",
+        "currency": "USD",
         "amount": "0.2"
     }
 };
