@@ -38,8 +38,8 @@ import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs
 import {
     TransferPrepareRequestedEvt,
     TransferPrepareRequestedEvtPayload,
-    TransferFulfilCommittedRequestedEvt,
-    TransferFulfilCommittedRequestedEvtPayload,
+    TransferFulfilRequestedEvt,
+    TransferFulfilRequestedEvtPayload,
     TransferRejectRequestedEvt,
     TransferRejectRequestedEvtPayload,
     TransferQueryReceivedEvt,
@@ -49,10 +49,13 @@ import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
 
 export class TransfersRoutes extends BaseRoutes {
-
-    constructor(producerOptions: MLKafkaJsonProducerOptions, kafkaTopic: string, logger: ILogger) {
+    private readonly _payeeConfirmationMode: boolean;
+    
+    constructor(producerOptions: MLKafkaJsonProducerOptions, kafkaTopic: string, logger: ILogger, payeeConfirmationMode: boolean) {
         super(producerOptions, kafkaTopic, logger);
 
+        this._payeeConfirmationMode = payeeConfirmationMode ?? false;
+        
         // bind routes
 
         // GET Transfer by ID
@@ -62,7 +65,7 @@ export class TransfersRoutes extends BaseRoutes {
         this.router.post("/", this.transferPrepareRequested.bind(this));
 
         // PUT Transfers
-        this.router.put("/:id", this.transferFulfilCommittedRequested.bind(this));
+        this.router.put("/:id", this.transferFulfilRequested.bind(this));
 
         // Errors
         this.router.put("/:id/error", this.transferRejectRequested.bind(this));
@@ -142,8 +145,8 @@ export class TransfersRoutes extends BaseRoutes {
         }
     }
 
-    private async transferFulfilCommittedRequested(req: express.Request, res: express.Response): Promise<void> {
-        this.logger.debug("Got transferFulfilCommittedRequested request");
+    private async transferFulfilRequested(req: express.Request, res: express.Response): Promise<void> {
+        this.logger.debug("Got transferFulfilRequested request");
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
@@ -167,15 +170,16 @@ export class TransfersRoutes extends BaseRoutes {
                 return;
             }
 
-            const msgPayload: TransferFulfilCommittedRequestedEvtPayload = {
+            const msgPayload: TransferFulfilRequestedEvtPayload = {
                 transferId: transferId,
                 transferState: transferState,
                 fulfilment: fulfilment,
                 completedTimestamp: new Date(completedTimestamp).valueOf(),
-                extensionList: extensionList
+                extensionList: extensionList,
+                notifyPayee: this._payeeConfirmationMode
             };
 
-            const msg = new TransferFulfilCommittedRequestedEvt(msgPayload);
+            const msg = new TransferFulfilRequestedEvt(msgPayload);
 
             // Since we don't export the types of the body (but we validate them in the entrypoint of the route),
             // we can use the builtin method of validatePayload of the evt messages to make sure consistency 
@@ -191,11 +195,11 @@ export class TransfersRoutes extends BaseRoutes {
 
             await this.kafkaProducer.send(msg);
 
-            this.logger.debug("transferFulfilCommittedRequested sent message");
+            this.logger.debug("transferFulfilRequested sent message");
 
             res.status(202).json(null);
 
-            this.logger.debug("transferFulfilCommittedRequested responded");
+            this.logger.debug("transferFulfilRequested responded");
         }
         catch (error: any) {
             if (error) {

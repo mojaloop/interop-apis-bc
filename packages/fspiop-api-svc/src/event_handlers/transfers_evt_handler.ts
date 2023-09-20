@@ -31,13 +31,13 @@
 
 "use strict";
 
+
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {DomainErrorEventMsg, IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {
     TransferPreparedEvt,
-    TransferCommittedFulfiledEvt,
-    TransferReserveFulfiledEvt,
+    TransferFulfiledEvt,
     TransferPrepareInvalidPayerCheckFailedEvt,
     TransferPrepareInvalidPayeeCheckFailedEvt,
     TransferPrepareLiquidityCheckFailedEvt,
@@ -79,7 +79,7 @@ import {
 import { Constants, Request, Enums, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { BaseEventHandler, HandlerNames } from "./base_event_handler";
 import { IParticipantService } from "../interfaces/infrastructure";
-import { TransferFulfilCommittedRequestedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { TransferFulfilRequestedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { TransferRejectRequestedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 
 export class TransferEventHandler extends BaseEventHandler {
@@ -106,11 +106,8 @@ export class TransferEventHandler extends BaseEventHandler {
                 case TransferPreparedEvt.name:
                     await this._handleTransferPreparedEvt(new TransferPreparedEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
-                case TransferCommittedFulfiledEvt.name:
-                    await this._handleTransferCommittedFulfiledEvt(new TransferCommittedFulfiledEvt(message.payload), message.fspiopOpaqueState.headers);
-                    break;
-                case TransferReserveFulfiledEvt.name:
-                    await this._handleTransferReserveFulfiledEvt(new TransferReserveFulfiledEvt(message.payload), message.fspiopOpaqueState.headers);
+                case TransferFulfiledEvt.name:
+                    await this._handleTransferFulfiledEvt(new TransferFulfiledEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
                 case TransferQueryResponseEvt.name:
                     await this._handleTransferQueryResponseEvt(new TransferQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
@@ -218,7 +215,7 @@ export class TransferEventHandler extends BaseEventHandler {
         };
 
         switch(message.sourceMessageName) {
-            case TransferFulfilCommittedRequestedEvt.name:
+            case TransferFulfilRequestedEvt.name:
                 errorResponse.destinationFspId = destinationFspId;
                 break;
             case TransferRejectRequestedEvt.name: {
@@ -370,51 +367,7 @@ export class TransferEventHandler extends BaseEventHandler {
         return;
     }
 
-    private async _handleTransferCommittedFulfiledEvt(message: TransferCommittedFulfiledEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
-        const { payload } = message;
-
-        const clonedHeaders = fspiopOpaqueState;
-        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
-
-        // TODO validate vars above
-
-        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
-
-        if(!requestedEndpoint) {
-            throw Error(`fspId ${requesterFspId} has no valid participant associated`);
-        }
-
-        try {
-            this._logger.info("_handleTransferCommittedFulfiledEvt -> start");
-
-            // Always validate the payload and headers received
-            message.validatePayload();
-
-            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
-            urlBuilder.setEntity(Enums.EntityTypeEnum.TRANSFERS);
-            urlBuilder.setLocation([payload.transferId]);
-
-            await Request.sendRequest({
-                url: urlBuilder.build(),
-                headers: clonedHeaders,
-                source: requesterFspId,
-                destination: destinationFspId,
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadTransferRequestPut(payload),
-            });
-
-            this._logger.info("_handleTransferCommittedFulfiledEvt -> end");
-
-        } catch (error: unknown) {
-            this._logger.error(error, "_handleTransferCommittedFulfiledEvt -> error");
-            throw Error("_handleTransferCommittedFulfiledEvt -> error");
-        }
-
-        return;
-    }
-
-    private async _handleTransferReserveFulfiledEvt(message: TransferReserveFulfiledEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
+    private async _handleTransferFulfiledEvt(message: TransferFulfiledEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
         const { payload } = message;
 
         const clonedHeaders = fspiopOpaqueState;
@@ -454,18 +407,20 @@ export class TransferEventHandler extends BaseEventHandler {
                 payload: Transformer.transformPayloadTransferRequestPut(payload),
             });
 
-            const urlBuilderPayee = new Request.URLBuilder(requestedEndpointPayee.value);
-            urlBuilderPayee.setEntity(Enums.EntityTypeEnum.TRANSFERS);
-            urlBuilderPayee.setLocation([payload.transferId]);
+            if(payload.notifyPayee) {
+                const urlBuilderPayee = new Request.URLBuilder(requestedEndpointPayee.value);
+                urlBuilderPayee.setEntity(Enums.EntityTypeEnum.TRANSFERS);
+                urlBuilderPayee.setLocation([payload.transferId]);
 
-            await Request.sendRequest({
-                url: urlBuilderPayee.build(),
-                headers: clonedHeaders,
-                source: requesterFspId,
-                destination: destinationFspId,
-                method: Enums.FspiopRequestMethodsEnum.PATCH,
-                payload: Transformer.transformPayloadTransferRequestPut(payload),
-            });
+                await Request.sendRequest({
+                    url: urlBuilderPayee.build(),
+                    headers: clonedHeaders,
+                    source: requesterFspId,
+                    destination: destinationFspId,
+                    method: Enums.FspiopRequestMethodsEnum.PATCH,
+                    payload: Transformer.transformPayloadTransferRequestPut(payload),
+                });
+            }
 
             this._logger.info("_handleTransferReserveFulfiledEvt -> end");
 
@@ -476,6 +431,7 @@ export class TransferEventHandler extends BaseEventHandler {
 
         return;
     }
+
     
     private async _handleTransferQueryResponseEvt(message: TransferQueryResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
         try {
