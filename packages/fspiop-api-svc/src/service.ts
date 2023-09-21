@@ -92,9 +92,6 @@ const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
 const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || path.join(__dirname, "../dist/tmp_key_file");
 
-// Application variables
-const PAYEE_CONFIRMATION_MODE = true; // Replace this later with platform-configuration setter
-
 // Account Lookup
 const PARTICIPANTS_URL_RESOURCE_NAME = "participants";
 const PARTIES_URL_RESOURCE_NAME = "parties";
@@ -213,7 +210,7 @@ export class Service {
         this.partyRoutes = new PartyRoutes(kafkaJsonProducerOptions, AccountLookupBCTopics.DomainEvents, this.logger);
         this.quotesRoutes = new QuoteRoutes(kafkaJsonProducerOptions,  QuotingBCTopics.DomainEvents, this.logger);
         this.bulkQuotesRoutes = new QuoteBulkRoutes(kafkaJsonProducerOptions, QuotingBCTopics.DomainEvents, this.logger);
-        this.transfersRoutes = new TransfersRoutes(kafkaJsonProducerOptions,  TransfersBCTopics.DomainEvents, this.logger, PAYEE_CONFIRMATION_MODE);
+        this.transfersRoutes = new TransfersRoutes(kafkaJsonProducerOptions,  TransfersBCTopics.DomainEvents, this.logger);
 
         await this.participantRoutes.init();
         await this.partyRoutes.init();

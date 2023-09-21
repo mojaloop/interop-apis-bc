@@ -33,7 +33,7 @@
 
 import express from "express";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import { Constants, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Transformer, Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {
     TransferPrepareRequestedEvt,
@@ -48,13 +48,10 @@ import {
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
 
-export class TransfersRoutes extends BaseRoutes {
-    private readonly _payeeConfirmationMode: boolean;
+export class TransfersRoutes extends BaseRoutes {    
     
-    constructor(producerOptions: MLKafkaJsonProducerOptions, kafkaTopic: string, logger: ILogger, payeeConfirmationMode: boolean) {
+    constructor(producerOptions: MLKafkaJsonProducerOptions, kafkaTopic: string, logger: ILogger) {
         super(producerOptions, kafkaTopic, logger);
-
-        this._payeeConfirmationMode = payeeConfirmationMode ?? false;
         
         // bind routes
 
@@ -152,6 +149,7 @@ export class TransfersRoutes extends BaseRoutes {
             const clonedHeaders = { ...req.headers };
             const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+            const acceptedHeader = clonedHeaders[Constants.FSPIOP_HEADERS_ACCEPT] as string;
 
             // Date Model
             const transferId = req.params["id"] as string || null;
@@ -176,7 +174,7 @@ export class TransfersRoutes extends BaseRoutes {
                 fulfilment: fulfilment,
                 completedTimestamp: new Date(completedTimestamp).valueOf(),
                 extensionList: extensionList,
-                notifyPayee: this._payeeConfirmationMode
+                notifyPayee: transferState === Enums.TransferStateEnum.RESERVED && Constants.ALLOWED_PATCH_ACCEPTED_TRANSFER_HEADERS.includes(acceptedHeader)
             };
 
             const msg = new TransferFulfilRequestedEvt(msgPayload);
