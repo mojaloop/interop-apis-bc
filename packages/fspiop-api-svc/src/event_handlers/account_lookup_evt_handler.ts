@@ -198,9 +198,9 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 break;
             }
             case AccountLookupBCInvalidDestinationParticipantErrorEvent.name: {
-                    errorResponse.errorCode = Enums.ClientErrors.GENERIC_CLIENT_ERROR.code;
-                    errorResponse.errorDescription = Enums.ClientErrors.GENERIC_CLIENT_ERROR.name;
-                    break;
+                errorResponse.errorCode = Enums.ClientErrors.GENERIC_CLIENT_ERROR.code;
+                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_CLIENT_ERROR.name;
+                break;
             }
             case AccountLookupBCInvalidRequesterParticipantErrorEvent.name: {
                 errorResponse.errorCode = Enums.ClientErrors.DESTINATION_FSP_ERROR.code;

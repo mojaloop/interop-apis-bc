@@ -36,7 +36,7 @@ import request from "supertest";
 import jestOpenAPI from "jest-openapi";
 import { QuoteQueryReceivedEvt, QuoteRequestReceivedEvt, QuoteResponseReceivedEvt, QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Service } from "../../../../packages/fspiop-api-svc/src";
-import KafkaConsumer, { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
+import KafkaConsumer from "../helpers/kafkaproducer";
 import { getHeaders, missingPropertyResponse } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import waitForExpect from "wait-for-expect";

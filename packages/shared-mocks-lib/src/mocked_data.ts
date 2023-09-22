@@ -130,11 +130,25 @@ export const missingPropertyResponse = (field: string, type: string) => {
     return result;
 };
 
-export const unknownHeaderResponse = {
-    "errorInformation": {
-        "errorCode": "3001",
-        "errorDescription": "Unknown Accept header format"
+export const createMessage = (message: any, entity: string): UnknownProperties => {
+    message.fspiopOpaqueState = {
+        "requesterFspId": "bluebank",
+        "destinationFspId": null,
+        "headers": {
+            "host": "localhost:4000",
+            "accept-encoding": "gzip, deflate",
+            "accept": `application/vnd.interoperability.${entity}+json;version=1.1`,
+            "content-type": `application/vnd.interoperability.${entity}+json;version=1.1`,
+            "date": "Mon, 10 Apr 2023 04:04:04 GMT",
+            "fspiop-source": "bluebank",
+            "fspiop-destination": "bluebank",
+            "traceparent": "00-aabb8e170bb7474d09e73aebcdf0b293-0123456789abcdef0-00",
+            "connection": "close"
+        }
     }
+
+    return message;
 };
+
 
 export const defaultEntryValidRequest = null;

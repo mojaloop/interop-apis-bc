@@ -387,3 +387,10 @@ export enum AmountTypeEnum {
     SEND = "SEND",
     RECEIVE = "RECEIVE"
 }
+
+export enum TransferStateEnum {
+    RECEIVE = "RECEIVE",
+    RESERVED = "RESERVED",
+    COMMITED = "COMMITED",
+    ABORTED = "ABORTED"
+}

@@ -34,31 +34,41 @@
 import path from "path";
 import jestOpenAPI from "jest-openapi";
 import waitForExpect from "wait-for-expect";
-import { Enums } from "../../../../packages/fspiop-utils-lib/dist";
+import { Enums, Request } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {
     QuoteQueryResponseEvt,
     QuoteRequestAcceptedEvt,
     QuoteRequestReceivedEvt,
-    QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent,
-    QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent,
-    QuoteBCRequesterParticipantNotFoundErrorEvent,
-    QuoteBCDestinationParticipantNotFoundErrorEvent,
-    QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent,
-    QuoteBCQuoteExpiredErrorEvent,
-    QuoteBCBulkQuoteExpiredErrorEvent,
     QuoteResponseReceivedEvt,
     QuoteResponseAccepted,
     BulkQuoteRequestedEvt,
     BulkQuotePendingReceivedEvt,
     BulkQuoteQueryReceivedEvt,
-    QuoteBCBulkQuoteNotFoundErrorEvent,
     QuotingBCTopics,
     QuoteQueryReceivedEvt,
-    QuoteBCQuoteNotFoundErrorEvent
+    QuoteBCUnknownErrorEvent,
+    QuoteBCInvalidMessagePayloadErrorEvent,
+    QuoteBCInvalidMessageTypeErrorEvent,
+    QuoteBCInvalidBulkQuoteLengthErrorEvent,
+    QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent,
+    QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent,
+    QuoteBCQuoteNotFoundErrorEvent,
+    QuoteBCBulkQuoteNotFoundErrorEvent,
+    QuoteBCInvalidDestinationFspIdErrorEvent,
+    QuoteBCDuplicateQuoteErrorEvent,
+    QuoteBCUnableToAddQuoteToDatabaseErrorEvent,
+    QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent,
+    QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent,
+    QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent,
+    QuoteBCInvalidRequesterFspIdErrorEvent,
+    QuoteBCRequesterParticipantNotFoundErrorEvent,
+    QuoteBCDestinationParticipantNotFoundErrorEvent,
+    QuoteBCQuoteExpiredErrorEvent,
+    QuoteBCBulkQuoteExpiredErrorEvent
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Service } from "../../../../packages/fspiop-api-svc/src/service";
 import request from "supertest";
-import { getHeaders } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { createMessage, getHeaders } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import KafkaConsumer from "../helpers/kafkaproducer";
 import { MongoClient } from "mongodb";
 import { PostBulkQuote, PostQuote, PutBulkQuote, PutQuote, removeEmpty } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/transformer";
@@ -86,8 +96,17 @@ const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas
 const COLLECTION_QUOTE = "quotes";
 const COLLECTION_BULK_QUOTE = "bulk_quotes";
 
+const quotesEntity = "quotes";
+const bulkQuotesEntity = "bulkQuotes";
+
 // Mongo instances
 let mongoClient: MongoClient;
+
+let sendRequestSpy = jest.spyOn(Request, "sendRequest");
+
+const res = async () => {
+    return await sendRequestSpy.mock.results[sendRequestSpy.mock.results.length-1].value;
+};
 
 describe("FSPIOP API Service Quoting Handler", () => {
 
@@ -97,7 +116,11 @@ describe("FSPIOP API Service Quoting Handler", () => {
     });
 
     beforeEach(async () => {
+        await new Promise((r) => setTimeout(r, 5000));
+
         await consumer.clearEvents();
+
+        sendRequestSpy.mockClear();
 
         validPostPayload = {
             "quoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
@@ -826,4 +849,538 @@ describe("FSPIOP API Service Quoting Handler", () => {
     //     });
     // });
     // #endregion
+
+    // #region Error events
+    // Act
+    it("should return QuoteBCUnknownErrorEvent http call for participant type", async () => {
+        // Arrange
+        const msg = new QuoteBCUnknownErrorEvent({
+            quoteId: "123", 
+            bulkQuoteId: null,
+            requesterFspId: "bluebank",
+            errorDescription: "QuoteBCUnknownErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ServerErrors.INTERNAL_SERVER_ERROR.code,
+                        "errorDescription": Enums.ServerErrors.INTERNAL_SERVER_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${quotesEntity}/${msg.payload.quoteId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+    
+    it("should return QuoteBCInvalidMessagePayloadErrorEvent http call for participant type", async () => {
+        // Arrange
+        const msg = new QuoteBCInvalidMessagePayloadErrorEvent({
+            quoteId: "123", 
+            bulkQuoteId: null,
+            requesterFspId: "bluebank",
+            errorDescription: "QuoteBCInvalidMessagePayloadErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.GENERIC_VALIDATION_ERROR.code,
+                        "errorDescription": Enums.ClientErrors.GENERIC_VALIDATION_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${quotesEntity}/${msg.payload.quoteId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+    
+    it("should return QuoteBCInvalidMessageTypeErrorEvent http call for participant type", async () => {
+        // Arrange
+        const msg = new QuoteBCInvalidMessageTypeErrorEvent({
+            quoteId: "123", 
+            bulkQuoteId: null,
+            requesterFspId: "bluebank",
+            errorDescription: "QuoteBCInvalidMessageTypeErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.GENERIC_VALIDATION_ERROR.code,
+                        "errorDescription": Enums.ClientErrors.GENERIC_VALIDATION_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${quotesEntity}/${msg.payload.quoteId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+    
+    it("should return QuoteBCInvalidBulkQuoteLengthErrorEvent http call for participant type", async () => {
+        // Arrange
+        const msg = new QuoteBCInvalidBulkQuoteLengthErrorEvent({
+            bulkQuoteId: "123", 
+            errorDescription: "QuoteBCInvalidBulkQuoteLengthErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.GENERIC_VALIDATION_ERROR.code,
+                        "errorDescription": Enums.ClientErrors.GENERIC_VALIDATION_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${bulkQuotesEntity}/${msg.payload.bulkQuoteId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+    
+    it("should return QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent http call for participant type", async () => {
+        // Arrange
+        const msg = new QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent({
+            quoteId: "123", 
+            errorDescription: "QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.GENERIC_VALIDATION_ERROR.code,
+                        "errorDescription": Enums.ClientErrors.GENERIC_VALIDATION_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${quotesEntity}/${msg.payload.quoteId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+    
+    it("should return QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent http call for participant type", async () => {
+        // Arrange
+        const msg = new QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent({
+            quoteId: "123", 
+            errorDescription: "QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.GENERIC_VALIDATION_ERROR.code,
+                        "errorDescription": Enums.ClientErrors.GENERIC_VALIDATION_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${quotesEntity}/${msg.payload.quoteId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+        
+    it("should return QuoteBCQuoteNotFoundErrorEvent http call for participant type", async () => {
+        // Arrange
+        const msg = new QuoteBCQuoteNotFoundErrorEvent({
+            quoteId: "123", 
+            errorDescription: "QuoteBCQuoteNotFoundErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.QUOTE_ID_NOT_FOUND.code,
+                        "errorDescription": Enums.ClientErrors.QUOTE_ID_NOT_FOUND.name
+                    }
+                },
+                "url": expect.stringContaining(`/${quotesEntity}/${msg.payload.quoteId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+        
+    it("should return QuoteBCBulkQuoteNotFoundErrorEvent http call for participant type", async () => {
+        // Arrange
+        const msg = new QuoteBCBulkQuoteNotFoundErrorEvent({
+            bulkQuoteId: "123", 
+            errorDescription: "QuoteBCBulkQuoteNotFoundErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.BULK_QUOTE_ID_NOT_FOUND.code,
+                        "errorDescription": Enums.ClientErrors.BULK_QUOTE_ID_NOT_FOUND.name
+                    }
+                },
+                "url": expect.stringContaining(`/${bulkQuotesEntity}/${msg.payload.bulkQuoteId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+            
+    it("should return QuoteBCInvalidDestinationFspIdErrorEvent http call for participant type", async () => {
+        // Arrange
+        const msg = new QuoteBCInvalidDestinationFspIdErrorEvent({
+            quoteId: "123", 
+            bulkQuoteId: null,
+            destinationFspId: "greenbank",
+            errorDescription: "QuoteBCInvalidDestinationFspIdErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.DESTINATION_FSP_ERROR.code,
+                        "errorDescription": Enums.ClientErrors.DESTINATION_FSP_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${quotesEntity}/${msg.payload.quoteId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+  
+    it("should return QuoteBCDuplicateQuoteErrorEvent http call for participant type", async () => {
+        // Arrange
+        const msg = new QuoteBCDuplicateQuoteErrorEvent({
+            quoteId: "123", 
+            errorDescription: "QuoteBCDuplicateQuoteErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.GENERIC_CLIENT_ERROR.code,
+                        "errorDescription": Enums.ClientErrors.GENERIC_CLIENT_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${quotesEntity}/${msg.payload.quoteId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+                
+    it("should return QuoteBCUnableToAddQuoteToDatabaseErrorEvent http call for participant type", async () => {
+        // Arrange
+        const msg = new QuoteBCUnableToAddQuoteToDatabaseErrorEvent({
+            quoteId: "123", 
+            errorDescription: "QuoteBCUnableToAddQuoteToDatabaseErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.GENERIC_CLIENT_ERROR.code,
+                        "errorDescription": Enums.ClientErrors.GENERIC_CLIENT_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${quotesEntity}/${msg.payload.quoteId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+                
+    it("should return QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent http call for participant type", async () => {
+        // Arrange
+        const msg = new QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent({
+            bulkQuoteId: "456",
+            errorDescription: "QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.GENERIC_CLIENT_ERROR.code,
+                        "errorDescription": Enums.ClientErrors.GENERIC_CLIENT_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${bulkQuotesEntity}/${msg.payload.bulkQuoteId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+                
+    it("should return QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent http call for participant type", async () => {
+        // Arrange
+        const msg = new QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent({
+            quoteId: "123", 
+            errorDescription: "QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.GENERIC_CLIENT_ERROR.code,
+                        "errorDescription": Enums.ClientErrors.GENERIC_CLIENT_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${quotesEntity}/${msg.payload.quoteId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+                
+    it("should return QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent http call for participant type", async () => {
+        // Arrange
+        const msg = new QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent({
+            bulkQuoteId: "456",
+            errorDescription: "QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.GENERIC_CLIENT_ERROR.code,
+                        "errorDescription": Enums.ClientErrors.GENERIC_CLIENT_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${bulkQuotesEntity}/${msg.payload.bulkQuoteId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+               
+                
+    it("should return QuoteBCInvalidRequesterFspIdErrorEvent http call for participant type", async () => {
+        // Arrange
+        const msg = new QuoteBCInvalidRequesterFspIdErrorEvent({
+            quoteId: "123", 
+            bulkQuoteId: null,
+            requesterFspId: "bluebank",
+            errorDescription: "QuoteBCInvalidRequesterFspIdErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.GENERIC_CLIENT_ERROR.code,
+                        "errorDescription": Enums.ClientErrors.GENERIC_CLIENT_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${quotesEntity}/${msg.payload.quoteId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+
+    it("should return QuoteBCRequesterParticipantNotFoundErrorEvent http call for participant type", async () => {
+        // Arrange
+        const msg = new QuoteBCRequesterParticipantNotFoundErrorEvent({
+            quoteId: "123", 
+            bulkQuoteId: null,
+            requesterFspId: "bluebank",
+            errorDescription: "QuoteBCRequesterParticipantNotFoundErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.code,
+                        "errorDescription": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.name
+                    }
+                },
+                "url": expect.stringContaining(`/${quotesEntity}/${msg.payload.quoteId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+
+    it("should return QuoteBCDestinationParticipantNotFoundErrorEvent http call for participant type", async () => {
+        // Arrange
+        const msg = new QuoteBCDestinationParticipantNotFoundErrorEvent({
+            quoteId: "123", 
+            bulkQuoteId: null,
+            destinationFspId: "greenbank",
+            errorDescription: "QuoteBCDestinationParticipantNotFoundErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.code,
+                        "errorDescription": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.name
+                    }
+                },
+                "url": expect.stringContaining(`/${quotesEntity}/${msg.payload.quoteId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+    
+    it("should return QuoteBCQuoteExpiredErrorEvent http call for participant type", async () => {
+        // Arrange
+        const msg = new QuoteBCQuoteExpiredErrorEvent({
+            quoteId: "123",
+            expirationDate: "2022-01-22T08:38:08.699-04:00",
+            errorDescription: "QuoteBCQuoteExpiredErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.QUOTE_EXPIRED.code,
+                        "errorDescription": Enums.ClientErrors.QUOTE_EXPIRED.name
+                    }
+                },
+                "url": expect.stringContaining(`/${quotesEntity}/${msg.payload.quoteId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+        
+    it("should return QuoteBCBulkQuoteExpiredErrorEvent http call for participant type", async () => {
+        // Arrange
+        const msg = new QuoteBCBulkQuoteExpiredErrorEvent({
+            bulkQuoteId: "123",
+            expirationDate: "2022-01-22T08:38:08.699-04:00",
+            errorDescription: "QuoteBCBulkQuoteExpiredErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.QUOTE_EXPIRED.code,
+                        "errorDescription": Enums.ClientErrors.QUOTE_EXPIRED.name
+                    }
+                },
+                "url": expect.stringContaining(`/${bulkQuotesEntity}/${msg.payload.bulkQuoteId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+    // #region
 });
+

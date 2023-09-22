@@ -42,88 +42,11 @@ const APP_NAME = "fspiop-api-svc";
 const APP_VERSION = packageJSON.version;
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
 const LOGLEVEL:LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
-import { AccountLookupBCTopics, PartyInfoAvailableEvt, PartyQueryReceivedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 
-
-export const getCurrentKafkaOffset = async (topic: string): Promise<any> => {
-    // const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
-    //     kafkaBrokerList: KAFKA_URL,
-    //     producerClientId: `${BC_NAME}_${APP_NAME}`,
-    //     skipAcknowledgements: false, // never change this to true without understanding what it does
-    // };
-
-    // const logger = new KafkaLogger(
-    //     BC_NAME,
-    //     APP_NAME,
-    //     APP_VERSION,
-    //     kafkaJsonProducerOptions,
-    //     KAFKA_LOGS_TOPIC,
-    //     LOGLEVEL
-    // );
-    // await (logger as KafkaLogger).init();
-    // const accountEvtHandlerConsumerOptions: MLKafkaJsonConsumerOptions = {
-    //     kafkaBrokerList: KAFKA_URL,
-    //     kafkaGroupId: `${BC_NAME}_${APP_NAME}_AccountLookupEventHandler`,
-    // };
-    
-    // const _logger = logger.createChild("this.constructor.name");
-
-
-    // const kafkaConsumer = new MLKafkaJsonConsumer(accountEvtHandlerConsumerOptions, _logger);
-    // // const kafkaProducer = new MLKafkaJsonProducer(kafkaJsonProducerOptions);
-
-    // await kafkaConsumer.connect();
-
-    // // kafkaProducer.setDeliveryReportFn((topic: string, partition: number, offset: number) => {
-    // //     console.log(`Delivery report event - topic: ${topic}, partition: ${partition}, offset: ${offset}`);
-    // //     return;
-    // // });
-
-    // async function handler(message: any): Promise<void> {
-    //     logger.debug(`Got message in handler: ${JSON.stringify(message, null, 2)}`);
-    //     return;
-    // }
-    
-    // kafkaConsumer.setCallbackFn(handler);
-    // kafkaConsumer.setTopics([AccountLookupBCTopics.DomainEvents,AccountLookupBCTopics.DomainRequests]);
-    // await kafkaConsumer.connect();
-    
-    // // Start consuming to handler - waiting for the consumer to be fully rebalanced before proceeding
-    // await kafkaConsumer.startAndWaitForRebalance();
-
-    // return;
-    // const offset = new kafka.Offset(client);
-
-    // return new Promise((resolve, reject) => offset.fetchLatestOffsets([topic], (error: any, data: any) => {
-    //     const offsetA = JSON.stringify(data[topic][0]) as unknown as number;
-
-    //     let consumer = new kafka.Consumer(
-    //         client,
-    //         [
-    //             {
-    //                 topic: topic,
-    //                 partition: 0,
-    //                 offset: offsetA-1, // Offset value starts from 0
-    //             }
-    //         ], {
-    //             autoCommit: false,
-    //             fromOffset: true,
-    //         }
-    //     );
-    //     consumer.on('message', async function (message) {
-    //         error? reject(error) : resolve(message);
-
-    //         consumer.close(false, () => {
-    //             client.close();
-    //         });
-    //     });
-
-    //     return;
-    // }));
-};
 
 class KafkaConsumer {
     private _consumer: any;
+    private _producer: any;
     private _events:any[] = [];
     private _topics:any[] = [];
 
@@ -148,24 +71,22 @@ class KafkaConsumer {
             LOGLEVEL
         );
         await (logger as KafkaLogger).init();
-        const accountEvtHandlerConsumerOptions: MLKafkaJsonConsumerOptions = {
+        const handlerConsumerOptions: MLKafkaJsonConsumerOptions = {
             kafkaBrokerList: KAFKA_URL,
             kafkaGroupId: `${BC_NAME}_${APP_NAME}_test`,
         };
         
 
-        this._consumer = new MLKafkaJsonConsumer(accountEvtHandlerConsumerOptions, logger);
- 
+        this._consumer = new MLKafkaJsonConsumer(handlerConsumerOptions, logger);
+        this._producer = new MLKafkaJsonProducer(kafkaJsonProducerOptions);
+        
         this._consumer.setTopics(this._topics);
         this._consumer.setCallbackFn(this.handler.bind(this));
 
         await this._consumer.connect();
         await this._consumer.startAndWaitForRebalance();
+        await this._producer.connect();
 
-        // this._consumer.on("data", async (message:any) => {
-        //     const messageJSON = JSON.parse(Buffer.from(message.value).toString());
-        //     this.addEvent(messageJSON)
-        // });
     }
 
     private async handler(message: any): Promise<void> {
@@ -176,6 +97,7 @@ class KafkaConsumer {
 
     public async destroy(): Promise<void> {
         await this._consumer.destroy(true)
+        await this._producer.destroy();
         return;
     }
 
@@ -190,6 +112,10 @@ class KafkaConsumer {
 
     public getEvents(): any {
         return this._events;
+    }
+
+    public async sendMessage(message: any) {
+        await this._producer.send(message);
     }
 }
 

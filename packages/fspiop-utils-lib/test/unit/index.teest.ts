@@ -38,12 +38,24 @@ import { Enums, Constants, Request } from "../../src";
 import axios from "axios";
 import HeaderBuilder from "../../src/headers/header_builder";
 import { ParticipantsPutTypeAndId } from "../../../fspiop-api-svc/src/errors";
-import { removeEmpty, transformPayloadError, transformPayloadParticipantPut, transformPayloadPartyAssociationPut, transformPayloadPartyDisassociationPut, transformPayloadPartyInfoReceivedPut, transformPayloadPartyInfoRequestedPut } from "../../src/transformer";
-import { ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvtPayload, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { removeEmpty, transformPayloadError, transformPayloadParticipantPut, transformPayloadPartyAssociationPut, transformPayloadPartyDisassociationPut, transformPayloadPartyInfoReceivedPut, transformPayloadPartyInfoRequestedPut, transformPayloadQuotingRequestPost } from "../../src/transformer";
+import { 
+    ParticipantAssociationCreatedEvtPayload, 
+    ParticipantAssociationRemovedEvtPayload,
+    ParticipantQueryResponseEvtPayload,
+    PartyInfoRequestedEvtPayload,
+    PartyQueryResponseEvtPayload
+} from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { URLBuilder } from "../../src/request";
 
 jest.mock("axios");
 
 describe("FSPIOP Utils Lib", () => {
+    let urlBuilder: URLBuilder;
+
+    beforeEach(() => {
+      urlBuilder = new URLBuilder("https://example.com");
+    });
 
     afterEach(async () => {
         jest.resetAllMocks();
@@ -406,6 +418,90 @@ describe("FSPIOP Utils Lib", () => {
             },
         });
     });
+    // #region
+
+    // #region URLBuilder
+    it("should append query parameters", () => {
+        // Arrange & Act
+        urlBuilder.appendQueryParam("param1", "value1");
+        urlBuilder.appendQueryParam("param2", "value2");
+
+        // Assert
+        expect(urlBuilder.getParams().toString()).toEqual("param1=value1&param2=value2");
+      });
+    
+      it("should clear query parameters", () => {
+        // Arrange & Act
+        urlBuilder.appendQueryParam("param1", "value1");
+        urlBuilder.clearQueryParams();
+
+        // Assert
+        expect(urlBuilder.getParams().toString()).toEqual("");
+      });
+    
+      it("should delete a query parameter", () => {
+        // Arrange & Act
+        urlBuilder.appendQueryParam("param1", "value1");
+        urlBuilder.deleteQueryParam("param1");
+
+        // Assert
+        expect(urlBuilder.getParams().toString()).toEqual("");
+      });
+    
+      it("should set the path", () => {
+        // Arrange & Act
+        urlBuilder.setPath("/newpath");
+
+        // Assert
+        expect(urlBuilder.getPath()).toEqual("/newpath");
+      });
+
+      it("should build url without any adicional parameters", () => {
+        // Arrange & Act
+        const result = urlBuilder.build();
+
+        // Assert
+        expect(result).toEqual("https://example.com");
+      });
+
+      it("should build url with specified parameters parameters", () => {
+        // Arrange & Act
+        const result = urlBuilder.build();
+
+        // Assert
+        expect(result).toEqual("https://example.com");
+      });
+
+      it("should get different set", () => {
+        // Arrange & Act
+        urlBuilder.setEntity("randomentity");
+        urlBuilder.setLocation(["newlocation1", "newlocation2"]);
+        urlBuilder.setId("randomid");
+        urlBuilder.setQueryParam("randomparam", "123");
+        urlBuilder.setQueryString("randomquerystring");
+        urlBuilder.hasError();
+
+        // Assert
+        expect(urlBuilder.getBase().toString()).toEqual("https://example.com/");
+        expect(urlBuilder.getPath()).toEqual("/");
+        expect(urlBuilder.getHostname()).toEqual("example.com");
+        expect(urlBuilder.getParams().toString()).toEqual("randomquerystring=");
+        expect(urlBuilder.getQueryString().toString()).toEqual("randomquerystring=");
+        expect(urlBuilder.getQueryParam("randomquerystring=")).toEqual(undefined);
+      });
+      
+      it("should build url with specified parameters", () => {
+        // Arrange & Act
+        urlBuilder.setEntity("randomentity");
+        urlBuilder.setLocation(["newlocation1", "newlocation2"]);
+        urlBuilder.setId("randomid");
+        urlBuilder.hasError();
+
+        const result = urlBuilder.build();
+
+        // Assert
+        expect(result).toEqual("https://example.com/randomentity/newlocation1/newlocation2/randomid/error");
+      });
     //#endregion
 });
 

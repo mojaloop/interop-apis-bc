@@ -34,7 +34,7 @@
 import path from "path";
 import jestOpenAPI from "jest-openapi";
 import waitForExpect from "wait-for-expect";
-import { Enums } from "../../../../packages/fspiop-utils-lib/dist";
+import { Enums, Request } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {
     QuoteRequestAcceptedEvt,
     QuoteRequestReceivedEvt,
@@ -44,17 +44,50 @@ import {
     TransfersBCTopics,
     TransferPrepareRequestedEvt,
     TransferPreparedEvt,
-    TransferFulfilCommittedRequestedEvt,
-    TransferCommittedFulfiledEvt,
+    TransferFulfilRequestedEvt,
+    TransferFulfiledEvt,
     TransferQueryReceivedEvt,
     TransferQueryResponseEvt,
+    TransferInvalidMessagePayloadEvt,
+    TransferInvalidMessageTypeEvt,
+    TransfersBCUnknownErrorEvent,
+    TransferUnableToAddEvt,
+    TransferUnableToUpdateEvt, 
+    TransferUnableToDeleteTransferReminderEvt,
+    TransferHubNotFoundFailedEvt,
+    TransferHubAccountNotFoundFailedEvt,
     TransferPayerNotFoundFailedEvt,
+    TransferPayeePositionAccountNotFoundFailedEvt,
+    TransferPayeeLiquidityAccountNotFoundFailedEvt,
+    TransferQueryInvalidPayerCheckFailedEvt,
+    TransferQueryPayerNotFoundFailedEvt,
+    TransferPayerPositionAccountNotFoundFailedEvt,
+    TransferPayerLiquidityAccountNotFoundFailedEvt,
     TransferPayeeNotFoundFailedEvt,
-    TransferNotFoundEvt
+    TransferQueryInvalidPayeeCheckFailedEvt,
+    TransferQueryPayeeNotFoundFailedEvt,
+    TransferNotFoundEvt,
+    TransferUnableToGetTransferByIdEvt,
+    TransferDuplicateCheckFailedEvt,
+    TransferPrepareRequestTimedoutEvt,
+    TransferFulfilCommittedRequestedTimedoutEvt,
+    TransferFulfilPostCommittedRequestedTimedoutEvt,
+    TransferCancelReservationFailedEvt,
+    TransferCancelReservationAndCommitFailedEvt,
+    TransferPrepareLiquidityCheckFailedEvt,
+    TransferRejectRequestProcessedEvt,
+    TransferPayerNotActiveEvt,
+    TransferPayerNotApprovedEvt,
+    TransferPrepareInvalidPayerCheckFailedEvt,
+    TransferQueryInvalidPayerParticipantIdEvt,
+    TransferPayeeNotActiveEvt,
+    TransferPayeeNotApprovedEvt,
+    TransferPrepareInvalidPayeeCheckFailedEvt,
+    TransferQueryInvalidPayeeParticipantIdEvt
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Service } from "../../../../packages/fspiop-api-svc/src/service";
 import request from "supertest";
-import { getHeaders } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { createMessage, getHeaders } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import KafkaConsumer from "../helpers/kafkaproducer";
 import { MongoClient } from "mongodb";
 import { PostQuote, removeEmpty } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/transformer";
@@ -119,8 +152,16 @@ const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas
 const COLLECTION_QUOTE = "quotes";
 const COLLECTION_TRANSFER = "transfers";
 
+const transfersEntity = "transfers";
+
 // Mongo instances
 let mongoClient: MongoClient;
+
+let sendRequestSpy = jest.spyOn(Request, "sendRequest");
+
+const res = async () => {
+    return await sendRequestSpy.mock.results[sendRequestSpy.mock.results.length-1].value;
+};
 
 describe("FSPIOP API Service Transfers Handler", () => {
 
@@ -130,6 +171,8 @@ describe("FSPIOP API Service Transfers Handler", () => {
     });
 
     beforeEach(async () => {
+        await new Promise((r) => setTimeout(r, 5000));
+
         await consumer.clearEvents();
 
         validTransferPostPayload = {
@@ -248,9 +291,9 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(messages[0].msgName).toBe(TransferPrepareRequestedEvt.name);
             expect(messages[1].msgName).toBe("PrepareTransferCmd"); // TODO: make a special topic for transfers CMDs
             expect(messages[2].msgName).toBe(TransferPreparedEvt.name);
-            expect(messages[3].msgName).toBe(TransferFulfilCommittedRequestedEvt.name);
+            expect(messages[3].msgName).toBe(TransferFulfilRequestedEvt.name);
             expect(messages[4].msgName).toBe("CommitTransferFulfilCmd"); // TODO: make a special topic for transfers CMDs
-            expect(messages[5].msgName).toBe(TransferCommittedFulfiledEvt.name);
+            expect(messages[5].msgName).toBe(TransferFulfiledEvt.name);
         });
     });
     // #region
@@ -305,6 +348,1016 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(messages[0].msgName).toBe(TransferQueryReceivedEvt.name);
             expect(messages[1].msgName).toBe("QueryTransferCmd"); 
             expect(messages[2].msgName).toBe(TransferQueryResponseEvt.name); 
+        });
+    });
+    // #region
+
+    // #region Error events
+    // Act
+    it("should return TransfersBCUnknownErrorEvent http call for participant type", async () => {
+        // Arrange
+        const msg = new TransfersBCUnknownErrorEvent({
+            transferId: "123", 
+            payerFspId: "bluebank",
+            errorDescription: "TransfersBCUnknownErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ServerErrors.GENERIC_SERVER_ERROR.code,
+                        "errorDescription": Enums.ServerErrors.GENERIC_SERVER_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+
+    it("should return TransferInvalidMessagePayloadEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferInvalidMessagePayloadEvt({
+            transferId: "123", 
+            payerFspId: "bluebank",
+            errorDescription: "TransferInvalidMessagePayloadEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ServerErrors.GENERIC_SERVER_ERROR.code,
+                        "errorDescription": Enums.ServerErrors.GENERIC_SERVER_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+
+    it("should return TransferInvalidMessageTypeEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferInvalidMessageTypeEvt({
+            transferId: "123", 
+            payerFspId: "bluebank",
+            errorDescription: "TransferInvalidMessageTypeEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ServerErrors.GENERIC_SERVER_ERROR.code,
+                        "errorDescription": Enums.ServerErrors.GENERIC_SERVER_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+    
+    it("should return TransferUnableToAddEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferUnableToAddEvt({
+            transferId: "123", 
+            payerFspId: "bluebank",
+            errorDescription: "TransferUnableToAddEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ServerErrors.INTERNAL_SERVER_ERROR.code,
+                        "errorDescription": Enums.ServerErrors.INTERNAL_SERVER_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+    
+    it("should return TransferUnableToUpdateEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferUnableToUpdateEvt({
+            transferId: "123", 
+            payerFspId: "bluebank",
+            errorDescription: "TransferUnableToUpdateEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ServerErrors.INTERNAL_SERVER_ERROR.code,
+                        "errorDescription": Enums.ServerErrors.INTERNAL_SERVER_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+    
+    it("should return TransferUnableToDeleteTransferReminderEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferUnableToDeleteTransferReminderEvt({
+            transferId: "123", 
+            errorDescription: "TransferUnableToDeleteTransferReminderEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ServerErrors.INTERNAL_SERVER_ERROR.code,
+                        "errorDescription": Enums.ServerErrors.INTERNAL_SERVER_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+        
+    it("should return TransferHubNotFoundFailedEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferHubNotFoundFailedEvt({
+            transferId: "123", 
+            errorDescription: "TransferHubNotFoundFailedEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code,
+                        "errorDescription": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+        
+    it("should return TransferHubAccountNotFoundFailedEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferHubAccountNotFoundFailedEvt({
+            transferId: "123", 
+            errorDescription: "TransferHubAccountNotFoundFailedEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code,
+                        "errorDescription": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+            
+    it("should return TransferPayerNotFoundFailedEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferPayerNotFoundFailedEvt({
+            transferId: "123",
+            payerFspId: "bluebank",
+            errorDescription: "TransferPayerNotFoundFailedEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.code,
+                        "errorDescription": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+            
+    it("should return TransferPayeePositionAccountNotFoundFailedEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferPayeePositionAccountNotFoundFailedEvt({
+            transferId: "123",
+            payeeFspId: "greenbank",
+            errorDescription: "TransferPayeePositionAccountNotFoundFailedEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.code,
+                        "errorDescription": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+            
+    it("should return TransferPayeeLiquidityAccountNotFoundFailedEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferPayeeLiquidityAccountNotFoundFailedEvt({
+            transferId: "123",
+            payeeFspId: "greenbank",
+            errorDescription: "TransferPayeeLiquidityAccountNotFoundFailedEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.code,
+                        "errorDescription": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+            
+    it("should return TransferQueryInvalidPayerCheckFailedEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferQueryInvalidPayerCheckFailedEvt({
+            transferId: "123", 
+            payerFspId: "bluebank",
+            errorDescription: "TransferQueryInvalidPayerCheckFailedEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.code,
+                        "errorDescription": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+            
+    it("should return TransferQueryPayerNotFoundFailedEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferQueryPayerNotFoundFailedEvt({
+            transferId: "123",
+            payerFspId: "bluebank",
+            errorDescription: "TransferQueryPayerNotFoundFailedEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.code,
+                        "errorDescription": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+                
+    it("should return TransferPayerPositionAccountNotFoundFailedEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferPayerPositionAccountNotFoundFailedEvt({
+            transferId: "123",
+            payerFspId: "bluebank",
+            errorDescription: "TransferPayerPositionAccountNotFoundFailedEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.code,
+                        "errorDescription": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+                    
+    it("should return TransferPayerLiquidityAccountNotFoundFailedEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferPayerLiquidityAccountNotFoundFailedEvt({
+            transferId: "123",
+            payerFspId: "bluebank",
+            errorDescription: "TransferPayerLiquidityAccountNotFoundFailedEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.code,
+                        "errorDescription": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+                    
+    it("should return TransferPayeeNotFoundFailedEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferPayeeNotFoundFailedEvt({
+            transferId: "123",
+            payeeFspId: "greenbank",
+            errorDescription: "TransferPayeeNotFoundFailedEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.code,
+                        "errorDescription": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+                    
+    it("should return TransferQueryInvalidPayeeCheckFailedEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferQueryInvalidPayeeCheckFailedEvt({
+            transferId: "123",
+            payeeFspId: "greenbank",
+            errorDescription: "TransferQueryInvalidPayeeCheckFailedEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.code,
+                        "errorDescription": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+                    
+    it("should return TransferQueryPayeeNotFoundFailedEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferQueryPayeeNotFoundFailedEvt({
+            transferId: "123",
+            payeeFspId: "greenbank",
+            errorDescription: "TransferQueryPayeeNotFoundFailedEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.code,
+                        "errorDescription": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+                        
+    it("should return TransferNotFoundEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferNotFoundEvt({
+            transferId: "123",
+            errorDescription: "TransferNotFoundEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.TRANSFER_ID_NOT_FOUND.code,
+                        "errorDescription": Enums.ClientErrors.TRANSFER_ID_NOT_FOUND.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+                        
+    it("should return TransferUnableToGetTransferByIdEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferUnableToGetTransferByIdEvt({
+            transferId: "123",
+            errorDescription: "TransferUnableToGetTransferByIdEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.TRANSFER_ID_NOT_FOUND.code,
+                        "errorDescription": Enums.ClientErrors.TRANSFER_ID_NOT_FOUND.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+                            
+    it("should return TransferDuplicateCheckFailedEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferDuplicateCheckFailedEvt({
+            transferId: "123",
+            payerFspId: "bluebank",
+            errorDescription: "TransferDuplicateCheckFailedEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.INVALID_SIGNATURE.code,
+                        "errorDescription": Enums.ClientErrors.INVALID_SIGNATURE.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+                                
+    it("should return TransferPrepareRequestTimedoutEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferPrepareRequestTimedoutEvt({
+            transferId: "123",
+            payerFspId: "bluebank",
+            errorDescription: "TransferPrepareRequestTimedoutEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.TRANSFER_EXPIRED.code,
+                        "errorDescription": Enums.ClientErrors.TRANSFER_EXPIRED.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+                                
+    it("should return TransferFulfilCommittedRequestedTimedoutEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferFulfilCommittedRequestedTimedoutEvt({
+            transferId: "123",
+            payerFspId: "bluebank",
+            payeeFspId: "greenbankbank",
+            errorDescription: "TransferFulfilCommittedRequestedTimedoutEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.TRANSFER_EXPIRED.code,
+                        "errorDescription": Enums.ClientErrors.TRANSFER_EXPIRED.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+                                
+    it("should return TransferFulfilPostCommittedRequestedTimedoutEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferFulfilPostCommittedRequestedTimedoutEvt({
+            transferId: "123",
+            payerFspId: "bluebank",
+            payeeFspId: "greenbankbank",
+            errorDescription: "TransferFulfilPostCommittedRequestedTimedoutEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.TRANSFER_EXPIRED.code,
+                        "errorDescription": Enums.ClientErrors.TRANSFER_EXPIRED.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+                                    
+    it("should return TransferCancelReservationFailedEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferCancelReservationFailedEvt({
+            transferId: "123",
+            errorDescription: "TransferCancelReservationFailedEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ServerErrors.GENERIC_SERVER_ERROR.code,
+                        "errorDescription": Enums.ServerErrors.GENERIC_SERVER_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+                                    
+    it("should return TransferCancelReservationAndCommitFailedEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferCancelReservationAndCommitFailedEvt({
+            transferId: "123",
+            errorDescription: "TransferCancelReservationAndCommitFailedEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ServerErrors.GENERIC_SERVER_ERROR.code,
+                        "errorDescription": Enums.ServerErrors.GENERIC_SERVER_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+                                        
+    it("should return TransferPrepareLiquidityCheckFailedEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferPrepareLiquidityCheckFailedEvt({
+            transferId: "123",
+            payerFspId: "bluebank", 
+            amount: "10", 
+            currency: "USD",
+            errorDescription: "TransferPrepareLiquidityCheckFailedEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.PayerErrors.PAYER_FSP_INSUFFICIENT_LIQUIDITY.code,
+                        "errorDescription": Enums.PayerErrors.PAYER_FSP_INSUFFICIENT_LIQUIDITY.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+                                            
+    it("should return TransferRejectRequestProcessedEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferRejectRequestProcessedEvt({
+            transferId: "123",
+            "errorInformation": { 
+                "errorCode": "transfer id error code",
+                "errorDescription": "error transfer description"
+            }
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.PayeeErrors.PAYEE_FSP_REJECTED_TRANSACTION.code,
+                        "errorDescription": Enums.PayeeErrors.PAYEE_FSP_REJECTED_TRANSACTION.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+                                                
+    it("should return TransferPayerNotActiveEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferPayerNotActiveEvt({
+            transferId: "123",
+            payerFspId: "bluebank",
+            errorDescription: "TransferPayerNotActiveEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.PayerErrors.GENERIC_PAYER_ERROR.code,
+                        "errorDescription": Enums.PayerErrors.GENERIC_PAYER_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+                                                    
+    it("should return TransferPayerNotApprovedEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferPayerNotApprovedEvt({
+            transferId: "123",
+            payerFspId: "bluebank",
+            errorDescription: "TransferPayerNotApprovedEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.PayerErrors.GENERIC_PAYER_ERROR.code,
+                        "errorDescription": Enums.PayerErrors.GENERIC_PAYER_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+                                                    
+    it("should return TransferPrepareInvalidPayerCheckFailedEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferPrepareInvalidPayerCheckFailedEvt({
+            transferId: "123",
+            payerFspId: "bluebank",
+            errorDescription: "TransferPrepareInvalidPayerCheckFailedEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.PayerErrors.GENERIC_PAYER_ERROR.code,
+                        "errorDescription": Enums.PayerErrors.GENERIC_PAYER_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+                                                    
+    it("should return TransferQueryInvalidPayerParticipantIdEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferQueryInvalidPayerParticipantIdEvt({
+            transferId: "123",
+            payerFspId: "bluebank",
+            errorDescription: "TransferQueryInvalidPayerParticipantIdEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.PayerErrors.GENERIC_PAYER_ERROR.code,
+                        "errorDescription": Enums.PayerErrors.GENERIC_PAYER_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+                                                        
+    it("should return TransferPayeeNotActiveEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferPayeeNotActiveEvt({
+            transferId: "123",
+            payeeFspId: "greenbank",
+            errorDescription: "TransferPayeeNotActiveEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.PayeeErrors.GENERIC_PAYEE_ERROR.code,
+                        "errorDescription": Enums.PayeeErrors.GENERIC_PAYEE_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+                                                        
+    it("should return TransferPayeeNotApprovedEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferPayeeNotApprovedEvt({
+            transferId: "123",
+            payeeFspId: "greenbank",
+            errorDescription: "TransferPayeeNotApprovedEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.PayeeErrors.GENERIC_PAYEE_ERROR.code,
+                        "errorDescription": Enums.PayeeErrors.GENERIC_PAYEE_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+                                                        
+    it("should return TransferPrepareInvalidPayeeCheckFailedEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferPrepareInvalidPayeeCheckFailedEvt({
+            transferId: "123",
+            payeeFspId: "greenbank",
+            errorDescription: "TransferPrepareInvalidPayeeCheckFailedEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.PayeeErrors.GENERIC_PAYEE_ERROR.code,
+                        "errorDescription": Enums.PayeeErrors.GENERIC_PAYEE_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+                                                        
+    it("should return TransferQueryInvalidPayeeParticipantIdEvt http call for participant type", async () => {
+        // Arrange
+        const msg = new TransferQueryInvalidPayeeParticipantIdEvt({
+            transferId: "123",
+            payeeFspId: "greenbank",
+            errorDescription: "TransferQueryInvalidPayeeParticipantIdEvt"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.PayeeErrors.GENERIC_PAYEE_ERROR.code,
+                        "errorDescription": Enums.PayeeErrors.GENERIC_PAYEE_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
         });
     });
     // #region

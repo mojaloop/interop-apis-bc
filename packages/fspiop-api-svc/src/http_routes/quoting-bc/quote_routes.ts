@@ -84,11 +84,13 @@ export class QuoteRoutes extends BaseRoutes {
             const extensionList = req.body["extensionList"] || null;
 
             if (!requesterFspId || !quoteId || !transactionId || !payee || !payer || !amountType || !amount || !transactionType) {
-                res.status(400).json({
+                const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
+
+                res.status(400).json(transformError);
                 return;
             }
 
@@ -145,7 +147,7 @@ export class QuoteRoutes extends BaseRoutes {
         }
     }
 
-    private async quoteResponseReceived(req: express.Request, res: express.Response): Promise<void> {
+    private async quoteResponseReceived(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
         this.logger.debug("Got quoteResponseReceived request");
         try {
             // Headers
@@ -167,12 +169,14 @@ export class QuoteRoutes extends BaseRoutes {
 
 
             if (!requesterFspId || !quoteId || !transferAmount || !expiration || !ilpPacket || !condition) {
-                res.status(400).json({
+                const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
-                return;
+
+                res.status(400).json(transformError);
+                return next();
             }
 
             const msgPayload: QuoteResponseReceivedEvtPayload = {
@@ -234,11 +238,13 @@ export class QuoteRoutes extends BaseRoutes {
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
 
             if (!quoteId || !requesterFspId) {
-                res.status(400).json({
+                const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
+
+                res.status(400).json(transformError);
                 return;
             }
 
@@ -289,10 +295,14 @@ export class QuoteRoutes extends BaseRoutes {
             const quoteId = req.params["id"] as string || null;
             const errorInformation = req.body["errorInformation"] || null;
 
-            if(!quoteId || !errorInformation) {
-                res.status(400).json({
-                    status: "No quoteId or errorInformation provided"
+            if(!quoteId || !errorInformation || !requesterFspId) {
+                const transformError = Transformer.transformPayloadError({
+                    errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
+                    errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
+                    extensionList: null
                 });
+
+                res.status(400).json(transformError);
                 return;
             }
 
@@ -315,9 +325,7 @@ export class QuoteRoutes extends BaseRoutes {
 
             this.logger.debug("quote rejected sent message");
 
-            res.status(202).json({
-                status: "ok"
-            });
+            res.status(202).json(null);
 
             this.logger.debug("quote rejected responded");
         }

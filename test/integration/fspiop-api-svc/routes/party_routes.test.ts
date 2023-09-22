@@ -34,10 +34,10 @@
 import { AccountLookupBCTopics, PartyInfoAvailableEvt, PartyQueryReceivedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import request from "supertest";
 import { Service } from "../../../../packages/fspiop-api-svc/src";
-import KafkaConsumer, { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
+import KafkaConsumer from "../helpers/kafkaproducer";
 import path from "path";
 import jestOpenAPI from "jest-openapi";
-import { getHeaders, defaultEntryValidRequest, missingPropertyResponse, unknownHeaderResponse } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { getHeaders, defaultEntryValidRequest, missingPropertyResponse } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import waitForExpect from "wait-for-expect";
 
@@ -212,7 +212,7 @@ describe("FSPIOP API Service Participant Routes", () => {
             expect(messages.length).toBe(0);
         });
     });
-
+    
     it("should give a bad request calling getPartyInfoAvailableByTypeAndId endpoint", async () => {
         // Act
         const res = await request(server)

@@ -34,7 +34,7 @@
  
 import request from "supertest";
 import { Service } from "../../../../packages/fspiop-api-svc/src";
-import KafkaConsumer, { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
+import KafkaConsumer from "../helpers/kafkaproducer";
 import { AccountLookupBCTopics, ParticipantAssociationRequestReceivedEvt, ParticipantDisassociateRequestReceivedEvt, ParticipantQueryReceivedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { getHeaders, defaultEntryValidRequest, missingPropertyResponse } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";

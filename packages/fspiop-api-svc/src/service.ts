@@ -109,6 +109,7 @@ const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhos
 const AUTH_N_SVC_TOKEN_URL = AUTH_N_SVC_BASEURL + "/token"; // TODO this should not be known here, libs that use the base should add the suffix
 
 const PARTICIPANTS_SVC_URL = process.env["PARTICIPANTS_SVC_URL"] || "http://localhost:3010";
+const PARTICIPANTS_CACHE_TIMEOUT_MS = (process.env["PARTICIPANTS_CACHE_TIMEOUT_MS"] && parseInt(process.env["PARTICIPANTS_CACHE_TIMEOUT_MS"])) || 5*60*1000;
 
 // this service has more handlers, might take longer than the usual 30 sec
 const SERVICE_START_TIMEOUT_MS = 60_000;
@@ -199,7 +200,7 @@ export class Service {
 
             const authRequester:IAuthenticatedHttpRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
             authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
-            participantService = new ParticipantAdapter(participantLogger, PARTICIPANTS_SVC_URL, authRequester);
+            participantService = new ParticipantAdapter(participantLogger, PARTICIPANTS_SVC_URL, authRequester, PARTICIPANTS_CACHE_TIMEOUT_MS);
         }
         this.participantService = participantService;
 
@@ -290,7 +291,7 @@ export class Service {
             })); // for parsing application/json
             this.app.use(express.urlencoded({limit: "100mb", extended: true})); // for parsing application/x-www-form-urlencoded
 
-            // Call header validation
+            // // Call header validation
             this.app.use(validateHeaders);
 
             // Call the request validator in every request
@@ -398,6 +399,12 @@ export class Service {
         // if (this.auditClient) await this.auditClient.destroy();
         // if (this.logger && this.logger instanceof KafkaLogger) await this.logger.destroy();
         if (this.expressServer){
+            await this.participantRoutes.destroy();
+            await this.partyRoutes.destroy();
+            await this.quotesRoutes.destroy();
+            await this.bulkQuotesRoutes.destroy();
+            await this.transfersRoutes.destroy();
+
             await this.expressServer.close();
             // const closeExpress = util.promisify(this.expressServer.close);
             // await closeExpress();

@@ -42,7 +42,7 @@ import {
 	QuoteRequestAcceptedEvtPayload,
 	QuoteResponseAcceptedEvtPayload,
 	TransferPreparedEvtPayload,
-	TransferCommittedFulfiledEvtPayload,
+	TransferFulfiledEvtPayload,
 	TransferQueryResponseEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 
@@ -567,7 +567,7 @@ export const transformPayloadTransferRequestPost = (payload: TransferPreparedEvt
 	return removeEmpty(info);
 };
 
-export const transformPayloadTransferRequestPut = (payload: TransferCommittedFulfiledEvtPayload): PutTransfer => {
+export const transformPayloadTransferRequestPut = (payload: TransferFulfiledEvtPayload): PutTransfer => {
 	const info: PutTransfer = {
 		transferState: "COMMITTED",
 		fulfilment: payload.fulfilment,

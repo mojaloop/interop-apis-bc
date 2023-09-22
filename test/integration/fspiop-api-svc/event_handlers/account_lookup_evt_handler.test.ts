@@ -34,7 +34,7 @@
 import path from "path";
 import jestOpenAPI from "jest-openapi";
 import waitForExpect from "wait-for-expect";
-import { Enums } from "../../../../packages/fspiop-utils-lib/dist";
+import { Enums, Request } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {
     AccountLookupBCTopics,
     ParticipantAssociationRequestReceivedEvt,
@@ -44,20 +44,30 @@ import {
     PartyInfoRequestedEvt,
     PartyInfoAvailableEvt,
     PartyQueryResponseEvt,
-    AccountLookUpUnableToGetParticipantFromOracleErrorEvent,
-    AccountLookupBCRequesterParticipantNotFoundErrorEvent,
-    AccountLookupBCUnableToGetOracleAdapterErrorEvent,
     ParticipantAssociationCreatedEvt,
-    AccountLookupBCUnableToAssociateParticipantErrorEvent,
     ParticipantDisassociateRequestReceivedEvt,
-    ParticipantAssociationRemovedEvt
+    ParticipantAssociationRemovedEvt,
+    GetPartyQueryRejectedResponseEvt,
+    AccountLookUpUnknownErrorEvent,
+    AccountLookupBCInvalidMessagePayloadErrorEvent,
+    AccountLookupBCInvalidMessageTypeErrorEvent,
+    AccountLookupBCUnableToAssociateParticipantErrorEvent,
+    AccountLookupBCUnableToDisassociateParticipantErrorEvent,
+    AccountLookupBCUnableToGetOracleAdapterErrorEvent,
+    AccountLookUpUnableToGetParticipantFromOracleErrorEvent,
+    AccountLookupBCDestinationParticipantNotFoundErrorEvent,
+    AccountLookupBCInvalidDestinationParticipantErrorEvent,
+    AccountLookupBCRequesterParticipantNotFoundErrorEvent,
+    AccountLookupBCInvalidRequesterParticipantErrorEvent
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Service } from "../../../../packages/fspiop-api-svc/src/service";
 import request from "supertest";
-import { getHeaders } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { createMessage, getHeaders } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import KafkaConsumer from "../helpers/kafkaproducer";
 import { MongoClient } from "mongodb";
 import { PostParticipant, removeEmpty } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/transformer";
+import { FSPIOP_PARTY_ACCOUNT_TYPES } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants";
+import { ClientErrors } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/enums";
 
 const server = process.env["SVC_DEFAULT_URL"] || "http://localhost:4000/";
 
@@ -67,17 +77,26 @@ jestOpenAPI(path.join(__dirname, "../../../../packages/fspiop-api-svc/api-specs/
 
 jest.setTimeout(40000);
 
+const partiesEntity = "parties";
+const participantsEntity = "participants";
+
 // Participants
 let validParticipantPostPayload:PostParticipant;
 
 const consumer = new KafkaConsumer([AccountLookupBCTopics.DomainRequests, AccountLookupBCTopics.DomainEvents])
-const DB_NAME = process.env.QUOTING_DB_TEST_NAME ?? "quoting";
+const DB_NAME = process.env.QUOTING_DB_TEST_NAME ?? "account-lookup";
 const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017";
 const COLLECTION_PARTICIPANT = "participants";
-const COLLECTION_PARTY = "bulk_quotes";
+const COLLECTION_PARTY = "parties";
 
 // Mongo instances
 let mongoClient: MongoClient;
+
+let sendRequestSpy = jest.spyOn(Request, "sendRequest");
+
+const res = async () => {
+    return await sendRequestSpy.mock.results[sendRequestSpy.mock.results.length-1].value;
+};
 
 describe("FSPIOP API Service Account Lookup Handler", () => {
 
@@ -87,33 +106,38 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
     });
 
     beforeEach(async () => {
+        await new Promise((r) => setTimeout(r, 5000));
+        
         await consumer.clearEvents();
+
+        sendRequestSpy.mockClear();
 
         validParticipantPostPayload = {
             "fspId": "bluebank"
         }
+
     });
 
     afterAll(async () => {
         await Service.stop();
         await consumer.destroy();
 
-        // Start mongo client and service before conducting all tests
-        mongoClient = new MongoClient(CONNECTION_STRING);
-        await mongoClient.connect();
+        // // Start mongo client and service before conducting all tests
+        // mongoClient = new MongoClient(CONNECTION_STRING);
+        // await mongoClient.connect();
 
-        mongoClient.connect();
-        const participantRepo = mongoClient
-            .db(DB_NAME)
-            .collection(COLLECTION_PARTICIPANT);
+        // mongoClient.connect();
+        // const participantRepo = mongoClient
+        //     .db(DB_NAME)
+        //     .collection(COLLECTION_PARTICIPANT);
 
-        participantRepo.deleteMany({})
+        // participantRepo.deleteMany({})
 
-        const partyRepo = mongoClient
-        .db(DB_NAME)
-        .collection(COLLECTION_PARTY);
+        // const partyRepo = mongoClient
+        // .db(DB_NAME)
+        // .collection(COLLECTION_PARTY);
 
-        partyRepo.deleteMany({})
+        // partyRepo.deleteMany({})
     });
 
     
@@ -140,9 +164,7 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
     });
 
     it("should return error event due to non existing oracle", async () => {
-        // Arrange 
-
-        // Act
+        // Arrange & Act
         await request(server)
         .post(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "nonexistingpartytype" + "/" + "nonexistingpartyid")
         .send(removeEmpty(validParticipantPostPayload))
@@ -159,9 +181,7 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
     });
 
     it("should successfully associate a participant", async () => {
-        // Arrange 
-
-        // Act
+        // Arrange & Act
         await request(server)
         .post(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "MSISDN" + "/" + "37713803068")
         .send(removeEmpty(validParticipantPostPayload))
@@ -217,9 +237,7 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
     });
 
     it("should return error event due to non existing oracle", async () => {
-        // Arrange 
-
-        // Act
+        // Arrange & Act
         await request(server)
         .post(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "nonexistingpartytype" + "/" + "nonexistingpartyid" + "nonexistingpartysubid")
         .send(removeEmpty(validParticipantPostPayload))
@@ -408,9 +426,7 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
     });
 
     it("should successfully disassociate a participant", async () => {
-        // Arrange 
-
-        // Act
+        // Arrange & Act
         await request(server)
         .del(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "MSISDN" + "/" + "37713803068")
         .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS));
@@ -466,9 +482,7 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
     });
 
     it("should successfully disassociate a participant", async () => {
-        // Arrange 
-
-        // Act
+        // Arrange & Act
         await request(server)
         .del(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "MSISDN" + "/" + "37713803068" + "/" + "111222333")
         .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS));
@@ -480,6 +494,424 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
             expect(messages.length).toBe(2);
             expect(messages[0].msgName).toBe(ParticipantDisassociateRequestReceivedEvt.name);
             expect(messages[1].msgName).toBe(ParticipantAssociationRemovedEvt.name);
+        });
+    });
+    // #region
+
+    // #region Error events
+    // Act
+    it("should return AccountLookUpUnknownErrorEvent http call for participant type", async () => {
+        // Arrange
+        const msg = new AccountLookUpUnknownErrorEvent({
+            partyId: "123",
+            partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
+            requesterFspId: "bluebank",
+            currency: "USD",
+            errorDescription: "AccountLookUpUnknownErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.PARTICIPANTS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ServerErrors.INTERNAL_SERVER_ERROR.code,
+                        "errorDescription": Enums.ServerErrors.INTERNAL_SERVER_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${participantsEntity}/${msg.payload.partyType}/${msg.payload.partyId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+
+    it("should return AccountLookUpUnknownErrorEvent http call for party type", async () => {
+        // Arrange
+        const msg = new AccountLookUpUnknownErrorEvent({
+            partyId: "123",
+            partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
+            requesterFspId: "bluebank",
+            currency: "USD",
+            errorDescription: "AccountLookUpUnknownErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ServerErrors.INTERNAL_SERVER_ERROR.code,
+                        "errorDescription": Enums.ServerErrors.INTERNAL_SERVER_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${partiesEntity}/${msg.payload.partyType}/${msg.payload.partyId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+
+    it("should return AccountLookupBCInvalidMessagePayloadErrorEvent http call for party type", async () => {
+        // Arrange
+        const msg = new AccountLookupBCInvalidMessagePayloadErrorEvent({
+            partyId: "123",
+            partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
+            partySubType: "456",
+            requesterFspId: "bluebank",
+            errorDescription: "AccountLookupBCInvalidMessagePayloadErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code,
+                        "errorDescription": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.name
+                    }
+                },
+                "url": expect.stringContaining(`/${partiesEntity}/${msg.payload.partyType}/${msg.payload.partyId}/${msg.payload.partySubType}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+
+    it("should return AccountLookupBCInvalidMessageTypeErrorEvent http call for party type", async () => {
+        // Arrange
+        const msg = new AccountLookupBCInvalidMessageTypeErrorEvent({
+            partyId: "123",
+            partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
+            partySubType: "456",
+            requesterFspId: "bluebank",
+            errorDescription: "AccountLookupBCInvalidMessageTypeErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code,
+                        "errorDescription": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.name
+                    }
+                },
+                "url": expect.stringContaining(`/${partiesEntity}/${msg.payload.partyType}/${msg.payload.partyId}/${msg.payload.partySubType}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+
+    it("should return AccountLookupBCUnableToGetOracleAdapterErrorEvent http call for party type", async () => {
+        // Arrange
+        const msg = new AccountLookupBCUnableToGetOracleAdapterErrorEvent({
+            partyId: "123",
+            partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
+            currency: "USD",
+            errorDescription: "AccountLookupBCUnableToGetOracleAdapterErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code,
+                        "errorDescription": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.name
+                    }
+                },
+                "url": expect.stringContaining(`/${partiesEntity}/${msg.payload.partyType}/${msg.payload.partyId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+
+    it("should return GetPartyQueryRejectedResponseEvt http call for party type", async () => {
+        // Arrange
+        const msg = new GetPartyQueryRejectedResponseEvt({
+            partyId: "123",
+            partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
+            partySubType: "456",
+            currency: "USD",
+            errorInformation: { 
+                "errorCode": ClientErrors.PARTY_NOT_FOUND.code,
+                "errorDescription": ClientErrors.PARTY_NOT_FOUND.name
+            }
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": ClientErrors.PARTY_NOT_FOUND.code,
+                        "errorDescription": ClientErrors.PARTY_NOT_FOUND.name
+                    }
+                },
+                "url": expect.stringContaining(`/${partiesEntity}/${msg.payload.partyType}/${msg.payload.partyId}/${msg.payload.partySubType}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+
+    it("should return AccountLookUpUnableToGetParticipantFromOracleErrorEvent http call for party type", async () => {
+        // Arrange
+        const msg = new AccountLookUpUnableToGetParticipantFromOracleErrorEvent({
+            partyId: "123",
+            partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
+            partySubType: "456",
+            currency: "USD",
+            errorDescription: "AccountLookUpUnableToGetParticipantFromOracleErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": ClientErrors.PARTY_NOT_FOUND.code,
+                        "errorDescription": ClientErrors.PARTY_NOT_FOUND.name
+                    }
+                },
+                "url": expect.stringContaining(`/${partiesEntity}/${msg.payload.partyType}/${msg.payload.partyId}/${msg.payload.partySubType}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+
+    it("should return AccountLookupBCUnableToAssociateParticipantErrorEvent http call for party type", async () => {
+        // Arrange
+        const msg = new AccountLookupBCUnableToAssociateParticipantErrorEvent({
+            partyId: "123",
+            partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
+            currency: "USD",
+            fspIdToAssociate: "randomFspId",
+            errorDescription: "AccountLookupBCUnableToAssociateParticipantErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ServerErrors.GENERIC_SERVER_ERROR.code,
+                        "errorDescription": Enums.ServerErrors.GENERIC_SERVER_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${partiesEntity}/${msg.payload.partyType}/${msg.payload.partyId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+
+    it("should return AccountLookupBCUnableToDisassociateParticipantErrorEvent http call for party type", async () => {
+        // Arrange
+        const msg = new AccountLookupBCUnableToDisassociateParticipantErrorEvent({
+            partyId: "123",
+            partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
+            currency: "USD",
+            fspIdToDisassociate: "randomFspId",
+            errorDescription: "AccountLookupBCUnableToDisassociateParticipantErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ServerErrors.GENERIC_SERVER_ERROR.code,
+                        "errorDescription": Enums.ServerErrors.GENERIC_SERVER_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${partiesEntity}/${msg.payload.partyType}/${msg.payload.partyId}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+
+    it("should return AccountLookupBCDestinationParticipantNotFoundErrorEvent http call for party type", async () => {
+        // Arrange
+        const msg = new AccountLookupBCDestinationParticipantNotFoundErrorEvent({
+            partyId: "123",
+            partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
+            partySubType: "456",
+            destinationFspId: "randomFspId",
+            errorDescription: "AccountLookupBCDestinationParticipantNotFoundErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code,
+                        "errorDescription": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.name
+                    }
+                },
+                "url": expect.stringContaining(`/${partiesEntity}/${msg.payload.partyType}/${msg.payload.partyId}/${msg.payload.partySubType}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+
+    it("should return AccountLookupBCRequesterParticipantNotFoundErrorEvent http call for party type", async () => {
+        // Arrange
+        const msg = new AccountLookupBCRequesterParticipantNotFoundErrorEvent({
+            partyId: "123",
+            partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
+            partySubType: "456",
+            requesterFspId: "randomFspId",
+            errorDescription: "AccountLookupBCRequesterParticipantNotFoundErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code,
+                        "errorDescription": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.name
+                    }
+                },
+                "url": expect.stringContaining(`/${partiesEntity}/${msg.payload.partyType}/${msg.payload.partyId}/${msg.payload.partySubType}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+
+    it("should return AccountLookupBCInvalidDestinationParticipantErrorEvent http call for party type", async () => {
+        // Arrange
+        const msg = new AccountLookupBCInvalidDestinationParticipantErrorEvent({
+            partyId: "123",
+            partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
+            partySubType: "456",
+            destinationFspId: "randomFspId",
+            errorDescription: "AccountLookupBCInvalidDestinationParticipantErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.GENERIC_CLIENT_ERROR.code,
+                        "errorDescription": Enums.ClientErrors.GENERIC_CLIENT_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${partiesEntity}/${msg.payload.partyType}/${msg.payload.partyId}/${msg.payload.partySubType}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+
+    it("should return AccountLookupBCInvalidRequesterParticipantErrorEvent http call for party type", async () => {
+        // Arrange
+        const msg = new AccountLookupBCInvalidRequesterParticipantErrorEvent({
+            partyId: "123",
+            partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
+            partySubType: "456",
+            requesterFspId: "randomFspId",
+            errorDescription: "AccountLookupBCInvalidRequesterParticipantErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": Enums.ClientErrors.DESTINATION_FSP_ERROR.code,
+                        "errorDescription": Enums.ClientErrors.DESTINATION_FSP_ERROR.name
+                    }
+                },
+                "url": expect.stringContaining(`/${partiesEntity}/${msg.payload.partyType}/${msg.payload.partyId}/${msg.payload.partySubType}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+
+    it("should use default case when AccountLookUpUnknownErrorEvent has no correct name", async () => {
+        // Arrange
+        const msg = new AccountLookUpUnknownErrorEvent({
+            partyId: "123",
+            partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
+            requesterFspId: "bluebank",
+            currency: "USD",
+            errorDescription: "AccountLookUpUnknownErrorEvent"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.PARTICIPANTS);
+
+        msg.msgName = "non-existing-message-name";
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(() => {
+            expect(Request.sendRequest).toHaveBeenCalledTimes(0);
         });
     });
     // #region

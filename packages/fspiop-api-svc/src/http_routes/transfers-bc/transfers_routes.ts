@@ -33,13 +33,13 @@
 
 import express from "express";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import { Constants, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Transformer, Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {
     TransferPrepareRequestedEvt,
     TransferPrepareRequestedEvtPayload,
-    TransferFulfilCommittedRequestedEvt,
-    TransferFulfilCommittedRequestedEvtPayload,
+    TransferFulfilRequestedEvt,
+    TransferFulfilRequestedEvtPayload,
     TransferRejectRequestedEvt,
     TransferRejectRequestedEvtPayload,
     TransferQueryReceivedEvt,
@@ -52,7 +52,7 @@ export class TransfersRoutes extends BaseRoutes {
 
     constructor(producerOptions: MLKafkaJsonProducerOptions, kafkaTopic: string, logger: ILogger) {
         super(producerOptions, kafkaTopic, logger);
-
+        
         // bind routes
 
         // GET Transfer by ID
@@ -86,12 +86,14 @@ export class TransfersRoutes extends BaseRoutes {
             const expiration = req.body["expiration"] || null;
             const extensionList = req.body["extensionList"] || null;
 
-            if (!transferId || !payeeFsp || !payerFsp || !amount || !ilpPacket || !condition || !expiration) {
-                res.status(400).json({
+            if (!transferId || !payeeFsp || !payerFsp || !amount || !ilpPacket || !condition || !expiration || !requesterFspId) {
+                const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
+
+                res.status(400).json(transformError);
                 return;
             }
 
@@ -149,6 +151,7 @@ export class TransfersRoutes extends BaseRoutes {
             const clonedHeaders = { ...req.headers };
             const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+            const acceptedHeader = clonedHeaders[Constants.FSPIOP_HEADERS_ACCEPT] as string;
 
             // Date Model
             const transferId = req.params["id"] as string || null;
@@ -158,24 +161,27 @@ export class TransfersRoutes extends BaseRoutes {
             const extensionList = req.body["extensionList"] || null;
 
 
-            if (!transferId || !transferState) {
-                res.status(400).json({
+            if (!transferId || !transferState || !requesterFspId) {
+                const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
+
+                res.status(400).json(transformError);
                 return;
             }
 
-            const msgPayload: TransferFulfilCommittedRequestedEvtPayload = {
+            const msgPayload: TransferFulfilRequestedEvtPayload = {
                 transferId: transferId,
                 transferState: transferState,
                 fulfilment: fulfilment,
                 completedTimestamp: new Date(completedTimestamp).valueOf(),
-                extensionList: extensionList
+                extensionList: extensionList,
+                notifyPayee: transferState === Enums.TransferStateEnum.RESERVED && Constants.ALLOWED_PATCH_ACCEPTED_TRANSFER_HEADERS.includes(acceptedHeader)
             };
 
-            const msg = new TransferFulfilCommittedRequestedEvt(msgPayload);
+            const msg = new TransferFulfilRequestedEvt(msgPayload);
 
             // Since we don't export the types of the body (but we validate them in the entrypoint of the route),
             // we can use the builtin method of validatePayload of the evt messages to make sure consistency 
@@ -222,12 +228,14 @@ export class TransfersRoutes extends BaseRoutes {
             const transferId = req.params["id"] as string || null;
             const errorInformation = req.body["errorInformation"] || null;
 
-            if (!transferId || !errorInformation) {
-                res.status(400).json({
+            if (!transferId || !errorInformation || !requesterFspId) {
+                const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
+
+                res.status(400).json(transformError);
                 return;
             }
 
@@ -281,11 +289,13 @@ export class TransfersRoutes extends BaseRoutes {
 
 
             if (!transferId || !requesterFspId) {
-                res.status(400).json({
+                const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
+
+                res.status(400).json(transformError);
                 return;
             }
 

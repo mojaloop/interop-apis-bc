@@ -38,12 +38,12 @@ import {
     QuotingBCTopics,
     TransferQueryReceivedEvt,
     TransferPrepareRequestedEvt,
-    TransferFulfilCommittedRequestedEvt,
+    TransferFulfilRequestedEvt,
     TransferRejectRequestedEvt,
     TransfersBCTopics 
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Service } from "../../../../packages/fspiop-api-svc/src";
-import KafkaConsumer, { getCurrentKafkaOffset } from "../helpers/kafkaproducer";
+import KafkaConsumer from "../helpers/kafkaproducer";
 import { getHeaders, missingPropertyResponse } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import waitForExpect from "wait-for-expect";
@@ -159,7 +159,7 @@ describe("FSPIOP API Service Transfer Routes", () => {
             expect(res.statusCode).toEqual(200);
             expect(res.body).toStrictEqual(null);
             expect(messages.length).toBe(2);
-            expect(messages[0].msgName).toBe(TransferFulfilCommittedRequestedEvt.name);
+            expect(messages[0].msgName).toBe(TransferFulfilRequestedEvt.name);
             expect(messages[1].msgName).toBe("CommitTransferFulfilCmd");
             expect(res).toSatisfyApiSpec();
         });

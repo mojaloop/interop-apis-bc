@@ -75,11 +75,13 @@ export class QuoteBulkRoutes extends BaseRoutes {
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
 
             if (!bulkQuoteId || !requesterFspId) {
-                res.status(400).json({
+                const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
+
+                res.status(400).json(transformError);
                 return;
             }
 
@@ -135,11 +137,13 @@ export class QuoteBulkRoutes extends BaseRoutes {
             const extensionList = req.body["extensionList"] || null;
 
             if (!requesterFspId || !bulkQuoteId || !payer || !individualQuotes) {
-                res.status(400).json({
+                const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
+
+                res.status(400).json(transformError);
                 return;
             }
 
@@ -202,11 +206,13 @@ export class QuoteBulkRoutes extends BaseRoutes {
             const extensionList = req.body["extensionList"] || null;
 
             if (!bulkQuoteId || !requesterFspId || !individualQuoteResults) {
-                res.status(400).json({
+                const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
+
+                res.status(400).json(transformError);
                 return;
             }
 
@@ -263,10 +269,14 @@ export class QuoteBulkRoutes extends BaseRoutes {
             const bulkQuoteId = req.params["id"] as string || null;
             const errorInformation = req.body["errorInformation"] || null;
 
-            if(!bulkQuoteId || !errorInformation) {
-                res.status(400).json({
-                    status: "No bulkQuoteId or errorInformation provided"
+            if(!bulkQuoteId || !errorInformation || !requesterFspId) {
+                const transformError = Transformer.transformPayloadError({
+                    errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
+                    errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
+                    extensionList: null
                 });
+
+                res.status(400).json(transformError);
                 return;
             }
 

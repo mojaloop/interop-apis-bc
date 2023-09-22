@@ -85,11 +85,13 @@ export class PartyRoutes extends BaseRoutes {
             const currency = req.query["currency"] as string || null;
 
             if (!type || !id || !requesterFspId) {
-                res.status(400).json({
+                const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
+
+                res.status(400).json(transformError);
                 return;
             }
 
@@ -148,11 +150,13 @@ export class PartyRoutes extends BaseRoutes {
             const currency = req.query["currency"] as string || null;
 
             if (!type || !id || !requesterFspId) {
-                res.status(400).json({
+                const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
+
+                res.status(400).json(transformError);
                 return;
             }
 
@@ -214,11 +218,13 @@ export class PartyRoutes extends BaseRoutes {
             const partyDoB = req.body.party.personalInfo["dateOfBirth"] || null;
 
             if (!type || !id || !requesterFspId || !ownerFspId) {
-                res.status(400).json({
+                const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
+
+                res.status(400).json(transformError);
                 return;
             }
 
@@ -290,11 +296,13 @@ export class PartyRoutes extends BaseRoutes {
             const partyDoB = req.body.party.personalInfo["dateOfBirth"] || null;
 
             if (!type || !id || !requesterFspId || !ownerFspId) {
-                res.status(400).json({
+                const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
+
+                res.status(400).json(transformError);
                 return;
             }
 
@@ -360,11 +368,14 @@ export class PartyRoutes extends BaseRoutes {
             const errorInformation = req.body["errorInformation"] || null;
 
             if (!type || !id || !requesterFspId || !errorInformation) {
-                res.status(400).json({
+                const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
+
+                res.status(400).json(transformError);
+                return;
             }
 
             const msgPayload: GetPartyQueryRejectedEvtPayload = {
@@ -425,11 +436,13 @@ export class PartyRoutes extends BaseRoutes {
             const errorInformation = req.body["errorInformation"] || null;
 
             if (!type || !id || !requesterFspId || !errorInformation) {
-                res.status(400).json({
+                const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
+
+                res.status(400).json(transformError);
                 return;
             }
 

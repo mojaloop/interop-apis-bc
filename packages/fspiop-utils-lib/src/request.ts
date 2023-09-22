@@ -118,10 +118,6 @@ export const sendRequest = async ({
 
 };
 
-export const buildEndpoint = (baseUrl: string, templateUrl: string) => {
-  return `${baseUrl}${templateUrl}`;
-};
-
 
 export class URLBuilder {
 
