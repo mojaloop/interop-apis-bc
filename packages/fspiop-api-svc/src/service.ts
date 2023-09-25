@@ -373,7 +373,7 @@ export class Service {
                         errorCode: "3002",
                         errorDescription: "Unknown URI"
                     }
-                })
+                });
 
                 next();
             });

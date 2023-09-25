@@ -106,11 +106,11 @@ export class QuoteBulkRoutes extends BaseRoutes {
             this.logger.debug("bulkQuoteQueryReceived responded");
 
         }
-        catch (error: any) {
+        catch (error: unknown) {
             if (error) {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
-                    errorDescription: error.message,
+                    errorDescription: (error as Error).message,
                     extensionList: null
                 });
                 res.status(500).json(transformError);
@@ -174,11 +174,11 @@ export class QuoteBulkRoutes extends BaseRoutes {
 
             this.logger.debug("bulkQuoteRequest responded");
         }
-        catch (error: any) {
+        catch (error: unknown) {
             if (error) {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
-                    errorDescription: error.message,
+                    errorDescription: (error as Error).message,
                     extensionList: null
                 });
 
@@ -239,11 +239,11 @@ export class QuoteBulkRoutes extends BaseRoutes {
 
             this.logger.debug("bulkQuotePending responded");
         }
-        catch (error: any) {
+        catch (error: unknown) {
             if (error) {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
-                    errorDescription: error.message,
+                    errorDescription: (error as Error).message,
                     extensionList: null
                 });
 
@@ -295,11 +295,11 @@ export class QuoteBulkRoutes extends BaseRoutes {
 
             this.logger.debug("bulk quote rejected responded");
         }
-        catch (error: any) {
+        catch (error: unknown) {
             if (error) {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
-                    errorDescription: error.message,
+                    errorDescription: (error as Error).message,
                     extensionList: null
                 });
 

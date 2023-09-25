@@ -129,11 +129,11 @@ export class TransfersRoutes extends BaseRoutes {
 
             this.logger.debug("transferPrepareRequested responded");
         }
-        catch (error: any) {
+        catch (error: unknown) {
             if (error) {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
-                    errorDescription: error.message,
+                    errorDescription: (error as Error).message,
                     extensionList: null
                 });
 
@@ -199,11 +199,11 @@ export class TransfersRoutes extends BaseRoutes {
 
             this.logger.debug("transferFulfilRequested responded");
         }
-        catch (error: any) {
+        catch (error: unknown) {
             if (error) {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
-                    errorDescription: error.message,
+                    errorDescription: (error as Error).message,
                     extensionList: null
                 });
 
@@ -260,11 +260,11 @@ export class TransfersRoutes extends BaseRoutes {
 
             this.logger.debug("transferRejectRequested responded");
         }
-        catch (error: any) {
+        catch (error: unknown) {
             if (error) {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
-                    errorDescription: error.message,
+                    errorDescription: (error as Error).message,
                     extensionList: null
                 });
 
@@ -314,11 +314,11 @@ export class TransfersRoutes extends BaseRoutes {
 
             this.logger.debug("transferQueryReceived responded");
         }
-        catch (error: any) {
+        catch (error: unknown) {
             if (error) {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
-                    errorDescription: error.message,
+                    errorDescription: (error as Error).message,
                     extensionList: null
                 });
 
