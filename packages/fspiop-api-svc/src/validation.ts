@@ -1,6 +1,5 @@
 
 import { strict as assert } from "assert";
-import _ from "lodash";
 
 export const protocolVersions = {
   anyVersion: Symbol("Any"),
@@ -73,6 +72,7 @@ export const parseAcceptHeader = (resource:string, header:string) => {
   };
 };
 
+/*
 export const convertSupportedVersionToExtensionList = (supportedVersions:any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
   const supportedVersionsExtensionListMap = [];
   for (const version of supportedVersions) {
@@ -91,6 +91,7 @@ export const convertSupportedVersionToExtensionList = (supportedVersions:any) =>
   }
   return _.uniqWith(supportedVersionsExtensionListMap, _.isEqual);
 };
+*/
 
 export const FSPIOPErrorCodes = {
   "COMMUNICATION_ERROR": {
