@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM node:18.13.0-alpine AS builder
+FROM node:18.13.0-alpine AS builder
 
 # Create the project directory inside the container.
 WORKDIR /app
