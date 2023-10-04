@@ -74,7 +74,8 @@ import {
     TransferPayerNotApprovedEvt,
     TransferPayeeNotActiveEvt,
     TransferPayeeNotApprovedEvt,
-    TransferUnableToDeleteTransferReminderEvt
+    TransferUnableToDeleteTransferReminderEvt,
+    BulkTransferPreparedEvt
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { BaseEventHandler, HandlerNames } from "./base_event_handler";
@@ -111,6 +112,9 @@ export class TransferEventHandler extends BaseEventHandler {
                     break;
                 case TransferQueryResponseEvt.name:
                     await this._handleTransferQueryResponseEvt(new TransferQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
+                    break;
+                case BulkTransferPreparedEvt.name:
+                    await this._handleBulkTransferPreparedEvt(new BulkTransferPreparedEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
                 case TransferInvalidMessagePayloadEvt.name:
                 case TransferInvalidMessageTypeEvt.name:
@@ -476,6 +480,56 @@ export class TransferEventHandler extends BaseEventHandler {
         } catch (error: unknown) {
             this._logger.error("_handleTransferQueryResponseEvt -> error");
             throw Error("_handleTransferQueryResponseEvt -> error");
+        }
+
+        return;
+    }
+
+    private async _handleBulkTransferPreparedEvt(message: BulkTransferPreparedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
+        const { payload } = message;
+
+        const clonedHeaders = fspiopOpaqueState;
+        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+
+        // TODO validate vars above
+
+        const requestedEndpointPayer = await this._validateParticipantAndGetEndpoint(destinationFspId);
+
+        if(!requestedEndpointPayer) {
+            throw Error(`fspId ${destinationFspId} has no valid participant associated`);
+        }
+
+        const requestedEndpointPayee = await this._validateParticipantAndGetEndpoint(requesterFspId);
+
+        if(!requestedEndpointPayee) {
+            throw Error(`fspId ${requesterFspId} has no valid participant associated`);
+        }
+
+        try {
+            this._logger.info("_handleTransferReserveFulfiledEvt -> start");
+
+            // Always validate the payload and headers received
+            message.validatePayload();
+
+            const urlBuilderPayer = new Request.URLBuilder(requestedEndpointPayer.value);
+            urlBuilderPayer.setEntity(Enums.EntityTypeEnum.TRANSFERS);
+            urlBuilderPayer.setLocation([payload.bulkTransferId]);
+
+            await Request.sendRequest({
+                url: urlBuilderPayer.build(),
+                headers: clonedHeaders,
+                source: requesterFspId,
+                destination: destinationFspId,
+                method: Enums.FspiopRequestMethodsEnum.PUT,
+                payload: Transformer.transformPayloadBulkTransferRequestPost(payload),
+            });
+
+            this._logger.info("_handleTransferReserveFulfiledEvt -> end");
+
+        } catch (error: unknown) {
+            this._logger.error(error, "_handleTransferReserveFulfiledEvt -> error");
+            throw Error("_handleTransferReserveFulfiledEvt -> error");
         }
 
         return;

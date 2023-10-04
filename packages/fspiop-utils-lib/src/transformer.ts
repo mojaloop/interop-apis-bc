@@ -43,7 +43,8 @@ import {
 	QuoteResponseAcceptedEvtPayload,
 	TransferPreparedEvtPayload,
 	TransferFulfiledEvtPayload,
-	TransferQueryResponseEvtPayload
+	TransferQueryResponseEvtPayload,
+	BulkTransferPreparedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -578,6 +579,31 @@ export const transformPayloadTransferRequestGet = (payload: TransferQueryRespons
 		transferState: "COMMITTED",
 		fulfilment: payload.fulfilment,
 		completedTimestamp: payload.completedTimestamp ? new Date(payload.completedTimestamp).toJSON() : null,
+		extensionList: payload.extensionList
+	};
+
+	return removeEmpty(info);
+};
+
+export const transformPayloadBulkTransferRequestPost = (payload: BulkTransferPreparedEvtPayload): any => {
+	const info = {
+		bulkTransferId: payload.bulkTransferId,
+		bulkQuoteId: payload.bulkQuoteId,
+		payeeFsp: payload.payeeFsp,
+		payerFsp: payload.payerFsp,
+		expiration: new Date(payload.expiration).getTime(),
+		individualTransfers: payload.individualTransfers,
+		extensionList: payload.extensionList
+	};
+
+	return removeEmpty(info);
+};
+
+export const transformPayloadBulkTransferRequestPut = (payload: TransferFulfiledEvtPayload): PutTransfer => {
+	const info: PutTransfer = {
+		transferState: "COMMITTED",
+		fulfilment: payload.fulfilment,
+		completedTimestamp: new Date(payload.completedTimestamp).toJSON(),
 		extensionList: payload.extensionList
 	};
 
