@@ -71,6 +71,7 @@ import jsYaml from "js-yaml";
 import fs from "fs";
 import { validateHeaders } from "./header_validation";
 import util from "util";
+import { TransfersBulkRoutes } from "./http_routes/transfers-bc/bulk_transfers_routes";
 
 const API_SPEC_FILE_PATH = process.env["API_SPEC_FILE_PATH"] || "../dist/api_spec.yaml";
 
@@ -100,6 +101,7 @@ const QUOTES_URL_RESOURCE_NAME = "quotes";
 const BULK_QUOTES_URL_RESOURCE_NAME = "bulkQuotes";
 // Transfers
 const TRANSFERS_URL_RESOURCE_NAME = "transfers";
+const BULK_TRANSFERS_URL_RESOURCE_NAME = "bulkTransfers";
 
 const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "interop-api-bc-fspiop-api-svc";
 const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_ID"] || "superServiceSecret";
@@ -145,6 +147,7 @@ export class Service {
     static quotesRoutes:QuoteRoutes;
     static bulkQuotesRoutes:QuoteBulkRoutes;
     static transfersRoutes:TransfersRoutes;
+    static bulkTransfersRoutes:TransfersBulkRoutes;
     static participantService: IParticipantService;
     static auditClient: IAuditClient;
     static startupTimer: NodeJS.Timeout;
@@ -211,12 +214,14 @@ export class Service {
         this.quotesRoutes = new QuoteRoutes(kafkaJsonProducerOptions,  QuotingBCTopics.DomainEvents, this.logger);
         this.bulkQuotesRoutes = new QuoteBulkRoutes(kafkaJsonProducerOptions, QuotingBCTopics.DomainEvents, this.logger);
         this.transfersRoutes = new TransfersRoutes(kafkaJsonProducerOptions,  TransfersBCTopics.DomainEvents, this.logger);
+        this.bulkTransfersRoutes = new TransfersBulkRoutes(kafkaJsonProducerOptions, TransfersBCTopics.DomainEvents, this.logger);
 
         await this.participantRoutes.init();
         await this.partyRoutes.init();
         await this.quotesRoutes.init();
         await this.bulkQuotesRoutes.init();
         await this.transfersRoutes.init();
+        await this.bulkTransfersRoutes.init();
 
         await Service.setupExpress();
 
@@ -306,6 +311,7 @@ export class Service {
             this.app.use(`/${QUOTES_URL_RESOURCE_NAME}`, this.quotesRoutes.router);
             this.app.use(`/${BULK_QUOTES_URL_RESOURCE_NAME}`, this.bulkQuotesRoutes.router);
             this.app.use(`/${TRANSFERS_URL_RESOURCE_NAME}`, this.transfersRoutes.router);
+            this.app.use(`/${BULK_TRANSFERS_URL_RESOURCE_NAME}`, this.bulkTransfersRoutes.router);
 
             /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
             this.app.use((err: FspiopHttpRequestError, req: express.Request, res: express.Response, next: express.NextFunction) => {
