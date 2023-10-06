@@ -138,7 +138,7 @@ export class TransfersBulkRoutes extends BaseRoutes {
             const bulkTransferId = req.body["bulkTransferId"] || null;
             const bulkQuoteId = req.body["bulkQuoteId"] || null;
             const payerFsp = req.body["payerFsp"] || null;
-            const payeeFsp = req.body["payerFsp"] || null;
+            const payeeFsp = req.body["payeeFsp"] || null;
             const expiration = req.body["expiration"] || null;
             const individualTransfers = req.body["individualTransfers"] || null;
             const extensionList = req.body["extensionList"] || null;
@@ -209,10 +209,10 @@ export class TransfersBulkRoutes extends BaseRoutes {
             // Date Model
             const completedTimestamp = req.body["completedTimestamp"] || null;
             const bulkTransferState = req.body["bulkTransferState"] || null;
-            const individualTransfersResults = req.body["individualTransfersResults"] || null;
+            const individualTransferResults = req.body["individualTransferResults"] || null;
             const extensionList = req.body["extensionList"] || null;
 
-            if (!bulkTransferId || !requesterFspId || !individualTransfersResults) {
+            if (!bulkTransferId || !requesterFspId || !individualTransferResults) {
                 res.status(400).json({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
@@ -225,7 +225,7 @@ export class TransfersBulkRoutes extends BaseRoutes {
                 bulkTransferId: bulkTransferId,
                 completedTimestamp: completedTimestamp,
                 bulkTransferState: bulkTransferState,
-                individualTransferResults: individualTransfersResults,
+                individualTransferResults: individualTransferResults,
                 extensionList: extensionList,
             };
 

@@ -592,8 +592,16 @@ export const transformPayloadBulkTransferRequestPost = (payload: BulkTransferPre
 		bulkQuoteId: payload.bulkQuoteId,
 		payeeFsp: payload.payeeFsp,
 		payerFsp: payload.payerFsp,
-		expiration: new Date(payload.expiration).getTime(),
-		individualTransfers: payload.individualTransfers,
+		expiration: new Date(payload.expiration).toISOString(),
+		individualTransfers: payload.individualTransfers.map((individualTransfer: any) => {
+			return {
+				...individualTransfer,
+				transferAmount: {
+					amount: individualTransfer.amount,
+					currency: individualTransfer.currencyCode
+				}
+			}
+		}),
 		extensionList: payload.extensionList
 	};
 

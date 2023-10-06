@@ -511,29 +511,28 @@ export class TransferEventHandler extends BaseEventHandler {
         }
 
         try {
-            this._logger.info("_handleTransferReserveFulfiledEvt -> start");
+            this._logger.info("_handleBulkTransferPreparedEvt -> start");
 
             // Always validate the payload and headers received
             message.validatePayload();
 
             const urlBuilderPayer = new Request.URLBuilder(requestedEndpointPayer.value);
-            urlBuilderPayer.setEntity(Enums.EntityTypeEnum.TRANSFERS);
-            urlBuilderPayer.setLocation([payload.bulkTransferId]);
+            urlBuilderPayer.setEntity(Enums.EntityTypeEnum.BULK_TRANSFERS);
 
             await Request.sendRequest({
                 url: urlBuilderPayer.build(),
                 headers: clonedHeaders,
                 source: requesterFspId,
                 destination: destinationFspId,
-                method: Enums.FspiopRequestMethodsEnum.PUT,
+                method: Enums.FspiopRequestMethodsEnum.POST,
                 payload: Transformer.transformPayloadBulkTransferRequestPost(payload),
             });
 
-            this._logger.info("_handleTransferReserveFulfiledEvt -> end");
+            this._logger.info("_handleBulkTransferPreparedEvt -> end");
 
         } catch (error: unknown) {
-            this._logger.error(error, "_handleTransferReserveFulfiledEvt -> error");
-            throw Error("_handleTransferReserveFulfiledEvt -> error");
+            this._logger.error(error, "_handleBulkTransferPreparedEvt -> error");
+            throw Error("_handleBulkTransferPreparedEvt -> error");
         }
 
         return;
@@ -562,13 +561,13 @@ export class TransferEventHandler extends BaseEventHandler {
         }
 
         try {
-            this._logger.info("_handleTransferReserveFulfiledEvt -> start");
+            this._logger.info("_handleBulkTransferFulfiledEvt -> start");
 
             // Always validate the payload and headers received
             message.validatePayload();
 
             const urlBuilderPayer = new Request.URLBuilder(requestedEndpointPayer.value);
-            urlBuilderPayer.setEntity(Enums.EntityTypeEnum.TRANSFERS);
+            urlBuilderPayer.setEntity(Enums.EntityTypeEnum.BULK_TRANSFERS);
             urlBuilderPayer.setLocation([payload.bulkTransferId]);
 
             await Request.sendRequest({
@@ -580,11 +579,11 @@ export class TransferEventHandler extends BaseEventHandler {
                 payload: Transformer.transformPayloadBulkTransferRequestPut(payload),
             });
 
-            this._logger.info("_handleTransferReserveFulfiledEvt -> end");
+            this._logger.info("_handleBulkTransferFulfiledEvt -> end");
 
         } catch (error: unknown) {
-            this._logger.error(error, "_handleTransferReserveFulfiledEvt -> error");
-            throw Error("_handleTransferReserveFulfiledEvt -> error");
+            this._logger.error(error, "_handleBulkTransferFulfiledEvt -> error");
+            throw Error("_handleBulkTransferFulfiledEvt -> error");
         }
 
         return;
