@@ -45,7 +45,8 @@ import {
 	TransferFulfiledEvtPayload,
 	TransferQueryResponseEvtPayload,
 	BulkTransferPreparedEvtPayload,
-	BulkTransferFulfiledEvtPayload
+	BulkTransferFulfiledEvtPayload,
+	BulkTransferQueryResponseEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -547,6 +548,7 @@ export interface GetTransfer {
 	} | null
 }
 
+
 export const transformPayloadTransferRequestPost = (payload: TransferPreparedEvtPayload): PostTransfer => {
 	const info: PostTransfer = {
 		transferId: payload.transferId,
@@ -609,6 +611,18 @@ export const transformPayloadBulkTransferRequestPost = (payload: BulkTransferPre
 };
 
 export const transformPayloadBulkTransferRequestPut = (payload: BulkTransferFulfiledEvtPayload): any => {
+	const info = {
+		bulkTransferId: payload.bulkTransferId,
+		completedTimestamp: payload.completedTimestamp,
+		bulkTransferState: payload.bulkTransferState,
+		individualTransferResults: payload.individualTransferResults,
+		extensionList: payload.extensionList
+	};
+
+	return removeEmpty(info);
+};
+
+export const transformPayloadBulkTransferRequestGet = (payload: BulkTransferQueryResponseEvtPayload): any => {
 	const info = {
 		bulkTransferId: payload.bulkTransferId,
 		completedTimestamp: payload.completedTimestamp,

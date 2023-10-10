@@ -38,8 +38,8 @@ import {
     BulkTransferPrepareRequestedEvtPayload,
     BulkTransferFulfilRequestedEvt,
     BulkTransferFulfilRequestedEvtPayload,
-    GetBulkTransferQueryRejectedEvt,
-    GetBulkTransferQueryRejectedEvtPayload
+    BulkTransferRejectRequestedEvt,
+    BulkTransferRejectRequestedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { BaseRoutes } from "../_base_router";
@@ -65,7 +65,7 @@ export class TransfersBulkRoutes extends BaseRoutes {
         this.router.put("/:id", this.bulkTransferFulfilRequested.bind(this));
 
         // Errors
-        // this.router.put("/:id/error", this.bulkTransfersRejectRequest.bind(this));
+        this.router.put("/:id/error", this.bulkTransfersRejectRequest.bind(this));
 
     }
 
@@ -279,12 +279,12 @@ export class TransfersBulkRoutes extends BaseRoutes {
                 return;
             }
 
-            const msgPayload: GetBulkTransferQueryRejectedEvtPayload = {
+            const msgPayload: BulkTransferRejectRequestedEvtPayload = {
                 bulkTransferId: bulkTransferId,
                 errorInformation: errorInformation
             };
 
-            const msg =  new GetBulkTransferQueryRejectedEvt(msgPayload);
+            const msg =  new BulkTransferRejectRequestedEvt(msgPayload);
 
             msg.validatePayload();
 

@@ -142,11 +142,12 @@ export class QuotingEventHandler extends BaseEventHandler {
             const clonedHeaders = { ...message.fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
             const requesterFspId = clonedHeaders["fspiop-source"] as string;
             const quoteId = message.payload.quoteId as string;
+            const bulkQuoteId = message.payload.bulkQuoteId as string;
 
             await this._sendErrorFeedbackToFsp({
                 message: message,
                 headers: message.fspiopOpaqueState.headers,
-                id: [quoteId],
+                id: quoteId ? [quoteId] : [bulkQuoteId],
                 errorResponse: {
                     errorCode: Enums.ServerErrors.GENERIC_SERVER_ERROR.code,
                     errorDescription: Enums.ServerErrors.GENERIC_SERVER_ERROR.description,
