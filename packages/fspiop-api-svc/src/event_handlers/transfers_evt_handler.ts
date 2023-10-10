@@ -624,7 +624,7 @@ export class TransferEventHandler extends BaseEventHandler {
             message.validatePayload();
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
-            urlBuilder.setEntity(Enums.EntityTypeEnum.TRANSFERS);
+            urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_TRANSFERS);
             urlBuilder.setId(payload.bulkTransferId);
 
             await Request.sendRequest({
