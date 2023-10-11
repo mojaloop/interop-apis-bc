@@ -31,33 +31,41 @@
 
 "use strict";
 
-import { BulkQuotePendingReceivedEvt, BulkQuotePendingReceivedEvtPayload, BulkQuoteQueryReceivedEvt, BulkQuoteQueryReceivedEvtPayload, BulkQuoteRequestedEvt, BulkQuoteRequestedEvtPayload, GetBulkQuoteQueryRejectedEvt, GetBulkQuoteQueryRejectedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { 
+    BulkTransferQueryReceivedEvt,
+    BulkTransferQueryReceivedEvtPayload,
+    BulkTransferPrepareRequestedEvt,
+    BulkTransferPrepareRequestedEvtPayload,
+    BulkTransferFulfilRequestedEvt,
+    BulkTransferFulfilRequestedEvtPayload,
+    BulkTransferRejectRequestedEvt,
+    BulkTransferRejectRequestedEvtPayload
+} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import express from "express";
 
-export class QuoteBulkRoutes extends BaseRoutes {
+export class TransfersBulkRoutes extends BaseRoutes {
 
     constructor(producerOptions: MLKafkaJsonProducerOptions, kafkaTopic: string, logger: ILogger) {
         super(producerOptions, kafkaTopic, logger);
 
         // bind routes
 
-        // GET Bulk Quote by ID
-        this.router.get("/:id/", this.bulkQuoteQueryReceived.bind(this));
+        // GET Bulk Transfers by ID
+        this.router.get("/:id/", this.bulkTransferQueryReceived.bind(this));
 
-        // POST Bulk Quote Calculation
-        this.router.post("/", this.bulkQuoteRequest.bind(this));
+        // POST Bulk Transfers Calculation
+        this.router.post("/", this.bulkTransferPrepareRequest.bind(this));
 
-        // PUT Bulk Quote Created
-        this.router.put("/:id", this.bulkQuotePending.bind(this));
+        // PUT Bulk Transfers Created
+        this.router.put("/:id", this.bulkTransferFulfilRequested.bind(this));
 
         // Errors
-        this.router.put("/:id/error", this.bulkQuoteRejectRequest.bind(this));
+        this.router.put("/:id/error", this.bulkTransfersRejectRequest.bind(this));
 
     }
 
@@ -65,31 +73,29 @@ export class QuoteBulkRoutes extends BaseRoutes {
         return this.router;
     }
 
-    private async bulkQuoteQueryReceived(req: express.Request, res: express.Response): Promise<void> {
-        this.logger.debug("Got bulkQuoteQueryReceived request");
+    private async bulkTransferQueryReceived(req: express.Request, res: express.Response): Promise<void> {
+        this.logger.debug("Got bulkTransferQueryReceived request");
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
-            const bulkQuoteId = req.params["id"] as string || null;
+            const bulkTransfersId = req.params["id"] as string || null;
             const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
 
-            if (!bulkQuoteId || !requesterFspId) {
-                const transformError = Transformer.transformPayloadError({
+            if (!bulkTransfersId || !requesterFspId) {
+                res.status(400).json({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
-
-                res.status(400).json(transformError);
                 return;
             }
 
-            const msgPayload: BulkQuoteQueryReceivedEvtPayload = {
-                bulkQuoteId: bulkQuoteId,
+            const msgPayload: BulkTransferQueryReceivedEvtPayload = {
+                bulkTransferId: bulkTransfersId,
             };
 
-            const msg = new BulkQuoteQueryReceivedEvt(msgPayload);
+            const msg = new BulkTransferQueryReceivedEvt(msgPayload);
 
             msg.validatePayload();
 
@@ -101,11 +107,11 @@ export class QuoteBulkRoutes extends BaseRoutes {
 
             await this.kafkaProducer.send(msg);
 
-            this.logger.debug("bulkQuoteQueryReceived sent message");
+            this.logger.debug("bulkTransferQueryReceived sent message");
 
             res.status(202).json(null);
 
-            this.logger.debug("bulkQuoteQueryReceived responded");
+            this.logger.debug("bulkTransferQueryReceived responded");
 
         }
         catch (error: unknown) {
@@ -120,8 +126,8 @@ export class QuoteBulkRoutes extends BaseRoutes {
         }
     }
 
-    private async bulkQuoteRequest(req: express.Request, res: express.Response): Promise<void> {
-        this.logger.debug("Got bulkQuoteRequest request");
+    private async bulkTransferPrepareRequest(req: express.Request, res: express.Response): Promise<void> {
+        this.logger.debug("Got bulkTransfersRequest request");
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
@@ -129,34 +135,34 @@ export class QuoteBulkRoutes extends BaseRoutes {
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
 
             // Date Model
+            const bulkTransferId = req.body["bulkTransferId"] || null;
             const bulkQuoteId = req.body["bulkQuoteId"] || null;
-            const payer = req.body["payer"] || null;
-            const geoCode = req.body["geoCode"] || null;
+            const payerFsp = req.body["payerFsp"] || null;
+            const payeeFsp = req.body["payeeFsp"] || null;
             const expiration = req.body["expiration"] || null;
-            const individualQuotes = req.body["individualQuotes"] || null;
+            const individualTransfers = req.body["individualTransfers"] || null;
             const extensionList = req.body["extensionList"] || null;
 
-            if (!requesterFspId || !bulkQuoteId || !payer || !individualQuotes) {
-                const transformError = Transformer.transformPayloadError({
+            if (!requesterFspId || !bulkTransferId || !bulkQuoteId || !payerFsp || !payeeFsp || !individualTransfers) {
+                res.status(400).json({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
-
-                res.status(400).json(transformError);
                 return;
             }
 
-            const msgPayload: BulkQuoteRequestedEvtPayload = {
+            const msgPayload: BulkTransferPrepareRequestedEvtPayload = {
+                bulkTransferId: bulkTransferId,
                 bulkQuoteId: bulkQuoteId,
-                payer: payer,
-                geoCode: geoCode,
+                payerFsp: payerFsp,
+                payeeFsp: payeeFsp,
                 expiration: expiration,
-                individualQuotes: individualQuotes,
-                extensionList: extensionList,
-            } as BulkQuoteRequestedEvtPayload;
+                individualTransfers: individualTransfers,
+                extensionList: extensionList
+            };
 
-            const msg = new BulkQuoteRequestedEvt(msgPayload);
+            const msg = new BulkTransferPrepareRequestedEvt(msgPayload);
 
             // Since we don't export the types of the body (but we validate them in the entrypoint of the route),
             // we can use the builtin method of validatePayload of the evt messages to make sure consistency
@@ -172,11 +178,11 @@ export class QuoteBulkRoutes extends BaseRoutes {
 
             await this.kafkaProducer.send(msg);
 
-            this.logger.debug("bulkQuoteRequest sent message");
+            this.logger.debug("bulkTransfersRequest sent message");
 
             res.status(202).json(null);
 
-            this.logger.debug("bulkQuoteRequest responded");
+            this.logger.debug("bulkTransfersRequest responded");
         }
         catch (error: unknown) {
             if (error) {
@@ -191,43 +197,40 @@ export class QuoteBulkRoutes extends BaseRoutes {
         }
     }
 
-    private async bulkQuotePending(req: express.Request, res: express.Response): Promise<void> {
-        this.logger.debug("Got bulkQuotePending request");
+    private async bulkTransferFulfilRequested(req: express.Request, res: express.Response): Promise<void> {
+        this.logger.debug("Got bulkTransferFulfilRequested request");
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
-            const bulkQuoteId = req.params["id"] as string || null;
+            const bulkTransferId = req.params["id"] as string || null;
             const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
 
             // Date Model
-            const expiration = req.body["expiration"] || null;
-            const individualQuoteResults = req.body["individualQuoteResults"] || null;
+            const completedTimestamp = req.body["completedTimestamp"] || null;
+            const bulkTransferState = req.body["bulkTransferState"] || null;
+            const individualTransferResults = req.body["individualTransferResults"] || null;
             const extensionList = req.body["extensionList"] || null;
 
-            if (!bulkQuoteId || !requesterFspId || !individualQuoteResults) {
-                const transformError = Transformer.transformPayloadError({
+            if (!bulkTransferId || !requesterFspId || !individualTransferResults) {
+                res.status(400).json({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
-
-                res.status(400).json(transformError);
                 return;
             }
 
-            const msgPayload: BulkQuotePendingReceivedEvtPayload = {
-                bulkQuoteId: bulkQuoteId,
-                expiration: expiration,
-                individualQuoteResults: individualQuoteResults,
+            const msgPayload: BulkTransferFulfilRequestedEvtPayload = {
+                bulkTransferId: bulkTransferId,
+                completedTimestamp: completedTimestamp,
+                bulkTransferState: bulkTransferState,
+                individualTransferResults: individualTransferResults,
                 extensionList: extensionList,
             };
 
-            const msg = new BulkQuotePendingReceivedEvt(msgPayload);
+            const msg = new BulkTransferFulfilRequestedEvt(msgPayload);
 
-            // Since we don't export the types of the body (but we validate them in the entrypoint of the route),
-            // we can use the builtin method of validatePayload of the evt messages to make sure consistency
-            // is shared between both
             msg.validatePayload();
 
             // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
@@ -239,11 +242,11 @@ export class QuoteBulkRoutes extends BaseRoutes {
 
             await this.kafkaProducer.send(msg);
 
-            this.logger.debug("bulkQuotePending sent message");
+            this.logger.debug("bulkTransferFulfilRequested sent message");
 
             res.status(202).json(null);
 
-            this.logger.debug("bulkQuotePending responded");
+            this.logger.debug("bulkTransferFulfilRequested responded");
         }
         catch (error: unknown) {
             if (error) {
@@ -258,7 +261,7 @@ export class QuoteBulkRoutes extends BaseRoutes {
         }
     }
 
-    private async bulkQuoteRejectRequest(req: express.Request, res: express.Response): Promise<void> {
+    private async bulkTransfersRejectRequest(req: express.Request, res: express.Response): Promise<void> {
         this.logger.debug("Got bulk quote rejected request");
 
         try{
@@ -266,26 +269,22 @@ export class QuoteBulkRoutes extends BaseRoutes {
             const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
 
-            const bulkQuoteId = req.params["id"] as string || null;
+            const bulkTransferId = req.params["id"] as string || null;
             const errorInformation = req.body["errorInformation"] || null;
 
-            if(!bulkQuoteId || !errorInformation || !requesterFspId) {
-                const transformError = Transformer.transformPayloadError({
-                    errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
-                    errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
-                    extensionList: null
+            if(!bulkTransferId || !errorInformation) {
+                res.status(400).json({
+                    status: "No bulkTransferId or errorInformation provided"
                 });
-
-                res.status(400).json(transformError);
                 return;
             }
 
-            const msgPayload: GetBulkQuoteQueryRejectedEvtPayload = {
-                bulkQuoteId,
+            const msgPayload: BulkTransferRejectRequestedEvtPayload = {
+                bulkTransferId: bulkTransferId,
                 errorInformation: errorInformation
             };
 
-            const msg =  new GetBulkQuoteQueryRejectedEvt(msgPayload);
+            const msg =  new BulkTransferRejectRequestedEvt(msgPayload);
 
             msg.validatePayload();
 

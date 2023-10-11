@@ -112,11 +112,11 @@ export class ParticipantRoutes extends BaseRoutes {
 
             this.logger.debug("getParticipantsByTypeAndID responded");
         }
-        catch (error: any) {
+        catch (error: unknown) {
             if (error) {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
-                    errorDescription: error.message,
+                    errorDescription: (error as Error).message,
                     extensionList: null
                 });
 
@@ -173,11 +173,11 @@ export class ParticipantRoutes extends BaseRoutes {
 
             this.logger.debug("getParticipantsByTypeAndIDAndSubId responded");
         }
-        catch (error: any) {
+        catch (error: unknown) {
             if (error) {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
-                    errorDescription: error.message,
+                    errorDescription: (error as Error).message,
                     extensionList: null
                 });
 
@@ -233,11 +233,11 @@ export class ParticipantRoutes extends BaseRoutes {
 
             this.logger.debug("associatePartyByTypeAndId responded");
         }
-        catch (error: any) {
+        catch (error: unknown) {
             if (error) {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
-                    errorDescription: error.message,
+                    errorDescription: (error as Error).message,
                     extensionList: null
                 });
 
@@ -294,11 +294,11 @@ export class ParticipantRoutes extends BaseRoutes {
 
             this.logger.debug("associatePartyByTypeAndId responded");
         }
-        catch (error: any) {
+        catch (error: unknown) {
             if (error) {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
-                    errorDescription: error.message,
+                    errorDescription: (error as Error).message,
                     extensionList: null
                 });
 
@@ -353,11 +353,11 @@ export class ParticipantRoutes extends BaseRoutes {
 
             this.logger.debug("disassociatePartyByTypeAndId responded");
         }
-        catch (error: any) {
+        catch (error: unknown) {
             if (error) {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
-                    errorDescription: error.message,
+                    errorDescription: (error as Error).message,
                     extensionList: null
                 });
 
@@ -412,11 +412,11 @@ export class ParticipantRoutes extends BaseRoutes {
 
             this.logger.debug("disassociatePartyByTypeAndIdAndSubId responded");
         }
-        catch (error: any) {
+        catch (error: unknown) {
             if (error) {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
-                    errorDescription: error.message,
+                    errorDescription: (error as Error).message,
                     extensionList: null
                 });
 

@@ -48,8 +48,8 @@ import {
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
 
-export class TransfersRoutes extends BaseRoutes {
-
+export class TransfersRoutes extends BaseRoutes {    
+    
     constructor(producerOptions: MLKafkaJsonProducerOptions, kafkaTopic: string, logger: ILogger) {
         super(producerOptions, kafkaTopic, logger);
         
@@ -62,7 +62,7 @@ export class TransfersRoutes extends BaseRoutes {
         this.router.post("/", this.transferPrepareRequested.bind(this));
 
         // PUT Transfers
-        this.router.put("/:id", this.transferFulfilCommittedRequested.bind(this));
+        this.router.put("/:id", this.transferFulfilRequested.bind(this));
 
         // Errors
         this.router.put("/:id/error", this.transferRejectRequested.bind(this));
@@ -131,11 +131,11 @@ export class TransfersRoutes extends BaseRoutes {
 
             this.logger.debug("transferPrepareRequested responded");
         }
-        catch (error: any) {
+        catch (error: unknown) {
             if (error) {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
-                    errorDescription: error.message,
+                    errorDescription: (error as Error).message,
                     extensionList: null
                 });
 
@@ -144,8 +144,8 @@ export class TransfersRoutes extends BaseRoutes {
         }
     }
 
-    private async transferFulfilCommittedRequested(req: express.Request, res: express.Response): Promise<void> {
-        this.logger.debug("Got transferFulfilCommittedRequested request");
+    private async transferFulfilRequested(req: express.Request, res: express.Response): Promise<void> {
+        this.logger.debug("Got transferFulfilRequested request");
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
@@ -197,17 +197,17 @@ export class TransfersRoutes extends BaseRoutes {
 
             await this.kafkaProducer.send(msg);
 
-            this.logger.debug("transferFulfilCommittedRequested sent message");
+            this.logger.debug("transferFulfilRequested sent message");
 
             res.status(200).json(null);
 
-            this.logger.debug("transferFulfilCommittedRequested responded");
+            this.logger.debug("transferFulfilRequested responded");
         }
-        catch (error: any) {
+        catch (error: unknown) {
             if (error) {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
-                    errorDescription: error.message,
+                    errorDescription: (error as Error).message,
                     extensionList: null
                 });
 
@@ -266,11 +266,11 @@ export class TransfersRoutes extends BaseRoutes {
 
             this.logger.debug("transferRejectRequested responded");
         }
-        catch (error: any) {
+        catch (error: unknown) {
             if (error) {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
-                    errorDescription: error.message,
+                    errorDescription: (error as Error).message,
                     extensionList: null
                 });
 
@@ -322,11 +322,11 @@ export class TransfersRoutes extends BaseRoutes {
 
             this.logger.debug("transferQueryReceived responded");
         }
-        catch (error: any) {
+        catch (error: unknown) {
             if (error) {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
-                    errorDescription: error.message,
+                    errorDescription: (error as Error).message,
                     extensionList: null
                 });
 

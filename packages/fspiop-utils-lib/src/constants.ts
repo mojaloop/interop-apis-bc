@@ -90,4 +90,4 @@ export const RequiredHeaders = {
     parties: [FSPIOP_HEADERS_CONTENT_TYPE, FSPIOP_HEADERS_SOURCE],
 };
 
-export const ALLOWED_PATCH_ACCEPTED_TRANSFER_HEADERS = ["application/vnd.interoperability.transfers+json;version=1.1"]
+export const ALLOWED_PATCH_ACCEPTED_TRANSFER_HEADERS = ["application/vnd.interoperability.transfers+json;version=1.1"];

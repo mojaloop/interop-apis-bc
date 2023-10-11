@@ -264,8 +264,12 @@ export abstract class BaseEventHandler  {
                 urlBuilder.setEntity(Enums.EntityTypeEnum.TRANSFERS);
                 break;
             }
+            case header.includes("bulkTransfers"): {
+                urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_TRANSFERS);
+                break;
+            }
             default:
-                throw Error("Invalid content type, must be one of participants, parties, quotes, bulkQuotes or transfers");
+                throw Error("Invalid content type, must be one of participants, parties, quotes, bulkQuotes transfers or bulkTransfers");
         }
 
         return urlBuilder.build();

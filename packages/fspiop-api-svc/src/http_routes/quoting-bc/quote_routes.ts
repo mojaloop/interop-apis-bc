@@ -134,11 +134,11 @@ export class QuoteRoutes extends BaseRoutes {
 
             this.logger.debug("quoteRequestReceived responded");
         }
-        catch (error: any) {
+        catch (error: unknown) {
             if (error) {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
-                    errorDescription: error.message,
+                    errorDescription: (error as Error).message,
                     extensionList: null
                 });
 
@@ -216,11 +216,11 @@ export class QuoteRoutes extends BaseRoutes {
 
             this.logger.debug("quoteResponseReceived responded");
         }
-        catch (error: any) {
+        catch (error: unknown) {
             if (error) {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
-                    errorDescription: error.message,
+                    errorDescription: (error as Error).message,
                     extensionList: null
                 });
 
@@ -271,11 +271,11 @@ export class QuoteRoutes extends BaseRoutes {
 
             this.logger.debug("quoteQueryReceived responded");
         }
-        catch (error: any) {
+        catch (error: unknown) {
             if (error) {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
-                    errorDescription: error.message,
+                    errorDescription: (error as Error).message,
                     extensionList: null
                 });
 
@@ -329,11 +329,11 @@ export class QuoteRoutes extends BaseRoutes {
 
             this.logger.debug("quote rejected responded");
         }
-        catch (error: any) {
+        catch (error: unknown) {
             if (error) {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
-                    errorDescription: error.message,
+                    errorDescription: (error as Error).message,
                     extensionList: null
                 });
 
