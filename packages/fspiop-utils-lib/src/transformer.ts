@@ -702,7 +702,7 @@ export const transformPayloadBulkTransferRequestPost = (payload: BulkTransferPre
 					amount: individualTransfer.amount,
 					currency: individualTransfer.currencyCode
 				}
-			}
+			};
 		}),
 		extensionList: payload.extensionList
 	};
