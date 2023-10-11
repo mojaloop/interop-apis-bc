@@ -47,7 +47,6 @@ import {
     GetPartyQueryRejectedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseRoutes } from "../_base_router";
-import { PartiesPutTypeAndIdAndSubId } from "../../errors";
 import { FSPIOPErrorCodes } from "../../validation";
 
 export class PartyRoutes extends BaseRoutes {

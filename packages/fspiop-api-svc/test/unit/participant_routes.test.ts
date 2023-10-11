@@ -103,7 +103,7 @@ describe("FSPIOP Routes - Participant", () => {
             KAFKA_LOGS_TOPIC,
             LOGLEVEL
         );
-        await (logger as KafkaLogger).init();
+
         participantRoutes = new ParticipantRoutes(kafkaJsonProducerOptions, AccountLookupBCTopics.DomainEvents, logger);
         app.use(`/${PARTICIPANTS_URL_RESOURCE_NAME}`, participantRoutes.router);
 
@@ -114,6 +114,7 @@ describe("FSPIOP Routes - Participant", () => {
         });
 
         jest.spyOn(participantRoutes, "init").mockImplementation(jest.fn());
+        jest.spyOn(logger, "debug").mockImplementation(jest.fn());
 
         await participantRoutes.init();
     });

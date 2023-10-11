@@ -102,7 +102,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
             KAFKA_LOGS_TOPIC,
             LOGLEVEL
         );
-        await (logger as KafkaLogger).init();
+        
         bulkQuoteRoutes = new QuoteBulkRoutes(kafkaJsonProducerOptions, AccountLookupBCTopics.DomainEvents, logger);
         app.use(`/${BULK_QUOTES_URL_RESOURCE_NAME}`, bulkQuoteRoutes.router);
 
@@ -113,6 +113,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         });
 
         jest.spyOn(bulkQuoteRoutes, "init").mockImplementation(jest.fn());
+        jest.spyOn(logger, "debug").mockImplementation(jest.fn());
 
         await bulkQuoteRoutes.init();
     });

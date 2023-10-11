@@ -102,7 +102,7 @@ describe("FSPIOP Routes - Unit Tests Transfer", () => {
             KAFKA_LOGS_TOPIC,
             LOGLEVEL
         );
-        await (logger as KafkaLogger).init();
+
         quoteRoutes = new TransfersRoutes(kafkaJsonProducerOptions, AccountLookupBCTopics.DomainEvents, logger);
         app.use(`/${TRANSFERS_URL_RESOURCE_NAME}`, quoteRoutes.router);
 
@@ -113,6 +113,7 @@ describe("FSPIOP Routes - Unit Tests Transfer", () => {
         });
 
         jest.spyOn(quoteRoutes, "init").mockImplementation(jest.fn());
+        jest.spyOn(logger, "debug").mockImplementation(jest.fn());
 
         await quoteRoutes.init();
     });

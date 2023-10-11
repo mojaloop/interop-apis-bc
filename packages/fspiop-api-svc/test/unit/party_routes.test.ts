@@ -102,7 +102,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
             KAFKA_LOGS_TOPIC,
             LOGLEVEL
         );
-        await (logger as KafkaLogger).init();
+
         partyRoutes = new PartyRoutes(kafkaJsonProducerOptions, AccountLookupBCTopics.DomainEvents, logger);
         app.use(`/${PARTIES_URL_RESOURCE_NAME}`, partyRoutes.router);
 
@@ -113,6 +113,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
         });
 
         jest.spyOn(partyRoutes, "init").mockImplementation(jest.fn());
+        jest.spyOn(logger, "debug").mockImplementation(jest.fn());
 
         await partyRoutes.init();
     });

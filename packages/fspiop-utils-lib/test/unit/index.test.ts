@@ -34,10 +34,9 @@
 
 
 import { FSPIOP_HEADERS_ACCEPT, FSPIOP_HEADERS_CONTENT_LENGTH, FSPIOP_HEADERS_CONTENT_TYPE, FSPIOP_HEADERS_DATE, FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION, FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_ENCRYPTION, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_SWITCH, FSPIOP_HEADERS_URI, FSPIOP_HEADERS_X_FORWARDED_FOR } from "../../src/constants";
-import { Enums, Constants, Request } from "../../src";
+import { Enums, Request } from "../../src";
 import axios from "axios";
 import HeaderBuilder from "../../src/headers/header_builder";
-import { ParticipantsPutTypeAndId } from "../../../fspiop-api-svc/src/errors";
 import { removeEmpty, transformPayloadError, transformPayloadParticipantPut, transformPayloadPartyAssociationPut, transformPayloadPartyDisassociationPut, transformPayloadPartyInfoReceivedPut, transformPayloadPartyInfoRequestedPut, transformPayloadQuotingRequestPost } from "../../src/transformer";
 import { 
     ParticipantAssociationCreatedEvtPayload, 
