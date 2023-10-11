@@ -70,7 +70,6 @@ import { OpenApiDocument, OpenApiValidator } from "express-openapi-validate";
 import jsYaml from "js-yaml";
 import fs from "fs";
 import { validateHeaders } from "./header_validation";
-import util from "util";
 import { TransfersBulkRoutes } from "./http_routes/transfers-bc/bulk_transfers_routes";
 
 const API_SPEC_FILE_PATH = process.env["API_SPEC_FILE_PATH"] || "../dist/api_spec.yaml";
