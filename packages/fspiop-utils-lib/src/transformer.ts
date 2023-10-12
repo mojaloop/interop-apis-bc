@@ -409,8 +409,8 @@ export interface PutBulkQuote {
 			currency: string,
 			amount: string,
 		} | null,
-		ilpPacket: string,
-		condition: string,
+		ilpPacket: string | null,
+		condition: string | null,
 		errorInformation: {
 			errorCode: string,
 			errorDescription: string,
@@ -483,13 +483,19 @@ export const transformPayloadQuotingResponseGet = (payload: QuoteResponseAccepte
 	return removeEmpty(info);
 };
 
+
 export const transformPayloadBulkQuotingResponsePost = (payload: BulkQuoteReceivedEvtPayload): PostBulkQuote => {
 	const info: PostBulkQuote = {
 		bulkQuoteId: payload.bulkQuoteId,
 		payer: payload.payer,
 		geoCode: payload.geoCode,
 		expiration: payload.expiration,
-		individualQuotes: payload.individualQuotes,
+		individualQuotes: payload.individualQuotes.map((quote:typeof payload.individualQuotes[number]) => {
+			return {
+				...quote,
+				fees: quote.feesPayer
+			};
+		}),
 		extensionList: payload.extensionList
 	};
 
