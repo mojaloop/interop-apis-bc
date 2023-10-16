@@ -251,10 +251,6 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
-            if(!requestedEndpoint) {
-                throw Error(`fspId ${requesterFspId} has no valid participant associated`);
-            }
-
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
             urlBuilder.setLocation([partyType, partyId, partySubType]);
@@ -293,11 +289,6 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             // TODO validate vars above
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
-
-            if(!requestedEndpoint) {
-                throw Error(`fspId ${requesterFspId} has no valid participant associated`);
-            }
-
 
             // Always validate the payload and headers received
             message.validatePayload();
@@ -346,11 +337,6 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             }
 
             const destinationEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
-
-            if(!destinationEndpoint) {
-                throw Error(`fspId ${destinationFspId} has no valid participant associated`);
-            }
-
 
             // Always validate the payload and headers received
             message.validatePayload();
@@ -455,10 +441,6 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             // TODO validate vars above
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
-
-            if(!requestedEndpoint) {
-                throw Error(`fspId ${destinationFspId} has no valid participant associated`);
-            }
 
             // Always validate the payload and headers received
             message.validatePayload();

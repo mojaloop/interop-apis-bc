@@ -39,7 +39,7 @@ import { Service } from "../../../../packages/fspiop-api-svc/src";
 import KafkaConsumer from "../helpers/kafkaproducer";
 import { getHeaders, missingPropertyResponse } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import waitForExpect from "wait-for-expect";
+import waitForExpect from "../helpers/utils";
 
 // Sets the location of your OpenAPI Specification file
 jestOpenAPI(path.join(__dirname, "../../../../packages/fspiop-api-svc/dist/api_spec.yaml"));

@@ -33,8 +33,7 @@
 
 import path from "path";
 import jestOpenAPI from "jest-openapi";
-import waitForExpect from "wait-for-expect";
-import { Enums, Request } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Enums, Request } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {
     QuoteQueryResponseEvt,
     QuoteRequestAcceptedEvt,
@@ -44,6 +43,9 @@ import {
     BulkQuoteRequestedEvt,
     BulkQuotePendingReceivedEvt,
     BulkQuoteQueryReceivedEvt,
+    BulkQuoteQueryResponseEvt,
+    BulkQuoteReceivedEvt,
+    BulkQuoteAcceptedEvt,
     QuotingBCTopics,
     QuoteQueryReceivedEvt,
     QuoteBCUnknownErrorEvent,
@@ -72,6 +74,7 @@ import { createMessage, getHeaders } from "@mojaloop/interop-apis-bc-shared-mock
 import KafkaConsumer from "../helpers/kafkaproducer";
 import { MongoClient } from "mongodb";
 import { PostBulkQuote, PostQuote, PutBulkQuote, PutQuote, removeEmpty } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/transformer";
+import waitForExpect from "../helpers/utils";
 
 const server = process.env["SVC_DEFAULT_URL"] || "http://localhost:4000/";
 
@@ -80,7 +83,7 @@ const server = process.env["SVC_DEFAULT_URL"] || "http://localhost:4000/";
 jestOpenAPI(path.join(__dirname, "../../../../packages/fspiop-api-svc/api-specs/api_spec.yaml"));
 
 
-jest.setTimeout(40000);
+jest.setTimeout(60000);
 
 // Quotes
 let validPostPayload:PostQuote;
@@ -116,7 +119,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
     });
 
     beforeEach(async () => {
-        await new Promise((r) => setTimeout(r, 5000));
+        await new Promise((r) => setTimeout(r, 3000));
 
         await consumer.clearEvents();
 
@@ -418,6 +421,28 @@ describe("FSPIOP API Service Quoting Handler", () => {
             // save this quoteId to be used afterwards
         });
     });
+    
+    it("should fail due to request failing", async () => {
+        // Arrange
+        const msg = new QuoteRequestAcceptedEvt({
+            ownerFspId: "nonexistingfsp",
+            bulkQuoteId: "123",
+        } as any)
+        
+
+        const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES, {
+            [Constants.FSPIOP_HEADERS_SOURCE]: "nonexistingfsp",
+            [Constants.FSPIOP_HEADERS_DESTINATION]: "nonexistingfsp"
+        });
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(() => {
+            expect(Request.sendRequest).toHaveBeenCalledTimes(0);
+        });
+    });
     // #endregion
 
     // #region Quotes PUT
@@ -509,6 +534,28 @@ describe("FSPIOP API Service Quoting Handler", () => {
             expect(messages[1].msgName).toBe(QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent.name);
         });
     });
+    
+    it("should fail due to request failing", async () => {
+        // Arrange
+        const msg = new QuoteResponseAccepted({
+            ownerFspId: "nonexistingfsp",
+            bulkQuoteId: "123",
+        } as any)
+        
+
+        const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES, {
+            [Constants.FSPIOP_HEADERS_SOURCE]: "nonexistingfsp",
+            [Constants.FSPIOP_HEADERS_DESTINATION]: "nonexistingfsp"
+        });
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(() => {
+            expect(Request.sendRequest).toHaveBeenCalledTimes(0);
+        });
+    });
     // #endregion
 
     // #region GET Quote
@@ -575,6 +622,28 @@ describe("FSPIOP API Service Quoting Handler", () => {
             expect(messages.length).toBe(2);
             expect(messages[0].msgName).toBe(QuoteQueryReceivedEvt.name);
             expect(messages[1].msgName).toBe(QuoteQueryResponseEvt.name);
+        });
+    });
+
+    it("should fail due to request failing", async () => {
+        // Arrange
+        const msg = new QuoteQueryResponseEvt({
+            ownerFspId: "nonexistingfsp",
+            bulkQuoteId: "123",
+        } as any)
+        
+
+        const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES, {
+            [Constants.FSPIOP_HEADERS_SOURCE]: "nonexistingfsp",
+            [Constants.FSPIOP_HEADERS_DESTINATION]: "nonexistingfsp"
+        });
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(() => {
+            expect(Request.sendRequest).toHaveBeenCalledTimes(0);
         });
     });
     // #endregion
@@ -647,26 +716,48 @@ describe("FSPIOP API Service Quoting Handler", () => {
         });
     });
 
-    // it("should successful add a bulk quote", async () => {
-    //     // Arrange & Act
-    //     await request(server)
-    //     .post(Enums.EntityTypeEnum.BULK_QUOTES)
-    //     .send(removeEmpty(validBulkPostPayload))
-    //     .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES));
+    it("should successful add a bulk quote", async () => {
+        // Arrange & Act
+        await request(server)
+        .post(Enums.EntityTypeEnum.BULK_QUOTES)
+        .send(removeEmpty(validBulkPostPayload))
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES));
 
-    //     const messages = consumer.getEvents();
+        const messages = consumer.getEvents();
 
-    //     // Assert
-    //     await waitForExpect(() => {
-    //         expect(messages.length).toBe(4);
-    //         expect(messages[0].msgName).toBe(BulkQuoteRequestedEvt.name);
-    //         expect(messages[1].msgName).toBe(QuoteRequestAcceptedEvt.name);
-    //         expect(messages[2].msgName).toBe(QuoteResponseReceivedEvt.name);
-    //         expect(messages[3].msgName).toBe(QuoteResponseAccepted.name);
+        // Assert
+        await waitForExpect(() => {
+            expect(messages.length).toBe(4);
+            expect(messages[0].msgName).toBe(BulkQuoteRequestedEvt.name);
+            expect(messages[1].msgName).toBe(BulkQuoteReceivedEvt.name);
+            expect(messages[2].msgName).toBe(BulkQuotePendingReceivedEvt.name);
+            expect(messages[3].msgName).toBe(BulkQuoteAcceptedEvt.name);
 
-    //         // save this quoteId to be used afterwards
-    //     });
-    // });
+            // save this quoteId to be used afterwards
+        });
+    });
+
+    it("should fail due to request failing", async () => {
+        // Arrange
+        const msg = new BulkQuoteReceivedEvt({
+            ownerFspId: "nonexistingfsp",
+            bulkQuoteId: "123",
+        } as any)
+        
+
+        const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES, {
+            [Constants.FSPIOP_HEADERS_SOURCE]: "nonexistingfsp",
+            [Constants.FSPIOP_HEADERS_DESTINATION]: "nonexistingfsp"
+        });
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(() => {
+            expect(Request.sendRequest).toHaveBeenCalledTimes(0);
+        });
+    });
     // #endregion
 
     // #region PUT BulkQuotes
@@ -736,28 +827,53 @@ describe("FSPIOP API Service Quoting Handler", () => {
         });
     });
 
-    // it("should return error event due to bulkQuote response not being previously created", async () => {
-    //     // Arrange
-    //     const headerOverride = { 
-    //         "fspiop-source": "greenbank",
-    //         "fspiop-destination": "bluebank" 
-    //     };
+    it("should return error event due to bulkQuote response not being previously created", async () => {
+        // Arrange
+        const headerOverride = { 
+            "fspiop-source": "greenbank",
+            "fspiop-destination": "bluebank" 
+        };
 
-    //     // Act
-    //     await request(server)
-    //     .put(Enums.EntityTypeEnum.BULK_QUOTES + "/" + "nonexistingid")
-    //     .send(removeEmpty(validBulkPutPayload))
-    //     .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, [], headerOverride));
+        validBulkPutPayload.bulkQuoteId = "nonexistingid";
 
-    //     const messages = consumer.getEvents();
 
-    //     // Assert
-    //     await waitForExpect(() => {
-    //         expect(messages.length).toBe(2);
-    //         expect(messages[0].msgName).toBe(BulkQuotePendingReceivedEvt.name);
-    //         expect(messages[1].msgName).toBe(QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent.name);
-    //     });
-    // });
+        // Act
+        await request(server)
+        .put(Enums.EntityTypeEnum.BULK_QUOTES + "/" + "nonexistingid")
+        .send(removeEmpty(validBulkPutPayload))
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, [], headerOverride));
+
+        const messages = consumer.getEvents();
+
+        // Assert
+        await waitForExpect(() => {
+            expect(messages.length).toBe(2);
+            expect(messages[0].msgName).toBe(BulkQuotePendingReceivedEvt.name);
+            expect(messages[1].msgName).toBe(QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent.name);
+        });
+    });
+
+    it("should fail due to request failing", async () => {
+        // Arrange
+        const msg = new BulkQuoteAcceptedEvt({
+            ownerFspId: "nonexistingfsp",
+            bulkQuoteId: "123",
+        } as any)
+        
+
+        const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES, {
+            [Constants.FSPIOP_HEADERS_SOURCE]: "nonexistingfsp",
+            [Constants.FSPIOP_HEADERS_DESTINATION]: "nonexistingfsp"
+        });
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(() => {
+            expect(Request.sendRequest).toHaveBeenCalledTimes(0);
+        });
+    });
     // #region
 
     // #region GET BulkQuote
@@ -827,27 +943,49 @@ describe("FSPIOP API Service Quoting Handler", () => {
         });
     });
 
-    // it("should successfully return the previously created bulk quote", async () => {
-    //     // Arrange
-    //     const headerOverride = { 
-    //         "fspiop-source": "greenbank",
-    //         "fspiop-destination": "bluebank" 
-    //     };
+    it("should successfully return the previously created bulk quote", async () => {
+        // Arrange
+        const headerOverride = { 
+            "fspiop-source": "greenbank",
+            "fspiop-destination": "bluebank" 
+        };
 
-    //     // Act
-    //     await request(server)
-    //     .get(Enums.EntityTypeEnum.BULK_QUOTES + "/" + validBulkPostPayload.bulkQuoteId)
-    //     .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, [], headerOverride));
+        // Act
+        await request(server)
+        .get(Enums.EntityTypeEnum.BULK_QUOTES + "/" + validBulkPostPayload.bulkQuoteId)
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, [], headerOverride));
 
-    //     const messages = consumer.getEvents();
+        const messages = consumer.getEvents();
 
-    //     // Assert
-    //     await waitForExpect(() => {
-    //         expect(messages.length).toBe(2);
-    //         expect(messages[0].msgName).toBe(QuoteQueryReceivedEvt.name);
-    //         expect(messages[1].msgName).toBe(QuoteQueryResponseEvt.name);
-    //     });
-    // });
+        // Assert
+        await waitForExpect(() => {
+            expect(messages.length).toBe(2);
+            expect(messages[0].msgName).toBe(BulkQuoteQueryReceivedEvt.name);
+            expect(messages[1].msgName).toBe(BulkQuoteQueryResponseEvt.name);
+        });
+    });
+
+    it("should fail due to request failing", async () => {
+        // Arrange
+        const msg = new BulkQuoteQueryResponseEvt({
+            ownerFspId: "nonexistingfsp",
+            bulkQuoteId: "123",
+        } as any)
+        
+
+        const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES, {
+            [Constants.FSPIOP_HEADERS_SOURCE]: "nonexistingfsp",
+            [Constants.FSPIOP_HEADERS_DESTINATION]: "nonexistingfsp"
+        });
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(() => {
+            expect(Request.sendRequest).toHaveBeenCalledTimes(0);
+        });
+    });
     // #endregion
 
     // #region Error events

@@ -38,7 +38,7 @@ import KafkaConsumer from "../helpers/kafkaproducer";
 import { AccountLookupBCTopics, ParticipantAssociationRequestReceivedEvt, ParticipantDisassociateRequestReceivedEvt, ParticipantQueryReceivedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { getHeaders, defaultEntryValidRequest, missingPropertyResponse } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import waitForExpect from "wait-for-expect";
+import waitForExpect from "../helpers/utils";
 
 const SVC_DEFAULT_HTTP_PORT = process.env["SVC_DEFAULT_HTTP_PORT"] || 4000;
 

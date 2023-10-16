@@ -98,7 +98,7 @@ export abstract class BaseEventHandler  {
 
     }
 
-    protected async _validateParticipantAndGetEndpoint(fspId: string):Promise<IParticipantEndpoint|null>{
+    protected async _validateParticipantAndGetEndpoint(fspId: string):Promise<IParticipantEndpoint>{
         const participant = await this._participantService.getParticipantInfo(fspId);
 
         if (!participant) {

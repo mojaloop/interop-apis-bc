@@ -29,6 +29,7 @@
 
 "use strict";
 
+import {IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 type UnknownProperties = { [k: string]: string };
 
 export const getHeaders = (entity: string, remove?: string[], override?: UnknownProperties): UnknownProperties => {
@@ -130,7 +131,7 @@ export const missingPropertyResponse = (field: string, type: string) => {
     return result;
 };
 
-export const createMessage = (message: any, entity: string): UnknownProperties => {
+export const createMessage = (message: IMessage, entity: string, fspiopOpaqueState?: UnknownProperties): UnknownProperties => {
     message.fspiopOpaqueState = {
         "requesterFspId": "bluebank",
         "destinationFspId": null,
@@ -145,9 +146,15 @@ export const createMessage = (message: any, entity: string): UnknownProperties =
             "traceparent": "00-aabb8e170bb7474d09e73aebcdf0b293-0123456789abcdef0-00",
             "connection": "close"
         }
-    }
+    };
 
-    return message;
+    if(fspiopOpaqueState) {
+        message.fspiopOpaqueState.headers = { 
+            ...message.fspiopOpaqueState.headers,
+            ...fspiopOpaqueState
+        }
+    }
+    return message as unknown as UnknownProperties;
 };
 
 

@@ -34,7 +34,7 @@
 import path from "path";
 import jestOpenAPI from "jest-openapi";
 import waitForExpect from "wait-for-expect";
-import { Enums, Request } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Enums, Request } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {
     QuoteRequestAcceptedEvt,
     QuoteRequestReceivedEvt,
@@ -83,14 +83,20 @@ import {
     TransferPayeeNotActiveEvt,
     TransferPayeeNotApprovedEvt,
     TransferPrepareInvalidPayeeCheckFailedEvt,
-    TransferQueryInvalidPayeeParticipantIdEvt
+    TransferQueryInvalidPayeeParticipantIdEvt,
+    BulkTransferPrepareRequestedEvt,
+    BulkTransferPreparedEvt,
+    BulkTransferFulfilRequestedEvt,
+    BulkTransferFulfiledEvt,
+    BulkTransferQueryReceivedEvt,
+    BulkTransferQueryResponseEvt
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Service } from "../../../../packages/fspiop-api-svc/src/service";
 import request from "supertest";
 import { createMessage, getHeaders } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import KafkaConsumer from "../helpers/kafkaproducer";
 import { MongoClient } from "mongodb";
-import { PostQuote, removeEmpty } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/transformer";
+import { PostBulkTransfer, PostQuote, PutBulkTransfer, removeEmpty } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/transformer";
 
 const server = process.env["SVC_DEFAULT_URL"] || "http://localhost:4000/";
 
@@ -145,12 +151,17 @@ let validQuotePostPayload:PostQuote = {
 // Transfers
 let validTransferPostPayload:any;
 
+// Bulk Quotes
+let validBulkTransferPostPayload:any;
+let validBulkPutPayload:PutBulkTransfer;
+
 const consumer = new KafkaConsumer([QuotingBCTopics.DomainRequests, QuotingBCTopics.DomainEvents, TransfersBCTopics.DomainRequests, TransfersBCTopics.DomainEvents])
 const DB_NAME_QUOTES = process.env.QUOTING_DB_TEST_NAME ?? "quoting";
-const DB_NAME_TRANSFERS = process.env.QUOTING_DB_TEST_NAME ?? "quoting";
+const DB_NAME_TRANSFERS = process.env.QUOTING_DB_TEST_NAME ?? "transfers";
 const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017";
 const COLLECTION_QUOTE = "quotes";
 const COLLECTION_TRANSFER = "transfers";
+const COLLECTION_BULK_TRANSFER = "bulk_transfers";
 
 const transfersEntity = "transfers";
 
@@ -171,7 +182,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
     });
 
     beforeEach(async () => {
-        await new Promise((r) => setTimeout(r, 5000));
+        await new Promise((r) => setTimeout(r, 3000));
 
         await consumer.clearEvents();
 
@@ -187,6 +198,52 @@ describe("FSPIOP API Service Transfers Handler", () => {
             "condition": "STksBXN1-J5HnG_4owlzKnbmzCfiOlrKDPgiR-QZ7Kg",
             "expiration": "2023-07-22T05:05:11.304Z"
         };
+
+        validBulkTransferPostPayload = {
+            "bulkTransferId": "0fbee1f3-c58e-5afe-8cdd-7e65eea2fca9",
+            "bulkQuoteId": "0fbee1f3-c58e-5afe-8cdd-6e65eea2fca9",
+            "payeeFsp": "greenbank",
+            "payerFsp": "bluebank",
+            "individualTransfers": [
+                {
+                    "transferId": "0fbee2f3-c58e-5afe-8cdd-6e65eea2fca9",
+                    "transferAmount": {
+                        "currency": "USD",
+                        "amount": "10"
+                    },
+                    "ilpPacket": "AYICbQAAAAAAAAPoHGcuYmx1ZWJhbmsubXNpc2RuLmJsdWVfYWNjXzGCAkRleUowY21GdWMyRmpkR2x2Ymtsa0lqb2lPV1kxWkRrM09EUXRNMkUxTnkwMU9EWTFMVGxoWVRBdE4yUmtaVGMzT1RFMU5EZ3hJaXdpY1hWdmRHVkpaQ0k2SW1ZMU5UaGtORFE0TFRCbU1UQXROREF4TmkwNE9ESXpMVEU1TjJObU5qZ3haamhrWmlJc0luQmhlV1ZsSWpwN0luQmhjblI1U1dSSmJtWnZJanA3SW5CaGNuUjVTV1JVZVhCbElqb2lUVk5KVTBST0lpd2ljR0Z5ZEhsSlpHVnVkR2xtYVdWeUlqb2lZbXgxWlY5aFkyTmZNU0lzSW1aemNFbGtJam9pWW14MVpXSmhibXNpZlgwc0luQmhlV1Z5SWpwN0luQmhjblI1U1dSSmJtWnZJanA3SW5CaGNuUjVTV1JVZVhCbElqb2lUVk5KVTBST0lpd2ljR0Z5ZEhsSlpHVnVkR2xtYVdWeUlqb2laM0psWlc1ZllXTmpYekVpTENKbWMzQkpaQ0k2SW1keVpXVnVZbUZ1YXlKOWZTd2lZVzF2ZFc1MElqcDdJbU4xY25KbGJtTjVJam9pUlZWU0lpd2lZVzF2ZFc1MElqb2lNVEFpZlN3aWRISmhibk5oWTNScGIyNVVlWEJsSWpwN0luTmpaVzVoY21sdklqb2lSRVZRVDFOSlZDSXNJbWx1YVhScFlYUnZjaUk2SWxCQldVVlNJaXdpYVc1cGRHbGhkRzl5Vkhsd1pTSTZJa0pWVTBsT1JWTlRJbjE5AA",
+                    "condition": "STksBXN1-J5HnG_4owlzKnbmzCfiOlrKDPgiR-QZ7Kg"
+                },
+                {
+                    "transferId": "1fbee2f3-c58e-5afe-8cdd-6e65eea2fca9",
+                    "transferAmount": {
+                        "currency": "USD",
+                        "amount": "10"
+                    },
+                    "ilpPacket": "AYICbQAAAAAAAAPoHGcuYmx1ZWJhbmsubXNpc2RuLmJsdWVfYWNjXzGCAkRleUowY21GdWMyRmpkR2x2Ymtsa0lqb2lPV1kxWkRrM09EUXRNMkUxTnkwMU9EWTFMVGxoWVRBdE4yUmtaVGMzT1RFMU5EZ3hJaXdpY1hWdmRHVkpaQ0k2SW1ZMU5UaGtORFE0TFRCbU1UQXROREF4TmkwNE9ESXpMVEU1TjJObU5qZ3haamhrWmlJc0luQmhlV1ZsSWpwN0luQmhjblI1U1dSSmJtWnZJanA3SW5CaGNuUjVTV1JVZVhCbElqb2lUVk5KVTBST0lpd2ljR0Z5ZEhsSlpHVnVkR2xtYVdWeUlqb2lZbXgxWlY5aFkyTmZNU0lzSW1aemNFbGtJam9pWW14MVpXSmhibXNpZlgwc0luQmhlV1Z5SWpwN0luQmhjblI1U1dSSmJtWnZJanA3SW5CaGNuUjVTV1JVZVhCbElqb2lUVk5KVTBST0lpd2ljR0Z5ZEhsSlpHVnVkR2xtYVdWeUlqb2laM0psWlc1ZllXTmpYekVpTENKbWMzQkpaQ0k2SW1keVpXVnVZbUZ1YXlKOWZTd2lZVzF2ZFc1MElqcDdJbU4xY25KbGJtTjVJam9pUlZWU0lpd2lZVzF2ZFc1MElqb2lNVEFpZlN3aWRISmhibk5oWTNScGIyNVVlWEJsSWpwN0luTmpaVzVoY21sdklqb2lSRVZRVDFOSlZDSXNJbWx1YVhScFlYUnZjaUk2SWxCQldVVlNJaXdpYVc1cGRHbGhkRzl5Vkhsd1pTSTZJa0pWVTBsT1JWTlRJbjE5AA",
+                    "condition": "STksBXN1-J5HnG_4owlzKnbmzCfiOlrKDPgiR-QZ7Kg"
+                },
+                {
+                    "transferId": "2fbee2f3-c58e-5afe-8cdd-6e65eea2fca9",
+                    "transferAmount": {
+                        "currency": "USD",
+                        "amount": "10"
+                    },
+                    "ilpPacket": "AYICbQAAAAAAAAPoHGcuYmx1ZWJhbmsubXNpc2RuLmJsdWVfYWNjXzGCAkRleUowY21GdWMyRmpkR2x2Ymtsa0lqb2lPV1kxWkRrM09EUXRNMkUxTnkwMU9EWTFMVGxoWVRBdE4yUmtaVGMzT1RFMU5EZ3hJaXdpY1hWdmRHVkpaQ0k2SW1ZMU5UaGtORFE0TFRCbU1UQXROREF4TmkwNE9ESXpMVEU1TjJObU5qZ3haamhrWmlJc0luQmhlV1ZsSWpwN0luQmhjblI1U1dSSmJtWnZJanA3SW5CaGNuUjVTV1JVZVhCbElqb2lUVk5KVTBST0lpd2ljR0Z5ZEhsSlpHVnVkR2xtYVdWeUlqb2lZbXgxWlY5aFkyTmZNU0lzSW1aemNFbGtJam9pWW14MVpXSmhibXNpZlgwc0luQmhlV1Z5SWpwN0luQmhjblI1U1dSSmJtWnZJanA3SW5CaGNuUjVTV1JVZVhCbElqb2lUVk5KVTBST0lpd2ljR0Z5ZEhsSlpHVnVkR2xtYVdWeUlqb2laM0psWlc1ZllXTmpYekVpTENKbWMzQkpaQ0k2SW1keVpXVnVZbUZ1YXlKOWZTd2lZVzF2ZFc1MElqcDdJbU4xY25KbGJtTjVJam9pUlZWU0lpd2lZVzF2ZFc1MElqb2lNVEFpZlN3aWRISmhibk5oWTNScGIyNVVlWEJsSWpwN0luTmpaVzVoY21sdklqb2lSRVZRVDFOSlZDSXNJbWx1YVhScFlYUnZjaUk2SWxCQldVVlNJaXdpYVc1cGRHbGhkRzl5Vkhsd1pTSTZJa0pWVTBsT1JWTlRJbjE5AA",
+                    "condition": "STksBXN1-J5HnG_4owlzKnbmzCfiOlrKDPgiR-QZ7Kg"
+                },
+                {
+                    "transferId": "3fbee2f3-c58e-5afe-8cdd-6e65eea2fca9",
+                    "transferAmount": {
+                        "currency": "USD",
+                        "amount": "10"
+                    },
+                    "ilpPacket": "AYICbQAAAAAAAAPoHGcuYmx1ZWJhbmsubXNpc2RuLmJsdWVfYWNjXzGCAkRleUowY21GdWMyRmpkR2x2Ymtsa0lqb2lPV1kxWkRrM09EUXRNMkUxTnkwMU9EWTFMVGxoWVRBdE4yUmtaVGMzT1RFMU5EZ3hJaXdpY1hWdmRHVkpaQ0k2SW1ZMU5UaGtORFE0TFRCbU1UQXROREF4TmkwNE9ESXpMVEU1TjJObU5qZ3haamhrWmlJc0luQmhlV1ZsSWpwN0luQmhjblI1U1dSSmJtWnZJanA3SW5CaGNuUjVTV1JVZVhCbElqb2lUVk5KVTBST0lpd2ljR0Z5ZEhsSlpHVnVkR2xtYVdWeUlqb2lZbXgxWlY5aFkyTmZNU0lzSW1aemNFbGtJam9pWW14MVpXSmhibXNpZlgwc0luQmhlV1Z5SWpwN0luQmhjblI1U1dSSmJtWnZJanA3SW5CaGNuUjVTV1JVZVhCbElqb2lUVk5KVTBST0lpd2ljR0Z5ZEhsSlpHVnVkR2xtYVdWeUlqb2laM0psWlc1ZllXTmpYekVpTENKbWMzQkpaQ0k2SW1keVpXVnVZbUZ1YXlKOWZTd2lZVzF2ZFc1MElqcDdJbU4xY25KbGJtTjVJam9pUlZWU0lpd2lZVzF2ZFc1MElqb2lNVEFpZlN3aWRISmhibk5oWTNScGIyNVVlWEJsSWpwN0luTmpaVzVoY21sdklqb2lSRVZRVDFOSlZDSXNJbWx1YVhScFlYUnZjaUk2SWxCQldVVlNJaXdpYVc1cGRHbGhkRzl5Vkhsd1pTSTZJa0pWVTBsT1JWTlRJbjE5AA",
+                    "condition": "STksBXN1-J5HnG_4owlzKnbmzCfiOlrKDPgiR-QZ7Kg"
+                }
+            ],
+            "expiration": "2024-02-28T13:27:53.536Z"
+        }
     });
 
     afterAll(async () => {
@@ -209,6 +266,12 @@ describe("FSPIOP API Service Transfers Handler", () => {
         .collection(COLLECTION_TRANSFER);
 
         transferRepo.deleteMany({})
+
+        const bulkTransferRepo = mongoClient
+        .db(DB_NAME_TRANSFERS)
+        .collection(COLLECTION_BULK_TRANSFER);
+
+        bulkTransferRepo.deleteMany({})
     });
 
     
@@ -296,6 +359,52 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(messages[5].msgName).toBe(TransferFulfiledEvt.name);
         });
     });
+   
+    it("POST Transfer - should fail due to request failing", async () => {
+        // Arrange
+        const msg = new TransferPreparedEvt({
+            ownerFspId: "nonexistingfsp",
+            bulkTransferId: "123",
+        } as any)
+        
+
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS, {
+            [Constants.FSPIOP_HEADERS_SOURCE]: "nonexistingfsp",
+            [Constants.FSPIOP_HEADERS_DESTINATION]: "nonexistingfsp"
+        });
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(() => {
+            expect(Request.sendRequest).toHaveBeenCalledTimes(0);
+        });
+    });
+    // #region
+
+    // #region PUT Transfer
+    it("PUT Transfer - should fail due to request failing", async () => {
+        // Arrange
+        const msg = new TransferFulfiledEvt({
+            ownerFspId: "nonexistingfsp",
+            bulkTransferId: "123",
+        } as any)
+        
+
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS, {
+            [Constants.FSPIOP_HEADERS_SOURCE]: "nonexistingfsp",
+            [Constants.FSPIOP_HEADERS_DESTINATION]: "nonexistingfsp"
+        });
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(() => {
+            expect(Request.sendRequest).toHaveBeenCalledTimes(0);
+        });
+    });
     // #region
 
     // #region GET Transfer
@@ -350,8 +459,217 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(messages[2].msgName).toBe(TransferQueryResponseEvt.name); 
         });
     });
+    
+    it("GET Transfer - should fail due to request failing", async () => {
+        // Arrange
+        const msg = new TransferQueryResponseEvt({
+            ownerFspId: "nonexistingfsp",
+            bulkTransferId: "123",
+        } as any)
+        
+
+        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS, {
+            [Constants.FSPIOP_HEADERS_SOURCE]: "nonexistingfsp",
+            [Constants.FSPIOP_HEADERS_DESTINATION]: "nonexistingfsp"
+        });
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(() => {
+            expect(Request.sendRequest).toHaveBeenCalledTimes(0);
+        });
+    });
     // #region
 
+    // #region POST BulkTransfer
+    it("POST BulkTransfer - should return error event due to non existing payer fsp", async () => {
+        // Arrange
+        validBulkTransferPostPayload.bulkTransferId = "2fbee1f5-c58e-5afe-8cdd-7e65eea2fca9";
+        validBulkTransferPostPayload.payerFsp = "nonexistingpayerfsp";
+
+        // Act
+        await request(server)
+        .post(Enums.EntityTypeEnum.BULK_TRANSFERS)
+        .send(removeEmpty(validBulkTransferPostPayload))
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_TRANSFERS));
+
+        const messages = consumer.getEvents();
+
+        // Assert
+        await waitForExpect(() => {
+            expect(messages.length).toBe(6);
+            expect(messages[0].msgName).toBe(BulkTransferPrepareRequestedEvt.name);
+            expect(messages[1].msgName).toBe("PrepareBulkTransferCmd");
+            expect(messages[2].msgName).toBe(TransferPayerNotFoundFailedEvt.name);
+            expect(messages[3].msgName).toBe(TransferPayerNotFoundFailedEvt.name);
+            expect(messages[4].msgName).toBe(TransferPayerNotFoundFailedEvt.name);
+            expect(messages[5].msgName).toBe(TransferPayerNotFoundFailedEvt.name);
+        });
+    });
+
+    it("POST BulkTransfer - should return error event due to non existing payee fsp", async () => {
+        // Arrange
+        validBulkTransferPostPayload.bulkTransferId = "1fbee1f4-c58e-5afe-8cdd-7e65eea2fca9";
+        validBulkTransferPostPayload.payeeFsp = "nonexistingpayeefsp";
+
+        // Act
+        await request(server)
+        .post(Enums.EntityTypeEnum.BULK_TRANSFERS)
+        .send(removeEmpty(validBulkTransferPostPayload))
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_TRANSFERS));
+
+        const messages = consumer.getEvents();
+
+        // Assert
+        await waitForExpect(() => {
+            expect(messages.length).toBe(6);
+            expect(messages[0].msgName).toBe(BulkTransferPrepareRequestedEvt.name);
+            expect(messages[1].msgName).toBe("PrepareBulkTransferCmd");
+            expect(messages[2].msgName).toBe(TransferPayeeNotFoundFailedEvt.name);
+            expect(messages[3].msgName).toBe(TransferPayeeNotFoundFailedEvt.name);
+            expect(messages[4].msgName).toBe(TransferPayeeNotFoundFailedEvt.name);
+            expect(messages[5].msgName).toBe(TransferPayeeNotFoundFailedEvt.name);
+        });
+    });
+    
+    it("POST BulkTransfer - should successfully create a bulk transfer", async () => {
+        // Act & Arrange
+        // await request(server)
+        // .post(Enums.EntityTypeEnum.QUOTES)
+        // .send(removeEmpty(validQuotePostPayload))
+        // .set(getHeaders(Enums.EntityTypeEnum.QUOTES));
+
+        // await new Promise((r) => setTimeout(r, 10000));
+
+        // const quoteMessages = consumer.getEvents();
+
+        // expect(quoteMessages.length).toBe(4);
+        // expect(quoteMessages[0].msgName).toBe(QuoteRequestReceivedEvt.name);
+        // expect(quoteMessages[1].msgName).toBe(QuoteRequestAcceptedEvt.name);
+        // expect(quoteMessages[2].msgName).toBe(QuoteResponseReceivedEvt.name);
+        // expect(quoteMessages[3].msgName).toBe(QuoteResponseAccepted.name);
+
+        // validTransferPostPayload.ilpPacket = quoteMessages[quoteMessages.length-1].payload.ilpPacket;
+        // validTransferPostPayload.condition = quoteMessages[quoteMessages.length-1].payload.condition;
+        // validTransferPostPayload.expiration = quoteMessages[quoteMessages.length-1].payload.expiration;
+        
+        // await consumer.clearEvents();
+
+        await request(server)
+        .post(Enums.EntityTypeEnum.BULK_TRANSFERS)
+        .send(removeEmpty(validBulkTransferPostPayload))
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_TRANSFERS));
+
+        const messages = consumer.getEvents();
+
+        // Assert
+        await waitForExpect(() => {
+            expect(messages.length).toBe(6);
+            expect(messages[0].msgName).toBe(BulkTransferPrepareRequestedEvt.name);
+            expect(messages[1].msgName).toBe("PrepareBulkTransferCmd"); // TODO: make a special topic for transfers CMDs
+            expect(messages[2].msgName).toBe(BulkTransferPreparedEvt.name);
+            expect(messages[3].msgName).toBe(BulkTransferFulfilRequestedEvt.name);
+            expect(messages[4].msgName).toBe("CommitBulkTransferFulfilCmd"); // TODO: make a special topic for transfers CMDs
+            expect(messages[5].msgName).toBe(BulkTransferFulfiledEvt.name);
+        });
+    });
+
+    it("POST BulkTransfer - should fail due to request failing", async () => {
+        // Arrange
+        const msg = new BulkTransferPreparedEvt({
+            ownerFspId: "nonexistingfsp",
+            bulkTransferId: "123",
+        } as any)
+        
+
+        const message = createMessage(msg, Enums.EntityTypeEnum.BULK_TRANSFERS, {
+            [Constants.FSPIOP_HEADERS_SOURCE]: "nonexistingfsp",
+            [Constants.FSPIOP_HEADERS_DESTINATION]: "nonexistingfsp"
+        });
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(() => {
+            expect(Request.sendRequest).toHaveBeenCalledTimes(0);
+        });
+    });
+    // #region
+
+    // #region PUT BulkTransfer
+    it("PUT BulkTransfer - should fail due to request failing", async () => {
+        // Arrange
+        const msg = new BulkTransferFulfiledEvt({
+            ownerFspId: "nonexistingfsp",
+            bulkTransferId: "123",
+        } as any)
+        
+
+        const message = createMessage(msg, Enums.EntityTypeEnum.BULK_TRANSFERS, {
+            [Constants.FSPIOP_HEADERS_SOURCE]: "nonexistingfsp",
+            [Constants.FSPIOP_HEADERS_DESTINATION]: "nonexistingfsp"
+        });
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(() => {
+            expect(Request.sendRequest).toHaveBeenCalledTimes(0);
+        });
+    });
+    // #region
+
+    // #region GET BulkTransfer
+    it("GET BulkTransfer - should successfully return the previously created bulk transfer", async () => {
+        // Arrange
+        const headerOverride = { 
+            "fspiop-source": "greenbank",
+            "fspiop-destination": "bluebank" 
+        };
+
+        // Act
+        await request(server)
+        .get(Enums.EntityTypeEnum.BULK_TRANSFERS + "/" + validBulkTransferPostPayload.bulkTransferId)
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_TRANSFERS, [], headerOverride));
+
+        const messages = consumer.getEvents();
+
+        // Assert
+        await waitForExpect(() => {
+            expect(messages.length).toBe(3);
+            expect(messages[0].msgName).toBe(BulkTransferQueryReceivedEvt.name);
+            expect(messages[1].msgName).toBe("QueryBulkTransferCmd");
+            expect(messages[2].msgName).toBe(BulkTransferQueryResponseEvt.name);
+        });
+    });
+
+    it("GET BulkTransfer - should fail due to request failing", async () => {
+        // Arrange
+        const msg = new BulkTransferQueryResponseEvt({
+            ownerFspId: "nonexistingfsp",
+            bulkTransferId: "123",
+        } as any)
+        
+
+        const message = createMessage(msg, Enums.EntityTypeEnum.BULK_TRANSFERS, {
+            [Constants.FSPIOP_HEADERS_SOURCE]: "nonexistingfsp",
+            [Constants.FSPIOP_HEADERS_DESTINATION]: "nonexistingfsp"
+        });
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(() => {
+            expect(Request.sendRequest).toHaveBeenCalledTimes(0);
+        });
+    });
+    // #endregion
+    
     // #region Error events
     // Act
     it("should return TransfersBCUnknownErrorEvent http call for participant type", async () => {
@@ -368,7 +686,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await consumer.sendMessage(message);
 
         // Assert
-        await waitForExpect(async () => {
+            await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
                     "errorInformation": { 

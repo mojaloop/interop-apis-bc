@@ -408,6 +408,7 @@ export class Service {
             await this.partyRoutes.destroy();
             await this.quotesRoutes.destroy();
             await this.bulkQuotesRoutes.destroy();
+            await this.bulkQuotesRoutes.destroy();
             await this.transfersRoutes.destroy();
 
             await this.expressServer.close();

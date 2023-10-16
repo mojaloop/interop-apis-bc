@@ -277,10 +277,6 @@ export class QuotingEventHandler extends BaseEventHandler {
             // TODO validate payload.payee.partyIdInfo.fspId actually exists
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(payload.payee.partyIdInfo.fspId as string);
 
-            if(!requestedEndpoint) {
-                throw Error(`fspId ${payload.payee.partyIdInfo.fspId} has no valid participant associated`);
-            }
-
             this._logger.info("_handleQuotingCreatedRequestReceivedEvt -> start");
 
             // Always validate the payload and headers received
@@ -317,10 +313,6 @@ export class QuotingEventHandler extends BaseEventHandler {
             // TODO validate vars above
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
-
-            if(!requestedEndpoint) {
-                throw Error(`fspId ${destinationFspId} has no valid participant associated`);
-            }
 
             this._logger.info("_handleQuotingResponseAcceptedEvt -> start");
 
@@ -366,10 +358,6 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
-            if(!requestedEndpoint) {
-                throw Error(`fspId ${destinationFspId} has no valid participant associated`);
-            }
-
             this._logger.info("_handleQuotingQueryResponseEvt -> start");
 
             // Always validate the payload and headers received
@@ -408,10 +396,6 @@ export class QuotingEventHandler extends BaseEventHandler {
             // TODO validate vars above
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
-
-            if(!requestedEndpoint) {
-                throw Error(`fspId ${requesterFspId} has no valid participant associated`);
-            }
 
             this._logger.info("_handleBulkQuotingRequestReceivedEvt -> start");
 
@@ -452,10 +436,6 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
-            if(!requestedEndpoint) {
-                throw Error(`fspId ${destinationFspId} has no valid participant associated`);
-            }
-
             this._logger.info("_handleBulkQuoteAcceptedResponseEvt -> start");
 
             // Always validate the payload and headers received
@@ -491,10 +471,6 @@ export class QuotingEventHandler extends BaseEventHandler {
             const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
-
-            if(!requestedEndpoint) {
-                throw Error(`fspId ${requesterFspId} has no valid participant associated`);
-            }
 
             this._logger.info("_handleBulkQuoteQueryResponseEvt -> start");
 

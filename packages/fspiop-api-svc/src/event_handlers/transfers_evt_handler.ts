@@ -349,16 +349,13 @@ export class TransferEventHandler extends BaseEventHandler {
         const destinationFspId = payload.payeeFsp;
 
         // TODO validate vars above
-
-        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
-
-        if(!requestedEndpoint) {
-            throw Error(`fspId ${requesterFspId} has no valid participant associated`);
-        }
-
+        
+        
         try {
             this._logger.info("_handleTransferPreparedEvt -> start");
-
+            
+            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
+            
             // Always validate the payload and headers received
             message.validatePayload();
 
@@ -393,20 +390,12 @@ export class TransferEventHandler extends BaseEventHandler {
 
         // TODO validate vars above
 
-        const requestedEndpointPayer = await this._validateParticipantAndGetEndpoint(destinationFspId);
-
-        if(!requestedEndpointPayer) {
-            throw Error(`fspId ${destinationFspId} has no valid participant associated`);
-        }
-
-        const requestedEndpointPayee = await this._validateParticipantAndGetEndpoint(requesterFspId);
-
-        if(!requestedEndpointPayee) {
-            throw Error(`fspId ${requesterFspId} has no valid participant associated`);
-        }
-
         try {
             this._logger.info("_handleTransferReserveFulfiledEvt -> start");
+
+            const requestedEndpointPayer = await this._validateParticipantAndGetEndpoint(destinationFspId);
+    
+            const requestedEndpointPayee = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
             // Always validate the payload and headers received
             message.validatePayload();
@@ -451,6 +440,8 @@ export class TransferEventHandler extends BaseEventHandler {
 
     
     private async _handleTransferQueryResponseEvt(message: TransferQueryResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
+        this._logger.info("_handleTransferQueryResponseEvt -> start");
+        
         try {
             const { payload } = message;
 
@@ -465,12 +456,6 @@ export class TransferEventHandler extends BaseEventHandler {
             // TODO validate vars above
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
-
-            if(!requestedEndpoint) {
-                throw Error(`fspId ${destinationFspId} has no valid participant associated`);
-            }
-
-            this._logger.info("_handleTransferQueryResponseEvt -> start");
 
             // Always validate the payload and headers received
             message.validatePayload();
@@ -507,21 +492,12 @@ export class TransferEventHandler extends BaseEventHandler {
 
         // TODO validate vars above
 
-        const requestedEndpointPayer = await this._validateParticipantAndGetEndpoint(destinationFspId);
-
-        if(!requestedEndpointPayer) {
-            throw Error(`fspId ${destinationFspId} has no valid participant associated`);
-        }
-
-        const requestedEndpointPayee = await this._validateParticipantAndGetEndpoint(requesterFspId);
-
-        if(!requestedEndpointPayee) {
-            throw Error(`fspId ${requesterFspId} has no valid participant associated`);
-        }
-
+        
         try {
             this._logger.info("_handleBulkTransferPreparedEvt -> start");
-
+           
+            const requestedEndpointPayer = await this._validateParticipantAndGetEndpoint(destinationFspId);
+    
             // Always validate the payload and headers received
             message.validatePayload();
 
@@ -557,21 +533,12 @@ export class TransferEventHandler extends BaseEventHandler {
 
         // TODO validate vars above
 
-        const requestedEndpointPayer = await this._validateParticipantAndGetEndpoint(destinationFspId);
-
-        if(!requestedEndpointPayer) {
-            throw Error(`fspId ${destinationFspId} has no valid participant associated`);
-        }
-
-        const requestedEndpointPayee = await this._validateParticipantAndGetEndpoint(requesterFspId);
-
-        if(!requestedEndpointPayee) {
-            throw Error(`fspId ${requesterFspId} has no valid participant associated`);
-        }
-
+        
         try {
             this._logger.info("_handleBulkTransferFulfiledEvt -> start");
-
+            
+            const requestedEndpointPayer = await this._validateParticipantAndGetEndpoint(destinationFspId);
+    
             // Always validate the payload and headers received
             message.validatePayload();
 
@@ -613,10 +580,6 @@ export class TransferEventHandler extends BaseEventHandler {
             // TODO validate vars above
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
-
-            if(!requestedEndpoint) {
-                throw Error(`fspId ${destinationFspId} has no valid participant associated`);
-            }
 
             this._logger.info("_handleBulkTransferQueryResponseEvt -> start");
 

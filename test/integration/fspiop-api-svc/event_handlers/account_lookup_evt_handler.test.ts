@@ -33,8 +33,7 @@
 
 import path from "path";
 import jestOpenAPI from "jest-openapi";
-import waitForExpect from "wait-for-expect";
-import { Enums, Request } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Enums, Request } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {
     AccountLookupBCTopics,
     ParticipantAssociationRequestReceivedEvt,
@@ -68,6 +67,7 @@ import { MongoClient } from "mongodb";
 import { PostParticipant, removeEmpty } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/transformer";
 import { FSPIOP_PARTY_ACCOUNT_TYPES } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants";
 import { ClientErrors } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/enums";
+import waitForExpect from "../helpers/utils";
 
 const server = process.env["SVC_DEFAULT_URL"] || "http://localhost:4000/";
 
@@ -106,8 +106,8 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
     });
 
     beforeEach(async () => {
-        await new Promise((r) => setTimeout(r, 5000));
-        
+        await new Promise((r) => setTimeout(r, 3000));
+
         await consumer.clearEvents();
 
         sendRequestSpy.mockClear();
@@ -115,7 +115,6 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
         validParticipantPostPayload = {
             "fspId": "bluebank"
         }
-
     });
 
     afterAll(async () => {
@@ -286,6 +285,26 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
             expect(messages[1].msgName).toBe(AccountLookupBCUnableToAssociateParticipantErrorEvent.name);
         });
     });
+
+    it("should fail due to request failing", async () => {
+        // Arrange
+        const msg = new ParticipantAssociationCreatedEvt({
+            ownerFspId: "nonexistingfsp",
+            partyId: "123",
+            partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
+            partySubType: "456",
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.PARTICIPANTS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(() => {
+            expect(Request.sendRequest).toHaveBeenCalledTimes(0);
+        });
+    });
     // #region
 
     // #region GET Participant
@@ -341,6 +360,32 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
             expect(messages[1].msgName).toBe(ParticipantQueryResponseEvt.name);
         });
     });
+
+    it("should fail due to request failing on responsdsae", async () => {
+        // Arrange
+        const msg = new ParticipantQueryResponseEvt({
+            requesterFspId: "nonexistingfsp",
+            ownerFspId: "nonexistingfsp",
+            partyId: "123",
+            partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
+            partySubType: "456",
+            currency: null
+        })
+        
+
+        const message = createMessage(msg, Enums.EntityTypeEnum.PARTICIPANTS, {
+            [Constants.FSPIOP_HEADERS_SOURCE]: "nonexistingfsp",
+            [Constants.FSPIOP_HEADERS_DESTINATION]: "nonexistingfsp"
+        });
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(() => {
+            expect(Request.sendRequest).toHaveBeenCalledTimes(0);
+        });
+    });
     // #region
 
     // #region GET Party
@@ -380,6 +425,57 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
             expect(messages[1].msgName).toBe(PartyInfoRequestedEvt.name);
             expect(messages[2].msgName).toBe(PartyInfoAvailableEvt.name);
             expect(messages[3].msgName).toBe(PartyQueryResponseEvt.name);
+        });
+    });
+
+    it("should fail due to request failing", async () => {
+        // Arrange
+        const msg = new PartyInfoRequestedEvt({
+            requesterFspId: "nonexistingfsp",
+            destinationFspId: null,
+            partyId: "123",
+            partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
+            partySubType: "456",
+            currency: null
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(() => {
+            expect(Request.sendRequest).toHaveBeenCalledTimes(0);
+        });
+    });
+
+    it("_handlePartyQueryResponseEvt - should fail due to request failing on response", async () => {
+        // Arrange
+        const msg = new PartyQueryResponseEvt({
+            requesterFspId: "nonexistingfsp",
+            ownerFspId: "nonexistingfsp",
+            destinationFspId: "nonexistingfsp",
+            partyId: "123",
+            partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
+            partySubType: "456",
+            currency: null,
+            merchantClassificationCode: "1",
+            name: "John",
+            middleName: "P",
+            firstName: "Paul",
+            lastName: "Lopez",
+            partyDoB: null
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(() => {
+            expect(Request.sendRequest).toHaveBeenCalledTimes(0);
         });
     });
     // #region
@@ -438,6 +534,26 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
             expect(messages.length).toBe(2);
             expect(messages[0].msgName).toBe(ParticipantDisassociateRequestReceivedEvt.name);
             expect(messages[1].msgName).toBe(ParticipantAssociationRemovedEvt.name);
+        });
+    });
+
+    it("should fail due to request failing", async () => {
+        // Arrange
+        const msg = new ParticipantAssociationRemovedEvt({
+            ownerFspId: "nonexistingfsp",
+            partyId: "123",
+            partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
+            partySubType: "456"
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.PARTICIPANTS);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(() => {
+            expect(Request.sendRequest).toHaveBeenCalledTimes(0);
         });
     });
     // #region
