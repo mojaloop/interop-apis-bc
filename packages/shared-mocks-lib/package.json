@@ -28,6 +28,9 @@
     "lint": "eslint ./src",
     "lint:fix": "eslint ./src --fix"
   },
+  "dependencies": {
+    "@mojaloop/security-bc-client-lib": "^0.1.31"
+  },
   "devDependencies": {
     "eslint": "^8.43.0",
     "npm-check-updates": "^16.10.16",

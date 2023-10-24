@@ -70,7 +70,7 @@ import { OpenApiDocument, OpenApiValidator } from "express-openapi-validate";
 import jsYaml from "js-yaml";
 import fs from "fs";
 import { validateHeaders } from "./header_validation";
-import util from "util";
+import { TransfersBulkRoutes } from "./http_routes/transfers-bc/bulk_transfers_routes";
 
 const API_SPEC_FILE_PATH = process.env["API_SPEC_FILE_PATH"] || "../dist/api_spec.yaml";
 
@@ -100,6 +100,7 @@ const QUOTES_URL_RESOURCE_NAME = "quotes";
 const BULK_QUOTES_URL_RESOURCE_NAME = "bulkQuotes";
 // Transfers
 const TRANSFERS_URL_RESOURCE_NAME = "transfers";
+const BULK_TRANSFERS_URL_RESOURCE_NAME = "bulkTransfers";
 
 const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "interop-api-bc-fspiop-api-svc";
 const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_ID"] || "superServiceSecret";
@@ -109,6 +110,7 @@ const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhos
 const AUTH_N_SVC_TOKEN_URL = AUTH_N_SVC_BASEURL + "/token"; // TODO this should not be known here, libs that use the base should add the suffix
 
 const PARTICIPANTS_SVC_URL = process.env["PARTICIPANTS_SVC_URL"] || "http://localhost:3010";
+const PARTICIPANTS_CACHE_TIMEOUT_MS = (process.env["PARTICIPANTS_CACHE_TIMEOUT_MS"] && parseInt(process.env["PARTICIPANTS_CACHE_TIMEOUT_MS"])) || 5*60*1000;
 
 // this service has more handlers, might take longer than the usual 30 sec
 const SERVICE_START_TIMEOUT_MS = 60_000;
@@ -145,6 +147,7 @@ export class Service {
     static quotesRoutes:QuoteRoutes;
     static bulkQuotesRoutes:QuoteBulkRoutes;
     static transfersRoutes:TransfersRoutes;
+    static bulkTransfersRoutes:TransfersBulkRoutes;
     static participantService: IParticipantService;
     static auditClient: IAuditClient;
     static startupTimer: NodeJS.Timeout;
@@ -199,7 +202,7 @@ export class Service {
 
             const authRequester:IAuthenticatedHttpRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
             authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
-            participantService = new ParticipantAdapter(participantLogger, PARTICIPANTS_SVC_URL, authRequester);
+            participantService = new ParticipantAdapter(participantLogger, PARTICIPANTS_SVC_URL, authRequester, PARTICIPANTS_CACHE_TIMEOUT_MS);
         }
         this.participantService = participantService;
 
@@ -211,12 +214,14 @@ export class Service {
         this.quotesRoutes = new QuoteRoutes(kafkaJsonProducerOptions,  QuotingBCTopics.DomainEvents, this.logger);
         this.bulkQuotesRoutes = new QuoteBulkRoutes(kafkaJsonProducerOptions, QuotingBCTopics.DomainEvents, this.logger);
         this.transfersRoutes = new TransfersRoutes(kafkaJsonProducerOptions,  TransfersBCTopics.DomainEvents, this.logger);
+        this.bulkTransfersRoutes = new TransfersBulkRoutes(kafkaJsonProducerOptions, TransfersBCTopics.DomainEvents, this.logger);
 
         await this.participantRoutes.init();
         await this.partyRoutes.init();
         await this.quotesRoutes.init();
         await this.bulkQuotesRoutes.init();
         await this.transfersRoutes.init();
+        await this.bulkTransfersRoutes.init();
 
         await Service.setupExpress();
 
@@ -290,7 +295,7 @@ export class Service {
             })); // for parsing application/json
             this.app.use(express.urlencoded({limit: "100mb", extended: true})); // for parsing application/x-www-form-urlencoded
 
-            // Call header validation
+            // // Call header validation
             this.app.use(validateHeaders);
 
             // Call the request validator in every request
@@ -306,6 +311,7 @@ export class Service {
             this.app.use(`/${QUOTES_URL_RESOURCE_NAME}`, this.quotesRoutes.router);
             this.app.use(`/${BULK_QUOTES_URL_RESOURCE_NAME}`, this.bulkQuotesRoutes.router);
             this.app.use(`/${TRANSFERS_URL_RESOURCE_NAME}`, this.transfersRoutes.router);
+            this.app.use(`/${BULK_TRANSFERS_URL_RESOURCE_NAME}`, this.bulkTransfersRoutes.router);
 
             /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
             this.app.use((err: FspiopHttpRequestError, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -398,8 +404,16 @@ export class Service {
         // if (this.auditClient) await this.auditClient.destroy();
         // if (this.logger && this.logger instanceof KafkaLogger) await this.logger.destroy();
         if (this.expressServer){
-            const closeExpress = util.promisify(this.expressServer.close);
-            await closeExpress();
+            await this.participantRoutes.destroy();
+            await this.partyRoutes.destroy();
+            await this.quotesRoutes.destroy();
+            await this.bulkQuotesRoutes.destroy();
+            await this.bulkQuotesRoutes.destroy();
+            await this.transfersRoutes.destroy();
+
+            await this.expressServer.close();
+            // const closeExpress = util.promisify(this.expressServer.close);
+            // await closeExpress();
         }
 
         await accountEvtHandler.destroy();

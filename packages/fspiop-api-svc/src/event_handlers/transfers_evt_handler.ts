@@ -74,7 +74,11 @@ import {
     TransferPayerNotApprovedEvt,
     TransferPayeeNotActiveEvt,
     TransferPayeeNotApprovedEvt,
-    TransferUnableToDeleteTransferReminderEvt
+    TransferUnableToDeleteTransferReminderEvt,
+    BulkTransferPreparedEvt,
+    BulkTransferFulfiledEvt,
+    BulkTransferRejectRequestProcessedEvt,
+    BulkTransferQueryResponseEvt
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { BaseEventHandler, HandlerNames } from "./base_event_handler";
@@ -112,6 +116,15 @@ export class TransferEventHandler extends BaseEventHandler {
                 case TransferQueryResponseEvt.name:
                     await this._handleTransferQueryResponseEvt(new TransferQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
+                case BulkTransferPreparedEvt.name:
+                    await this._handleBulkTransferPreparedEvt(new BulkTransferPreparedEvt(message.payload), message.fspiopOpaqueState.headers);
+                    break;
+                case BulkTransferFulfiledEvt.name:
+                    await this._handleBulkTransferFulfiledEvt(new BulkTransferFulfiledEvt(message.payload), message.fspiopOpaqueState.headers);
+                    break;
+                case BulkTransferQueryResponseEvt.name:
+                    await this._handleBulkTransferQueryResponseEvt(new BulkTransferQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
+                    break;
                 case TransferInvalidMessagePayloadEvt.name:
                 case TransferInvalidMessageTypeEvt.name:
                 case TransferPayerNotFoundFailedEvt.name:
@@ -147,6 +160,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 case TransferPayeeNotActiveEvt.name:
                 case TransferPayeeNotApprovedEvt.name:
                 case TransferUnableToDeleteTransferReminderEvt.name:
+                case BulkTransferRejectRequestProcessedEvt.name:
                 case TransfersBCUnknownErrorEvent.name:
                     await this._handleErrorReceivedEvt(message as DomainErrorEventMsg, message.fspiopOpaqueState.headers);
                     break;
@@ -160,11 +174,12 @@ export class TransferEventHandler extends BaseEventHandler {
             const clonedHeaders = message.fspiopOpaqueState.headers;
             const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
             const transferId = message.payload.transferId as string;
+            const bulkTransferId = message.payload.bulkTransferId as string;
 
             await this._sendErrorFeedbackToFsp({
                 message: message,
                 headers: message.fspiopOpaqueState.headers,
-                id: [transferId],
+                id: transferId ? [transferId] : [bulkTransferId],
                 errorResponse: {
                     errorCode: Enums.ServerErrors.GENERIC_SERVER_ERROR.code,
                     errorDescription: Enums.ServerErrors.GENERIC_SERVER_ERROR.name,
@@ -188,6 +203,7 @@ export class TransferEventHandler extends BaseEventHandler {
         const sourceFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
         const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
         const transferId = payload.transferId as string;
+        const bulkTransferId = payload.bulkTransferId as string;
 
         // TODO validate vars above
 
@@ -196,7 +212,7 @@ export class TransferEventHandler extends BaseEventHandler {
         await this._sendErrorFeedbackToFsp({
             message: message,
             headers: clonedHeaders,
-            id: [transferId],
+            id: transferId ? [transferId] : [bulkTransferId],
             errorResponse: errorResponse
         });
 
@@ -293,7 +309,8 @@ export class TransferEventHandler extends BaseEventHandler {
                 errorResponse.errorDescription = Enums.PayerErrors.PAYER_FSP_INSUFFICIENT_LIQUIDITY.name;
                 break;
             }
-            case TransferRejectRequestProcessedEvt.name: {
+            case TransferRejectRequestProcessedEvt.name:
+            case BulkTransferRejectRequestProcessedEvt.name: {
                 errorResponse.errorCode = Enums.PayeeErrors.PAYEE_FSP_REJECTED_TRANSACTION.code;
                 errorResponse.errorDescription = Enums.PayeeErrors.PAYEE_FSP_REJECTED_TRANSACTION.name;
                 break;
@@ -332,16 +349,13 @@ export class TransferEventHandler extends BaseEventHandler {
         const destinationFspId = payload.payeeFsp;
 
         // TODO validate vars above
-
-        const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
-
-        if(!requestedEndpoint) {
-            throw Error(`fspId ${requesterFspId} has no valid participant associated`);
-        }
-
+        
+        
         try {
             this._logger.info("_handleTransferPreparedEvt -> start");
-
+            
+            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
+            
             // Always validate the payload and headers received
             message.validatePayload();
 
@@ -376,20 +390,12 @@ export class TransferEventHandler extends BaseEventHandler {
 
         // TODO validate vars above
 
-        const requestedEndpointPayer = await this._validateParticipantAndGetEndpoint(destinationFspId);
-
-        if(!requestedEndpointPayer) {
-            throw Error(`fspId ${destinationFspId} has no valid participant associated`);
-        }
-
-        const requestedEndpointPayee = await this._validateParticipantAndGetEndpoint(requesterFspId);
-
-        if(!requestedEndpointPayee) {
-            throw Error(`fspId ${requesterFspId} has no valid participant associated`);
-        }
-
         try {
             this._logger.info("_handleTransferReserveFulfiledEvt -> start");
+
+            const requestedEndpointPayer = await this._validateParticipantAndGetEndpoint(destinationFspId);
+    
+            const requestedEndpointPayee = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
             // Always validate the payload and headers received
             message.validatePayload();
@@ -434,6 +440,8 @@ export class TransferEventHandler extends BaseEventHandler {
 
     
     private async _handleTransferQueryResponseEvt(message: TransferQueryResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
+        this._logger.info("_handleTransferQueryResponseEvt -> start");
+        
         try {
             const { payload } = message;
 
@@ -448,12 +456,6 @@ export class TransferEventHandler extends BaseEventHandler {
             // TODO validate vars above
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
-
-            if(!requestedEndpoint) {
-                throw Error(`fspId ${destinationFspId} has no valid participant associated`);
-            }
-
-            this._logger.info("_handleTransferQueryResponseEvt -> start");
 
             // Always validate the payload and headers received
             message.validatePayload();
@@ -476,6 +478,132 @@ export class TransferEventHandler extends BaseEventHandler {
         } catch (error: unknown) {
             this._logger.error("_handleTransferQueryResponseEvt -> error");
             throw Error("_handleTransferQueryResponseEvt -> error");
+        }
+
+        return;
+    }
+
+    private async _handleBulkTransferPreparedEvt(message: BulkTransferPreparedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
+        const { payload } = message;
+
+        const clonedHeaders = fspiopOpaqueState;
+        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+
+        // TODO validate vars above
+
+        
+        try {
+            this._logger.info("_handleBulkTransferPreparedEvt -> start");
+           
+            const requestedEndpointPayer = await this._validateParticipantAndGetEndpoint(destinationFspId);
+    
+            // Always validate the payload and headers received
+            message.validatePayload();
+
+            const urlBuilderPayer = new Request.URLBuilder(requestedEndpointPayer.value);
+            urlBuilderPayer.setEntity(Enums.EntityTypeEnum.BULK_TRANSFERS);
+
+            await Request.sendRequest({
+                url: urlBuilderPayer.build(),
+                headers: clonedHeaders,
+                source: requesterFspId,
+                destination: destinationFspId,
+                method: Enums.FspiopRequestMethodsEnum.POST,
+                payload: Transformer.transformPayloadBulkTransferRequestPost(payload),
+            });
+
+            this._logger.info("_handleBulkTransferPreparedEvt -> end");
+
+        } catch (error: unknown) {
+            this._logger.error(error, "_handleBulkTransferPreparedEvt -> error");
+            throw Error("_handleBulkTransferPreparedEvt -> error");
+        }
+
+        return;
+    }
+
+    
+    private async _handleBulkTransferFulfiledEvt(message: BulkTransferFulfiledEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
+        const { payload } = message;
+
+        const clonedHeaders = fspiopOpaqueState;
+        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+
+        // TODO validate vars above
+
+        
+        try {
+            this._logger.info("_handleBulkTransferFulfiledEvt -> start");
+            
+            const requestedEndpointPayer = await this._validateParticipantAndGetEndpoint(destinationFspId);
+    
+            // Always validate the payload and headers received
+            message.validatePayload();
+
+            const urlBuilderPayer = new Request.URLBuilder(requestedEndpointPayer.value);
+            urlBuilderPayer.setEntity(Enums.EntityTypeEnum.BULK_TRANSFERS);
+            urlBuilderPayer.setLocation([payload.bulkTransferId]);
+
+            await Request.sendRequest({
+                url: urlBuilderPayer.build(),
+                headers: clonedHeaders,
+                source: requesterFspId,
+                destination: destinationFspId,
+                method: Enums.FspiopRequestMethodsEnum.PUT,
+                payload: Transformer.transformPayloadBulkTransferRequestPut(payload),
+            });
+
+            this._logger.info("_handleBulkTransferFulfiledEvt -> end");
+
+        } catch (error: unknown) {
+            this._logger.error(error, "_handleBulkTransferFulfiledEvt -> error");
+            throw Error("_handleBulkTransferFulfiledEvt -> error");
+        }
+
+        return;
+    }
+
+    private async _handleBulkTransferQueryResponseEvt(message: BulkTransferQueryResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
+        try {
+            const { payload } = message;
+
+            const clonedHeaders = fspiopOpaqueState;
+            
+            clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
+
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+            // TODO validate vars above
+
+            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
+
+            this._logger.info("_handleBulkTransferQueryResponseEvt -> start");
+
+            // Always validate the payload and headers received
+            message.validatePayload();
+
+            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
+            urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_TRANSFERS);
+            urlBuilder.setId(payload.bulkTransferId);
+
+            await Request.sendRequest({
+                url: urlBuilder.build(),
+                headers: clonedHeaders,
+                source: requesterFspId,
+                destination: destinationFspId,
+                method: Enums.FspiopRequestMethodsEnum.PUT,
+                payload: Transformer.transformPayloadBulkTransferRequestGet(payload),
+            });
+
+            this._logger.info("_handleBulkTransferQueryResponseEvt -> end");
+
+        } catch (error: unknown) {
+            this._logger.error("_handleBulkTransferQueryResponseEvt -> error");
+            throw Error("_handleBulkTransferQueryResponseEvt -> error");
         }
 
         return;

@@ -29,6 +29,7 @@
 
 "use strict";
 
+import {IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 type UnknownProperties = { [k: string]: string };
 
 export const getHeaders = (entity: string, remove?: string[], override?: UnknownProperties): UnknownProperties => {
@@ -36,7 +37,8 @@ export const getHeaders = (entity: string, remove?: string[], override?: Unknown
         "accept": `application/vnd.interoperability.${entity}+json;version=1.1`,
         "content-type": `application/vnd.interoperability.${entity}+json;version=1.1`,
         "date": "Mon, 10 Apr 2023 04:04:04 GMT",
-        "fspiop-source": "testingtoolkitdfsp",
+        "fspiop-source": "bluebank",
+        "fspiop-destination": "greenbank",
         "traceparent": "00-aabb8e170bb7474d09e73aebcdf0b293-0123456789abcdef0-00"
     };
 
@@ -58,7 +60,7 @@ export const getBody = (remove: string[], override: UnknownProperties): UnknownP
         "accept": "application/json",
         "content-type": "application/vnd.interoperability.parties+json;version=1.1",
         "date": "Tue Apr 04 2023 15:10:56 GMT+0100 (Western European Summer Time)",
-        "fspiop-source": "testingtoolkitdfsp",
+        "fspiop-source": "bluebank",
     };
 
     const result: UnknownProperties  = {
@@ -129,11 +131,31 @@ export const missingPropertyResponse = (field: string, type: string) => {
     return result;
 };
 
-export const unknownHeaderResponse = {
-    "errorInformation": {
-        "errorCode": "3001",
-        "errorDescription": "Unknown Accept header format"
+export const createMessage = (message: IMessage, entity: string, fspiopOpaqueState?: UnknownProperties): UnknownProperties => {
+    message.fspiopOpaqueState = {
+        "requesterFspId": "bluebank",
+        "destinationFspId": null,
+        "headers": {
+            "host": "localhost:4000",
+            "accept-encoding": "gzip, deflate",
+            "accept": `application/vnd.interoperability.${entity}+json;version=1.1`,
+            "content-type": `application/vnd.interoperability.${entity}+json;version=1.1`,
+            "date": "Mon, 10 Apr 2023 04:04:04 GMT",
+            "fspiop-source": "bluebank",
+            "fspiop-destination": "bluebank",
+            "traceparent": "00-aabb8e170bb7474d09e73aebcdf0b293-0123456789abcdef0-00",
+            "connection": "close"
+        }
+    };
+
+    if(fspiopOpaqueState) {
+        message.fspiopOpaqueState.headers = { 
+            ...message.fspiopOpaqueState.headers,
+            ...fspiopOpaqueState
+        }
     }
+    return message as unknown as UnknownProperties;
 };
+
 
 export const defaultEntryValidRequest = null;

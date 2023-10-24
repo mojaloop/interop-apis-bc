@@ -380,7 +380,8 @@ export enum EntityTypeEnum {
     PARTIES = "parties",
     QUOTES = "quotes",
     BULK_QUOTES = "bulkQuotes",
-    TRANSFERS = "transfers"
+    TRANSFERS = "transfers",
+    BULK_TRANSFERS = "bulkTransfers"
 }
 
 export enum AmountTypeEnum {

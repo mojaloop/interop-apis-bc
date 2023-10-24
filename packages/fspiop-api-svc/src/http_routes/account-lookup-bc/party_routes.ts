@@ -36,7 +36,7 @@
 
 import express from "express";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import { Constants, Transformer, Validate } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {
     PartyQueryReceivedEvt,
@@ -47,7 +47,6 @@ import {
     GetPartyQueryRejectedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseRoutes } from "../_base_router";
-import { PartiesPutTypeAndIdAndSubId } from "../../errors";
 import { FSPIOPErrorCodes } from "../../validation";
 
 export class PartyRoutes extends BaseRoutes {
@@ -84,14 +83,14 @@ export class PartyRoutes extends BaseRoutes {
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
             const currency = req.query["currency"] as string || null;
 
-            const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.parties, clonedHeaders);
-
-            if (!isValidHeaders || !type || !id || !requesterFspId) {
-                res.status(400).json({
+            if (!type || !id || !requesterFspId) {
+                const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
+
+                res.status(400).json(transformError);
                 return;
             }
 
@@ -149,14 +148,14 @@ export class PartyRoutes extends BaseRoutes {
             const destinationFspId = req.headers[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
             const currency = req.query["currency"] as string || null;
 
-            const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.parties, clonedHeaders);
-
-            if (!isValidHeaders || !type || !id || !requesterFspId) {
-                res.status(400).json({
+            if (!type || !id || !requesterFspId) {
+                const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
+
+                res.status(400).json(transformError);
                 return;
             }
 
@@ -217,14 +216,14 @@ export class PartyRoutes extends BaseRoutes {
             const lastName = req.body.party.personalInfo.complexName["lastName"] || null;
             const partyDoB = req.body.party.personalInfo["dateOfBirth"] || null;
 
-            const isValidHeaders = Validate.validateHeaders(PartiesPutTypeAndIdAndSubId, clonedHeaders);
-
-            if (!isValidHeaders || !type || !id || !requesterFspId || !ownerFspId) {
-                res.status(400).json({
+            if (!type || !id || !requesterFspId || !ownerFspId) {
+                const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
+
+                res.status(400).json(transformError);
                 return;
             }
 
@@ -295,14 +294,14 @@ export class PartyRoutes extends BaseRoutes {
             const lastName = req.body.party.personalInfo.complexName["lastName"] || null;
             const partyDoB = req.body.party.personalInfo["dateOfBirth"] || null;
 
-            const isValidHeaders = Validate.validateHeaders(Constants.RequiredHeaders.parties, clonedHeaders);
-
-            if (!isValidHeaders || !type || !id || !requesterFspId || !ownerFspId) {
-                res.status(400).json({
+            if (!type || !id || !requesterFspId || !ownerFspId) {
+                const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
+
+                res.status(400).json(transformError);
                 return;
             }
 
@@ -368,11 +367,14 @@ export class PartyRoutes extends BaseRoutes {
             const errorInformation = req.body["errorInformation"] || null;
 
             if (!type || !id || !requesterFspId || !errorInformation) {
-                res.status(400).json({
+                const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
+
+                res.status(400).json(transformError);
+                return;
             }
 
             const msgPayload: GetPartyQueryRejectedEvtPayload = {
@@ -433,11 +435,13 @@ export class PartyRoutes extends BaseRoutes {
             const errorInformation = req.body["errorInformation"] || null;
 
             if (!type || !id || !requesterFspId || !errorInformation) {
-                res.status(400).json({
+                const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
+
+                res.status(400).json(transformError);
                 return;
             }
 

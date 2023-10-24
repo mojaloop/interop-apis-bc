@@ -43,7 +43,10 @@ import {
 	QuoteResponseAcceptedEvtPayload,
 	TransferPreparedEvtPayload,
 	TransferFulfiledEvtPayload,
-	TransferQueryResponseEvtPayload
+	TransferQueryResponseEvtPayload,
+	BulkTransferPreparedEvtPayload,
+	BulkTransferFulfiledEvtPayload,
+	BulkTransferQueryResponseEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -73,6 +76,9 @@ export const removeEmpty = (obj: any) => {
 	return obj;
 };
 
+export interface PostParticipant {
+	fspId: string;
+}
 
 export interface PutParticipant {
 	fspId: string,
@@ -254,7 +260,8 @@ export interface PostQuote {
 			refundReason: string | null;
 		} | null;
 		balanceOfPayments: string | null;
-	}
+	},
+	expiration: string | null;
 }
 
 export interface PutQuote {
@@ -445,7 +452,8 @@ export const transformPayloadQuotingRequestPost = (payload: QuoteRequestAccepted
 		payer: payload.payer,
 		amountType: payload.amountType,
 		amount: payload.amount,
-		transactionType: payload.transactionType
+		transactionType: payload.transactionType,
+		expiration: payload.expiration,
 	};
 
 	return removeEmpty(info);
@@ -551,6 +559,107 @@ export interface GetTransfer {
 	} | null
 }
 
+export interface GetTransfer {
+	transferState: string,
+	fulfilment: string | null,
+	completedTimestamp: string | null,
+	extensionList: {
+		extension: {
+			key: string,
+			value: string,
+		}[],
+	} | null
+}
+
+export interface PostBulkTransfer {
+    bulkTransferId: string;
+    bulkQuoteId: string;
+    payeeFsp: string;
+    payerFsp: string;
+    expiration: string;
+    individualTransfers: {
+        transferId: string;
+        amount: string;
+        currencyCode: string;
+        ilpPacket: string;
+        condition: string;
+        extensionList: {
+            extension: {
+                key: string;
+                value: string;
+            }[];
+        } | null;
+    }[];
+    extensionList: {
+        extension: {
+            key: string;
+            value: string;
+        }[];
+    } | null;
+}
+
+export interface PutBulkTransfer {
+    completedTimestamp: number;
+    bulkTransferState: string;
+    individualTransferResults: {
+        transferId: string;
+        fulfilment: string | null;
+        errorInformation: {
+            errorCode: string;
+            errorDescription: string;
+            extensionList: {
+                extension: {
+                    key: string;
+                    value: string;
+                }[];
+            } | null;
+        };
+        extensionList: {
+            extension: {
+                key: string;
+                value: string;
+            }[];
+        } | null;
+    }[];
+    extensionList: {
+        extension: {
+            key: string;
+            value: string;
+        }[];
+    } | null;
+}
+
+export interface GetBulkTransfer {
+    completedTimestamp: number | null;
+	bulkTransferState: string;
+    individualTransferResults: {
+        transferId: string;
+        fulfilment: string | null;
+        errorInformation: {
+            errorCode: string;
+            errorDescription: string;
+            extensionList: {
+                extension: {
+                    key: string;
+                    value: string;
+                }[];
+            } | null;
+        };
+        extensionList: {
+            extension: {
+                key: string;
+                value: string;
+            }[];
+        } | null;
+    }[];
+    extensionList: {
+        extension: {
+            key: string;
+            value: string;
+        }[];
+    } | null;
+}
+
 export const transformPayloadTransferRequestPost = (payload: TransferPreparedEvtPayload): PostTransfer => {
 	const info: PostTransfer = {
 		transferId: payload.transferId,
@@ -584,6 +693,50 @@ export const transformPayloadTransferRequestGet = (payload: TransferQueryRespons
 		transferState: "COMMITTED",
 		fulfilment: payload.fulfilment,
 		completedTimestamp: payload.completedTimestamp ? new Date(payload.completedTimestamp).toJSON() : null,
+		extensionList: payload.extensionList
+	};
+
+	return removeEmpty(info);
+};
+
+export const transformPayloadBulkTransferRequestPost = (payload: BulkTransferPreparedEvtPayload): PostBulkTransfer => {
+	const info: PostBulkTransfer = {
+		bulkTransferId: payload.bulkTransferId,
+		bulkQuoteId: payload.bulkQuoteId,
+		payeeFsp: payload.payeeFsp,
+		payerFsp: payload.payerFsp,
+		expiration: new Date(payload.expiration).toISOString(),
+		individualTransfers: payload.individualTransfers.map((individualTransfer: any) => {
+			return {
+				...individualTransfer,
+				transferAmount: {
+					amount: individualTransfer.amount,
+					currency: individualTransfer.currencyCode
+				}
+			};
+		}),
+		extensionList: payload.extensionList
+	};
+
+	return removeEmpty(info);
+};
+
+export const transformPayloadBulkTransferRequestPut = (payload: BulkTransferFulfiledEvtPayload): PutBulkTransfer => {
+	const info: PutBulkTransfer = {
+		completedTimestamp: payload.completedTimestamp,
+		bulkTransferState: payload.bulkTransferState,
+		individualTransferResults: payload.individualTransferResults,
+		extensionList: payload.extensionList
+	};
+
+	return removeEmpty(info);
+};
+
+export const transformPayloadBulkTransferRequestGet = (payload: BulkTransferQueryResponseEvtPayload): GetBulkTransfer => {
+	const info: GetBulkTransfer = {
+		completedTimestamp: payload.completedTimestamp,
+		bulkTransferState: payload.bulkTransferState,
+		individualTransferResults: payload.individualTransferResults,
 		extensionList: payload.extensionList
 	};
 

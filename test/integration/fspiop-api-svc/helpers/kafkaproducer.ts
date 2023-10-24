@@ -31,81 +31,92 @@
 
  "use strict"
 
-import * as kafka from "kafka-node";
+ import { MLKafkaJsonConsumer, MLKafkaJsonConsumerOptions, MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+ import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
+ const packageJSON = require("../../../../package.json");
+ import {ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
 
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
+const BC_NAME = "interop-apis-bc";
+const APP_NAME = "fspiop-api-svc";
+const APP_VERSION = packageJSON.version;
+const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
+const LOGLEVEL:LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
 
-export const getCurrentKafkaOffset = (topic: string): Promise<kafka.Message> => {
-    const client = new kafka.KafkaClient({
-        kafkaHost: KAFKA_URL
-    });
 
-    const offset = new kafka.Offset(client);
+class KafkaConsumer {
+    private _consumer: any;
+    private _producer: any;
+    private _events:any[] = [];
+    private _topics:any[] = [];
 
-    return new Promise((resolve, reject) => offset.fetchLatestOffsets([topic], (error: any, data: any) => {
-        const offsetA = JSON.stringify(data[topic][0]) as unknown as number;
+    constructor(topics:string[]) {
+        this._topics = topics;
+        this._events = [];
+    }
 
-        let consumer = new kafka.Consumer(
-            client,
-            [
-                {
-                    topic: topic,
-                    partition: 0,
-                    offset: offsetA-1, // Offset value starts from 0
-                }
-            ], {
-                autoCommit: false,
-                fromOffset: true,
-            }
+    public async init() {
+        const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
+            kafkaBrokerList: KAFKA_URL,
+            producerClientId: `${BC_NAME}_${APP_NAME}`,
+            skipAcknowledgements: false
+        };
+    
+        const logger = new KafkaLogger(
+            BC_NAME,
+            APP_NAME,
+            APP_VERSION,
+            kafkaJsonProducerOptions,
+            KAFKA_LOGS_TOPIC,
+            LOGLEVEL
         );
-        consumer.on('message', async function (message) {
-            error? reject(error) : resolve(message);
+        await (logger as KafkaLogger).init();
+        const handlerConsumerOptions: MLKafkaJsonConsumerOptions = {
+            kafkaBrokerList: KAFKA_URL,
+            kafkaGroupId: `${BC_NAME}_${APP_NAME}_test`,
+        };
+        
 
-            consumer.close(false, () => {
-                client.close();
-            });
-        });
+        this._consumer = new MLKafkaJsonConsumer(handlerConsumerOptions, logger);
+        this._producer = new MLKafkaJsonProducer(kafkaJsonProducerOptions);
+        
+        this._consumer.setTopics(this._topics);
+        this._consumer.setCallbackFn(this.handler.bind(this));
 
+        await this._consumer.connect();
+        await this._consumer.startAndWaitForRebalance();
+        await this._producer.connect();
+
+    }
+
+    private async handler(message: any): Promise<void> {
+        console.log(`Got message in handler: ${JSON.stringify(message, null, 2)}`);
+        this._events.push(message);
         return;
-    }));
-};
-//
-// class KafkaProducer {
-//     private producer: kafka.Producer;
-//
-//     public async init() {
-//         this.producer = await this.create();
-//     }
-//
-//     public async destroy(): Promise<void> {
-//         this.producer.close()
-//         this.producer
-//
-//     }
-//
-//     public sendMessage(topic: string, message: any) {
-//         const payload = { topic, messages: Buffer.from(JSON.stringify(message)), attributes: 0, partition: 0, key: message.partyId };
-//         return new Promise((resolve, reject) => {
-//             this.producer.send([payload], function (err: any, data: kafka.Message) {
-//                 (err) ? reject(err) : resolve(data);
-//             });
-//         });
-//     }
-//
-//     private create(): Promise<kafka.Producer> {
-//         const client = new kafka.KafkaClient({
-//             kafkaHost: KAFKA_URL
-//         });
-//
-//         const producer = new kafka.Producer(client);
-//
-//         return new Promise((resolve, reject) => {
-//             producer.on("ready", () => {
-//                 resolve(producer)
-//             });
-//         });
-//     }
-//
-// }
+    }
 
-// export default KafkaProducer;
+    public async destroy(): Promise<void> {
+        await this._consumer.destroy(true)
+        await this._producer.destroy();
+        return;
+    }
+
+    public async clearEvents(): Promise<void> {
+        this._events = [];
+        return;
+    }
+
+    protected addEvent(message: any): void {
+        this._events.push(message);
+    }
+
+    public getEvents(): any {
+        return this._events;
+    }
+
+    public async sendMessage(message: any) {
+        await this._producer.send(message);
+    }
+}
+
+export default KafkaConsumer;

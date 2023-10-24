@@ -31,5 +31,6 @@
 
 "use strict";
 
+export * from "./memory_auth_requester";
 export * from "./mocked_data";
 

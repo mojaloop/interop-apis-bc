@@ -142,11 +142,12 @@ export class QuotingEventHandler extends BaseEventHandler {
             const clonedHeaders = { ...message.fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
             const requesterFspId = clonedHeaders["fspiop-source"] as string;
             const quoteId = message.payload.quoteId as string;
+            const bulkQuoteId = message.payload.bulkQuoteId as string;
 
             await this._sendErrorFeedbackToFsp({
                 message: message,
                 headers: message.fspiopOpaqueState.headers,
-                id: [quoteId],
+                id: quoteId ? [quoteId] : [bulkQuoteId],
                 errorResponse: {
                     errorCode: Enums.ServerErrors.GENERIC_SERVER_ERROR.code,
                     errorDescription: Enums.ServerErrors.GENERIC_SERVER_ERROR.description,
@@ -209,7 +210,6 @@ export class QuotingEventHandler extends BaseEventHandler {
                 break;
             }
             case QuoteBCQuoteNotFoundErrorEvent.name:
-            case GetPartyQueryRejectedEvt.name:
             {
                 errorResponse.errorCode = Enums.ClientErrors.QUOTE_ID_NOT_FOUND.code;
                 errorResponse.errorDescription = Enums.ClientErrors.QUOTE_ID_NOT_FOUND.name;
@@ -277,10 +277,6 @@ export class QuotingEventHandler extends BaseEventHandler {
             // TODO validate payload.payee.partyIdInfo.fspId actually exists
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(payload.payee.partyIdInfo.fspId as string);
 
-            if(!requestedEndpoint) {
-                throw Error(`fspId ${payload.payee.partyIdInfo.fspId} has no valid participant associated`);
-            }
-
             this._logger.info("_handleQuotingCreatedRequestReceivedEvt -> start");
 
             // Always validate the payload and headers received
@@ -317,10 +313,6 @@ export class QuotingEventHandler extends BaseEventHandler {
             // TODO validate vars above
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
-
-            if(!requestedEndpoint) {
-                throw Error(`fspId ${destinationFspId} has no valid participant associated`);
-            }
 
             this._logger.info("_handleQuotingResponseAcceptedEvt -> start");
 
@@ -366,16 +358,10 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
-            if(!requestedEndpoint) {
-                throw Error(`fspId ${destinationFspId} has no valid participant associated`);
-            }
-
             this._logger.info("_handleQuotingQueryResponseEvt -> start");
 
             // Always validate the payload and headers received
             // message.validatePayload();
-            // Validate.validateHeaders(QuotesPost, clonedHeaders);
-
             
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
@@ -410,10 +396,6 @@ export class QuotingEventHandler extends BaseEventHandler {
             // TODO validate vars above
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
-
-            if(!requestedEndpoint) {
-                throw Error(`fspId ${requesterFspId} has no valid participant associated`);
-            }
 
             this._logger.info("_handleBulkQuotingRequestReceivedEvt -> start");
 
@@ -454,10 +436,6 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
-            if(!requestedEndpoint) {
-                throw Error(`fspId ${destinationFspId} has no valid participant associated`);
-            }
-
             this._logger.info("_handleBulkQuoteAcceptedResponseEvt -> start");
 
             // Always validate the payload and headers received
@@ -494,15 +472,10 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
-            if(!requestedEndpoint) {
-                throw Error(`fspId ${requesterFspId} has no valid participant associated`);
-            }
-
             this._logger.info("_handleBulkQuoteQueryResponseEvt -> start");
 
             // Always validate the payload and headers received
             // message.validatePayload();
-            // Validate.validateHeaders(QuotesPost, clonedHeaders);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);

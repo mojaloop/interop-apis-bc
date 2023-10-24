@@ -98,7 +98,7 @@ export abstract class BaseEventHandler  {
 
     }
 
-    protected async _validateParticipantAndGetEndpoint(fspId: string):Promise<IParticipantEndpoint|null>{
+    protected async _validateParticipantAndGetEndpoint(fspId: string):Promise<IParticipantEndpoint>{
         const participant = await this._participantService.getParticipantInfo(fspId);
 
         if (!participant) {
@@ -264,8 +264,12 @@ export abstract class BaseEventHandler  {
                 urlBuilder.setEntity(Enums.EntityTypeEnum.TRANSFERS);
                 break;
             }
+            case header.includes("bulkTransfers"): {
+                urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_TRANSFERS);
+                break;
+            }
             default:
-                throw Error("Invalid content type, must be one of participants, parties, quotes, bulkQuotes or transfers");
+                throw Error("Invalid content type, must be one of participants, parties, quotes, bulkQuotes transfers or bulkTransfers");
         }
 
         return urlBuilder.build();

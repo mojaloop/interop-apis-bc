@@ -41,21 +41,22 @@ import { IParticipantService } from "../../interfaces/infrastructure";
 
 export class ParticipantAdapter implements IParticipantService {
 	private readonly _logger: ILogger;
-	// private readonly _localCache: ILocalCache;
 	private readonly _clientBaseUrl: string;
 	private readonly _externalParticipantClient :ParticipantsHttpClient;
 	private readonly _authRequester :IAuthenticatedHttpRequester;
+	private readonly _timeoutMs :number;
 
 	constructor(
 		logger: ILogger,
 		clientBaseUrl: string,
-		authRequester: IAuthenticatedHttpRequester
+		authRequester: IAuthenticatedHttpRequester,
+		cacheTimeoutMs: number
 	) {
 		this._logger = logger;
 		this._clientBaseUrl = clientBaseUrl;
 		this._authRequester = authRequester;
-
-		this._externalParticipantClient = new ParticipantsHttpClient(this._logger, this._clientBaseUrl, this._authRequester);
+		this._timeoutMs = cacheTimeoutMs;
+		this._externalParticipantClient = new ParticipantsHttpClient(this._logger, this._clientBaseUrl, this._authRequester, this._timeoutMs);
 	}
 
 	async getParticipantInfo(fspId: string): Promise<IParticipant| null> {

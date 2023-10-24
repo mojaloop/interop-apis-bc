@@ -86,12 +86,14 @@ export class TransfersRoutes extends BaseRoutes {
             const expiration = req.body["expiration"] || null;
             const extensionList = req.body["extensionList"] || null;
 
-            if (!transferId || !payeeFsp || !payerFsp || !amount || !ilpPacket || !condition || !expiration) {
-                res.status(400).json({
+            if (!transferId || !payeeFsp || !payerFsp || !amount || !ilpPacket || !condition || !expiration || !requesterFspId) {
+                const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
+
+                res.status(400).json(transformError);
                 return;
             }
 
@@ -159,12 +161,14 @@ export class TransfersRoutes extends BaseRoutes {
             const extensionList = req.body["extensionList"] || null;
 
 
-            if (!transferId || !transferState) {
-                res.status(400).json({
+            if (!transferId || !transferState || !requesterFspId) {
+                const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
+
+                res.status(400).json(transformError);
                 return;
             }
 
@@ -195,7 +199,7 @@ export class TransfersRoutes extends BaseRoutes {
 
             this.logger.debug("transferFulfilRequested sent message");
 
-            res.status(202).json(null);
+            res.status(200).json(null);
 
             this.logger.debug("transferFulfilRequested responded");
         }
@@ -224,12 +228,14 @@ export class TransfersRoutes extends BaseRoutes {
             const transferId = req.params["id"] as string || null;
             const errorInformation = req.body["errorInformation"] || null;
 
-            if (!transferId || !errorInformation) {
-                res.status(400).json({
+            if (!transferId || !errorInformation || !requesterFspId) {
+                const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
+
+                res.status(400).json(transformError);
                 return;
             }
 
@@ -283,11 +289,13 @@ export class TransfersRoutes extends BaseRoutes {
 
 
             if (!transferId || !requesterFspId) {
-                res.status(400).json({
+                const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
+
+                res.status(400).json(transformError);
                 return;
             }
 

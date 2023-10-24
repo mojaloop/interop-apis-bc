@@ -34,18 +34,27 @@
 
 
 import { FSPIOP_HEADERS_ACCEPT, FSPIOP_HEADERS_CONTENT_LENGTH, FSPIOP_HEADERS_CONTENT_TYPE, FSPIOP_HEADERS_DATE, FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION, FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_ENCRYPTION, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_SWITCH, FSPIOP_HEADERS_URI, FSPIOP_HEADERS_X_FORWARDED_FOR } from "../../src/constants";
-import { EntityTypeEnum, ErrorCode, FspiopRequestMethodsEnum } from "../../src/enums";
-import { validateHeaders } from "../../src/validate";
+import { Enums, Request } from "../../src";
 import axios from "axios";
 import HeaderBuilder from "../../src/headers/header_builder";
-import { ParticipantsPutTypeAndId } from "../../../fspiop-api-svc/src/errors";
-import { removeEmpty, transformPayloadError, transformPayloadParticipantPut, transformPayloadPartyAssociationPut, transformPayloadPartyDisassociationPut, transformPayloadPartyInfoReceivedPut, transformPayloadPartyInfoRequestedPut } from "../../src/transformer";
-import { ParticipantAssociationCreatedEvtPayload, ParticipantAssociationRemovedEvtPayload, ParticipantQueryResponseEvtPayload, PartyInfoRequestedEvtPayload, PartyQueryResponseEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { sendRequest } from "../../src/request"
+import { removeEmpty, transformPayloadError, transformPayloadParticipantPut, transformPayloadPartyAssociationPut, transformPayloadPartyDisassociationPut, transformPayloadPartyInfoReceivedPut, transformPayloadPartyInfoRequestedPut, transformPayloadQuotingRequestPost } from "../../src/transformer";
+import { 
+    ParticipantAssociationCreatedEvtPayload, 
+    ParticipantAssociationRemovedEvtPayload,
+    ParticipantQueryResponseEvtPayload,
+    PartyInfoRequestedEvtPayload,
+    PartyQueryResponseEvtPayload
+} from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { URLBuilder } from "../../src/request";
 
 jest.mock("axios");
 
 describe("FSPIOP Utils Lib", () => {
+    let urlBuilder: URLBuilder;
+
+    beforeEach(() => {
+      urlBuilder = new URLBuilder("https://example.com");
+    });
 
     afterEach(async () => {
         jest.resetAllMocks();
@@ -61,7 +70,7 @@ describe("FSPIOP Utils Lib", () => {
         (axios as unknown as jest.Mock).mockResolvedValueOnce(response)
 
         // Act
-        await sendRequest({
+        await Request.sendRequest({
             url: "testurl",
             headers: {
                 [FSPIOP_HEADERS_CONTENT_TYPE]: "1",
@@ -76,7 +85,7 @@ describe("FSPIOP Utils Lib", () => {
             },
             source: "1",
             destination: "2",
-            method: FspiopRequestMethodsEnum.PUT,
+            method: Enums.FspiopRequestMethodsEnum.PUT,
             payload: {
                 fspId: "1",
             },
@@ -119,7 +128,7 @@ describe("FSPIOP Utils Lib", () => {
             "date": "Mon, 01 Jan 2001 00:00:00 GMT",
             "fspiop-destination": "test-fspiop-destination",
             "fspiop-encryption": "test-fspiop-encryption",
-            "fspiop-http-method": FspiopRequestMethodsEnum.PUT,
+            "fspiop-http-method": Enums.FspiopRequestMethodsEnum.PUT,
             "fspiop-signature": "test-fspiop-signature",
             "fspiop-uri": "test-fspiop-uri",
             "x-forwarded-for": "test-fspiop-x-forwarded-for"
@@ -159,7 +168,7 @@ describe("FSPIOP Utils Lib", () => {
             "date": "Mon, 01 Jan 2001 00:00:00 GMT",
             "fspiop-destination": "test-fspiop-destination",
             "fspiop-encryption": "test-fspiop-encryption",
-            "fspiop-http-method": FspiopRequestMethodsEnum.PUT,
+            "fspiop-http-method": Enums.FspiopRequestMethodsEnum.PUT,
             "fspiop-signature": "test-fspiop-signature",
             "fspiop-uri": "test-fspiop-uri",
             "x-forwarded-for": "test-fspiop-x-forwarded-for"
@@ -224,48 +233,6 @@ describe("FSPIOP Utils Lib", () => {
         expect(result).toMatchObject(expect.objectContaining({
             "date": "invalid-date",
         }));
-    });
-    //#endregion
-
-    //#region Validate
-    test("it should be valid with all the required keys for type", async()=>{
-        // Arrange
-        const headers = {
-            "accept":"application/vnd.interoperability.parties+json;version=1.0",
-            "content-type":"application/vnd.interoperability.parties+json;version=1.0",
-            "fspiop-source":"test-fspiop-source",
-            "content-length": 0,
-            "date": "Mon, 01 Jan 2001 00:00:00 GMT",
-            "fspiop-destination": "test-fspiop-destination",
-            "fspiop-encryption": "test-fspiop-encryption",
-            "fspiop-http-method": FspiopRequestMethodsEnum.PUT,
-            "fspiop-signature": "test-fspiop-signature",
-            "fspiop-uri": "test-fspiop-uri",
-            "x-forwarded-for": "test-fspiop-x-forwarded-for"
-        };
-
-        // Act
-        const result = validateHeaders(ParticipantsPutTypeAndId, headers);
-
-        // Assert
-        expect(result).toBeTruthy();
-    });
-
-    test("it should throw when missing one or more keys for a type", async()=>{
-        // Arrange
-        const headers = {
-            "accept":"application/vnd.interoperability.parties+json;version=1.0",
-            "content-type":"application/vnd.interoperability.parties+json;version=1.0",
-            "fspiop-source":"test-fspiop-source",
-
-        };
-
-        // Act && Assert
-        try {
-            validateHeaders(ParticipantsPutTypeAndId, headers)
-        } catch (e: any) {
-            expect(e.message).toBe("Headers are missing the following keys: date");
-        }
     });
     //#endregion
 
@@ -435,7 +402,7 @@ describe("FSPIOP Utils Lib", () => {
     test("should be able to get correct result from transformPayloadError", async()=>{
         // Arrange
         const payload = {
-            errorCode: ErrorCode.BAD_REQUEST,
+            errorCode: Enums.ErrorCode.BAD_REQUEST,
             errorDescription: "test-error-description"
         };
 
@@ -450,6 +417,90 @@ describe("FSPIOP Utils Lib", () => {
             },
         });
     });
+    // #region
+
+    // #region URLBuilder
+    it("should append query parameters", () => {
+        // Arrange & Act
+        urlBuilder.appendQueryParam("param1", "value1");
+        urlBuilder.appendQueryParam("param2", "value2");
+
+        // Assert
+        expect(urlBuilder.getParams().toString()).toEqual("param1=value1&param2=value2");
+      });
+    
+      it("should clear query parameters", () => {
+        // Arrange & Act
+        urlBuilder.appendQueryParam("param1", "value1");
+        urlBuilder.clearQueryParams();
+
+        // Assert
+        expect(urlBuilder.getParams().toString()).toEqual("");
+      });
+    
+      it("should delete a query parameter", () => {
+        // Arrange & Act
+        urlBuilder.appendQueryParam("param1", "value1");
+        urlBuilder.deleteQueryParam("param1");
+
+        // Assert
+        expect(urlBuilder.getParams().toString()).toEqual("");
+      });
+    
+      it("should set the path", () => {
+        // Arrange & Act
+        urlBuilder.setPath("/newpath");
+
+        // Assert
+        expect(urlBuilder.getPath()).toEqual("/newpath");
+      });
+
+      it("should build url without any adicional parameters", () => {
+        // Arrange & Act
+        const result = urlBuilder.build();
+
+        // Assert
+        expect(result).toEqual("https://example.com");
+      });
+
+      it("should build url with specified parameters parameters", () => {
+        // Arrange & Act
+        const result = urlBuilder.build();
+
+        // Assert
+        expect(result).toEqual("https://example.com");
+      });
+
+      it("should get different set", () => {
+        // Arrange & Act
+        urlBuilder.setEntity("randomentity");
+        urlBuilder.setLocation(["newlocation1", "newlocation2"]);
+        urlBuilder.setId("randomid");
+        urlBuilder.setQueryParam("randomparam", "123");
+        urlBuilder.setQueryString("randomquerystring");
+        urlBuilder.hasError();
+
+        // Assert
+        expect(urlBuilder.getBase().toString()).toEqual("https://example.com/");
+        expect(urlBuilder.getPath()).toEqual("/");
+        expect(urlBuilder.getHostname()).toEqual("example.com");
+        expect(urlBuilder.getParams().toString()).toEqual("randomquerystring=");
+        expect(urlBuilder.getQueryString().toString()).toEqual("randomquerystring=");
+        expect(urlBuilder.getQueryParam("randomquerystring=")).toEqual(undefined);
+      });
+      
+      it("should build url with specified parameters", () => {
+        // Arrange & Act
+        urlBuilder.setEntity("randomentity");
+        urlBuilder.setLocation(["newlocation1", "newlocation2"]);
+        urlBuilder.setId("randomid");
+        urlBuilder.hasError();
+
+        const result = urlBuilder.build();
+
+        // Assert
+        expect(result).toEqual("https://example.com/randomentity/newlocation1/newlocation2/randomid/error");
+      });
     //#endregion
 });
 

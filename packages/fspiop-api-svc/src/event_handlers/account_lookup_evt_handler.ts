@@ -54,10 +54,9 @@ import {
     PartyQueryResponseEvt,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseEventHandler, HandlerNames } from "./base_event_handler";
-import { Constants, Enums, Request, Transformer, Validate } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Enums, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import { ParticipantsPutId, ParticipantsPutTypeAndId, PartiesPutTypeAndId, PartiesPutTypeAndIdAndSubId } from "../errors";
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import { IParticipantService } from "../interfaces/infrastructure";
@@ -198,9 +197,9 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 break;
             }
             case AccountLookupBCInvalidDestinationParticipantErrorEvent.name: {
-                    errorResponse.errorCode = Enums.ClientErrors.GENERIC_CLIENT_ERROR.code;
-                    errorResponse.errorDescription = Enums.ClientErrors.GENERIC_CLIENT_ERROR.name;
-                    break;
+                errorResponse.errorCode = Enums.ClientErrors.GENERIC_CLIENT_ERROR.code;
+                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_CLIENT_ERROR.name;
+                break;
             }
             case AccountLookupBCInvalidRequesterParticipantErrorEvent.name: {
                 errorResponse.errorCode = Enums.ClientErrors.DESTINATION_FSP_ERROR.code;
@@ -252,10 +251,6 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
-            if(!requestedEndpoint) {
-                throw Error(`fspId ${requesterFspId} has no valid participant associated`);
-            }
-
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
             urlBuilder.setLocation([partyType, partyId, partySubType]);
@@ -295,15 +290,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
-            if(!requestedEndpoint) {
-                throw Error(`fspId ${requesterFspId} has no valid participant associated`);
-            }
-
-
             // Always validate the payload and headers received
             message.validatePayload();
-            Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
-
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
@@ -350,14 +338,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             const destinationEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
-            if(!destinationEndpoint) {
-                throw Error(`fspId ${destinationFspId} has no valid participant associated`);
-            }
-
-
             // Always validate the payload and headers received
             message.validatePayload();
-            Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
 
             if (!clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === "") {
                 clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = destinationFspId;
@@ -409,8 +391,6 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             // Always validate the payload and headers received
             message.validatePayload();
-            Validate.validateHeaders(partySubType ? PartiesPutTypeAndIdAndSubId : PartiesPutTypeAndId, clonedHeaders);
-
 
             if(fspiopOpaqueState) {
                 if (!clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === "") {
@@ -462,14 +442,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
-            if(!requestedEndpoint) {
-                throw Error(`fspId ${destinationFspId} has no valid participant associated`);
-            }
-
             // Always validate the payload and headers received
             message.validatePayload();
-            Validate.validateHeaders(partySubType ? ParticipantsPutTypeAndId : ParticipantsPutId, clonedHeaders);
-
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
