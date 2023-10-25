@@ -41,6 +41,8 @@ RUN npm run build
 
 FROM node:18.13-alpine
 WORKDIR /app
+RUN mkdir /app/data
+
 RUN apk add librdkafka
 
 COPY --from=builder /app .

@@ -29,11 +29,11 @@
     "lint:fix": "eslint ./src --fix"
   },
   "dependencies": {
-    "@mojaloop/security-bc-client-lib": "^0.1.31"
+    "@mojaloop/security-bc-public-types-lib": "~0.3.3"
   },
   "devDependencies": {
     "eslint": "^8.43.0",
-    "npm-check-updates": "^16.10.16",
+    "npm-check-updates": "^16.10.19",
     "typescript": "^4.7.4"
   }
 }

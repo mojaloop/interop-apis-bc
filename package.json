@@ -42,7 +42,7 @@
     "dep:update": "(ncu -e 2 -u || true) && npm -ws run dep:update"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.3",
+    "@types/jest": "^29.5.6",
     "@types/node": "^20.3.3",
     "@typescript-eslint/eslint-plugin": "^5.60.1",
     "@typescript-eslint/parser": "^5.60.1",
@@ -50,8 +50,9 @@
     "jest": "^29.5.0",
     "jest-openapi": "^0.14.2",
     "mongodb": "^5.3.0",
-    "npm-check-updates": "^16.10.17",
+    "npm-check-updates": "^16.10.19",
     "nyc": "^15.1.0",
+    "tslib": "~2.6.2",
     "supertest": "^6.3.3",
     "ts-jest": "^29.1.1",
     "typescript": "^5.1.6"
