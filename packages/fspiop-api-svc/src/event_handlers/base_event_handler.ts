@@ -244,27 +244,27 @@ export abstract class BaseEventHandler  {
         urlBuilder.hasError(true);
 
         switch (true) {
-            case header.includes("participants"): {
+            case header && header.includes("participants"): {
                 urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
                 break;
             }
-            case header.includes("parties"): {
+            case header && header.includes("parties"): {
                 urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
                 break;
             }
-            case header.includes("quotes"): {
+            case header && header.includes("quotes"): {
                 urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
                 break;
             }
-            case header.includes("bulkQuotes"): {
+            case header && header.includes("bulkQuotes"): {
                 urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);
                 break;
             }
-            case header.includes("transfers"): {
+            case header && header.includes("transfers"): {
                 urlBuilder.setEntity(Enums.EntityTypeEnum.TRANSFERS);
                 break;
             }
-            case header.includes("bulkTransfers"): {
+            case header && header.includes("bulkTransfers"): {
                 urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_TRANSFERS);
                 break;
             }
