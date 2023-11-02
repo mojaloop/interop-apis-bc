@@ -37,7 +37,7 @@
 // Cherry-picked from @mojaloop/central-services-shared
 
 
-export const FSPIOP_HEADERS_SWITCH = "bluebank";
+export const FSPIOP_HEADERS_SWITCH = "switch";
 export const FSPIOP_HEADERS_SWITCH_REGEX = /^switch$/i;
 
 export const FSPIOP_HEADERS_SOURCE = "fspiop-source";
