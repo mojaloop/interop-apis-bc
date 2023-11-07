@@ -86,6 +86,10 @@ export class TransfersRoutes extends BaseRoutes {
             const expiration = req.body["expiration"] || null;
             const extensionList = req.body["extensionList"] || null;
 
+            //TODO: validate ilpPacket
+
+            const decodedIlpPacket:any = this.decodeIlpPacket(ilpPacket);
+            
             if (!transferId || !payeeFsp || !payerFsp || !amount || !ilpPacket || !condition || !expiration || !requesterFspId) {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
@@ -106,7 +110,10 @@ export class TransfersRoutes extends BaseRoutes {
                 ilpPacket: ilpPacket,
                 condition: condition,
                 expiration: expiration,
-                extensionList: extensionList
+                extensionList: extensionList,
+                payerIdType: decodedIlpPacket.payer.partyIdInfo.partyIdType, 
+                payeeIdType: decodedIlpPacket.payee.partyIdInfo.partyIdType,
+                transferType: decodedIlpPacket.transactionType.scenario
             };
 
             const msg = new TransferPrepareRequestedEvt(msgPayload);

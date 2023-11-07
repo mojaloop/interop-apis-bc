@@ -136,6 +136,8 @@ export class QuoteBulkRoutes extends BaseRoutes {
             const individualQuotes = req.body["individualQuotes"] || null;
             const extensionList = req.body["extensionList"] || null;
 
+            //TODO: validate ilpPacket
+
             if (!requesterFspId || !bulkQuoteId || !payer || !individualQuotes) {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,

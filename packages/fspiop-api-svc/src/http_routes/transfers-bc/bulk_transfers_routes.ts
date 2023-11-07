@@ -143,6 +143,8 @@ export class TransfersBulkRoutes extends BaseRoutes {
             const individualTransfers = req.body["individualTransfers"] || null;
             const extensionList = req.body["extensionList"] || null;
 
+            //TODO: validate ilpPacket
+
             if (!requesterFspId || !bulkTransferId || !bulkQuoteId || !payerFsp || !payeeFsp || !individualTransfers) {
                 res.status(400).json({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
@@ -152,13 +154,22 @@ export class TransfersBulkRoutes extends BaseRoutes {
                 return;
             }
 
+
             const msgPayload: BulkTransferPrepareRequestedEvtPayload = {
                 bulkTransferId: bulkTransferId,
                 bulkQuoteId: bulkQuoteId,
                 payerFsp: payerFsp,
                 payeeFsp: payeeFsp,
                 expiration: expiration,
-                individualTransfers: individualTransfers,
+                individualTransfers: individualTransfers.map(((individualTransfer:any) => {
+                    const decodedIlpPacket:any = this.decodeIlpPacket(individualTransfer.ilpPacket);
+
+                    individualTransfer.payerIdType = decodedIlpPacket.payer.partyIdInfo.partyIdType;
+                    individualTransfer.payeeIdType = decodedIlpPacket.payee.partyIdInfo.partyIdType;
+                    individualTransfer. transferType = decodedIlpPacket.transactionType.scenario;
+
+                    return individualTransfer;
+                })),
                 extensionList: extensionList
             };
 

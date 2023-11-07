@@ -32,6 +32,7 @@ optionally within square brackets <email>.
 import express from "express";
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import { deserializeIlpPacket } from 'ilp-packet';
 
 export abstract class BaseRoutes {
     private _logger: ILogger;
@@ -66,5 +67,20 @@ export abstract class BaseRoutes {
 
     async destroy(): Promise<void>{
         await this._kafkaProducer.destroy();
+    }
+
+    async decodeIlpPacket (base64IlpPacket:string): Promise<object> {
+        let decodedIlpPacketDataJsonString = null;
+        try {
+            const ilpPacketBuffer:any = Buffer.from(base64IlpPacket, "base64");
+            const decodedIlpPacket:any = deserializeIlpPacket(ilpPacketBuffer);
+            decodedIlpPacketDataJsonString = await JSON.parse(
+                Buffer.from(decodedIlpPacket.data.data.toString("utf8"), "base64").toString("utf8")
+            );
+        } catch (error: unknown) {
+            console.error("Unable to decode ILP Packet", (error as Error).message);
+        }
+
+        return decodedIlpPacketDataJsonString;
     }
 }

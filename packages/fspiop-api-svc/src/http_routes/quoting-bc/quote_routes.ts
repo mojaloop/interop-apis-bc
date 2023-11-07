@@ -167,7 +167,8 @@ export class QuoteRoutes extends BaseRoutes {
             const geoCode = req.body["geoCode"] || null;
             const extensionList = req.body["extensionList"] || null;
 
-
+            //TODO: validate ilpPacket
+            
             if (!requesterFspId || !quoteId || !transferAmount || !expiration || !ilpPacket || !condition) {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
