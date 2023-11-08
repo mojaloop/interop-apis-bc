@@ -161,8 +161,8 @@ export class TransfersBulkRoutes extends BaseRoutes {
                 payerFsp: payerFsp,
                 payeeFsp: payeeFsp,
                 expiration: expiration,
-                individualTransfers: individualTransfers.map(((individualTransfer:any) => {
-                    const decodedIlpPacket:any = this.decodeIlpPacket(individualTransfer.ilpPacket);
+                individualTransfers: individualTransfers.map((async (individualTransfer:any) => {
+                    const decodedIlpPacket:any = await this.decodeIlpPacket(individualTransfer.ilpPacket);
 
                     individualTransfer.payerIdType = decodedIlpPacket.payer.partyIdInfo.partyIdType;
                     individualTransfer.payeeIdType = decodedIlpPacket.payee.partyIdInfo.partyIdType;

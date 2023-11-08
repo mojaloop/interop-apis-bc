@@ -88,7 +88,7 @@ export class TransfersRoutes extends BaseRoutes {
 
             //TODO: validate ilpPacket
 
-            const decodedIlpPacket:any = this.decodeIlpPacket(ilpPacket);
+            const decodedIlpPacket:any = await this.decodeIlpPacket(ilpPacket);
             
             if (!transferId || !payeeFsp || !payerFsp || !amount || !ilpPacket || !condition || !expiration || !requesterFspId) {
                 const transformError = Transformer.transformPayloadError({
