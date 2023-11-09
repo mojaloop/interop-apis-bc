@@ -103,7 +103,7 @@ const TRANSFERS_URL_RESOURCE_NAME = "transfers";
 const BULK_TRANSFERS_URL_RESOURCE_NAME = "bulkTransfers";
 
 const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "interop-api-bc-fspiop-api-svc";
-const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_ID"] || "superServiceSecret";
+const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
 
 
 const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
@@ -319,7 +319,7 @@ export class Service {
                     next();
                     return;
                 }
-                
+
                 const errorResponseBuilder = (errorCode: string, errorDescription: string, additionalProperties = {}) => {
                     return {
                         errorInformation: {
