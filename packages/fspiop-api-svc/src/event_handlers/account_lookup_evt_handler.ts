@@ -46,6 +46,10 @@ import {
     AccountLookupBCUnableToAssociateParticipantErrorEvent,
     AccountLookupBCUnableToDisassociateParticipantErrorEvent,
     AccountLookupBCUnableToGetOracleAdapterErrorEvent,
+    AccountLookupBCRequiredRequesterParticipantIsNotApprovedErrorEvent,
+    AccountLookupBCRequiredRequesterParticipantIsNotActiveErrorEvent,
+    AccountLookupBCRequiredDestinationParticipantIsNotApprovedErrorEvent,
+    AccountLookupBCRequiredDestinationParticipantIsNotActiveErrorEvent,
     GetPartyQueryRejectedResponseEvt,
     ParticipantAssociationCreatedEvt,
     ParticipantAssociationRemovedEvt,
@@ -110,6 +114,10 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 case AccountLookupBCInvalidDestinationParticipantErrorEvent.name:
                 case AccountLookupBCRequesterParticipantNotFoundErrorEvent.name:
                 case AccountLookupBCInvalidRequesterParticipantErrorEvent.name:
+                case AccountLookupBCRequiredRequesterParticipantIsNotApprovedErrorEvent.name:
+                case AccountLookupBCRequiredRequesterParticipantIsNotActiveErrorEvent.name:
+                case AccountLookupBCRequiredDestinationParticipantIsNotApprovedErrorEvent.name:
+                case AccountLookupBCRequiredDestinationParticipantIsNotActiveErrorEvent.name:
                     await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState.headers);
                     break;
                 default:
@@ -224,6 +232,20 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             case AccountLookUpUnknownErrorEvent.name: {
                 errorResponse.errorCode = Enums.ServerErrors.INTERNAL_SERVER_ERROR.code;
                 errorResponse.errorDescription = Enums.ServerErrors.INTERNAL_SERVER_ERROR.name;
+                break;
+            }
+            case AccountLookupBCRequiredRequesterParticipantIsNotApprovedErrorEvent.name:
+            case AccountLookupBCRequiredRequesterParticipantIsNotActiveErrorEvent.name:
+            {
+                errorResponse.errorCode = Enums.PayerErrors.GENERIC_PAYER_ERROR.code;
+                errorResponse.errorDescription = Enums.PayerErrors.GENERIC_PAYER_ERROR.name;
+                break;
+            }
+            case AccountLookupBCRequiredDestinationParticipantIsNotApprovedErrorEvent.name:
+            case AccountLookupBCRequiredDestinationParticipantIsNotActiveErrorEvent.name:
+            {
+                errorResponse.errorCode = Enums.PayeeErrors.GENERIC_PAYEE_ERROR.code;
+                errorResponse.errorDescription = Enums.PayeeErrors.GENERIC_PAYEE_ERROR.name;
                 break;
             }
             default: {

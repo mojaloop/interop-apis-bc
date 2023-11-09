@@ -52,6 +52,10 @@ import {
     QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent,
     QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent,
     QuoteBCRequesterParticipantNotFoundErrorEvent,
+    QuoteBCRequiredRequesterParticipantIsNotApprovedErrorEvent,
+    QuoteBCRequiredRequesterParticipantIsNotActiveErrorEvent,
+    QuoteBCRequiredDestinationParticipantIsNotApprovedErrorEvent,
+    QuoteBCRequiredDestinationParticipantIsNotActiveErrorEvent,
     QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent,
     QuoteBCUnableToAddQuoteToDatabaseErrorEvent,
     QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent,
@@ -129,6 +133,10 @@ export class QuotingEventHandler extends BaseEventHandler {
                 case QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent.name:
                 case QuoteBCInvalidBulkQuoteLengthErrorEvent.name:
                 case QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent.name:
+                case QuoteBCRequiredRequesterParticipantIsNotApprovedErrorEvent.name:
+                case QuoteBCRequiredRequesterParticipantIsNotActiveErrorEvent.name:
+                case QuoteBCRequiredDestinationParticipantIsNotApprovedErrorEvent.name:
+                case QuoteBCRequiredDestinationParticipantIsNotActiveErrorEvent.name:
                     await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState.headers);
                     break;
                 default:
@@ -249,6 +257,20 @@ export class QuotingEventHandler extends BaseEventHandler {
             case QuoteBCBulkQuoteExpiredErrorEvent.name: {
                 errorResponse.errorCode = Enums.ClientErrors.QUOTE_EXPIRED.code;
                 errorResponse.errorDescription = Enums.ClientErrors.QUOTE_EXPIRED.name;
+                break;
+            }
+            case QuoteBCRequiredRequesterParticipantIsNotApprovedErrorEvent.name:
+            case QuoteBCRequiredRequesterParticipantIsNotActiveErrorEvent.name:
+            {
+                errorResponse.errorCode = Enums.PayerErrors.GENERIC_PAYER_ERROR.code;
+                errorResponse.errorDescription = Enums.PayerErrors.GENERIC_PAYER_ERROR.name;
+                break;
+            }
+            case QuoteBCRequiredDestinationParticipantIsNotApprovedErrorEvent.name:
+            case QuoteBCRequiredDestinationParticipantIsNotActiveErrorEvent.name:
+            {
+                errorResponse.errorCode = Enums.PayeeErrors.GENERIC_PAYEE_ERROR.code;
+                errorResponse.errorDescription = Enums.PayeeErrors.GENERIC_PAYEE_ERROR.name;
                 break;
             }
             case QuoteBCUnknownErrorEvent.name: {
