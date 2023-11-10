@@ -56,6 +56,8 @@ import {
     ParticipantQueryResponseEvt,
     PartyInfoRequestedEvt,
     PartyQueryResponseEvt,
+    AccountLookupBCRequiredRequesterParticipantIdMismatchErrorEvent,
+    AccountLookupBCRequiredDestinationParticipantIdMismatchErrorEvent,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseEventHandler, HandlerNames } from "./base_event_handler";
 import { Constants, Enums, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
@@ -114,8 +116,10 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 case AccountLookupBCInvalidDestinationParticipantErrorEvent.name:
                 case AccountLookupBCRequesterParticipantNotFoundErrorEvent.name:
                 case AccountLookupBCInvalidRequesterParticipantErrorEvent.name:
+                case AccountLookupBCRequiredRequesterParticipantIdMismatchErrorEvent.name:
                 case AccountLookupBCRequiredRequesterParticipantIsNotApprovedErrorEvent.name:
                 case AccountLookupBCRequiredRequesterParticipantIsNotActiveErrorEvent.name:
+                case AccountLookupBCRequiredDestinationParticipantIdMismatchErrorEvent.name:
                 case AccountLookupBCRequiredDestinationParticipantIsNotApprovedErrorEvent.name:
                 case AccountLookupBCRequiredDestinationParticipantIsNotActiveErrorEvent.name:
                     await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState.headers);
@@ -234,6 +238,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 errorResponse.errorDescription = Enums.ServerErrors.INTERNAL_SERVER_ERROR.name;
                 break;
             }
+            case AccountLookupBCRequiredRequesterParticipantIdMismatchErrorEvent.name:
             case AccountLookupBCRequiredRequesterParticipantIsNotApprovedErrorEvent.name:
             case AccountLookupBCRequiredRequesterParticipantIsNotActiveErrorEvent.name:
             {
@@ -241,6 +246,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 errorResponse.errorDescription = Enums.PayerErrors.GENERIC_PAYER_ERROR.name;
                 break;
             }
+            case AccountLookupBCRequiredDestinationParticipantIdMismatchErrorEvent.name:
             case AccountLookupBCRequiredDestinationParticipantIsNotApprovedErrorEvent.name:
             case AccountLookupBCRequiredDestinationParticipantIsNotActiveErrorEvent.name:
             {

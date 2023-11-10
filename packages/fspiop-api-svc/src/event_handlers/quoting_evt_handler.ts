@@ -63,7 +63,9 @@ import {
     QuoteBCUnknownErrorEvent,
     QuoteQueryResponseEvt,
     QuoteRequestAcceptedEvt,
-    QuoteResponseAccepted
+    QuoteResponseAccepted,
+    QuoteBCRequiredRequesterParticipantIdMismatchErrorEvent,
+    QuoteBCRequiredDestinationParticipantIdMismatchErrorEvent
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Enums, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
@@ -133,8 +135,10 @@ export class QuotingEventHandler extends BaseEventHandler {
                 case QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent.name:
                 case QuoteBCInvalidBulkQuoteLengthErrorEvent.name:
                 case QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent.name:
+                case QuoteBCRequiredRequesterParticipantIdMismatchErrorEvent.name:
                 case QuoteBCRequiredRequesterParticipantIsNotApprovedErrorEvent.name:
                 case QuoteBCRequiredRequesterParticipantIsNotActiveErrorEvent.name:
+                case QuoteBCRequiredDestinationParticipantIdMismatchErrorEvent.name:
                 case QuoteBCRequiredDestinationParticipantIsNotApprovedErrorEvent.name:
                 case QuoteBCRequiredDestinationParticipantIsNotActiveErrorEvent.name:
                     await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState.headers);
@@ -259,6 +263,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 errorResponse.errorDescription = Enums.ClientErrors.QUOTE_EXPIRED.name;
                 break;
             }
+            case QuoteBCRequiredRequesterParticipantIdMismatchErrorEvent.name:
             case QuoteBCRequiredRequesterParticipantIsNotApprovedErrorEvent.name:
             case QuoteBCRequiredRequesterParticipantIsNotActiveErrorEvent.name:
             {
@@ -266,6 +271,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 errorResponse.errorDescription = Enums.PayerErrors.GENERIC_PAYER_ERROR.name;
                 break;
             }
+            case QuoteBCRequiredDestinationParticipantIdMismatchErrorEvent.name:
             case QuoteBCRequiredDestinationParticipantIsNotApprovedErrorEvent.name:
             case QuoteBCRequiredDestinationParticipantIsNotActiveErrorEvent.name:
             {

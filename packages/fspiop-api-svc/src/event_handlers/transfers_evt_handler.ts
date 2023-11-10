@@ -78,7 +78,10 @@ import {
     BulkTransferPreparedEvt,
     BulkTransferFulfiledEvt,
     BulkTransferRejectRequestProcessedEvt,
-    BulkTransferQueryResponseEvt
+    BulkTransferQueryResponseEvt,
+    TransferHubIdMismatchEvt,
+    TransferPayerIdMismatchEvt,
+    TransferPayeeIdMismatchEvt
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { BaseEventHandler, HandlerNames } from "./base_event_handler";
@@ -155,8 +158,11 @@ export class TransferEventHandler extends BaseEventHandler {
                 case TransferPayerLiquidityAccountNotFoundFailedEvt.name:
                 case TransferPayeePositionAccountNotFoundFailedEvt.name:
                 case TransferPayeeLiquidityAccountNotFoundFailedEvt.name:
+                case TransferHubIdMismatchEvt.name:
+                case TransferPayerIdMismatchEvt.name:
                 case TransferPayerNotActiveEvt.name:
                 case TransferPayerNotApprovedEvt.name:
+                case TransferPayeeIdMismatchEvt.name:
                 case TransferPayeeNotActiveEvt.name:
                 case TransferPayeeNotApprovedEvt.name:
                 case TransferUnableToDeleteTransferReminderEvt.name:
@@ -243,6 +249,7 @@ export class TransferEventHandler extends BaseEventHandler {
         switch (message.msgName) {
             case TransferInvalidMessagePayloadEvt.name:
             case TransferInvalidMessageTypeEvt.name:
+            case TransferHubIdMismatchEvt.name:
             case TransfersBCUnknownErrorEvent.name: {
                 errorResponse.errorCode = Enums.ServerErrors.GENERIC_SERVER_ERROR.code;
                 errorResponse.errorDescription = Enums.ServerErrors.GENERIC_SERVER_ERROR.name;
@@ -315,6 +322,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 errorResponse.errorDescription = Enums.PayeeErrors.PAYEE_FSP_REJECTED_TRANSACTION.name;
                 break;
             }
+            case TransferPayerIdMismatchEvt.name:
             case TransferPayerNotActiveEvt.name:
             case TransferPayerNotApprovedEvt.name:
             case TransferPrepareInvalidPayerCheckFailedEvt.name:
@@ -323,6 +331,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 errorResponse.errorDescription = Enums.PayerErrors.GENERIC_PAYER_ERROR.name;
                 break;
             }
+            case TransferPayeeIdMismatchEvt.name:
             case TransferPayeeNotActiveEvt.name:
             case TransferPayeeNotApprovedEvt.name:
             case TransferPrepareInvalidPayeeCheckFailedEvt.name:
