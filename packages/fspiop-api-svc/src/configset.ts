@@ -22,16 +22,34 @@
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
 
- * Crosslake
- - Pedro Sousa Barreto <pedrob@crosslaketech.com>
+ * Arg Software
+ - José Antunes <jose.antunes@arg.software>
+ - Rui Rocha <rui.rocha@arg.software>
 
  --------------
  ******/
 
 "use strict";
 
-export * as Constants from "./constants";
-export * as Enums from "./enums";
-export * as Transformer from "./transformer";
-export * as Request from "./request";
-export * from "./validator";
+import { ConfigurationClient,IConfigProvider } from "@mojaloop/platform-configuration-bc-client-lib";
+// import {ConfigParameterTypes} from "@mojaloop/platform-configuration-bc-public-types-lib";
+
+// configs - constants / code dependent
+const CONFIGSET_VERSION = "0.0.3";
+
+export function GetParticipantsConfigs(
+    configProvider: IConfigProvider,
+    bcName:string,
+    appName:string,
+    appVersion:string
+): ConfigurationClient {
+    const configClient = new ConfigurationClient(
+        bcName, appName, appVersion, CONFIGSET_VERSION, configProvider
+    );
+
+    /*
+    * Add application parameters here
+    * */
+
+    return configClient;
+}

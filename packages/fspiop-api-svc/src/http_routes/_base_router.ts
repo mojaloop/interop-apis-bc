@@ -33,20 +33,34 @@ import express from "express";
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { deserializeIlpPacket } from 'ilp-packet';
+import {Currency, IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
+import { FspiopValidator } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 
 export abstract class BaseRoutes {
     private _logger: ILogger;
     private _producerOptions: MLKafkaJsonProducerOptions;
     private _kafkaProducer: MLKafkaJsonProducer;
     private _kafkaTopic: string;
-
+    private _configClient: IConfigurationClient;
+    
     private _router = express.Router();
+    
+    protected _currencyList: Currency[];
+    protected _validator: FspiopValidator;
 
-    constructor(producerOptions: MLKafkaJsonProducerOptions, kafkaTopic: string, logger: ILogger) {
+    constructor(
+        configClient: IConfigurationClient,
+        producerOptions: MLKafkaJsonProducerOptions,
+        kafkaTopic: string,
+        logger: ILogger
+    ) {
+        this._configClient = configClient;
         this._producerOptions = producerOptions;
         this._kafkaTopic = kafkaTopic;
         this._kafkaProducer = new MLKafkaJsonProducer(this._producerOptions);
         this._logger = logger;
+        this._currencyList = this._configClient.globalConfigs.getCurrencies();
+        this._validator = new FspiopValidator(this._currencyList);
     }
 
     get logger(): ILogger {

@@ -41,17 +41,23 @@ import {
     BulkTransferRejectRequestedEvt,
     BulkTransferRejectRequestedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { Constants, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Transformer, ValidationdError } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import express from "express";
+import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 
 export class TransfersBulkRoutes extends BaseRoutes {
 
-    constructor(producerOptions: MLKafkaJsonProducerOptions, kafkaTopic: string, logger: ILogger) {
-        super(producerOptions, kafkaTopic, logger);
+    constructor(
+        configClient: IConfigurationClient,
+        producerOptions: MLKafkaJsonProducerOptions,
+        kafkaTopic: string,
+        logger: ILogger
+    ) {
+        super(configClient, producerOptions, kafkaTopic, logger);
 
         // bind routes
 
@@ -113,16 +119,13 @@ export class TransfersBulkRoutes extends BaseRoutes {
 
             this.logger.debug("bulkTransferQueryReceived responded");
 
-        }
-        catch (error: unknown) {
-            if (error) {
-                const transformError = Transformer.transformPayloadError({
-                    errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
-                    errorDescription: (error as Error).message,
-                    extensionList: null
-                });
-                res.status(500).json(transformError);
-            }
+        } catch (error: unknown) {
+            const transformError = Transformer.transformPayloadError({
+                errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
+                errorDescription: (error as Error).message,
+                extensionList: null
+            });
+            res.status(500).json(transformError);
         }
     }
 
@@ -154,7 +157,10 @@ export class TransfersBulkRoutes extends BaseRoutes {
                 return;
             }
 
-
+            for(let i=0 ; i<individualTransfers.length ; i+=1) {
+                this._validator.currencyAndAmount(individualTransfers[i].transferAmount);
+            }
+            
             const msgPayload: BulkTransferPrepareRequestedEvtPayload = {
                 bulkTransferId: bulkTransferId,
                 bulkQuoteId: bulkQuoteId,
@@ -194,17 +200,19 @@ export class TransfersBulkRoutes extends BaseRoutes {
             res.status(202).json(null);
 
             this.logger.debug("bulkTransfersRequest responded");
-        }
-        catch (error: unknown) {
-            if (error) {
+            
+        } catch (error: unknown) {
+            if(error instanceof ValidationdError) {
+                res.status(400).json(error.errorInformation);
+            } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-
                 res.status(500).json(transformError);
             }
+            return;
         }
     }
 
@@ -260,15 +268,13 @@ export class TransfersBulkRoutes extends BaseRoutes {
             this.logger.debug("bulkTransferFulfilRequested responded");
         }
         catch (error: unknown) {
-            if (error) {
-                const transformError = Transformer.transformPayloadError({
-                    errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
-                    errorDescription: (error as Error).message,
-                    extensionList: null
-                });
+            const transformError = Transformer.transformPayloadError({
+                errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
+                errorDescription: (error as Error).message,
+                extensionList: null
+            });
 
-                res.status(500).json(transformError);
-            }
+            res.status(500).json(transformError);
         }
     }
 
@@ -316,15 +322,13 @@ export class TransfersBulkRoutes extends BaseRoutes {
             this.logger.debug("bulk quote rejected responded");
         }
         catch (error: unknown) {
-            if (error) {
-                const transformError = Transformer.transformPayloadError({
-                    errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
-                    errorDescription: (error as Error).message,
-                    extensionList: null
-                });
+            const transformError = Transformer.transformPayloadError({
+                errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
+                errorDescription: (error as Error).message,
+                extensionList: null
+            });
 
-                res.status(500).json(transformError);
-            }
+            res.status(500).json(transformError);
         }
     }
 }

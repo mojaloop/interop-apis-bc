@@ -35,16 +35,22 @@
 "use strict";
 import express from "express";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import { Constants, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Transformer, ValidationdError } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { ParticipantQueryReceivedEvtPayload, ParticipantQueryReceivedEvt, ParticipantDisassociateRequestReceivedEvt, ParticipantDisassociateRequestReceivedEvtPayload, ParticipantAssociationRequestReceivedEvt, ParticipantAssociationRequestReceivedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
+import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 
 export class ParticipantRoutes extends BaseRoutes {
 
-    constructor(producerOptions: MLKafkaJsonProducerOptions, kafkaTopic: string, logger: ILogger) {
-        super(producerOptions, kafkaTopic, logger);
+    constructor(
+        configClient: IConfigurationClient,
+        producerOptions: MLKafkaJsonProducerOptions,
+        kafkaTopic: string,
+        logger: ILogger
+    ) {
+        super(configClient, producerOptions, kafkaTopic, logger);
 
         // bind routes
 
@@ -87,6 +93,13 @@ export class ParticipantRoutes extends BaseRoutes {
                 return next();
             }
 
+            if(currency) { 
+                this._validator.currencyAndAmount({ 
+                    currency: currency,
+                    amount: null
+                });
+            }
+
             const msgPayload: ParticipantQueryReceivedEvtPayload = {
                 requesterFspId: requesterFspId,
                 partyType: type,
@@ -111,17 +124,19 @@ export class ParticipantRoutes extends BaseRoutes {
             res.status(202).json(null);
 
             this.logger.debug("getParticipantsByTypeAndID responded");
-        }
-        catch (error: unknown) {
-            if (error) {
+            
+        } catch (error: unknown) {
+            if(error instanceof ValidationdError) {
+                res.status(400).json(error.errorInformation);
+            } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-
                 res.status(500).json(transformError);
             }
+            return;
         }
     }
 
@@ -148,6 +163,13 @@ export class ParticipantRoutes extends BaseRoutes {
                 return next();
             }
 
+            if(currency) { 
+                this._validator.currencyAndAmount({ 
+                    currency: currency,
+                    amount: null
+                });
+            }
+
             const msgPayload: ParticipantQueryReceivedEvtPayload = {
                 requesterFspId: requesterFspId,
                 partyType: type,
@@ -172,17 +194,19 @@ export class ParticipantRoutes extends BaseRoutes {
             res.status(202).json(null);
 
             this.logger.debug("getParticipantsByTypeAndIDAndSubId responded");
-        }
-        catch (error: unknown) {
-            if (error) {
+            
+        } catch (error: unknown) {
+            if(error instanceof ValidationdError) {
+                res.status(400).json(error.errorInformation);
+            } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-
                 res.status(500).json(transformError);
             }
+            return;
         }
     }
 
@@ -205,6 +229,13 @@ export class ParticipantRoutes extends BaseRoutes {
 
                 res.status(400).json(transformError);
                 return;
+            }
+
+            if(currency) { 
+                this._validator.currencyAndAmount({ 
+                    currency: currency,
+                    amount: null
+                });
             }
 
             const msgPayload: ParticipantAssociationRequestReceivedEvtPayload = {
@@ -232,17 +263,19 @@ export class ParticipantRoutes extends BaseRoutes {
             res.status(202).json(null);
 
             this.logger.debug("associatePartyByTypeAndId responded");
-        }
-        catch (error: unknown) {
-            if (error) {
+            
+        } catch (error: unknown) {
+            if(error instanceof ValidationdError) {
+                res.status(400).json(error.errorInformation);
+            } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-
                 res.status(500).json(transformError);
             }
+            return;
         }
     }
 
@@ -266,6 +299,13 @@ export class ParticipantRoutes extends BaseRoutes {
 
                 res.status(400).json(transformError);
                 return;
+            }
+
+            if(currency) { 
+                this._validator.currencyAndAmount({ 
+                    currency: currency,
+                    amount: null
+                });
             }
 
             const msgPayload: ParticipantAssociationRequestReceivedEvtPayload = {
@@ -293,17 +333,19 @@ export class ParticipantRoutes extends BaseRoutes {
             res.status(202).json(null);
 
             this.logger.debug("associatePartyByTypeAndId responded");
-        }
-        catch (error: unknown) {
-            if (error) {
+
+        } catch (error: unknown) {
+            if(error instanceof ValidationdError) {
+                res.status(400).json(error.errorInformation);
+            } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-
                 res.status(500).json(transformError);
             }
+            return;
         }
     }
 
@@ -325,6 +367,13 @@ export class ParticipantRoutes extends BaseRoutes {
 
                 res.status(400).json(transformError);
                 return;
+            }
+
+            if(currency) { 
+                this._validator.currencyAndAmount({ 
+                    currency: currency,
+                    amount: null
+                });
             }
 
             const msgPayload: ParticipantDisassociateRequestReceivedEvtPayload = {
@@ -352,17 +401,19 @@ export class ParticipantRoutes extends BaseRoutes {
             res.status(202).json(null);
 
             this.logger.debug("disassociatePartyByTypeAndId responded");
-        }
-        catch (error: unknown) {
-            if (error) {
+
+        } catch (error: unknown) {
+            if(error instanceof ValidationdError) {
+                res.status(400).json(error.errorInformation);
+            } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-
                 res.status(500).json(transformError);
             }
+            return;
         }
     }
 
@@ -385,6 +436,13 @@ export class ParticipantRoutes extends BaseRoutes {
 
                 res.status(400).json(transformError);
                 return;
+            }
+
+            if(currency) { 
+                this._validator.currencyAndAmount({ 
+                    currency: currency,
+                    amount: null
+                });
             }
 
             const msgPayload: ParticipantDisassociateRequestReceivedEvtPayload = {
@@ -411,17 +469,18 @@ export class ParticipantRoutes extends BaseRoutes {
             res.status(202).json(null);
 
             this.logger.debug("disassociatePartyByTypeAndIdAndSubId responded");
-        }
-        catch (error: unknown) {
-            if (error) {
+        } catch (error: unknown) {
+            if(error instanceof ValidationdError) {
+                res.status(400).json(error.errorInformation);
+            } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-
                 res.status(500).json(transformError);
             }
+            return;
         }
     }
 }

@@ -53,7 +53,7 @@ const pathWithSubType = `/${Enums.EntityTypeEnum.PARTIES}/MSISDN/123456789/123`;
 
 const consumer = new KafkaConsumer([AccountLookupBCTopics.DomainRequests])
 
-jest.setTimeout(200000);
+jest.setTimeout(60000);
 
 describe("FSPIOP API Service Participant Routes", () => {
 

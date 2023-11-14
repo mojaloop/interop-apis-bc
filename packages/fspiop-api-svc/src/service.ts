@@ -46,6 +46,7 @@ import {ParticipantAdapter} from "./implementations/external_adapters/participan
 import {ParticipantRoutes} from "./http_routes/account-lookup-bc/participant_routes";
 import {PartyRoutes} from "./http_routes/account-lookup-bc/party_routes";
 import {
+    MLKafkaJsonConsumer,
     MLKafkaJsonConsumerOptions,
     MLKafkaJsonProducerOptions
 } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
@@ -71,6 +72,12 @@ import jsYaml from "js-yaml";
 import fs from "fs";
 import { validateHeaders } from "./header_validation";
 import { TransfersBulkRoutes } from "./http_routes/transfers-bc/bulk_transfers_routes";
+import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
+import {
+    DefaultConfigProvider,
+    IConfigProvider
+} from "@mojaloop/platform-configuration-bc-client-lib";
+import {GetParticipantsConfigs} from "./configset";
 
 const API_SPEC_FILE_PATH = process.env["API_SPEC_FILE_PATH"] || "../dist/api_spec.yaml";
 
@@ -142,21 +149,24 @@ export class Service {
     static logger: ILogger;
     static app: Express;
     static expressServer: Server;
-    static participantRoutes:ParticipantRoutes;
-    static partyRoutes:PartyRoutes;
-    static quotesRoutes:QuoteRoutes;
-    static bulkQuotesRoutes:QuoteBulkRoutes;
-    static transfersRoutes:TransfersRoutes;
+    static participantRoutes: ParticipantRoutes;
+    static partyRoutes: PartyRoutes;
+    static quotesRoutes: QuoteRoutes;
+    static bulkQuotesRoutes: QuoteBulkRoutes;
+    static transfersRoutes: TransfersRoutes;
     static bulkTransfersRoutes:TransfersBulkRoutes;
     static participantService: IParticipantService;
     static auditClient: IAuditClient;
+    static configClient: IConfigurationClient;
+
     static startupTimer: NodeJS.Timeout;
 
     static async start(
         logger?:ILogger,
         expressServer?: Server,
         participantService?: IParticipantService,
-        auditClient?: IAuditClient
+        auditClient?: IAuditClient,
+        configProvider?: IConfigProvider,
     ):Promise<void> {
         console.log(`Fspiop-api-svc - service starting with PID: ${process.pid}`);
 
@@ -177,6 +187,24 @@ export class Service {
             await (logger as KafkaLogger).init();
         }
         globalLogger = this.logger = logger;
+
+        if(!configProvider) {
+            // create the instance of IAuthenticatedHttpRequester
+            const authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
+            authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
+
+            const messageConsumer = new MLKafkaJsonConsumer({
+                kafkaBrokerList: KAFKA_URL,
+                kafkaGroupId: `${APP_NAME}_${Date.now()}` // unique consumer group - use instance id when possible
+            }, this.logger.createChild("configClient.consumer"));
+            configProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer);
+        }
+        
+        this.configClient = GetParticipantsConfigs(configProvider, BC_NAME, APP_NAME, APP_VERSION);
+        await this.configClient.init();
+        await this.configClient.bootstrap(true);
+        await this.configClient.fetch();
+
 
         if(!auditClient) {
             if (!existsSync(AUDIT_KEY_FILE_PATH)) {
@@ -209,12 +237,12 @@ export class Service {
         await Service.setupEventHandlers();
 
         // Create and initialise the http hanlders
-        this.participantRoutes = new ParticipantRoutes(kafkaJsonProducerOptions, AccountLookupBCTopics.DomainEvents, this.logger);
-        this.partyRoutes = new PartyRoutes(kafkaJsonProducerOptions, AccountLookupBCTopics.DomainEvents, this.logger);
-        this.quotesRoutes = new QuoteRoutes(kafkaJsonProducerOptions,  QuotingBCTopics.DomainEvents, this.logger);
-        this.bulkQuotesRoutes = new QuoteBulkRoutes(kafkaJsonProducerOptions, QuotingBCTopics.DomainEvents, this.logger);
-        this.transfersRoutes = new TransfersRoutes(kafkaJsonProducerOptions,  TransfersBCTopics.DomainEvents, this.logger);
-        this.bulkTransfersRoutes = new TransfersBulkRoutes(kafkaJsonProducerOptions, TransfersBCTopics.DomainEvents, this.logger);
+        this.participantRoutes = new ParticipantRoutes(this.configClient, kafkaJsonProducerOptions, AccountLookupBCTopics.DomainEvents, this.logger);
+        this.partyRoutes = new PartyRoutes(this.configClient, kafkaJsonProducerOptions, AccountLookupBCTopics.DomainEvents, this.logger);
+        this.quotesRoutes = new QuoteRoutes(this.configClient, kafkaJsonProducerOptions,  QuotingBCTopics.DomainEvents, this.logger);
+        this.bulkQuotesRoutes = new QuoteBulkRoutes(this.configClient, kafkaJsonProducerOptions, QuotingBCTopics.DomainEvents, this.logger);
+        this.transfersRoutes = new TransfersRoutes(this.configClient, kafkaJsonProducerOptions,  TransfersBCTopics.DomainEvents, this.logger);
+        this.bulkTransfersRoutes = new TransfersBulkRoutes(this.configClient, kafkaJsonProducerOptions, TransfersBCTopics.DomainEvents,this.logger);
 
         await this.participantRoutes.init();
         await this.partyRoutes.init();

@@ -33,7 +33,7 @@
 
 import express from "express";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import { Constants, Transformer, Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Transformer, Enums, ValidationdError } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {
     TransferPrepareRequestedEvt,
@@ -47,11 +47,17 @@ import {
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
+import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 
 export class TransfersRoutes extends BaseRoutes {    
     
-    constructor(producerOptions: MLKafkaJsonProducerOptions, kafkaTopic: string, logger: ILogger) {
-        super(producerOptions, kafkaTopic, logger);
+    constructor(
+        configClient: IConfigurationClient,
+        producerOptions: MLKafkaJsonProducerOptions,
+        kafkaTopic: string,
+        logger: ILogger
+    ) {
+        super(configClient, producerOptions, kafkaTopic, logger);
         
         // bind routes
 
@@ -90,7 +96,11 @@ export class TransfersRoutes extends BaseRoutes {
 
             const decodedIlpPacket:any = await this.decodeIlpPacket(ilpPacket);
             
-            if (!transferId || !payeeFsp || !payerFsp || !amount || !ilpPacket || !condition || !expiration || !requesterFspId) {
+            const payerIdType = decodedIlpPacket.payer.partyIdInfo.partyIdType;
+            const payeeIdType = decodedIlpPacket.payee.partyIdInfo.partyIdType;
+            const transferType = decodedIlpPacket.transactionType.scenario;
+
+            if (!transferId || !payeeFsp || !payerFsp || !amount || !ilpPacket || !condition || !expiration || !requesterFspId || !payerIdType || !payeeIdType || !transferType ) {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
@@ -101,6 +111,8 @@ export class TransfersRoutes extends BaseRoutes {
                 return;
             }
 
+            this._validator.currencyAndAmount(amount);
+            
             const msgPayload: TransferPrepareRequestedEvtPayload = {
                 transferId: transferId,
                 payeeFsp: payeeFsp,
@@ -111,9 +123,9 @@ export class TransfersRoutes extends BaseRoutes {
                 condition: condition,
                 expiration: expiration,
                 extensionList: extensionList,
-                payerIdType: decodedIlpPacket.payer.partyIdInfo.partyIdType, 
-                payeeIdType: decodedIlpPacket.payee.partyIdInfo.partyIdType,
-                transferType: decodedIlpPacket.transactionType.scenario
+                payerIdType: payerIdType, 
+                payeeIdType: payeeIdType,
+                transferType: transferType
             };
 
             const msg = new TransferPrepareRequestedEvt(msgPayload);
@@ -137,17 +149,19 @@ export class TransfersRoutes extends BaseRoutes {
             res.status(202).json(null);
 
             this.logger.debug("transferPrepareRequested responded");
-        }
-        catch (error: unknown) {
-            if (error) {
+            
+        } catch (error: unknown) {
+            if(error instanceof ValidationdError) {
+                res.status(400).json(error.errorInformation);
+            } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-
                 res.status(500).json(transformError);
             }
+            return;
         }
     }
 
@@ -209,17 +223,15 @@ export class TransfersRoutes extends BaseRoutes {
             res.status(200).json(null);
 
             this.logger.debug("transferFulfilRequested responded");
-        }
-        catch (error: unknown) {
-            if (error) {
-                const transformError = Transformer.transformPayloadError({
-                    errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
-                    errorDescription: (error as Error).message,
-                    extensionList: null
-                });
+            
+        } catch (error: unknown) {
+            const transformError = Transformer.transformPayloadError({
+                errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
+                errorDescription: (error as Error).message,
+                extensionList: null
+            });
 
-                res.status(500).json(transformError);
-            }
+            res.status(500).json(transformError);
         }
     }
 
@@ -272,17 +284,15 @@ export class TransfersRoutes extends BaseRoutes {
             res.status(202).json(null);
 
             this.logger.debug("transferRejectRequested responded");
-        }
-        catch (error: unknown) {
-            if (error) {
-                const transformError = Transformer.transformPayloadError({
-                    errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
-                    errorDescription: (error as Error).message,
-                    extensionList: null
-                });
 
-                res.status(500).json(transformError);
-            }
+        } catch (error: unknown) {
+            const transformError = Transformer.transformPayloadError({
+                errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
+                errorDescription: (error as Error).message,
+                extensionList: null
+            });
+
+            res.status(500).json(transformError);
         }
     }
 
@@ -328,17 +338,15 @@ export class TransfersRoutes extends BaseRoutes {
             res.status(202).json(null);
 
             this.logger.debug("transferQueryReceived responded");
-        }
-        catch (error: unknown) {
-            if (error) {
-                const transformError = Transformer.transformPayloadError({
-                    errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
-                    errorDescription: (error as Error).message,
-                    extensionList: null
-                });
 
-                res.status(500).json(transformError);
-            }
+        } catch (error: unknown) {
+            const transformError = Transformer.transformPayloadError({
+                errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
+                errorDescription: (error as Error).message,
+                extensionList: null
+            });
+
+            res.status(500).json(transformError);
         }
     }
 }

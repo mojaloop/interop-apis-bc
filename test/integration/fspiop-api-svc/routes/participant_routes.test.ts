@@ -46,7 +46,7 @@ const server = `http://localhost:${SVC_DEFAULT_HTTP_PORT}`;
 
 const consumer = new KafkaConsumer([AccountLookupBCTopics.DomainRequests])
 
-jest.setTimeout(400000);
+jest.setTimeout(60000);
 
 const topic = process.env["KAFKA_ACCOUNTS_LOOKUP_TOPIC"] || AccountLookupBCTopics.DomainRequests;
 

@@ -41,9 +41,10 @@ import { AccountLookupBCTopics } from "@mojaloop/platform-shared-lib-public-mess
 import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
 import request from "supertest";
-import { getHeaders } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { MemoryConfigClientMock, getHeaders } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { Server } from "http";
+import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 const packageJSON = require("../../package.json");
 
 const BC_NAME = "interop-apis-bc";
@@ -69,6 +70,8 @@ const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
 const pathWithoutSubType = `/${Enums.EntityTypeEnum.PARTICIPANTS}/MSISDN/123456789`;
 const pathWithSubType = `/${Enums.EntityTypeEnum.PARTICIPANTS}/MSISDN/123456789/123`;
 
+let configClientMock : IConfigurationClient;
+
 jest.setTimeout(10000);
 
 describe("FSPIOP Routes - Participant", () => {
@@ -76,7 +79,8 @@ describe("FSPIOP Routes - Participant", () => {
     let expressServer: Server;
     let participantRoutes: ParticipantRoutes;
     let logger: ILogger;
-    
+    let authTokenUrl: string;
+
     beforeAll(async () => {
         app = express();
         app.use(express.json({
@@ -103,8 +107,10 @@ describe("FSPIOP Routes - Participant", () => {
             KAFKA_LOGS_TOPIC,
             LOGLEVEL
         );
-
-        participantRoutes = new ParticipantRoutes(kafkaJsonProducerOptions, AccountLookupBCTopics.DomainEvents, logger);
+        authTokenUrl = "mocked_auth_url";
+        configClientMock = new MemoryConfigClientMock(logger, authTokenUrl);
+        
+        participantRoutes = new ParticipantRoutes(configClientMock, kafkaJsonProducerOptions, AccountLookupBCTopics.DomainEvents, logger);
         app.use(`/${PARTICIPANTS_URL_RESOURCE_NAME}`, participantRoutes.router);
 
         let portNum = SVC_DEFAULT_HTTP_PORT;
@@ -151,6 +157,45 @@ describe("FSPIOP Routes - Participant", () => {
         });
     });
 
+    it("should give a bad request due to currency code not allowed calling getParticipantsByTypeAndID endpoint", async () => {
+        // Arrange
+        const currency = "AED";
+        
+        // Act
+        await participantRoutes.init();
+
+        const res = await request(server)
+        .get(`${pathWithoutSubType}?currency=${currency}`)
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
+
+        // Assert
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toStrictEqual({
+            "errorInformation": {
+                "errorCode": "3100",
+                "errorDescription": "must be equal to one of the allowed values - path: /body/amount/currency",
+                "extensionList": {
+                   "extension": [
+                        {
+                            "key": "keyword",
+                            "value": "enum",
+                        },
+                        {
+                            "key": "instancePath",
+                            "value": "/body/amount/currency",
+                        },
+                        {
+                            "key": "allowedValues",
+                            "value": [
+                                "USD"
+                            ],
+                        }
+                    ]
+                }
+            }
+        });
+    });
+    
     it("should throw an error on kafka producer calling getParticipantsByTypeAndID endpoint", async () => {
         // Arrange
         const payload = {
@@ -195,6 +240,45 @@ describe("FSPIOP Routes - Participant", () => {
         });
     });
 
+    it("should give a bad request due to currency code not allowed calling getParticipantsByTypeAndIDAndSubId endpoint", async () => {
+        // Arrange
+        const currency = "AED";
+        
+        // Act
+        await participantRoutes.init();
+
+        const res = await request(server)
+        .get(`${pathWithSubType}?currency=${currency}`)
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
+
+        // Assert
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toStrictEqual({
+            "errorInformation": {
+                "errorCode": "3100",
+                "errorDescription": "must be equal to one of the allowed values - path: /body/amount/currency",
+                "extensionList": {
+                   "extension": [
+                        {
+                            "key": "keyword",
+                            "value": "enum",
+                        },
+                        {
+                            "key": "instancePath",
+                            "value": "/body/amount/currency",
+                        },
+                        {
+                            "key": "allowedValues",
+                            "value": [
+                                "USD"
+                            ],
+                        }
+                    ]
+                }
+            }
+        });
+    });
+    
     it("should throw an error on kafka producer calling getParticipantsByTypeAndIDAndSubId endpoint", async () => {
         // Arrange
         const payload = {
@@ -240,6 +324,51 @@ describe("FSPIOP Routes - Participant", () => {
         });
     });
 
+    
+    it("should give a bad request due to currency code not allowed calling associatePartyByTypeAndId endpoint", async () => {
+        // Arrange
+        const currency = "AED";
+        const payload = {
+            "fspId": "test-fsp-id"
+        };
+        
+        // Act
+        await participantRoutes.init();
+
+        const res = await request(server)
+        .get(`${pathWithoutSubType}?currency=${currency}`)
+        .send(payload)
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
+
+        // Assert
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toStrictEqual({
+            "errorInformation": {
+                "errorCode": "3100",
+                "errorDescription": "must be equal to one of the allowed values - path: /body/amount/currency",
+                "extensionList": {
+                   "extension": [
+                        {
+                            "key": "keyword",
+                            "value": "enum",
+                        },
+                        {
+                            "key": "instancePath",
+                            "value": "/body/amount/currency",
+                        },
+                        {
+                            "key": "allowedValues",
+                            "value": [
+                                "USD"
+                            ],
+                        }
+                    ]
+                }
+            }
+        });
+    });
+    
+    
     it("should throw an error on kafka producer calling associatePartyByTypeAndId endpoint", async () => {
         // Arrange
         const payload = {
@@ -286,6 +415,49 @@ describe("FSPIOP Routes - Participant", () => {
         });
     });
 
+    it("should give a bad request due to currency code not allowed calling associatePartyByTypeAndIdAndSubId endpoint", async () => {
+        // Arrange
+        const currency = "AED";
+        const payload = {
+            "fspId": "test-fsp-id"
+        };
+        
+        // Act
+        await participantRoutes.init();
+
+        const res = await request(server)
+        .get(`${pathWithSubType}?currency=${currency}`)
+        .send(payload)
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
+
+        // Assert
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toStrictEqual({
+            "errorInformation": {
+                "errorCode": "3100",
+                "errorDescription": "must be equal to one of the allowed values - path: /body/amount/currency",
+                "extensionList": {
+                   "extension": [
+                        {
+                            "key": "keyword",
+                            "value": "enum",
+                        },
+                        {
+                            "key": "instancePath",
+                            "value": "/body/amount/currency",
+                        },
+                        {
+                            "key": "allowedValues",
+                            "value": [
+                                "USD"
+                            ],
+                        }
+                    ]
+                }
+            }
+        });
+    });
+    
     it("should throw an error on kafka producer calling associatePartyByTypeAndIdAndSubId endpoint", async () => {
         // Arrange
         const payload = {
@@ -356,6 +528,45 @@ describe("FSPIOP Routes - Participant", () => {
             {
                 "errorCode": "3101",
                 "errorDescription": "Malformed syntax"
+            }
+        });
+    });
+
+    it("should give a bad request due to currency code not allowed calling disassociatePartyByTypeAndIdAndSubId endpoint", async () => {
+        // Arrange
+        const currency = "AED";
+          
+        // Act
+        await participantRoutes.init();
+
+        const res = await request(server)
+        .del(`${pathWithSubType}?currency=${currency}`)
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
+
+        // Assert
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toStrictEqual({
+            "errorInformation": {
+                "errorCode": "3100",
+                "errorDescription": "must be equal to one of the allowed values - path: /body/amount/currency",
+                "extensionList": {
+                   "extension": [
+                        {
+                            "key": "keyword",
+                            "value": "enum",
+                        },
+                        {
+                            "key": "instancePath",
+                            "value": "/body/amount/currency",
+                        },
+                        {
+                            "key": "allowedValues",
+                            "value": [
+                                "USD"
+                            ],
+                        }
+                    ]
+                }
             }
         });
     });

@@ -36,7 +36,7 @@
 
 import express from "express";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import { Constants, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Transformer, ValidationdError } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {
     PartyQueryReceivedEvt,
@@ -48,11 +48,17 @@ import {
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
+import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 
 export class PartyRoutes extends BaseRoutes {
 
-    constructor(producerOptions: MLKafkaJsonProducerOptions, kafkaTopic: string, logger: ILogger) {
-        super(producerOptions, kafkaTopic, logger);
+    constructor(
+        configClient: IConfigurationClient,
+        producerOptions: MLKafkaJsonProducerOptions,
+        kafkaTopic: string,
+        logger: ILogger
+    ) {
+        super(configClient, producerOptions, kafkaTopic, logger);
 
         // bind routes
 
@@ -94,6 +100,13 @@ export class PartyRoutes extends BaseRoutes {
                 return;
             }
 
+            if(currency) { 
+                this._validator.currencyAndAmount({ 
+                    currency: currency,
+                    amount: null
+                });
+            }
+
             const msgPayload: PartyQueryReceivedEvtPayload = {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId,
@@ -122,17 +135,19 @@ export class PartyRoutes extends BaseRoutes {
             res.status(202).json(null);
 
             this.logger.debug("getPartyQueryReceivedByTypeAndId responded");
-        }
-        catch (error: unknown) {
-            if (error) {
+
+        } catch (error: unknown) {
+            if(error instanceof ValidationdError) {
+                res.status(400).json(error.errorInformation);
+            } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-
                 res.status(500).json(transformError);
             }
+            return;
         }
     }
 
@@ -159,6 +174,13 @@ export class PartyRoutes extends BaseRoutes {
                 return;
             }
 
+            if(currency) { 
+                this._validator.currencyAndAmount({ 
+                    currency: currency,
+                    amount: null
+                });
+            }
+            
             const msgPayload: PartyQueryReceivedEvtPayload = {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId,
@@ -184,17 +206,19 @@ export class PartyRoutes extends BaseRoutes {
             res.status(202).json(null);
 
             this.logger.debug("getPartyQueryReceivedByTypeAndIdSubId responded");
-        }
-        catch (error: unknown) {
-            if (error) {
+
+        } catch (error: unknown) {
+            if(error instanceof ValidationdError) {
+                res.status(400).json(error.errorInformation);
+            } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-
                 res.status(500).json(transformError);
             }
+            return;
         }
     }
 
@@ -227,6 +251,13 @@ export class PartyRoutes extends BaseRoutes {
                 return;
             }
 
+            if(currency) { 
+                this._validator.currencyAndAmount({ 
+                    currency: currency,
+                    amount: null
+                });
+            }
+            
             const msgPayload: PartyInfoAvailableEvtPayload = {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId,
@@ -261,17 +292,18 @@ export class PartyRoutes extends BaseRoutes {
 
             this.logger.debug("getPartyInfoAvailableByTypeAndId responded");
 
-        }
-        catch (error: unknown) {
-            if (error) {
+        } catch (error: unknown) {
+            if(error instanceof ValidationdError) {
+                res.status(400).json(error.errorInformation);
+            } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-
                 res.status(500).json(transformError);
             }
+            return;
         }
     }
 
@@ -303,6 +335,13 @@ export class PartyRoutes extends BaseRoutes {
 
                 res.status(400).json(transformError);
                 return;
+            }
+
+            if(currency) { 
+                this._validator.currencyAndAmount({ 
+                    currency: currency,
+                    amount: null
+                });
             }
 
             const msgPayload: PartyInfoAvailableEvtPayload = {
@@ -337,17 +376,19 @@ export class PartyRoutes extends BaseRoutes {
             res.status(202).json(null);
 
             this.logger.debug("getPartyInfoAvailableByTypeAndIdAndSubId responded");
-        }
-        catch (error: unknown) {
-            if (error) {
+
+        } catch (error: unknown) {
+            if(error instanceof ValidationdError) {
+                res.status(400).json(error.errorInformation);
+            } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-
                 res.status(500).json(transformError);
             }
+            return;
         }
     }
 
@@ -377,6 +418,13 @@ export class PartyRoutes extends BaseRoutes {
                 return;
             }
 
+            if(currency) { 
+                this._validator.currencyAndAmount({ 
+                    currency: currency,
+                    amount: null
+                });
+            }
+
             const msgPayload: GetPartyQueryRejectedEvtPayload = {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId,
@@ -404,17 +452,19 @@ export class PartyRoutes extends BaseRoutes {
             res.status(202).json(null);
 
             this.logger.debug("getPartyByTypeAndIdQueryReject responded");
-        }
-        catch (error: unknown) {
-            if (error) {
+
+        } catch (error: unknown) {
+            if(error instanceof ValidationdError) {
+                res.status(400).json(error.errorInformation);
+            } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-
                 res.status(500).json(transformError);
             }
+            return;
         }
     }
 
@@ -445,6 +495,13 @@ export class PartyRoutes extends BaseRoutes {
                 return;
             }
 
+            if(currency) { 
+                this._validator.currencyAndAmount({ 
+                    currency: currency,
+                    amount: null
+                });
+            }
+
             const msgPayload: GetPartyQueryRejectedEvtPayload = {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId,
@@ -472,17 +529,19 @@ export class PartyRoutes extends BaseRoutes {
             res.status(202).json(null);
 
             this.logger.debug("getPartyByTypeAndIdAndSubIdQueryReject responded");
-        }
-        catch (error: unknown) {
-            if (error) {
+
+        } catch (error: unknown) {
+            if(error instanceof ValidationdError) {
+                res.status(400).json(error.errorInformation);
+            } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-
                 res.status(500).json(transformError);
             }
+            return;
         }
     }
 

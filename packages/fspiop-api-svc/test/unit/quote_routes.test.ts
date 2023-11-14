@@ -40,9 +40,10 @@ import { AccountLookupBCTopics } from "@mojaloop/platform-shared-lib-public-mess
 import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
 import request from "supertest";
-import { getHeaders } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { MemoryConfigClientMock, getHeaders } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { Server } from "http";
+import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 const packageJSON = require("../../package.json");
 
 const BC_NAME = "interop-apis-bc";
@@ -68,6 +69,8 @@ const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
 const pathWithId = `/${Enums.EntityTypeEnum.QUOTES}/2243fdbe-5dea-3abd-a210-3780e7f2f1f4`;
 const pathWithoutId = `/${Enums.EntityTypeEnum.QUOTES}`;
 
+let configClientMock : IConfigurationClient;
+
 jest.setTimeout(10000);
 
 describe("FSPIOP Routes - Unit Tests Quote", () => {
@@ -75,7 +78,8 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
     let expressServer: Server;
     let quoteRoutes: QuoteRoutes;
     let logger: ILogger;
-    
+    let authTokenUrl: string;
+
     beforeAll(async () => {
         app = express();
         app.use(express.json({
@@ -102,8 +106,10 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
             KAFKA_LOGS_TOPIC,
             LOGLEVEL
         );
-
-        quoteRoutes = new QuoteRoutes(kafkaJsonProducerOptions, AccountLookupBCTopics.DomainEvents, logger);
+        authTokenUrl = "mocked_auth_url";
+        configClientMock = new MemoryConfigClientMock(logger, authTokenUrl);
+        
+        quoteRoutes = new QuoteRoutes(configClientMock, kafkaJsonProducerOptions, AccountLookupBCTopics.DomainEvents, logger);
         app.use(`/${QUOTES_URL_RESOURCE_NAME}`, quoteRoutes.router);
 
         let portNum = SVC_DEFAULT_HTTP_PORT;
@@ -205,6 +211,119 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
             }
         });
     });
+    
+    it("should give a bad request due to currency code not allowed calling quoteRequestReceived endpoint", async () => {
+        // Arrange
+        const payload = {
+            "quoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
+            "transactionId": "9f5d9784-3a57-5865-9aa0-7dde77915481",
+            "payee": {
+                "partyIdInfo": {
+                    "partyIdType": "MSISDN",
+                    "partyIdentifier": "blue_acc_1",
+                    "fspId": "bluebank"
+                }
+            },
+            "payer": {
+                "partyIdInfo": {
+                    "partyIdType": "MSISDN",
+                    "partyIdentifier": "green_acc_1",
+                    "fspId": "greenbank"
+                }
+            },
+            "amountType": "SEND",
+            "amount": {
+                "currency": "EUR",
+                "amount": "10"
+            },
+            "transactionType": {
+                "scenario": "DEPOSIT",
+                "initiator": "PAYER",
+                "initiatorType": "BUSINESS"
+            }
+        };
+
+        // Act
+        const res = await request(server)
+            .post(pathWithoutId)
+            .send(payload)
+            .set(getHeaders(Enums.EntityTypeEnum.QUOTES));
+
+        // Assert
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toStrictEqual({
+            "errorInformation": {
+                "errorCode": "3100",
+                "errorDescription": "must be equal to one of the allowed values - path: /body/amount/currency",
+                "extensionList": {
+                   "extension": [
+                        {
+                            "key": "keyword",
+                            "value": "enum",
+                        },
+                        {
+                            "key": "instancePath",
+                            "value": "/body/amount/currency",
+                        },
+                        {
+                            "key": "allowedValues",
+                            "value": [
+                                "USD"
+                            ],
+                        }
+                    ]
+                }
+            }
+        });
+    });
+
+    it("should give a bad request due to currency code not allowing decimals points length calling quoteRequestReceived endpoint", async () => {
+        // Arrange
+        const payload = {
+            "quoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
+            "transactionId": "9f5d9784-3a57-5865-9aa0-7dde77915481",
+            "payee": {
+                "partyIdInfo": {
+                    "partyIdType": "MSISDN",
+                    "partyIdentifier": "blue_acc_1",
+                    "fspId": "bluebank"
+                }
+            },
+            "payer": {
+                "partyIdInfo": {
+                    "partyIdType": "MSISDN",
+                    "partyIdentifier": "green_acc_1",
+                    "fspId": "greenbank"
+                }
+            },
+            "amountType": "SEND",
+            "amount": {
+                "currency": "USD",
+                "amount": "10.1234"
+            },
+            "transactionType": {
+                "scenario": "DEPOSIT",
+                "initiator": "PAYER",
+                "initiatorType": "BUSINESS"
+            }
+        };
+
+        // Act
+        const res = await request(server)
+            .post(pathWithoutId)
+            .send(payload)
+            .set(getHeaders(Enums.EntityTypeEnum.QUOTES));
+
+        // Assert
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toStrictEqual({
+            "errorInformation": {
+                "errorCode": "3100",
+                "errorDescription": "Amount exceeds allowed decimal points for participant account of USD currency",
+                "extensionList": null
+            }
+        });
+    });
 
     it("should throw an error on kafka producer calling quoteRequestReceived endpoint", async () => {
         // Arrange
@@ -227,7 +346,7 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
             },
             "amountType": "SEND",
             "amount": {
-                "currency": "EUR",
+                "currency": "USD",
                 "amount": "10"
             },
             "transactionType": {
@@ -293,6 +412,113 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
             "errorInformation": {
                 "errorCode": "3101",
                 "errorDescription": "Malformed syntax"
+            }
+        });
+    });
+
+    it("should give a bad request due to currency code not allowed calling quoteResponseReceived endpoint", async () => {
+        // Arrange
+        const payload = {
+            "transferAmount": {
+                "currency": "AED",
+                "amount": "1"
+            },
+            "expiration": "2023-09-22T20:52:37.671Z",
+            "ilpPacket": "AYICSwAAAAAAAABkFGcuZ3JlZW5iYW5rLm1zaXNkbi4xggIqZXlKMGNtRnVjMkZqZEdsdmJrbGtJam9pTUdaaVlXWXhZVFV0WkRneVlpMDFZbUptTFRsbVptVXRPV1E0TldabFpEbGpabVE0SWl3aWNYVnZkR1ZKWkNJNklqSXlORE5tWkdKbExUVmtaV0V0TTJGaVpDMWhNakV3TFRNM09EQmxOMlkwWmpGbU5TSXNJbkJoZVdWbElqcDdJbkJoY25SNVNXUkpibVp2SWpwN0luQmhjblI1U1dSVWVYQmxJam9pVFZOSlUwUk9JaXdpY0dGeWRIbEpaR1Z1ZEdsbWFXVnlJam9pTVNJc0ltWnpjRWxrSWpvaVozSmxaVzVpWVc1ckluMTlMQ0p3WVhsbGNpSTZleUp3WVhKMGVVbGtTVzVtYnlJNmV5SndZWEowZVVsa1ZIbHdaU0k2SWsxVFNWTkVUaUlzSW5CaGNuUjVTV1JsYm5ScFptbGxjaUk2SWpFaUxDSm1jM0JKWkNJNkltSnNkV1ZpWVc1ckluMTlMQ0poYlc5MWJuUWlPbnNpWTNWeWNtVnVZM2tpT2lKVlUwUWlMQ0poYlc5MWJuUWlPaUl4SW4wc0luUnlZVzV6WVdOMGFXOXVWSGx3WlNJNmV5SnpZMlZ1WVhKcGJ5STZJa1JGVUU5VFNWUWlMQ0pwYm1sMGFXRjBiM0lpT2lKUVFWbEZVaUlzSW1sdWFYUnBZWFJ2Y2xSNWNHVWlPaUpDVlZOSlRrVlRVeUo5ZlEA",
+            "condition": "VFWFNc85U0f23hniAuTmwk6XVVlR0llxRZ-xqPrCShk",
+            "payeeFspFee": {
+                "currency": "AED",
+                "amount": "0.2"
+            },
+            "payeeFspCommission": {
+                "currency": "AED",
+                "amount": "0.3"
+            },
+            "geoCode": {
+                "latitude": "2",
+                "longitude": "5.6"
+            },
+            "payeeReceiveAmount": {
+                "currency": "AED",
+                "amount": "1"
+            }
+        };
+
+        // Act
+        const res = await request(server)
+        .put(pathWithId)
+        .send(payload)
+        .set(getHeaders(Enums.EntityTypeEnum.QUOTES));
+
+        // Assert
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toStrictEqual({
+            "errorInformation": {
+                "errorCode": "3100",
+                "errorDescription": "must be equal to one of the allowed values - path: /body/amount/currency",
+                "extensionList": {
+                   "extension": [
+                        {
+                            "key": "keyword",
+                            "value": "enum"
+                        },
+                        {
+                            "key": "instancePath",
+                            "value": "/body/amount/currency"
+                        },
+                        {
+                            "key": "allowedValues",
+                            "value": [
+                                "USD"
+                            ]
+                        }
+                    ]
+                }
+            }
+        });
+    });
+    
+    it("should give a bad request due to currency code not allowing decimals points length calling quoteResponseReceived endpoint", async () => {
+        // Arrange
+        const payload = {
+            "transferAmount": {
+                "currency": "USD",
+                "amount": "1"
+            },
+            "expiration": "2023-09-22T20:52:37.671Z",
+            "ilpPacket": "AYICSwAAAAAAAABkFGcuZ3JlZW5iYW5rLm1zaXNkbi4xggIqZXlKMGNtRnVjMkZqZEdsdmJrbGtJam9pTUdaaVlXWXhZVFV0WkRneVlpMDFZbUptTFRsbVptVXRPV1E0TldabFpEbGpabVE0SWl3aWNYVnZkR1ZKWkNJNklqSXlORE5tWkdKbExUVmtaV0V0TTJGaVpDMWhNakV3TFRNM09EQmxOMlkwWmpGbU5TSXNJbkJoZVdWbElqcDdJbkJoY25SNVNXUkpibVp2SWpwN0luQmhjblI1U1dSVWVYQmxJam9pVFZOSlUwUk9JaXdpY0dGeWRIbEpaR1Z1ZEdsbWFXVnlJam9pTVNJc0ltWnpjRWxrSWpvaVozSmxaVzVpWVc1ckluMTlMQ0p3WVhsbGNpSTZleUp3WVhKMGVVbGtTVzVtYnlJNmV5SndZWEowZVVsa1ZIbHdaU0k2SWsxVFNWTkVUaUlzSW5CaGNuUjVTV1JsYm5ScFptbGxjaUk2SWpFaUxDSm1jM0JKWkNJNkltSnNkV1ZpWVc1ckluMTlMQ0poYlc5MWJuUWlPbnNpWTNWeWNtVnVZM2tpT2lKVlUwUWlMQ0poYlc5MWJuUWlPaUl4SW4wc0luUnlZVzV6WVdOMGFXOXVWSGx3WlNJNmV5SnpZMlZ1WVhKcGJ5STZJa1JGVUU5VFNWUWlMQ0pwYm1sMGFXRjBiM0lpT2lKUVFWbEZVaUlzSW1sdWFYUnBZWFJ2Y2xSNWNHVWlPaUpDVlZOSlRrVlRVeUo5ZlEA",
+            "condition": "VFWFNc85U0f23hniAuTmwk6XVVlR0llxRZ-xqPrCShk",
+            "payeeFspFee": {
+                "currency": "USD",
+                "amount": "0.1234"
+            },
+            "payeeFspCommission": {
+                "currency": "USD",
+                "amount": "0.3"
+            },
+            "geoCode": {
+                "latitude": "2",
+                "longitude": "5.6"
+            },
+            "payeeReceiveAmount": {
+                "currency": "USD",
+                "amount": "1"
+            }
+        };
+
+        // Act
+        const res = await request(server)
+        .put(pathWithId)
+        .send(payload)
+        .set(getHeaders(Enums.EntityTypeEnum.QUOTES));
+
+        // Assert
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toStrictEqual({
+            "errorInformation": {
+                "errorCode": "3100",
+                "errorDescription": "Amount exceeds allowed decimal points for participant account of USD currency",
+                "extensionList": null
             }
         });
     });

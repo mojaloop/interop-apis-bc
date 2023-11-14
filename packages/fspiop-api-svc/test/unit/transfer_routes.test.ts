@@ -43,6 +43,8 @@ import request from "supertest";
 import { getHeaders } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { Server } from "http";
+import { MemoryConfigClientMock } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 const packageJSON = require("../../package.json");
 
 const BC_NAME = "interop-apis-bc";
@@ -68,13 +70,16 @@ const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
 const pathWithId = `/${Enums.EntityTypeEnum.TRANSFERS}/2243fdbe-5dea-3abd-a210-3780e7f2f1f4`;
 const pathWithoutId = `/${Enums.EntityTypeEnum.TRANSFERS}`;
 
+let configClientMock : IConfigurationClient;
+
 jest.setTimeout(10000);
 
 describe("FSPIOP Routes - Unit Tests Transfer", () => {
     let app: Express;
     let expressServer: Server;
-    let quoteRoutes: TransfersRoutes;
+    let transferRoutes: TransfersRoutes;
     let logger: ILogger;
+    let authTokenUrl: string;
     
     beforeAll(async () => {
         app = express();
@@ -103,8 +108,12 @@ describe("FSPIOP Routes - Unit Tests Transfer", () => {
             LOGLEVEL
         );
 
-        quoteRoutes = new TransfersRoutes(kafkaJsonProducerOptions, AccountLookupBCTopics.DomainEvents, logger);
-        app.use(`/${TRANSFERS_URL_RESOURCE_NAME}`, quoteRoutes.router);
+        authTokenUrl = "mocked_auth_url";
+
+        configClientMock = new MemoryConfigClientMock(logger, authTokenUrl);
+
+        transferRoutes = new TransfersRoutes(configClientMock, kafkaJsonProducerOptions, AccountLookupBCTopics.DomainEvents, logger);
+        app.use(`/${TRANSFERS_URL_RESOURCE_NAME}`, transferRoutes.router);
 
         let portNum = SVC_DEFAULT_HTTP_PORT;
         expressServer = app.listen(portNum, () => {
@@ -112,17 +121,17 @@ describe("FSPIOP Routes - Unit Tests Transfer", () => {
             console.log(`FSPIOP-API-SVC Service started, version: ${APP_VERSION}`);
         });
 
-        jest.spyOn(quoteRoutes, "init").mockImplementation(jest.fn());
+        jest.spyOn(transferRoutes, "init").mockImplementation(jest.fn());
         jest.spyOn(logger, "debug").mockImplementation(jest.fn());
 
-        await quoteRoutes.init();
+        await transferRoutes.init();
     });
 
 
     afterAll(async () => {
         jest.clearAllMocks();
 
-        await quoteRoutes.destroy();
+        await transferRoutes.destroy();
         await expressServer.close()
     });
 
@@ -186,6 +195,87 @@ describe("FSPIOP Routes - Unit Tests Transfer", () => {
             "errorInformation": {
                 "errorCode": "3101",
                 "errorDescription": "Malformed syntax"
+            }
+        });
+    });
+
+    it("should give a bad request due to currency code not allowed calling transferPrepareRequested endpoint", async () => {
+        // Arrange
+        const payload = {
+            "transferId": "0fbee0f5-c58e-5afe-8cdd-7e65eea2fca3",
+            "payerFsp": "bluebank",
+            "payeeFsp": "greenbank",
+            "amount": {
+                "currency": "AED",
+                "amount": "10"
+            },
+            "ilpPacket": "AYICbQAAAAAAAAPoHGcuYmx1ZWJhbmsubXNpc2RuLmJsdWVfYWNjXzGCAkRleUowY21GdWMyRmpkR2x2Ymtsa0lqb2lPV1kxWkRrM09EUXRNMkUxTnkwMU9EWTFMVGxoWVRBdE4yUmtaVGMzT1RFMU5EZ3hJaXdpY1hWdmRHVkpaQ0k2SW1ZMU5UaGtORFE0TFRCbU1UQXROREF4TmkwNE9ESXpMVEU1TjJObU5qZ3haamhrWmlJc0luQmhlV1ZsSWpwN0luQmhjblI1U1dSSmJtWnZJanA3SW5CaGNuUjVTV1JVZVhCbElqb2lUVk5KVTBST0lpd2ljR0Z5ZEhsSlpHVnVkR2xtYVdWeUlqb2lZbXgxWlY5aFkyTmZNU0lzSW1aemNFbGtJam9pWW14MVpXSmhibXNpZlgwc0luQmhlV1Z5SWpwN0luQmhjblI1U1dSSmJtWnZJanA3SW5CaGNuUjVTV1JVZVhCbElqb2lUVk5KVTBST0lpd2ljR0Z5ZEhsSlpHVnVkR2xtYVdWeUlqb2laM0psWlc1ZllXTmpYekVpTENKbWMzQkpaQ0k2SW1keVpXVnVZbUZ1YXlKOWZTd2lZVzF2ZFc1MElqcDdJbU4xY25KbGJtTjVJam9pUlZWU0lpd2lZVzF2ZFc1MElqb2lNVEFpZlN3aWRISmhibk5oWTNScGIyNVVlWEJsSWpwN0luTmpaVzVoY21sdklqb2lSRVZRVDFOSlZDSXNJbWx1YVhScFlYUnZjaUk2SWxCQldVVlNJaXdpYVc1cGRHbGhkRzl5Vkhsd1pTSTZJa0pWVTBsT1JWTlRJbjE5AA",
+            "condition": "STksBXN1-J5HnG_4owlzKnbmzCfiOlrKDPgiR-QZ7Kg",
+            "expiration": "2024-02-28T13:27:53.536Z",
+        }
+
+        // Act
+        const res = await request(server)
+        .post(pathWithoutId)
+        .send(payload)
+        .set(getHeaders(Enums.EntityTypeEnum.TRANSFERS));
+
+        // Assert
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toStrictEqual({
+            "errorInformation": {
+                "errorCode": "3100",
+                "errorDescription": "must be equal to one of the allowed values - path: /body/amount/currency",
+                "extensionList": {
+                   "extension": [
+                        {
+                            "key": "keyword",
+                            "value": "enum",
+                        },
+                        {
+                            "key": "instancePath",
+                            "value": "/body/amount/currency",
+                        },
+                        {
+                            "key": "allowedValues",
+                            "value": [
+                                "USD"
+                            ],
+                        }
+                    ]
+                }
+            }
+        });
+    });
+
+    it("should give a bad request due to currency code not allowing decimals points length calling transferPrepareRequested endpoint", async () => {
+        // Arrange
+        const payload = {
+            "transferId": "0fbee0f5-c58e-5afe-8cdd-7e65eea2fca3",
+            "payerFsp": "bluebank",
+            "payeeFsp": "greenbank",
+            "amount": {
+                "currency": "USD",
+                "amount": "10.123"
+            },
+            "ilpPacket": "AYICbQAAAAAAAAPoHGcuYmx1ZWJhbmsubXNpc2RuLmJsdWVfYWNjXzGCAkRleUowY21GdWMyRmpkR2x2Ymtsa0lqb2lPV1kxWkRrM09EUXRNMkUxTnkwMU9EWTFMVGxoWVRBdE4yUmtaVGMzT1RFMU5EZ3hJaXdpY1hWdmRHVkpaQ0k2SW1ZMU5UaGtORFE0TFRCbU1UQXROREF4TmkwNE9ESXpMVEU1TjJObU5qZ3haamhrWmlJc0luQmhlV1ZsSWpwN0luQmhjblI1U1dSSmJtWnZJanA3SW5CaGNuUjVTV1JVZVhCbElqb2lUVk5KVTBST0lpd2ljR0Z5ZEhsSlpHVnVkR2xtYVdWeUlqb2lZbXgxWlY5aFkyTmZNU0lzSW1aemNFbGtJam9pWW14MVpXSmhibXNpZlgwc0luQmhlV1Z5SWpwN0luQmhjblI1U1dSSmJtWnZJanA3SW5CaGNuUjVTV1JVZVhCbElqb2lUVk5KVTBST0lpd2ljR0Z5ZEhsSlpHVnVkR2xtYVdWeUlqb2laM0psWlc1ZllXTmpYekVpTENKbWMzQkpaQ0k2SW1keVpXVnVZbUZ1YXlKOWZTd2lZVzF2ZFc1MElqcDdJbU4xY25KbGJtTjVJam9pUlZWU0lpd2lZVzF2ZFc1MElqb2lNVEFpZlN3aWRISmhibk5oWTNScGIyNVVlWEJsSWpwN0luTmpaVzVoY21sdklqb2lSRVZRVDFOSlZDSXNJbWx1YVhScFlYUnZjaUk2SWxCQldVVlNJaXdpYVc1cGRHbGhkRzl5Vkhsd1pTSTZJa0pWVTBsT1JWTlRJbjE5AA",
+            "condition": "STksBXN1-J5HnG_4owlzKnbmzCfiOlrKDPgiR-QZ7Kg",
+            "expiration": "2024-02-28T13:27:53.536Z",
+        }
+
+        // Act
+        const res = await request(server)
+        .post(pathWithoutId)
+        .send(payload)
+        .set(getHeaders(Enums.EntityTypeEnum.TRANSFERS));
+
+        // Assert
+        expect(res.statusCode).toEqual(400);
+        expect(res.body).toStrictEqual({
+            "errorInformation": {
+                "errorCode": "3100",
+                "errorDescription": "Amount exceeds allowed decimal points for participant account of USD currency",
+                "extensionList": null
             }
         });
     });

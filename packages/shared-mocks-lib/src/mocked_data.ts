@@ -152,7 +152,7 @@ export const createMessage = (message: IMessage, entity: string, fspiopOpaqueSta
         message.fspiopOpaqueState.headers = { 
             ...message.fspiopOpaqueState.headers,
             ...fspiopOpaqueState
-        }
+        };
     }
     return message as unknown as UnknownProperties;
 };

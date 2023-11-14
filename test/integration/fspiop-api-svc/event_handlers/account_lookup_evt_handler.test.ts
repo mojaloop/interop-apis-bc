@@ -75,7 +75,7 @@ const server = process.env["SVC_DEFAULT_URL"] || "http://localhost:4000/";
 // Sets the location of your OpenAPI Specification file
 jestOpenAPI(path.join(__dirname, "../../../../packages/fspiop-api-svc/api-specs/api_spec.yaml"));
 
-jest.setTimeout(40000);
+jest.setTimeout(60000);
 
 const partiesEntity = "parties";
 const participantsEntity = "participants";
