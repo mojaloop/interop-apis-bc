@@ -100,7 +100,7 @@ export class FspiopValidator {
 
 		if(amount.amount) {
 			const decimalValue = amount.amount.toString().split('.');
-
+			
 			if(decimalValue.length === 2 && currency.decimals < decimalValue[1].length) {
 				throw new ValidationdError({
 					"errorInformation": {

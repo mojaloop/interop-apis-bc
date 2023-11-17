@@ -43,6 +43,7 @@ type HeaderResult = {
     'fspiop-signature'?: string,
     'fspiop-uri': string,
     'fspiop-http-method': string,
+    'alg': string,
 }
 
 export default class Header {
@@ -57,6 +58,7 @@ export default class Header {
     fspiopSignature!: string;
     fspiopUri!: string;
     fspiopHttpMethod!: string;
+    algorithm!: string;
 
     build(): HeaderResult {
         const headers: HeaderResult = {
@@ -71,6 +73,7 @@ export default class Header {
             'fspiop-signature': this.fspiopSignature,
             'fspiop-uri': this.fspiopUri,
             'fspiop-http-method': this.fspiopHttpMethod,
+            'alg': this.algorithm
         };
 
         return headers;

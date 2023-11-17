@@ -41,23 +41,26 @@ import {
     BulkTransferRejectRequestedEvt,
     BulkTransferRejectRequestedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { Constants, Transformer, ValidationdError } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, JwsConfig, Transformer, ValidationdError } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import express from "express";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
+import {ILoginHelper} from "@mojaloop/security-bc-public-types-lib";
 
 export class TransfersBulkRoutes extends BaseRoutes {
 
     constructor(
         configClient: IConfigurationClient,
+        loginHelper: ILoginHelper,
         producerOptions: MLKafkaJsonProducerOptions,
         kafkaTopic: string,
+        jwsConfig: JwsConfig,
         logger: ILogger
     ) {
-        super(configClient, producerOptions, kafkaTopic, logger);
+        super(configClient, loginHelper, producerOptions, kafkaTopic, jwsConfig, logger);
 
         // bind routes
 
@@ -96,6 +99,8 @@ export class TransfersBulkRoutes extends BaseRoutes {
                 });
                 return;
             }
+
+            this._jwsHelper.validate(req.headers, req.body);
 
             const msgPayload: BulkTransferQueryReceivedEvtPayload = {
                 bulkTransferId: bulkTransfersId,
@@ -161,6 +166,8 @@ export class TransfersBulkRoutes extends BaseRoutes {
                 this._validator.currencyAndAmount(individualTransfers[i].transferAmount);
             }
             
+            this._jwsHelper.validate(req.headers, req.body);
+
             const msgPayload: BulkTransferPrepareRequestedEvtPayload = {
                 bulkTransferId: bulkTransferId,
                 bulkQuoteId: bulkQuoteId,
@@ -240,6 +247,8 @@ export class TransfersBulkRoutes extends BaseRoutes {
                 return;
             }
 
+            this._jwsHelper.validate(req.headers, req.body);
+
             const msgPayload: BulkTransferFulfilRequestedEvtPayload = {
                 bulkTransferId: bulkTransferId,
                 completedTimestamp: completedTimestamp,
@@ -295,6 +304,8 @@ export class TransfersBulkRoutes extends BaseRoutes {
                 });
                 return;
             }
+
+            this._jwsHelper.validate(req.headers, req.body);
 
             const msgPayload: BulkTransferRejectRequestedEvtPayload = {
                 bulkTransferId: bulkTransferId,

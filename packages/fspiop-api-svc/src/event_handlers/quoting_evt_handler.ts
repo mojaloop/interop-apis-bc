@@ -67,7 +67,7 @@ import {
     QuoteBCRequiredRequesterParticipantIdMismatchErrorEvent,
     QuoteBCRequiredDestinationParticipantIdMismatchErrorEvent
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { Constants, Enums, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Enums, JwsConfig, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 
@@ -81,9 +81,10 @@ export class QuotingEventHandler extends BaseEventHandler {
             consumerOptions: MLKafkaJsonConsumerOptions,
             producerOptions: MLKafkaJsonProducerOptions,
             kafkaTopics : string[],
-            participantService: IParticipantService
+            participantService: IParticipantService,
+            jwsConfig: JwsConfig
     ) {
-        super(logger, consumerOptions, producerOptions, kafkaTopics, participantService, HandlerNames.Quotes);
+        super(logger, consumerOptions, producerOptions, kafkaTopics, participantService, HandlerNames.Quotes, jwsConfig);
     }
 
     async processMessage (sourceMessage: IMessage) : Promise<void> {
@@ -310,6 +311,10 @@ export class QuotingEventHandler extends BaseEventHandler {
             // Always validate the payload and headers received
             message.validatePayload();
 
+            const transformedPayload = Transformer.transformPayloadQuotingRequestPost(payload);
+
+            clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
+
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
 
@@ -346,6 +351,10 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             // Always validate the payload and headers received
             message.validatePayload();
+
+            const transformedPayload = Transformer.transformPayloadQuotingResponsePut(payload);
+
+            clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
@@ -391,6 +400,10 @@ export class QuotingEventHandler extends BaseEventHandler {
             // Always validate the payload and headers received
             // message.validatePayload();
             
+            const transformedPayload = Transformer.transformPayloadQuotingResponseGet(payload);
+
+            clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
+
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
             urlBuilder.setId(payload.quoteId);
@@ -429,6 +442,10 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             // Always validate the payload and headers received
             message.validatePayload();
+
+            const transformedPayload = Transformer.transformPayloadBulkQuotingResponsePost(payload);
+
+            clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);
@@ -469,6 +486,10 @@ export class QuotingEventHandler extends BaseEventHandler {
             // Always validate the payload and headers received
             message.validatePayload();
 
+            const transformedPayload = Transformer.transformPayloadBulkQuotingResponsePut(payload);
+
+            clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
+
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);
             urlBuilder.setId(payload.bulkQuoteId);
@@ -504,6 +525,10 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             // Always validate the payload and headers received
             // message.validatePayload();
+
+            const transformedPayload = Transformer.transformPayloadBulkQuotingResponsePut(payload);
+
+            clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);

@@ -100,6 +100,7 @@ export const sendRequest = async ({
     builder.setFspiopHttpMethod(headers[FSPIOP_HEADERS_HTTP_METHOD], config);
     builder.setFspiopUri(headers[FSPIOP_HEADERS_URI]);
     builder.setFspiopSignature(headers[FSPIOP_HEADERS_SIGNATURE]);
+    builder.setAlgorithm("RS256");
 
     const transformedHeaders = builder.getResult().build();
 

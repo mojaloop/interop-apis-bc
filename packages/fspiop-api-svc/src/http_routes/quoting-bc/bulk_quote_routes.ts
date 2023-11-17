@@ -32,23 +32,26 @@
 "use strict";
 
 import { BulkQuotePendingReceivedEvt, BulkQuotePendingReceivedEvtPayload, BulkQuoteQueryReceivedEvt, BulkQuoteQueryReceivedEvtPayload, BulkQuoteRequestedEvt, BulkQuoteRequestedEvtPayload, GetBulkQuoteQueryRejectedEvt, GetBulkQuoteQueryRejectedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { Constants, Transformer, ValidationdError } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, JwsConfig, Transformer, ValidationdError } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import express from "express";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
+import {ILoginHelper} from "@mojaloop/security-bc-public-types-lib";
 
 export class QuoteBulkRoutes extends BaseRoutes {
 
     constructor(
         configClient: IConfigurationClient,
+        loginHelper: ILoginHelper,
         producerOptions: MLKafkaJsonProducerOptions,
         kafkaTopic: string,
+        jwsConfig: JwsConfig,
         logger: ILogger
     ) {
-        super(configClient, producerOptions, kafkaTopic, logger);
+        super(configClient, loginHelper, producerOptions, kafkaTopic, jwsConfig, logger);
 
         // bind routes
 
@@ -71,8 +74,9 @@ export class QuoteBulkRoutes extends BaseRoutes {
     }
 
     private async bulkQuoteQueryReceived(req: express.Request, res: express.Response): Promise<void> {
-        this.logger.debug("Got bulkQuoteQueryReceived request");
         try {
+            this.logger.debug("Got bulkQuoteQueryReceived request");
+
             // Headers
             const clonedHeaders = { ...req.headers };
             const bulkQuoteId = req.params["id"] as string || null;
@@ -89,6 +93,8 @@ export class QuoteBulkRoutes extends BaseRoutes {
                 res.status(400).json(transformError);
                 return;
             }
+
+            this._jwsHelper.validate(req.headers, req.body);
 
             const msgPayload: BulkQuoteQueryReceivedEvtPayload = {
                 bulkQuoteId: bulkQuoteId,
@@ -158,6 +164,8 @@ export class QuoteBulkRoutes extends BaseRoutes {
                     this._validator.currencyAndAmount(individualQuotes[i].fees);
                 }
             }
+
+            this._jwsHelper.validate(req.headers, req.body);
 
             const msgPayload: BulkQuoteRequestedEvtPayload = {
                 bulkQuoteId: bulkQuoteId,
@@ -245,6 +253,8 @@ export class QuoteBulkRoutes extends BaseRoutes {
                 }
             }
 
+            this._jwsHelper.validate(req.headers, req.body);
+
             const msgPayload: BulkQuotePendingReceivedEvtPayload = {
                 bulkQuoteId: bulkQuoteId,
                 expiration: expiration,
@@ -310,6 +320,8 @@ export class QuoteBulkRoutes extends BaseRoutes {
                 res.status(400).json(transformError);
                 return;
             }
+
+            this._jwsHelper.validate(req.headers, req.body);
 
             const msgPayload: GetBulkQuoteQueryRejectedEvtPayload = {
                 bulkQuoteId,

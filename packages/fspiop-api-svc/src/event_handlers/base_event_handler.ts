@@ -44,7 +44,7 @@ import {
     TransfersBCOperatorErrorPayload,
     TransfersBCOperatorErrorEvent
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { Constants, Request, Enums, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Request, Enums, Transformer, JwsConfig, FspiopJwsSignature } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 
 export const HandlerNames = {
     AccountLookUp: 'AccountLookUpEventHandler',
@@ -61,6 +61,7 @@ export abstract class BaseEventHandler  {
     protected readonly _kafkaConsumer: MLKafkaJsonConsumer;
     protected readonly _kafkaProducer: MLKafkaJsonProducer;
     protected readonly _handlerName: string;
+    protected _jwsHelper: FspiopJwsSignature;
 
     constructor(
             logger: ILogger,
@@ -68,7 +69,8 @@ export abstract class BaseEventHandler  {
             producerOptions: MLKafkaJsonProducerOptions,
             kafkaTopics : string[],
             participantService: IParticipantService,
-            handlerName: string
+            handlerName: string,
+            jwsConfig: JwsConfig,
     ) {
         this._logger = logger.createChild(this.constructor.name);
         this._consumerOpts = consumerOptions;
@@ -78,6 +80,7 @@ export abstract class BaseEventHandler  {
         this._handlerName = handlerName;
         this._kafkaConsumer = new MLKafkaJsonConsumer(this._consumerOpts, this._logger);
         this._kafkaProducer = new MLKafkaJsonProducer(this._producerOptions);
+        this._jwsHelper = new FspiopJwsSignature(jwsConfig, this._logger); // TODO: convert to a singleton
     }
 
     async init () : Promise<void> {

@@ -83,11 +83,18 @@ import {
     TransferPayerIdMismatchEvt,
     TransferPayeeIdMismatchEvt
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { Constants, Request, Enums, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Request, Enums, Transformer, JwsConfig } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { BaseEventHandler, HandlerNames } from "./base_event_handler";
 import { IParticipantService } from "../interfaces/infrastructure";
 import { TransferFulfilRequestedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { TransferRejectRequestedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { AllowedSigningAlgorithms, JsonWebSignatureHelper } from "@mojaloop/security-bc-client-lib";
+import path from "path";
+import { readFileSync } from "fs";
+import base64url from "base64url";
+const crypto = require("crypto");
+const privKey = path.join(__dirname, "../../dist/privatekey.pem");
+const pubKey = path.join(__dirname, "../../dist/publickey.cer");
 
 export class TransferEventHandler extends BaseEventHandler {
     constructor(
@@ -95,9 +102,10 @@ export class TransferEventHandler extends BaseEventHandler {
             consumerOptions: MLKafkaJsonConsumerOptions,
             producerOptions: MLKafkaJsonProducerOptions,
             kafkaTopics : string[],
-            participantService: IParticipantService
+            participantService: IParticipantService,
+            jwsConfig: JwsConfig
     ) {
-        super(logger, consumerOptions, producerOptions, kafkaTopics, participantService, HandlerNames.Transfers);
+        super(logger, consumerOptions, producerOptions, kafkaTopics, participantService, HandlerNames.Transfers, jwsConfig);
     }
 
     async processMessage (sourceMessage: IMessage) : Promise<void> {
@@ -371,13 +379,17 @@ export class TransferEventHandler extends BaseEventHandler {
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.TRANSFERS);
 
+            const transformedPayload = Transformer.transformPayloadTransferRequestPost(payload);
+
+            clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
+
             await Request.sendRequest({
                 url: urlBuilder.build(),
                 headers: clonedHeaders,
                 source: requesterFspId,
                 destination: destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.POST,
-                payload: Transformer.transformPayloadTransferRequestPost(payload),
+                payload: transformedPayload,
             });
 
             this._logger.info("_handleTransferPreparedEvt -> end");
@@ -409,6 +421,10 @@ export class TransferEventHandler extends BaseEventHandler {
             // Always validate the payload and headers received
             message.validatePayload();
 
+            const transformedPayload = Transformer.transformPayloadTransferRequestPut(payload);
+
+            clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
+
             const urlBuilderPayer = new Request.URLBuilder(requestedEndpointPayer.value);
             urlBuilderPayer.setEntity(Enums.EntityTypeEnum.TRANSFERS);
             urlBuilderPayer.setLocation([payload.transferId]);
@@ -419,7 +435,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 source: requesterFspId,
                 destination: destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadTransferRequestPut(payload),
+                payload: transformedPayload,
             });
 
             if(payload.notifyPayee) {
@@ -433,7 +449,7 @@ export class TransferEventHandler extends BaseEventHandler {
                     source: requesterFspId,
                     destination: destinationFspId,
                     method: Enums.FspiopRequestMethodsEnum.PATCH,
-                    payload: Transformer.transformPayloadTransferRequestPut(payload),
+                    payload: transformedPayload,
                 });
             }
 
@@ -469,6 +485,10 @@ export class TransferEventHandler extends BaseEventHandler {
             // Always validate the payload and headers received
             message.validatePayload();
 
+            const transformedPayload = Transformer.transformPayloadTransferRequestGet(payload);
+
+            clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
+
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.TRANSFERS);
             urlBuilder.setId(payload.transferId);
@@ -493,22 +513,25 @@ export class TransferEventHandler extends BaseEventHandler {
     }
 
     private async _handleBulkTransferPreparedEvt(message: BulkTransferPreparedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
-        const { payload } = message;
-
-        const clonedHeaders = fspiopOpaqueState;
-        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
-
-        // TODO validate vars above
-
-        
         try {
             this._logger.info("_handleBulkTransferPreparedEvt -> start");
+
+            const { payload } = message;
+    
+            const clonedHeaders = fspiopOpaqueState;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+    
+            // TODO validate vars above
            
             const requestedEndpointPayer = await this._validateParticipantAndGetEndpoint(destinationFspId);
     
             // Always validate the payload and headers received
             message.validatePayload();
+
+            const transformedPayload = Transformer.transformPayloadBulkTransferRequestPost(payload);
+
+            clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
 
             const urlBuilderPayer = new Request.URLBuilder(requestedEndpointPayer.value);
             urlBuilderPayer.setEntity(Enums.EntityTypeEnum.BULK_TRANSFERS);
@@ -550,6 +573,10 @@ export class TransferEventHandler extends BaseEventHandler {
     
             // Always validate the payload and headers received
             message.validatePayload();
+
+            const transformedPayload = Transformer.transformPayloadBulkTransferRequestPut(payload);
+
+            clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
 
             const urlBuilderPayer = new Request.URLBuilder(requestedEndpointPayer.value);
             urlBuilderPayer.setEntity(Enums.EntityTypeEnum.BULK_TRANSFERS);
@@ -594,6 +621,10 @@ export class TransferEventHandler extends BaseEventHandler {
 
             // Always validate the payload and headers received
             message.validatePayload();
+
+            const transformedPayload = Transformer.transformPayloadBulkTransferRequestGet(payload);
+
+            clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_TRANSFERS);

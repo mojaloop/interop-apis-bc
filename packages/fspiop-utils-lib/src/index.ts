@@ -35,3 +35,4 @@ export * as Enums from "./enums";
 export * as Transformer from "./transformer";
 export * as Request from "./request";
 export * from "./validator";
+export * from "./jws";

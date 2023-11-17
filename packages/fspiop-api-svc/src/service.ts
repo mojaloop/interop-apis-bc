@@ -30,7 +30,7 @@ optionally within square brackets <email>.
 
 
 "use strict";
-import {existsSync} from "fs";
+import {existsSync, readFileSync} from "fs";
 import {Server} from "http";
 import express, {Express} from "express";
 import {ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
@@ -64,8 +64,11 @@ import { TransfersRoutes } from "./http_routes/transfers-bc/transfers_routes";
 import { IParticipantService } from "./interfaces/infrastructure";
 import {
     AuthenticatedHttpRequester,
+    AuthorizationClient,
+    LoginHelper,
+    TokenHelper
 } from "@mojaloop/security-bc-client-lib";
-import {IAuthenticatedHttpRequester} from "@mojaloop/security-bc-public-types-lib";
+import {IAuthenticatedHttpRequester, IAuthorizationClient, ITokenHelper, ILoginHelper} from "@mojaloop/security-bc-public-types-lib";
 import path from "path";
 import { OpenApiDocument, OpenApiValidator } from "express-openapi-validate";
 import jsYaml from "js-yaml";
@@ -115,18 +118,39 @@ const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecre
 
 const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
 const AUTH_N_SVC_TOKEN_URL = AUTH_N_SVC_BASEURL + "/token"; // TODO this should not be known here, libs that use the base should add the suffix
+const AUTH_N_TOKEN_ISSUER_NAME = process.env["AUTH_N_TOKEN_ISSUER_NAME"] || "mojaloop.vnext.dev.default_issuer";
+const AUTH_N_TOKEN_AUDIENCE = process.env["AUTH_N_TOKEN_AUDIENCE"] || "mojaloop.vnext.dev.default_audience";
+
+const AUTH_N_SVC_JWKS_URL = process.env["AUTH_N_SVC_JWKS_URL"] || `${AUTH_N_SVC_BASEURL}/.well-known/jwks.json`;
 
 const PARTICIPANTS_SVC_URL = process.env["PARTICIPANTS_SVC_URL"] || "http://localhost:3010";
 const PARTICIPANTS_CACHE_TIMEOUT_MS = (process.env["PARTICIPANTS_CACHE_TIMEOUT_MS"] && parseInt(process.env["PARTICIPANTS_CACHE_TIMEOUT_MS"])) || 5*60*1000;
 
+const LOGIN_SVC_BASE_URL = "http://localhost:3201";
+const TOKEN_URL = `${LOGIN_SVC_BASE_URL}/token`;
+
 // this service has more handlers, might take longer than the usual 30 sec
-const SERVICE_START_TIMEOUT_MS = 60_000;
+const SERVICE_START_TIMEOUT_MS = 120_000;
 
 const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
     kafkaBrokerList: KAFKA_URL,
     producerClientId: `${BC_NAME}_${APP_NAME}`,
     skipAcknowledgements: false, // never change this to true without understanding what it does
 };
+
+// JWS Signature
+const privKey = path.join(__dirname, "../dist/privatekey.pem");
+const pubKey = path.join(__dirname, "../dist/publickey.cer");
+const pubKeyCont = readFileSync(pubKey)
+const privKeyCont = readFileSync(privKey)
+
+const jwsConfig = {
+    privateKey: privKeyCont,
+    publicKeys: {
+        "bluebank": pubKeyCont,
+        "greenbank": pubKeyCont
+    }
+}
 
 let globalLogger: ILogger;
 
@@ -158,6 +182,8 @@ export class Service {
     static participantService: IParticipantService;
     static auditClient: IAuditClient;
     static configClient: IConfigurationClient;
+    static tokenHelper: ITokenHelper;
+    static loginHelper: ILoginHelper;
 
     static startupTimer: NodeJS.Timeout;
 
@@ -234,15 +260,25 @@ export class Service {
         }
         this.participantService = participantService;
 
+        // token helper
+        this.tokenHelper = new TokenHelper(AUTH_N_SVC_JWKS_URL, logger, AUTH_N_TOKEN_ISSUER_NAME, AUTH_N_TOKEN_AUDIENCE);
+        await this.tokenHelper.init();
+
+        this.loginHelper = new LoginHelper(TOKEN_URL, logger);
+        await this.loginHelper.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
+
+        // const accessToken = await loginHelper.loginUser(CLIENT_ID, LOGIN_USERNAME, LOGIN_PASSWORD);
+
+
         await Service.setupEventHandlers();
 
         // Create and initialise the http hanlders
-        this.participantRoutes = new ParticipantRoutes(this.configClient, kafkaJsonProducerOptions, AccountLookupBCTopics.DomainEvents, this.logger);
-        this.partyRoutes = new PartyRoutes(this.configClient, kafkaJsonProducerOptions, AccountLookupBCTopics.DomainEvents, this.logger);
-        this.quotesRoutes = new QuoteRoutes(this.configClient, kafkaJsonProducerOptions,  QuotingBCTopics.DomainEvents, this.logger);
-        this.bulkQuotesRoutes = new QuoteBulkRoutes(this.configClient, kafkaJsonProducerOptions, QuotingBCTopics.DomainEvents, this.logger);
-        this.transfersRoutes = new TransfersRoutes(this.configClient, kafkaJsonProducerOptions,  TransfersBCTopics.DomainEvents, this.logger);
-        this.bulkTransfersRoutes = new TransfersBulkRoutes(this.configClient, kafkaJsonProducerOptions, TransfersBCTopics.DomainEvents,this.logger);
+        this.participantRoutes = new ParticipantRoutes(this.configClient, this.loginHelper, kafkaJsonProducerOptions, AccountLookupBCTopics.DomainEvents, jwsConfig, this.logger);
+        this.partyRoutes = new PartyRoutes(this.configClient, this.loginHelper, kafkaJsonProducerOptions, AccountLookupBCTopics.DomainEvents, jwsConfig, this.logger);
+        this.quotesRoutes = new QuoteRoutes(this.configClient, this.loginHelper, kafkaJsonProducerOptions,  QuotingBCTopics.DomainEvents, jwsConfig, this.logger);
+        this.bulkQuotesRoutes = new QuoteBulkRoutes(this.configClient, this.loginHelper, kafkaJsonProducerOptions, QuotingBCTopics.DomainEvents, jwsConfig, this.logger);
+        this.transfersRoutes = new TransfersRoutes(this.configClient, this.loginHelper, kafkaJsonProducerOptions,  TransfersBCTopics.DomainEvents, jwsConfig, this.logger);
+        this.bulkTransfersRoutes = new TransfersBulkRoutes(this.configClient, this.loginHelper, kafkaJsonProducerOptions, TransfersBCTopics.DomainEvents, jwsConfig, this.logger);
 
         await this.participantRoutes.init();
         await this.partyRoutes.init();
@@ -270,7 +306,8 @@ export class Service {
             accountEvtHandlerConsumerOptions,
             kafkaJsonProducerOptions,
             [AccountLookupBCTopics.DomainEvents],
-            this.participantService
+            this.participantService,
+            jwsConfig
         );
         await accountEvtHandler.init();
 
@@ -284,7 +321,8 @@ export class Service {
             quotingEvtHandlerConsumerOptions,
             kafkaJsonProducerOptions,
             [QuotingBCTopics.DomainEvents],
-            this.participantService
+            this.participantService,
+            jwsConfig
         );
         await quotingEvtHandler.init();
 
@@ -298,7 +336,8 @@ export class Service {
             transferEvtHandlerConsumerOptions,
             kafkaJsonProducerOptions,
             [TransfersBCTopics.DomainEvents],
-            this.participantService
+            this.participantService,
+            jwsConfig
         );
         await transferEvtHandler.init();
 
@@ -330,7 +369,7 @@ export class Service {
             const openApiDocument = jsYaml.load(
                 fs.readFileSync(path.join(__dirname, API_SPEC_FILE_PATH), "utf-8"),
             ) as OpenApiDocument;
-            const validator = new OpenApiValidator(openApiDocument);
+            const validator = new OpenApiValidator(openApiDocument); // TODO: find a way to limit currencies on this point
             this.app.use(validator.match());
 
             // hook http handler's routes

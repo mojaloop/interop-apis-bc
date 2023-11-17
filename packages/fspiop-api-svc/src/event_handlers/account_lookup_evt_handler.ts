@@ -60,7 +60,7 @@ import {
     AccountLookupBCRequiredDestinationParticipantIdMismatchErrorEvent,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseEventHandler, HandlerNames } from "./base_event_handler";
-import { Constants, Enums, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Enums, JwsConfig, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 
@@ -74,9 +74,10 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             consumerOptions: MLKafkaJsonConsumerOptions,
             producerOptions: MLKafkaJsonProducerOptions,
             kafkaTopics : string[],
-            participantService: IParticipantService
+            participantService: IParticipantService,
+            jwsConfig: JwsConfig
     ) {
-        super(logger, consumerOptions, producerOptions, kafkaTopics, participantService, HandlerNames.AccountLookUp);
+        super(logger, consumerOptions, producerOptions, kafkaTopics, participantService, HandlerNames.AccountLookUp, jwsConfig);
     }
 
     async processMessage (sourceMessage: IMessage) : Promise<void> {
@@ -279,6 +280,10 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
+            const transformedPayload = Transformer.transformPayloadPartyAssociationPut(payload);
+
+            clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
+
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
             urlBuilder.setLocation([partyType, partyId, partySubType]);
@@ -321,6 +326,10 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             // Always validate the payload and headers received
             message.validatePayload();
 
+            const transformedPayload = Transformer.transformPayloadPartyDisassociationPut(payload);
+
+            clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
+
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
             urlBuilder.setLocation([partyType, partyId, partySubType]);
@@ -345,9 +354,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
     }
 
     private async _handlePartyInfoRequestedEvt(message: PartyInfoRequestedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
-        this._logger.info("_handlePartyInfoRequestedEvt -> start");
-
         try {
+            this._logger.info("_handlePartyInfoRequestedEvt -> start");
 
             const { payload } = message;
 
@@ -368,6 +376,10 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             // Always validate the payload and headers received
             message.validatePayload();
+
+            const transformedPayload = Transformer.transformPayloadPartyInfoRequestedPut(payload);
+
+            clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
 
             if (!clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === "") {
                 clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = destinationFspId;
@@ -419,6 +431,10 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             // Always validate the payload and headers received
             message.validatePayload();
+
+            const transformedPayload = Transformer.transformPayloadPartyInfoReceivedPut(payload);
+
+            clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
 
             if(fspiopOpaqueState) {
                 if (!clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === "") {
@@ -472,6 +488,10 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             // Always validate the payload and headers received
             message.validatePayload();
+
+            const transformedPayload = Transformer.transformPayloadParticipantPut(payload);
+
+            clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);

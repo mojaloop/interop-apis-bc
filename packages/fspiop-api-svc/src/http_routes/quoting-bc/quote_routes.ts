@@ -31,7 +31,7 @@
 
 "use strict";
 
-import { Constants, Transformer, ValidationdError } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, JwsConfig, Transformer, ValidationdError } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { GetQuoteQueryRejectedEvt, GetQuoteQueryRejectedEvtPayload, QuoteQueryReceivedEvt, QuoteQueryReceivedEvtPayload, QuoteRequestReceivedEvt, QuoteRequestReceivedEvtPayload, QuoteResponseReceivedEvt, QuoteResponseReceivedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
@@ -39,16 +39,19 @@ import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import express from "express";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
+import {ILoginHelper} from "@mojaloop/security-bc-public-types-lib";
 
 export class QuoteRoutes extends BaseRoutes {
 
     constructor(
         configClient: IConfigurationClient,
+        loginHelper: ILoginHelper,
         producerOptions: MLKafkaJsonProducerOptions,
         kafkaTopic: string,
+        jwsConfig: JwsConfig,
         logger: ILogger
     ) {
-        super(configClient, producerOptions, kafkaTopic, logger);
+        super(configClient, loginHelper, producerOptions, kafkaTopic, jwsConfig, logger);
 
         // bind routes
 
@@ -104,6 +107,8 @@ export class QuoteRoutes extends BaseRoutes {
             if(fees) {
                 this._validator.currencyAndAmount(fees);
             }
+
+            this._jwsHelper.validate(req.headers, req.body);
 
             const msgPayload: QuoteRequestReceivedEvtPayload = {
                 requesterFspId: requesterFspId,
@@ -205,6 +210,8 @@ export class QuoteRoutes extends BaseRoutes {
                 this._validator.currencyAndAmount(payeeFspFee);
             }
 
+            this._jwsHelper.validate(req.headers, req.body);
+
             const msgPayload: QuoteResponseReceivedEvtPayload = {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId,
@@ -276,6 +283,8 @@ export class QuoteRoutes extends BaseRoutes {
                 return;
             }
 
+            this._jwsHelper.validate(req.headers, req.body);
+
             const msgPayload: QuoteQueryReceivedEvtPayload = {
                 quoteId: quoteId,
             };
@@ -331,6 +340,8 @@ export class QuoteRoutes extends BaseRoutes {
                 res.status(400).json(transformError);
                 return;
             }
+
+            this._jwsHelper.validate(req.headers, req.body);
 
             const msgPayload: GetQuoteQueryRejectedEvtPayload = {
                 quoteId: quoteId,

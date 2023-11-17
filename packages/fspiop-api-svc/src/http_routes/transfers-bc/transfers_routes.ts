@@ -33,7 +33,7 @@
 
 import express from "express";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import { Constants, Transformer, Enums, ValidationdError } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Transformer, Enums, ValidationdError, FspiopJwsSignature, JwsConfig } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {
     TransferPrepareRequestedEvt,
@@ -48,16 +48,28 @@ import {
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
+import { JsonWebSignatureHelper, AllowedSigningAlgorithms } from "@mojaloop/security-bc-client-lib";
+import {ILoginHelper} from "@mojaloop/security-bc-public-types-lib";
+import { readFileSync } from "fs";
+import path from "path";
+const privKey = path.join(__dirname, "../../../dist/privatekey.pem");
+const pubKey = path.join(__dirname, "../../../dist/publickey.cer");
+const crypto = require("crypto");
+ //generate encrypted privateKey
+ import base64url from "base64url";
+
 
 export class TransfersRoutes extends BaseRoutes {    
     
     constructor(
         configClient: IConfigurationClient,
+        loginHelper: ILoginHelper,
         producerOptions: MLKafkaJsonProducerOptions,
         kafkaTopic: string,
+        jwsConfig: JwsConfig,
         logger: ILogger
     ) {
-        super(configClient, producerOptions, kafkaTopic, logger);
+        super(configClient, loginHelper, producerOptions, kafkaTopic, jwsConfig, logger);
         
         // bind routes
 
@@ -113,6 +125,8 @@ export class TransfersRoutes extends BaseRoutes {
 
             this._validator.currencyAndAmount(amount);
             
+            this._jwsHelper.validate(req.headers, req.body);
+
             const msgPayload: TransferPrepareRequestedEvtPayload = {
                 transferId: transferId,
                 payeeFsp: payeeFsp,
@@ -193,6 +207,8 @@ export class TransfersRoutes extends BaseRoutes {
                 return;
             }
 
+            this._jwsHelper.validate(req.headers, req.body);
+
             const msgPayload: TransferFulfilRequestedEvtPayload = {
                 transferId: transferId,
                 transferState: transferState,
@@ -258,6 +274,8 @@ export class TransfersRoutes extends BaseRoutes {
                 return;
             }
 
+            this._jwsHelper.validate(req.headers, req.body);
+
             const msgPayload: TransferRejectRequestedEvtPayload = {
                 transferId: transferId,
                 errorInformation: errorInformation
@@ -315,6 +333,8 @@ export class TransfersRoutes extends BaseRoutes {
                 res.status(400).json(transformError);
                 return;
             }
+
+            this._jwsHelper.validate(req.headers, req.body);
 
             const msgPayload: TransferQueryReceivedEvtPayload = {
                 transferId: transferId,

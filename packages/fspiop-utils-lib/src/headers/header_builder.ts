@@ -138,6 +138,12 @@ export default class HeaderBuilder implements IHeaderBuilder {
         return this;
     }
 
+    setAlgorithm(algorithm: string): this {
+        this.headers.algorithm = algorithm;
+
+        return this;
+    }
+
     getResult(): Header {
         return this.headers;
     }
