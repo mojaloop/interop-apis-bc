@@ -120,7 +120,7 @@ const PARTICIPANTS_SVC_URL = process.env["PARTICIPANTS_SVC_URL"] || "http://loca
 const PARTICIPANTS_CACHE_TIMEOUT_MS = (process.env["PARTICIPANTS_CACHE_TIMEOUT_MS"] && parseInt(process.env["PARTICIPANTS_CACHE_TIMEOUT_MS"])) || 5*60*1000;
 
 // this service has more handlers, might take longer than the usual 30 sec
-const SERVICE_START_TIMEOUT_MS = 60_000;
+const SERVICE_START_TIMEOUT_MS= (process.env["SERVICE_START_TIMEOUT_MS"] && parseInt(process.env["SERVICE_START_TIMEOUT_MS"])) || 90_000;
 
 const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
     kafkaBrokerList: KAFKA_URL,
@@ -199,7 +199,7 @@ export class Service {
             }, this.logger.createChild("configClient.consumer"));
             configProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer);
         }
-        
+
         this.configClient = GetParticipantsConfigs(configProvider, BC_NAME, APP_NAME, APP_VERSION);
         await this.configClient.init();
         await this.configClient.bootstrap(true);
