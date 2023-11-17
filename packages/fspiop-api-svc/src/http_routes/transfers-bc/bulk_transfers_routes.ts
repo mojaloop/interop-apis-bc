@@ -31,7 +31,7 @@
 
 "use strict";
 
-import { 
+import {
     BulkTransferQueryReceivedEvt,
     BulkTransferQueryReceivedEvtPayload,
     BulkTransferPrepareRequestedEvt,
@@ -160,22 +160,22 @@ export class TransfersBulkRoutes extends BaseRoutes {
             for(let i=0 ; i<individualTransfers.length ; i+=1) {
                 this._validator.currencyAndAmount(individualTransfers[i].transferAmount);
             }
-            
+
             const msgPayload: BulkTransferPrepareRequestedEvtPayload = {
                 bulkTransferId: bulkTransferId,
                 bulkQuoteId: bulkQuoteId,
                 payerFsp: payerFsp,
                 payeeFsp: payeeFsp,
                 expiration: expiration,
-                individualTransfers: individualTransfers.map((async (individualTransfer:any) => {
-                    const decodedIlpPacket:any = await this.decodeIlpPacket(individualTransfer.ilpPacket);
+                individualTransfers: individualTransfers.map((individualTransfer:any) => {
+                    const decodedIlpPacket:any = this.decodeIlpPacket(individualTransfer.ilpPacket);
 
                     individualTransfer.payerIdType = decodedIlpPacket.payer.partyIdInfo.partyIdType;
                     individualTransfer.payeeIdType = decodedIlpPacket.payee.partyIdInfo.partyIdType;
                     individualTransfer. transferType = decodedIlpPacket.transactionType.scenario;
 
                     return individualTransfer;
-                })),
+                }),
                 extensionList: extensionList
             };
 
@@ -200,7 +200,7 @@ export class TransfersBulkRoutes extends BaseRoutes {
             res.status(202).json(null);
 
             this.logger.debug("bulkTransfersRequest responded");
-            
+
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
                 res.status(400).json(error.errorInformation);

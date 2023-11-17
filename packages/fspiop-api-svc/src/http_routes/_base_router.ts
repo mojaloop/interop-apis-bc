@@ -42,9 +42,9 @@ export abstract class BaseRoutes {
     private _kafkaProducer: MLKafkaJsonProducer;
     private _kafkaTopic: string;
     private _configClient: IConfigurationClient;
-    
+
     private _router = express.Router();
-    
+
     protected _currencyList: Currency[];
     protected _validator: FspiopValidator;
 
@@ -83,12 +83,13 @@ export abstract class BaseRoutes {
         await this._kafkaProducer.destroy();
     }
 
-    async decodeIlpPacket (base64IlpPacket:string): Promise<object> {
+    // TODO move decodeIlpPacket from the _base_router.ts to the fspiop-utils-lib (static fn)
+    decodeIlpPacket (base64IlpPacket:string): string|null {
         let decodedIlpPacketDataJsonString = null;
         try {
             const ilpPacketBuffer:any = Buffer.from(base64IlpPacket, "base64");
             const decodedIlpPacket:any = deserializeIlpPacket(ilpPacketBuffer);
-            decodedIlpPacketDataJsonString = await JSON.parse(
+            decodedIlpPacketDataJsonString = JSON.parse(
                 Buffer.from(decodedIlpPacket.data.data.toString("utf8"), "base64").toString("utf8")
             );
         } catch (error: unknown) {
