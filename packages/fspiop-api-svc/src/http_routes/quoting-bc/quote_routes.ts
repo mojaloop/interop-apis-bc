@@ -39,16 +39,16 @@ import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import express from "express";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
+import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
 export class QuoteRoutes extends BaseRoutes {
 
     constructor(
         configClient: IConfigurationClient,
-        producerOptions: MLKafkaJsonProducerOptions,
-        kafkaTopic: string,
+        producer: IMessageProducer,
         logger: ILogger
     ) {
-        super(configClient, producerOptions, kafkaTopic, logger);
+        super(configClient, producer, logger);
 
         // bind routes
 
@@ -144,7 +144,7 @@ export class QuoteRoutes extends BaseRoutes {
             res.status(202).json(null);
 
             this.logger.debug("quoteRequestReceived responded");
-            
+
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
                 res.status(400).json(error.errorInformation);
@@ -181,7 +181,7 @@ export class QuoteRoutes extends BaseRoutes {
             const extensionList = req.body["extensionList"] || null;
 
             //TODO: validate ilpPacket
-            
+
             if (!requesterFspId || !quoteId || !transferAmount || !expiration || !ilpPacket || !condition) {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,

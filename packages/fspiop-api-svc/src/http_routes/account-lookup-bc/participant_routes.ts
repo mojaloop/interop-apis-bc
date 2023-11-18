@@ -36,21 +36,21 @@
 import express from "express";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { Constants, Transformer, ValidationdError } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { ParticipantQueryReceivedEvtPayload, ParticipantQueryReceivedEvt, ParticipantDisassociateRequestReceivedEvt, ParticipantDisassociateRequestReceivedEvtPayload, ParticipantAssociationRequestReceivedEvt, ParticipantAssociationRequestReceivedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
+import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
 export class ParticipantRoutes extends BaseRoutes {
 
     constructor(
         configClient: IConfigurationClient,
-        producerOptions: MLKafkaJsonProducerOptions,
-        kafkaTopic: string,
+        producer: IMessageProducer,
         logger: ILogger
     ) {
-        super(configClient, producerOptions, kafkaTopic, logger);
+        super(configClient, producer, logger);
 
         // bind routes
 
@@ -93,8 +93,8 @@ export class ParticipantRoutes extends BaseRoutes {
                 return next();
             }
 
-            if(currency) { 
-                this._validator.currencyAndAmount({ 
+            if(currency) {
+                this._validator.currencyAndAmount({
                     currency: currency,
                     amount: null
                 });
@@ -124,7 +124,7 @@ export class ParticipantRoutes extends BaseRoutes {
             res.status(202).json(null);
 
             this.logger.debug("getParticipantsByTypeAndID responded");
-            
+
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
                 res.status(400).json(error.errorInformation);
@@ -163,8 +163,8 @@ export class ParticipantRoutes extends BaseRoutes {
                 return next();
             }
 
-            if(currency) { 
-                this._validator.currencyAndAmount({ 
+            if(currency) {
+                this._validator.currencyAndAmount({
                     currency: currency,
                     amount: null
                 });
@@ -194,7 +194,7 @@ export class ParticipantRoutes extends BaseRoutes {
             res.status(202).json(null);
 
             this.logger.debug("getParticipantsByTypeAndIDAndSubId responded");
-            
+
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
                 res.status(400).json(error.errorInformation);
@@ -231,8 +231,8 @@ export class ParticipantRoutes extends BaseRoutes {
                 return;
             }
 
-            if(currency) { 
-                this._validator.currencyAndAmount({ 
+            if(currency) {
+                this._validator.currencyAndAmount({
                     currency: currency,
                     amount: null
                 });
@@ -263,7 +263,7 @@ export class ParticipantRoutes extends BaseRoutes {
             res.status(202).json(null);
 
             this.logger.debug("associatePartyByTypeAndId responded");
-            
+
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
                 res.status(400).json(error.errorInformation);
@@ -301,8 +301,8 @@ export class ParticipantRoutes extends BaseRoutes {
                 return;
             }
 
-            if(currency) { 
-                this._validator.currencyAndAmount({ 
+            if(currency) {
+                this._validator.currencyAndAmount({
                     currency: currency,
                     amount: null
                 });
@@ -369,8 +369,8 @@ export class ParticipantRoutes extends BaseRoutes {
                 return;
             }
 
-            if(currency) { 
-                this._validator.currencyAndAmount({ 
+            if(currency) {
+                this._validator.currencyAndAmount({
                     currency: currency,
                     amount: null
                 });
@@ -438,8 +438,8 @@ export class ParticipantRoutes extends BaseRoutes {
                 return;
             }
 
-            if(currency) { 
-                this._validator.currencyAndAmount({ 
+            if(currency) {
+                this._validator.currencyAndAmount({
                     currency: currency,
                     amount: null
                 });

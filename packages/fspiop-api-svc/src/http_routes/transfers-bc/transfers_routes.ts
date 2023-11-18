@@ -48,16 +48,16 @@ import {
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
+import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
 export class TransfersRoutes extends BaseRoutes {
 
     constructor(
         configClient: IConfigurationClient,
-        producerOptions: MLKafkaJsonProducerOptions,
-        kafkaTopic: string,
+        producer: IMessageProducer,
         logger: ILogger
     ) {
-        super(configClient, producerOptions, kafkaTopic, logger);
+        super(configClient, producer, logger);
 
         // bind routes
 

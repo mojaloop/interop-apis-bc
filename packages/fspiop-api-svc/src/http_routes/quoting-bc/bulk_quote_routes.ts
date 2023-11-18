@@ -39,16 +39,16 @@ import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import express from "express";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
+import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
 export class QuoteBulkRoutes extends BaseRoutes {
 
     constructor(
         configClient: IConfigurationClient,
-        producerOptions: MLKafkaJsonProducerOptions,
-        kafkaTopic: string,
+        producer: IMessageProducer,
         logger: ILogger
     ) {
-        super(configClient, producerOptions, kafkaTopic, logger);
+        super(configClient, producer, logger);
 
         // bind routes
 
