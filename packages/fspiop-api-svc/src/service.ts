@@ -47,7 +47,7 @@ import {ParticipantRoutes} from "./http_routes/account-lookup-bc/participant_rou
 import {PartyRoutes} from "./http_routes/account-lookup-bc/party_routes";
 import {
     MLKafkaJsonConsumer,
-    MLKafkaJsonConsumerOptions,
+    MLKafkaJsonConsumerOptions, MLKafkaJsonProducer,
     MLKafkaJsonProducerOptions
 } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { AccountLookupEventHandler } from "./event_handlers/account_lookup_evt_handler";
@@ -81,6 +81,7 @@ import {
     IConfigProvider
 } from "@mojaloop/platform-configuration-bc-client-lib";
 import {GetParticipantsConfigs} from "./configset";
+import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
 const API_SPEC_FILE_PATH = process.env["API_SPEC_FILE_PATH"] || "../dist/api_spec.yaml";
 
@@ -130,7 +131,7 @@ const LOGIN_SVC_BASE_URL = "http://localhost:3201";
 const TOKEN_URL = `${LOGIN_SVC_BASE_URL}/token`;
 
 // this service has more handlers, might take longer than the usual 30 sec
-const SERVICE_START_TIMEOUT_MS = 120_000;
+const SERVICE_START_TIMEOUT_MS= (process.env["SERVICE_START_TIMEOUT_MS"] && parseInt(process.env["SERVICE_START_TIMEOUT_MS"])) || 90_000;
 
 const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
     kafkaBrokerList: KAFKA_URL,
@@ -182,8 +183,7 @@ export class Service {
     static participantService: IParticipantService;
     static auditClient: IAuditClient;
     static configClient: IConfigurationClient;
-    static tokenHelper: ITokenHelper;
-    static loginHelper: ILoginHelper;
+    static producer:IMessageProducer;
 
     static startupTimer: NodeJS.Timeout;
 
@@ -225,7 +225,7 @@ export class Service {
             }, this.logger.createChild("configClient.consumer"));
             configProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer);
         }
-        
+
         this.configClient = GetParticipantsConfigs(configProvider, BC_NAME, APP_NAME, APP_VERSION);
         await this.configClient.init();
         await this.configClient.bootstrap(true);
@@ -273,19 +273,24 @@ export class Service {
         await Service.setupEventHandlers();
 
         // Create and initialise the http hanlders
-        this.participantRoutes = new ParticipantRoutes(this.configClient, this.loginHelper, kafkaJsonProducerOptions, AccountLookupBCTopics.DomainEvents, jwsConfig, this.logger);
-        this.partyRoutes = new PartyRoutes(this.configClient, this.loginHelper, kafkaJsonProducerOptions, AccountLookupBCTopics.DomainEvents, jwsConfig, this.logger);
-        this.quotesRoutes = new QuoteRoutes(this.configClient, this.loginHelper, kafkaJsonProducerOptions,  QuotingBCTopics.DomainEvents, jwsConfig, this.logger);
-        this.bulkQuotesRoutes = new QuoteBulkRoutes(this.configClient, this.loginHelper, kafkaJsonProducerOptions, QuotingBCTopics.DomainEvents, jwsConfig, this.logger);
-        this.transfersRoutes = new TransfersRoutes(this.configClient, this.loginHelper, kafkaJsonProducerOptions,  TransfersBCTopics.DomainEvents, jwsConfig, this.logger);
-        this.bulkTransfersRoutes = new TransfersBulkRoutes(this.configClient, this.loginHelper, kafkaJsonProducerOptions, TransfersBCTopics.DomainEvents, jwsConfig, this.logger);
+        this.producer = new MLKafkaJsonProducer(kafkaJsonProducerOptions);
+        await this.producer.connect();
 
-        await this.participantRoutes.init();
-        await this.partyRoutes.init();
-        await this.quotesRoutes.init();
-        await this.bulkQuotesRoutes.init();
-        await this.transfersRoutes.init();
-        await this.bulkTransfersRoutes.init();
+        this.participantRoutes = new ParticipantRoutes(this.configClient, this.producer, this.logger);
+        this.partyRoutes = new PartyRoutes(this.configClient, this.producer, this.logger);
+        this.quotesRoutes = new QuoteRoutes(this.configClient, this.producer, this.logger);
+        this.bulkQuotesRoutes = new QuoteBulkRoutes(this.configClient, this.producer, this.logger);
+        this.transfersRoutes = new TransfersRoutes(this.configClient, this.producer, this.logger);
+        this.bulkTransfersRoutes = new TransfersBulkRoutes(this.configClient, this.producer, this.logger);
+
+        await Promise.all([
+            this.participantRoutes.init(),
+            this.partyRoutes.init(),
+            this.quotesRoutes.init(),
+            this.bulkQuotesRoutes.init(),
+            this.transfersRoutes.init(),
+            this.bulkTransfersRoutes.init()
+        ]);
 
         await Service.setupExpress();
 
@@ -309,7 +314,6 @@ export class Service {
             this.participantService,
             jwsConfig
         );
-        await accountEvtHandler.init();
 
         const quotingEvtHandlerConsumerOptions: MLKafkaJsonConsumerOptions = {
             kafkaBrokerList: KAFKA_URL,
@@ -324,7 +328,6 @@ export class Service {
             this.participantService,
             jwsConfig
         );
-        await quotingEvtHandler.init();
 
         const transferEvtHandlerConsumerOptions: MLKafkaJsonConsumerOptions = {
             kafkaBrokerList: KAFKA_URL,
@@ -339,8 +342,12 @@ export class Service {
             this.participantService,
             jwsConfig
         );
-        await transferEvtHandler.init();
 
+        await Promise.all([
+            accountEvtHandler.init(),
+            quotingEvtHandler.init(),
+            transferEvtHandler.init()
+        ]);
     }
 
     static async setupExpress(): Promise<void> {
@@ -481,6 +488,9 @@ export class Service {
             await this.expressServer.close();
             // const closeExpress = util.promisify(this.expressServer.close);
             // await closeExpress();
+        }
+        if(this.producer){
+            await this.producer.destroy();
         }
 
         await accountEvtHandler.destroy();

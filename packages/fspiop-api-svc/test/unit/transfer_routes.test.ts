@@ -35,7 +35,7 @@
 
 import express, {Express} from "express";
 import { TransfersRoutes } from "../../src/http_routes/transfers-bc/transfers_routes";
-import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { AccountLookupBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
@@ -45,6 +45,7 @@ import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { Server } from "http";
 import { MemoryConfigClientMock } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
+import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 const packageJSON = require("../../package.json");
 
 const BC_NAME = "interop-apis-bc";
@@ -80,7 +81,8 @@ describe("FSPIOP Routes - Unit Tests Transfer", () => {
     let transferRoutes: TransfersRoutes;
     let logger: ILogger;
     let authTokenUrl: string;
-    
+    let producer:IMessageProducer;
+
     beforeAll(async () => {
         app = express();
         app.use(express.json({
@@ -112,7 +114,10 @@ describe("FSPIOP Routes - Unit Tests Transfer", () => {
 
         configClientMock = new MemoryConfigClientMock(logger, authTokenUrl);
 
-        transferRoutes = new TransfersRoutes(configClientMock, kafkaJsonProducerOptions, AccountLookupBCTopics.DomainEvents, logger);
+        producer = new MLKafkaJsonProducer(kafkaJsonProducerOptions);
+        // await producer.connect();
+
+        transferRoutes = new TransfersRoutes(configClientMock, producer, logger);
         app.use(`/${TRANSFERS_URL_RESOURCE_NAME}`, transferRoutes.router);
 
         let portNum = SVC_DEFAULT_HTTP_PORT;
@@ -131,11 +136,12 @@ describe("FSPIOP Routes - Unit Tests Transfer", () => {
     afterAll(async () => {
         jest.clearAllMocks();
 
+        await producer.destroy();
         await transferRoutes.destroy();
         await expressServer.close()
     });
 
-    
+
     it("should give a bad request calling transferQueryReceived endpoint", async () => {
         // Arrange & Act
         const res = await request(server)
@@ -167,7 +173,7 @@ describe("FSPIOP Routes - Unit Tests Transfer", () => {
             }
         });
     });
-    
+
     it("should give a bad request calling transferPrepareRequested endpoint", async () => {
         // Arrange
         const payload = {
@@ -358,11 +364,11 @@ describe("FSPIOP Routes - Unit Tests Transfer", () => {
             }
         });
     });
-    
+
     it("should give a bad request calling transferRejectRequested endpoint", async () => {
         // Arrange
         const payload = {
-            "errorInformation": { 
+            "errorInformation": {
                 "errorCode": "1234",
                 "errorDescription": "transfer error description"
             }
@@ -387,7 +393,7 @@ describe("FSPIOP Routes - Unit Tests Transfer", () => {
     it("should throw an error on kafka producer calling transferRejectRequested endpoint", async () => {
         // Arrange
         const payload = {
-            "errorInformation": { 
+            "errorInformation": {
                 "errorCode": "1234",
                 "errorDescription": "transfer error description"
             }

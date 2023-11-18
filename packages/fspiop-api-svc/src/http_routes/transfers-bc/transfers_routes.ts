@@ -48,29 +48,17 @@ import {
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
-import { JsonWebSignatureHelper, AllowedSigningAlgorithms } from "@mojaloop/security-bc-client-lib";
-import {ILoginHelper} from "@mojaloop/security-bc-public-types-lib";
-import { readFileSync } from "fs";
-import path from "path";
-const privKey = path.join(__dirname, "../../../dist/privatekey.pem");
-const pubKey = path.join(__dirname, "../../../dist/publickey.cer");
-const crypto = require("crypto");
- //generate encrypted privateKey
- import base64url from "base64url";
+import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
+export class TransfersRoutes extends BaseRoutes {
 
-export class TransfersRoutes extends BaseRoutes {    
-    
     constructor(
         configClient: IConfigurationClient,
-        loginHelper: ILoginHelper,
-        producerOptions: MLKafkaJsonProducerOptions,
-        kafkaTopic: string,
-        jwsConfig: JwsConfig,
+        producer: IMessageProducer,
         logger: ILogger
     ) {
-        super(configClient, loginHelper, producerOptions, kafkaTopic, jwsConfig, logger);
-        
+        super(configClient, producer, logger);
+
         // bind routes
 
         // GET Transfer by ID
@@ -106,8 +94,8 @@ export class TransfersRoutes extends BaseRoutes {
 
             //TODO: validate ilpPacket
 
-            const decodedIlpPacket:any = await this.decodeIlpPacket(ilpPacket);
-            
+            const decodedIlpPacket:any = this.decodeIlpPacket(ilpPacket);
+
             const payerIdType = decodedIlpPacket.payer.partyIdInfo.partyIdType;
             const payeeIdType = decodedIlpPacket.payee.partyIdInfo.partyIdType;
             const transferType = decodedIlpPacket.transactionType.scenario;
@@ -124,8 +112,6 @@ export class TransfersRoutes extends BaseRoutes {
             }
 
             this._validator.currencyAndAmount(amount);
-            
-            this._jwsHelper.validate(req.headers, req.body);
 
             const msgPayload: TransferPrepareRequestedEvtPayload = {
                 transferId: transferId,
@@ -137,7 +123,7 @@ export class TransfersRoutes extends BaseRoutes {
                 condition: condition,
                 expiration: expiration,
                 extensionList: extensionList,
-                payerIdType: payerIdType, 
+                payerIdType: payerIdType,
                 payeeIdType: payeeIdType,
                 transferType: transferType
             };
@@ -145,7 +131,7 @@ export class TransfersRoutes extends BaseRoutes {
             const msg = new TransferPrepareRequestedEvt(msgPayload);
 
             // Since we don't export the types of the body (but we validate them in the entrypoint of the route),
-            // we can use the builtin method of validatePayload of the evt messages to make sure consistency 
+            // we can use the builtin method of validatePayload of the evt messages to make sure consistency
             // is shared between both
             msg.validatePayload();
 
@@ -163,7 +149,7 @@ export class TransfersRoutes extends BaseRoutes {
             res.status(202).json(null);
 
             this.logger.debug("transferPrepareRequested responded");
-            
+
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
                 res.status(400).json(error.errorInformation);
@@ -221,7 +207,7 @@ export class TransfersRoutes extends BaseRoutes {
             const msg = new TransferFulfilRequestedEvt(msgPayload);
 
             // Since we don't export the types of the body (but we validate them in the entrypoint of the route),
-            // we can use the builtin method of validatePayload of the evt messages to make sure consistency 
+            // we can use the builtin method of validatePayload of the evt messages to make sure consistency
             // is shared between both
             msg.validatePayload();
 
@@ -239,7 +225,7 @@ export class TransfersRoutes extends BaseRoutes {
             res.status(200).json(null);
 
             this.logger.debug("transferFulfilRequested responded");
-            
+
         } catch (error: unknown) {
             const transformError = Transformer.transformPayloadError({
                 errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
@@ -284,7 +270,7 @@ export class TransfersRoutes extends BaseRoutes {
             const msg = new TransferRejectRequestedEvt(msgPayload);
 
             // Since we don't export the types of the body (but we validate them in the entrypoint of the route),
-            // we can use the builtin method of validatePayload of the evt messages to make sure consistency 
+            // we can use the builtin method of validatePayload of the evt messages to make sure consistency
             // is shared between both
             msg.validatePayload();
 

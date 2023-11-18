@@ -31,7 +31,7 @@
 
 "use strict";
 
-import { 
+import {
     BulkTransferQueryReceivedEvt,
     BulkTransferQueryReceivedEvtPayload,
     BulkTransferPrepareRequestedEvt,
@@ -48,19 +48,16 @@ import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import express from "express";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
-import {ILoginHelper} from "@mojaloop/security-bc-public-types-lib";
+import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
 export class TransfersBulkRoutes extends BaseRoutes {
 
     constructor(
         configClient: IConfigurationClient,
-        loginHelper: ILoginHelper,
-        producerOptions: MLKafkaJsonProducerOptions,
-        kafkaTopic: string,
-        jwsConfig: JwsConfig,
+        producer: IMessageProducer,
         logger: ILogger
     ) {
-        super(configClient, loginHelper, producerOptions, kafkaTopic, jwsConfig, logger);
+        super(configClient, producer, logger);
 
         // bind routes
 
@@ -165,8 +162,6 @@ export class TransfersBulkRoutes extends BaseRoutes {
             for(let i=0 ; i<individualTransfers.length ; i+=1) {
                 this._validator.currencyAndAmount(individualTransfers[i].transferAmount);
             }
-            
-            this._jwsHelper.validate(req.headers, req.body);
 
             const msgPayload: BulkTransferPrepareRequestedEvtPayload = {
                 bulkTransferId: bulkTransferId,
@@ -174,15 +169,15 @@ export class TransfersBulkRoutes extends BaseRoutes {
                 payerFsp: payerFsp,
                 payeeFsp: payeeFsp,
                 expiration: expiration,
-                individualTransfers: individualTransfers.map((async (individualTransfer:any) => {
-                    const decodedIlpPacket:any = await this.decodeIlpPacket(individualTransfer.ilpPacket);
+                individualTransfers: individualTransfers.map((individualTransfer:any) => {
+                    const decodedIlpPacket:any = this.decodeIlpPacket(individualTransfer.ilpPacket);
 
                     individualTransfer.payerIdType = decodedIlpPacket.payer.partyIdInfo.partyIdType;
                     individualTransfer.payeeIdType = decodedIlpPacket.payee.partyIdInfo.partyIdType;
                     individualTransfer. transferType = decodedIlpPacket.transactionType.scenario;
 
                     return individualTransfer;
-                })),
+                }),
                 extensionList: extensionList
             };
 
@@ -207,7 +202,7 @@ export class TransfersBulkRoutes extends BaseRoutes {
             res.status(202).json(null);
 
             this.logger.debug("bulkTransfersRequest responded");
-            
+
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
                 res.status(400).json(error.errorInformation);

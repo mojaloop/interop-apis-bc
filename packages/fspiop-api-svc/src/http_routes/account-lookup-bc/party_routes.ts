@@ -49,19 +49,16 @@ import {
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
-import {ILoginHelper} from "@mojaloop/security-bc-public-types-lib";
+import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
 export class PartyRoutes extends BaseRoutes {
 
     constructor(
         configClient: IConfigurationClient,
-        loginHelper: ILoginHelper,
-        producerOptions: MLKafkaJsonProducerOptions,
-        kafkaTopic: string,
-        jwsConfig: JwsConfig,
+        producer: IMessageProducer,
         logger: ILogger
     ) {
-        super(configClient, loginHelper, producerOptions, kafkaTopic, jwsConfig, logger);
+        super(configClient, producer, logger);
 
         // bind routes
 
@@ -103,8 +100,8 @@ export class PartyRoutes extends BaseRoutes {
                 return;
             }
 
-            if(currency) { 
-                this._validator.currencyAndAmount({ 
+            if(currency) {
+                this._validator.currencyAndAmount({
                     currency: currency,
                     amount: null
                 });
@@ -177,13 +174,13 @@ export class PartyRoutes extends BaseRoutes {
                 return;
             }
 
-            if(currency) { 
-                this._validator.currencyAndAmount({ 
+            if(currency) {
+                this._validator.currencyAndAmount({
                     currency: currency,
                     amount: null
                 });
             }
-            
+
             const msgPayload: PartyQueryReceivedEvtPayload = {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId,
@@ -254,13 +251,13 @@ export class PartyRoutes extends BaseRoutes {
                 return;
             }
 
-            if(currency) { 
-                this._validator.currencyAndAmount({ 
+            if(currency) {
+                this._validator.currencyAndAmount({
                     currency: currency,
                     amount: null
                 });
             }
-            
+
             const msgPayload: PartyInfoAvailableEvtPayload = {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId,
@@ -340,8 +337,8 @@ export class PartyRoutes extends BaseRoutes {
                 return;
             }
 
-            if(currency) { 
-                this._validator.currencyAndAmount({ 
+            if(currency) {
+                this._validator.currencyAndAmount({
                     currency: currency,
                     amount: null
                 });
@@ -421,8 +418,8 @@ export class PartyRoutes extends BaseRoutes {
                 return;
             }
 
-            if(currency) { 
-                this._validator.currencyAndAmount({ 
+            if(currency) {
+                this._validator.currencyAndAmount({
                     currency: currency,
                     amount: null
                 });
@@ -498,8 +495,8 @@ export class PartyRoutes extends BaseRoutes {
                 return;
             }
 
-            if(currency) { 
-                this._validator.currencyAndAmount({ 
+            if(currency) {
+                this._validator.currencyAndAmount({
                     currency: currency,
                     amount: null
                 });

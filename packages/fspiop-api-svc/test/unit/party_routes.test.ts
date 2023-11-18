@@ -35,7 +35,7 @@
 
 import express, {Express} from "express";
 import { PartyRoutes } from "../../src/http_routes/account-lookup-bc/party_routes";
-import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { AccountLookupBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
@@ -44,6 +44,7 @@ import { MemoryConfigClientMock, getHeaders } from "@mojaloop/interop-apis-bc-sh
 import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { Server } from "http";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
+import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 const packageJSON = require("../../package.json");
 
 const BC_NAME = "interop-apis-bc";
@@ -79,6 +80,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
     let partyRoutes: PartyRoutes;
     let logger: ILogger;
     let authTokenUrl: string;
+    let producer:IMessageProducer;
 
     beforeAll(async () => {
         app = express();
@@ -108,8 +110,11 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
         );
         authTokenUrl = "mocked_auth_url";
         configClientMock = new MemoryConfigClientMock(logger, authTokenUrl);
-        
-        partyRoutes = new PartyRoutes(configClientMock, kafkaJsonProducerOptions, AccountLookupBCTopics.DomainEvents, logger);
+
+        producer = new MLKafkaJsonProducer(kafkaJsonProducerOptions);
+        // await producer.connect();
+
+        partyRoutes = new PartyRoutes(configClientMock, producer, logger);
         app.use(`/${PARTIES_URL_RESOURCE_NAME}`, partyRoutes.router);
 
         let portNum = SVC_DEFAULT_HTTP_PORT;
@@ -128,11 +133,12 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
     afterAll(async () => {
         jest.clearAllMocks();
 
+        await producer.destroy();
         await partyRoutes.destroy();
         await expressServer.close()
     });
 
-    
+
     it("should give a bad request calling getPartyQueryReceivedByTypeAndId endpoint", async () => {
         // Arrange & Act
         const res = await request(server)
@@ -141,7 +147,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
 
         // Assert
         expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual({"errorInformation": 
+        expect(res.body).toStrictEqual({"errorInformation":
             {
                 "errorCode": "3101",
                 "errorDescription": "Malformed syntax"
@@ -152,7 +158,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
     it("should give a bad request due to currency code not allowed calling getPartyQueryReceivedByTypeAndId endpoint", async () => {
         // Arrange
         const currency = "AED";
-        
+
         // Act
         const res = await request(server)
         .get(`${pathWithoutSubType}?currency=${currency}`)
@@ -210,7 +216,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
 
         // Assert
         expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual({"errorInformation": 
+        expect(res.body).toStrictEqual({"errorInformation":
             {
                 "errorCode": "3101",
                 "errorDescription": "Malformed syntax"
@@ -221,7 +227,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
     it("should give a bad request due to currency code not allowed calling getPartyQueryReceivedByTypeAndIdSubId endpoint", async () => {
         // Arrange
         const currency = "AED";
-        
+
         // Act
         const res = await request(server)
         .get(`${pathWithSubType}?currency=${currency}`)
@@ -292,7 +298,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
                 "name": "John"
             }
         };
-        
+
         // Act
         const res = await request(server)
         .put(pathWithoutSubType)
@@ -301,7 +307,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
 
         // Assert
         expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual({"errorInformation": 
+        expect(res.body).toStrictEqual({"errorInformation":
             {
                 "errorCode": "3101",
                 "errorDescription": "Malformed syntax"
@@ -331,7 +337,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
                 "name": "John"
             }
         };
-        
+
         // Act
         const res = await request(server)
         .get(`${pathWithoutSubType}?currency=${currency}`)
@@ -387,7 +393,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
                 "name": "John"
             }
         };
-        
+
         // Act
         const res = await request(server)
         .put(pathWithoutSubType)
@@ -403,7 +409,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
             }
         });
     });
-    
+
     it("should give a bad request calling getPartyInfoAvailableByTypeAndIdAndSubId endpoint", async () => {
         // Arrange
         const payload = {
@@ -425,7 +431,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
                 "name": "John"
             }
         };
-        
+
         // Act
         const res = await request(server)
         .put(pathWithSubType)
@@ -434,7 +440,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
 
         // Assert
         expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual({"errorInformation": 
+        expect(res.body).toStrictEqual({"errorInformation":
             {
                 "errorCode": "3101",
                 "errorDescription": "Malformed syntax"
@@ -442,7 +448,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
         });
     });
 
-    
+
     it("should give a bad request due to currency code not allowed calling getPartyInfoAvailableByTypeAndIdAndSubId endpoint", async () => {
         // Arrange
         const currency = "AED";
@@ -465,7 +471,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
                 "name": "John"
             }
         };
-        
+
         // Act
         const res = await request(server)
         .get(`${pathWithSubType}?currency=${currency}`)
@@ -521,7 +527,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
                 "name": "John"
             }
         };
-        
+
         // Act
         const res = await request(server)
         .put(pathWithoutSubType)
@@ -541,12 +547,12 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
     it("should give a bad request calling getPartyByTypeAndIdQueryReject endpoint", async () => {
         // Arrange
         const payload = {
-            "errorInformation": { 
+            "errorInformation": {
                 "errorCode": "1234",
                 "errorDescription": "get party by id error description"
             }
         };
-        
+
         // Act
         await partyRoutes.init();
 
@@ -557,24 +563,24 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
 
         // Assert
         expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual({"errorInformation": 
+        expect(res.body).toStrictEqual({"errorInformation":
             {
                 "errorCode": "3101",
                 "errorDescription": "Malformed syntax"
             }
         });
     });
-    
+
     it("should give a bad request due to currency code not allowed calling getPartyByTypeAndIdQueryReject endpoint", async () => {
         // Arrange
         const currency = "AED";
         const payload = {
-            "errorInformation": { 
+            "errorInformation": {
                 "errorCode": "1234",
                 "errorDescription": "get party by id error description"
             }
         };
-        
+
         // Act
         const res = await request(server)
         .put(`${pathWithoutSubType}"/error?currency=${currency}`)
@@ -612,12 +618,12 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
     it("should throw an error on kafka producer calling getPartyByTypeAndIdQueryReject endpoint", async () => {
         // Arrange
         const payload = {
-            "errorInformation": { 
+            "errorInformation": {
                 "errorCode": "1234",
                 "errorDescription": "get party by id error description"
             }
         };
-        
+
         // Act
         const res = await request(server)
         .put(pathWithoutSubType + "/error")
@@ -637,12 +643,12 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
     it("should give a bad request calling getPartyByTypeAndIdAndSubIdQueryReject endpoint", async () => {
         // Arrange
         const payload = {
-            "errorInformation": { 
+            "errorInformation": {
                 "errorCode": "1234",
                 "errorDescription": "get party by id and subId error description"
             }
         };
-        
+
         // Act
         await partyRoutes.init();
 
@@ -653,7 +659,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
 
         // Assert
         expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual({"errorInformation": 
+        expect(res.body).toStrictEqual({"errorInformation":
             {
                 "errorCode": "3101",
                 "errorDescription": "Malformed syntax"
@@ -665,12 +671,12 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
         // Arrange
         const currency = "AED";
         const payload = {
-            "errorInformation": { 
+            "errorInformation": {
                 "errorCode": "1234",
                 "errorDescription": "get party by id error description"
             }
         };
-        
+
         // Act
         const res = await request(server)
         .put(`${pathWithSubType}"/error?currency=${currency}`)
@@ -708,12 +714,12 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
     it("should throw an error on kafka producer calling getPartyByTypeAndIdQueryReject endpoint", async () => {
         // Arrange
         const payload = {
-            "errorInformation": { 
+            "errorInformation": {
                 "errorCode": "1234",
                 "errorDescription": "get party by id error description"
             }
         };
-        
+
         // Act
         const res = await request(server)
         .put(pathWithSubType + "/error")
