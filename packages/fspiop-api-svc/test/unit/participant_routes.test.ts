@@ -36,7 +36,7 @@
 import express, {Express} from "express";
 import { ParticipantRoutes } from "../../src/http_routes/account-lookup-bc/participant_routes";
 import { BaseRoutes } from "../../src/http_routes/_base_router";
-import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { AccountLookupBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
@@ -45,6 +45,7 @@ import { MemoryConfigClientMock, getHeaders } from "@mojaloop/interop-apis-bc-sh
 import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { Server } from "http";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
+import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 const packageJSON = require("../../package.json");
 
 const BC_NAME = "interop-apis-bc";
@@ -80,6 +81,7 @@ describe("FSPIOP Routes - Participant", () => {
     let participantRoutes: ParticipantRoutes;
     let logger: ILogger;
     let authTokenUrl: string;
+    let producer:IMessageProducer;
 
     beforeAll(async () => {
         app = express();
@@ -109,8 +111,11 @@ describe("FSPIOP Routes - Participant", () => {
         );
         authTokenUrl = "mocked_auth_url";
         configClientMock = new MemoryConfigClientMock(logger, authTokenUrl);
-        
-        participantRoutes = new ParticipantRoutes(configClientMock, kafkaJsonProducerOptions, AccountLookupBCTopics.DomainEvents, logger);
+
+        producer = new MLKafkaJsonProducer(kafkaJsonProducerOptions);
+        // await producer.connect();
+
+        participantRoutes = new ParticipantRoutes(configClientMock, producer, logger);
         app.use(`/${PARTICIPANTS_URL_RESOURCE_NAME}`, participantRoutes.router);
 
         let portNum = SVC_DEFAULT_HTTP_PORT;
@@ -128,18 +133,19 @@ describe("FSPIOP Routes - Participant", () => {
 
     afterAll(async () => {
         jest.clearAllMocks();
+        await producer.destroy();
         await participantRoutes.destroy();
 
         await expressServer.close()
     });
 
-    
+
     it("should give a bad request calling getParticipantsByTypeAndID endpoint", async () => {
         // Arrange
         const payload = {
             "fspId": "test-fsp-id"
         };
-        
+
         // Act
         await participantRoutes.init();
 
@@ -149,7 +155,7 @@ describe("FSPIOP Routes - Participant", () => {
 
         // Assert
         expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual({"errorInformation": 
+        expect(res.body).toStrictEqual({"errorInformation":
             {
                 "errorCode": "3101",
                 "errorDescription": "Malformed syntax"
@@ -160,7 +166,7 @@ describe("FSPIOP Routes - Participant", () => {
     it("should give a bad request due to currency code not allowed calling getParticipantsByTypeAndID endpoint", async () => {
         // Arrange
         const currency = "AED";
-        
+
         // Act
         await participantRoutes.init();
 
@@ -195,13 +201,13 @@ describe("FSPIOP Routes - Participant", () => {
             }
         });
     });
-    
+
     it("should throw an error on kafka producer calling getParticipantsByTypeAndID endpoint", async () => {
         // Arrange
         const payload = {
             "fspId": "test-fsp-id"
         };
-        
+
         // Act
         const res = await request(server)
         .get(pathWithoutSubType)
@@ -222,7 +228,7 @@ describe("FSPIOP Routes - Participant", () => {
         const payload = {
             "fspId": "test-fsp-id"
         };
-        
+
         // Act
         await participantRoutes.init();
 
@@ -232,7 +238,7 @@ describe("FSPIOP Routes - Participant", () => {
 
         // Assert
         expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual({"errorInformation": 
+        expect(res.body).toStrictEqual({"errorInformation":
             {
                 "errorCode": "3101",
                 "errorDescription": "Malformed syntax"
@@ -243,7 +249,7 @@ describe("FSPIOP Routes - Participant", () => {
     it("should give a bad request due to currency code not allowed calling getParticipantsByTypeAndIDAndSubId endpoint", async () => {
         // Arrange
         const currency = "AED";
-        
+
         // Act
         await participantRoutes.init();
 
@@ -278,13 +284,13 @@ describe("FSPIOP Routes - Participant", () => {
             }
         });
     });
-    
+
     it("should throw an error on kafka producer calling getParticipantsByTypeAndIDAndSubId endpoint", async () => {
         // Arrange
         const payload = {
             "fspId": "test-fsp-id"
         };
-        
+
         // Act
         const res = await request(server)
         .get(pathWithSubType)
@@ -305,7 +311,7 @@ describe("FSPIOP Routes - Participant", () => {
         const payload = {
             "fspId": "test-fsp-id"
         };
-        
+
         // Act
         await participantRoutes.init();
 
@@ -316,7 +322,7 @@ describe("FSPIOP Routes - Participant", () => {
 
         // Assert
         expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual({"errorInformation": 
+        expect(res.body).toStrictEqual({"errorInformation":
             {
                 "errorCode": "3101",
                 "errorDescription": "Malformed syntax"
@@ -324,14 +330,14 @@ describe("FSPIOP Routes - Participant", () => {
         });
     });
 
-    
+
     it("should give a bad request due to currency code not allowed calling associatePartyByTypeAndId endpoint", async () => {
         // Arrange
         const currency = "AED";
         const payload = {
             "fspId": "test-fsp-id"
         };
-        
+
         // Act
         await participantRoutes.init();
 
@@ -367,14 +373,14 @@ describe("FSPIOP Routes - Participant", () => {
             }
         });
     });
-    
-    
+
+
     it("should throw an error on kafka producer calling associatePartyByTypeAndId endpoint", async () => {
         // Arrange
         const payload = {
             "fspId": "test-fsp-id"
         };
-        
+
         // Act
         const res = await request(server)
         .post(pathWithoutSubType)
@@ -396,7 +402,7 @@ describe("FSPIOP Routes - Participant", () => {
         const payload = {
             "fspId": "test-fsp-id"
         };
-        
+
         // Act
         await participantRoutes.init();
 
@@ -407,7 +413,7 @@ describe("FSPIOP Routes - Participant", () => {
 
         // Assert
         expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual({"errorInformation": 
+        expect(res.body).toStrictEqual({"errorInformation":
             {
                 "errorCode": "3101",
                 "errorDescription": "Malformed syntax"
@@ -421,7 +427,7 @@ describe("FSPIOP Routes - Participant", () => {
         const payload = {
             "fspId": "test-fsp-id"
         };
-        
+
         // Act
         await participantRoutes.init();
 
@@ -457,13 +463,13 @@ describe("FSPIOP Routes - Participant", () => {
             }
         });
     });
-    
+
     it("should throw an error on kafka producer calling associatePartyByTypeAndIdAndSubId endpoint", async () => {
         // Arrange
         const payload = {
             "fspId": "test-fsp-id"
         };
-        
+
         // Act
         const res = await request(server)
         .post(pathWithSubType)
@@ -490,7 +496,7 @@ describe("FSPIOP Routes - Participant", () => {
 
         // Assert
         expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual({"errorInformation": 
+        expect(res.body).toStrictEqual({"errorInformation":
             {
                 "errorCode": "3101",
                 "errorDescription": "Malformed syntax"
@@ -513,7 +519,7 @@ describe("FSPIOP Routes - Participant", () => {
             }
         });
     });
-    
+
     it("should give a bad request calling disassociatePartyByTypeAndIdAndSubId endpoint", async () => {
         // Arrange & Act
         await participantRoutes.init();
@@ -524,7 +530,7 @@ describe("FSPIOP Routes - Participant", () => {
 
         // Assert
         expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual({"errorInformation": 
+        expect(res.body).toStrictEqual({"errorInformation":
             {
                 "errorCode": "3101",
                 "errorDescription": "Malformed syntax"
@@ -535,7 +541,7 @@ describe("FSPIOP Routes - Participant", () => {
     it("should give a bad request due to currency code not allowed calling disassociatePartyByTypeAndIdAndSubId endpoint", async () => {
         // Arrange
         const currency = "AED";
-          
+
         // Act
         await participantRoutes.init();
 

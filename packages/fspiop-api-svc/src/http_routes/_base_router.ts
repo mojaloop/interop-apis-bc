@@ -70,11 +70,11 @@ export abstract class BaseRoutes {
     }
 
     async init(): Promise<void>{
-
+        return Promise.resolve();
     }
 
     async destroy(): Promise<void>{
-
+        return Promise.resolve();
     }
 
     // TODO move decodeIlpPacket from the _base_router.ts to the fspiop-utils-lib (static fn)

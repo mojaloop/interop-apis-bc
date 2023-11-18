@@ -35,7 +35,7 @@
 
 import express, {Express} from "express";
 import { QuoteBulkRoutes } from "../../src/http_routes/quoting-bc/bulk_quote_routes";
-import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { AccountLookupBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
@@ -44,6 +44,7 @@ import { MemoryConfigClientMock, getHeaders } from "@mojaloop/interop-apis-bc-sh
 import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { Server } from "http";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
+import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 const packageJSON = require("../../package.json");
 
 const BC_NAME = "interop-apis-bc";
@@ -79,6 +80,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
     let bulkQuoteRoutes: QuoteBulkRoutes;
     let logger: ILogger;
     let authTokenUrl: string;
+    let producer:IMessageProducer;
 
     beforeAll(async () => {
         app = express();
@@ -109,7 +111,10 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         authTokenUrl = "mocked_auth_url";
         configClientMock = new MemoryConfigClientMock(logger, authTokenUrl);
 
-        bulkQuoteRoutes = new QuoteBulkRoutes(configClientMock, kafkaJsonProducerOptions, AccountLookupBCTopics.DomainEvents, logger);
+        producer = new MLKafkaJsonProducer(kafkaJsonProducerOptions);
+        // await producer.connect();
+
+        bulkQuoteRoutes = new QuoteBulkRoutes(configClientMock, producer, logger);
         app.use(`/${BULK_QUOTES_URL_RESOURCE_NAME}`, bulkQuoteRoutes.router);
 
         let portNum = SVC_DEFAULT_HTTP_PORT;
@@ -128,11 +133,12 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
     afterAll(async () => {
         jest.clearAllMocks();
 
+        await producer.destroy();
         await bulkQuoteRoutes.destroy();
         await expressServer.close()
     });
 
-    
+
     it("should give a bad request calling bulkQuoteQueryReceived endpoint", async () => {
         // Arrange & Act
         const res = await request(server)
@@ -164,7 +170,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
             }
         });
     });
-    
+
     it("should give a bad request calling bulkQuoteRequest endpoint", async () => {
         // Arrange
         const payload = {
@@ -557,7 +563,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
             }
         });
     });
-    
+
     it("should give a bad request due to currency code not allowing decimals points length calling bulkQuotePending endpoint", async () => {
         // Arrange
         const payload = {
@@ -620,7 +626,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
             }
         });
     });
-    
+
     it("should throw an error on kafka producer calling bulkQuotePending endpoint", async () => {
         // Arrange
         const payload = {
@@ -682,11 +688,11 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
             }
         });
     });
-    
+
     it("should give a bad request calling bulkQuoteRejectRequest endpoint", async () => {
         // Arrange
         const payload = {
-            "errorInformation": { 
+            "errorInformation": {
                 "errorCode": "1234",
                 "errorDescription": "quote error description"
             }
@@ -711,7 +717,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
     it("should throw an error on kafka producer calling bulkQuoteRejectRequest endpoint", async () => {
         // Arrange
         const payload = {
-            "errorInformation": { 
+            "errorInformation": {
                 "errorCode": "1234",
                 "errorDescription": "quote error description"
             }

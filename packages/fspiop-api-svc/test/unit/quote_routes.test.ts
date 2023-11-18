@@ -35,7 +35,7 @@
 
 import express, {Express} from "express";
 import { QuoteRoutes } from "../../src/http_routes/quoting-bc/quote_routes";
-import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { AccountLookupBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
@@ -44,6 +44,7 @@ import { MemoryConfigClientMock, getHeaders } from "@mojaloop/interop-apis-bc-sh
 import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { Server } from "http";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
+import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 const packageJSON = require("../../package.json");
 
 const BC_NAME = "interop-apis-bc";
@@ -79,6 +80,7 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
     let quoteRoutes: QuoteRoutes;
     let logger: ILogger;
     let authTokenUrl: string;
+    let producer:IMessageProducer;
 
     beforeAll(async () => {
         app = express();
@@ -108,8 +110,11 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
         );
         authTokenUrl = "mocked_auth_url";
         configClientMock = new MemoryConfigClientMock(logger, authTokenUrl);
-        
-        quoteRoutes = new QuoteRoutes(configClientMock, kafkaJsonProducerOptions, AccountLookupBCTopics.DomainEvents, logger);
+
+        producer = new MLKafkaJsonProducer(kafkaJsonProducerOptions);
+        // await producer.connect();
+
+        quoteRoutes = new QuoteRoutes(configClientMock, producer, logger);
         app.use(`/${QUOTES_URL_RESOURCE_NAME}`, quoteRoutes.router);
 
         let portNum = SVC_DEFAULT_HTTP_PORT;
@@ -128,11 +133,12 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
     afterAll(async () => {
         jest.clearAllMocks();
 
+        await producer.destroy();
         await quoteRoutes.destroy();
         await expressServer.close()
     });
 
-    
+
     it("should give a bad request calling quoteQueryReceived endpoint", async () => {
         // Arrange & Act
         const res = await request(server)
@@ -164,7 +170,7 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
             }
         });
     });
-    
+
     it("should give a bad request calling quoteRequestReceived endpoint", async () => {
         // Arrange
         const payload = {
@@ -211,7 +217,7 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
             }
         });
     });
-    
+
     it("should give a bad request due to currency code not allowed calling quoteRequestReceived endpoint", async () => {
         // Arrange
         const payload = {
@@ -477,7 +483,7 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
             }
         });
     });
-    
+
     it("should give a bad request due to currency code not allowing decimals points length calling quoteResponseReceived endpoint", async () => {
         // Arrange
         const payload = {
@@ -566,11 +572,11 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
             }
         });
     });
-    
+
     it("should give a bad request calling quoteRejectRequest endpoint", async () => {
         // Arrange
         const payload = {
-            "errorInformation": { 
+            "errorInformation": {
                 "errorCode": "1234",
                 "errorDescription": "quote error description"
             }
@@ -595,7 +601,7 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
     it("should throw an error on kafka producer calling quoteRejectRequest endpoint", async () => {
         // Arrange
         const payload = {
-            "errorInformation": { 
+            "errorInformation": {
                 "errorCode": "1234",
                 "errorDescription": "quote error description"
             }
