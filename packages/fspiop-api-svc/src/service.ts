@@ -131,7 +131,7 @@ const LOGIN_SVC_BASE_URL = "http://localhost:3201";
 const TOKEN_URL = `${LOGIN_SVC_BASE_URL}/token`;
 
 // this service has more handlers, might take longer than the usual 30 sec
-const SERVICE_START_TIMEOUT_MS= (process.env["SERVICE_START_TIMEOUT_MS"] && parseInt(process.env["SERVICE_START_TIMEOUT_MS"])) || 90_000;
+const SERVICE_START_TIMEOUT_MS= (process.env["SERVICE_START_TIMEOUT_MS"] && parseInt(process.env["SERVICE_START_TIMEOUT_MS"])) || 120_000;
 
 const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
     kafkaBrokerList: KAFKA_URL,
@@ -260,28 +260,18 @@ export class Service {
         }
         this.participantService = participantService;
 
-        // token helper
-        this.tokenHelper = new TokenHelper(AUTH_N_SVC_JWKS_URL, logger, AUTH_N_TOKEN_ISSUER_NAME, AUTH_N_TOKEN_AUDIENCE);
-        await this.tokenHelper.init();
-
-        this.loginHelper = new LoginHelper(TOKEN_URL, logger);
-        await this.loginHelper.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
-
-        // const accessToken = await loginHelper.loginUser(CLIENT_ID, LOGIN_USERNAME, LOGIN_PASSWORD);
-
-
         await Service.setupEventHandlers();
 
         // Create and initialise the http hanlders
         this.producer = new MLKafkaJsonProducer(kafkaJsonProducerOptions);
         await this.producer.connect();
 
-        this.participantRoutes = new ParticipantRoutes(this.configClient, this.producer, this.logger);
-        this.partyRoutes = new PartyRoutes(this.configClient, this.producer, this.logger);
-        this.quotesRoutes = new QuoteRoutes(this.configClient, this.producer, this.logger);
-        this.bulkQuotesRoutes = new QuoteBulkRoutes(this.configClient, this.producer, this.logger);
-        this.transfersRoutes = new TransfersRoutes(this.configClient, this.producer, this.logger);
-        this.bulkTransfersRoutes = new TransfersBulkRoutes(this.configClient, this.producer, this.logger);
+        this.participantRoutes = new ParticipantRoutes(this.configClient, this.producer, jwsConfig, this.logger);
+        this.partyRoutes = new PartyRoutes(this.configClient, this.producer, jwsConfig, this.logger);
+        this.quotesRoutes = new QuoteRoutes(this.configClient, this.producer, jwsConfig, this.logger);
+        this.bulkQuotesRoutes = new QuoteBulkRoutes(this.configClient, this.producer, jwsConfig, this.logger);
+        this.transfersRoutes = new TransfersRoutes(this.configClient, this.producer, jwsConfig, this.logger);
+        this.bulkTransfersRoutes = new TransfersBulkRoutes(this.configClient, this.producer, jwsConfig, this.logger);
 
         await Promise.all([
             this.participantRoutes.init(),

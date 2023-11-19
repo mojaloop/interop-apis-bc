@@ -56,9 +56,10 @@ export class PartyRoutes extends BaseRoutes {
     constructor(
         configClient: IConfigurationClient,
         producer: IMessageProducer,
+        jwsConfig: JwsConfig,
         logger: ILogger
     ) {
-        super(configClient, producer, logger);
+        super(configClient, producer, jwsConfig, logger);
 
         // bind routes
 

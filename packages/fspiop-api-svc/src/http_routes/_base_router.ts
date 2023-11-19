@@ -34,7 +34,7 @@ import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { deserializeIlpPacket } from 'ilp-packet';
 import {Currency, IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
-import { FspiopValidator } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { FspiopJwsSignature, FspiopValidator, JwsConfig } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
 export abstract class BaseRoutes {
@@ -44,17 +44,20 @@ export abstract class BaseRoutes {
     private _router = express.Router();
     protected _currencyList: Currency[];
     protected _validator: FspiopValidator;
+    protected _jwsHelper: FspiopJwsSignature;
 
     constructor(
         configClient: IConfigurationClient,
         producer: IMessageProducer,
+        jwsConfig: JwsConfig,
         logger: ILogger
     ) {
         this._configClient = configClient;
         this._kafkaProducer = producer;
         this._logger = logger;
         this._currencyList = this._configClient.globalConfigs.getCurrencies();
-        this._validator = new FspiopValidator(this._currencyList);
+        this._validator = new FspiopValidator(this._currencyList); // TODO: convert to a singleton
+        this._jwsHelper = new FspiopJwsSignature(jwsConfig, this._logger); // TODO: convert to a singleton
     }
 
     get logger(): ILogger {

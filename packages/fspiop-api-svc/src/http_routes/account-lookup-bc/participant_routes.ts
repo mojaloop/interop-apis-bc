@@ -35,7 +35,7 @@
 "use strict";
 import express from "express";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import { Constants, Transformer, ValidationdError } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, JwsConfig, Transformer, ValidationdError } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { ParticipantQueryReceivedEvtPayload, ParticipantQueryReceivedEvt, ParticipantDisassociateRequestReceivedEvt, ParticipantDisassociateRequestReceivedEvtPayload, ParticipantAssociationRequestReceivedEvt, ParticipantAssociationRequestReceivedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseRoutes } from "../_base_router";
@@ -48,9 +48,10 @@ export class ParticipantRoutes extends BaseRoutes {
     constructor(
         configClient: IConfigurationClient,
         producer: IMessageProducer,
+        jwsConfig: JwsConfig,
         logger: ILogger
     ) {
-        super(configClient, producer, logger);
+        super(configClient, producer, jwsConfig, logger);
 
         // bind routes
 
