@@ -44,9 +44,11 @@ import {
 	TransferPreparedEvtPayload,
 	TransferFulfiledEvtPayload,
 	TransferQueryResponseEvtPayload,
+	TransferRejectRequestProcessedEvtPayload,
 	BulkTransferPreparedEvtPayload,
 	BulkTransferFulfiledEvtPayload,
-	BulkTransferQueryResponseEvtPayload
+	BulkTransferQueryResponseEvtPayload,
+	BulkTransferRejectRequestProcessedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -699,6 +701,14 @@ export const transformPayloadTransferRequestGet = (payload: TransferQueryRespons
 	return removeEmpty(info);
 };
 
+export const transformPayloadTransferRequestPutError = (payload: TransferRejectRequestProcessedEvtPayload): FspiopError => {
+	const info: FspiopError = {
+		errorInformation: payload.errorInformation
+	};
+
+	return removeEmpty(info);
+};
+
 export const transformPayloadBulkTransferRequestPost = (payload: BulkTransferPreparedEvtPayload): PostBulkTransfer => {
 	const info: PostBulkTransfer = {
 		bulkTransferId: payload.bulkTransferId,
@@ -738,6 +748,14 @@ export const transformPayloadBulkTransferRequestGet = (payload: BulkTransferQuer
 		bulkTransferState: payload.bulkTransferState,
 		individualTransferResults: payload.individualTransferResults,
 		extensionList: payload.extensionList
+	};
+
+	return removeEmpty(info);
+};
+
+export const transformPayloadBulkTransferRequestPutError = (payload: BulkTransferRejectRequestProcessedEvtPayload): FspiopError => {
+	const info: FspiopError = {
+		errorInformation: payload.errorInformation
 	};
 
 	return removeEmpty(info);
