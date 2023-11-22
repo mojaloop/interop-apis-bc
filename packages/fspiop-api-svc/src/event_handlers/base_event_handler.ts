@@ -163,17 +163,22 @@ export abstract class BaseEventHandler  {
                     clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = headers[Constants.FSPIOP_HEADERS_SOURCE];
                 }
 
+                const transformedPayload = Transformer.transformPayloadError({
+                    errorCode: errorResponse.errorCode,
+                    errorDescription: errorResponse.errorDescription,
+                    extensionList: message.payload.errorInformation ? message.payload.errorInformation.extensionList : null
+                });
+
+                clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
+                clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
+
                 await Request.sendRequest({
                     url: url,
                     headers: clonedHeaders,
                     source: fspId,
                     destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null,
                     method: Enums.FspiopRequestMethodsEnum.PUT,
-                    payload: Transformer.transformPayloadError({
-                        errorCode: errorResponse.errorCode,
-                        errorDescription: errorResponse.errorDescription,
-                        extensionList: message.payload.errorInformation ? message.payload.errorInformation.extensionList : null
-                    })
+                    payload: transformedPayload
                 });
 
             } catch(err: unknown) {

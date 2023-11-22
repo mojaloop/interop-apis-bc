@@ -37,8 +37,8 @@ import jestOpenAPI from "jest-openapi";
 import { QuoteQueryReceivedEvt, QuoteRequestReceivedEvt, QuoteResponseReceivedEvt, QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Service } from "../../../../packages/fspiop-api-svc/src";
 import KafkaConsumer from "../helpers/kafkaproducer";
-import { getHeaders, missingPropertyResponse } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
-import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { getHeaders, missingPropertyResponse, getJwsConfig } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { Constants, Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import waitForExpect from "../helpers/utils";
 
 // Sets the location of your OpenAPI Specification file
@@ -110,6 +110,8 @@ const pathWithQuoteId = `/${Enums.EntityTypeEnum.QUOTES}/123456789`;
 
 const consumer = new KafkaConsumer([QuotingBCTopics.DomainRequests])
 
+const jwsHelper = getJwsConfig();
+
 describe("FSPIOP API Service Quote Routes", () => {
 
     beforeAll(async () => {
@@ -130,7 +132,7 @@ describe("FSPIOP API Service Quote Routes", () => {
         // Act
         const res = await request(server)
         .get(pathWithQuoteId)
-        .set(getHeaders(Enums.EntityTypeEnum.QUOTES));
+        .set(getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.GET));
 
         const messages = consumer.getEvents();
 
@@ -145,11 +147,15 @@ describe("FSPIOP API Service Quote Routes", () => {
     });
 
     it("should successfully call quoteRequestReceived endpoint", async () => {
+        // Arrange
+        const headers = getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.POST);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validPostPayload);
+        
         // Act
         const res = await request(server)
         .post(pathWithoutQuoteId)
         .send(validPostPayload)
-        .set(getHeaders(Enums.EntityTypeEnum.QUOTES));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -164,11 +170,15 @@ describe("FSPIOP API Service Quote Routes", () => {
     });
 
     it("should successfully call quoteResponseReceived endpoint", async () => {
+        // Arrange
+        const headers = getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.PUT);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validPutPayload);
+        
         // Act
         const res = await request(server)
         .put(pathWithQuoteId)
         .send(validPutPayload)
-        .set(getHeaders(Enums.EntityTypeEnum.QUOTES));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -186,7 +196,7 @@ describe("FSPIOP API Service Quote Routes", () => {
         // Act
         const res = await request(server)
         .post(pathWithoutQuoteId)
-        .set(getHeaders(Enums.EntityTypeEnum.QUOTES));
+        .set(getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.POST));
 
         const messages = consumer.getEvents();
 
@@ -202,7 +212,7 @@ describe("FSPIOP API Service Quote Routes", () => {
         // Act
         const res = await request(server)
         .put(pathWithQuoteId)
-        .set(getHeaders(Enums.EntityTypeEnum.QUOTES));
+        .set(getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.PUT));
 
         const messages = consumer.getEvents();
 
@@ -218,7 +228,7 @@ describe("FSPIOP API Service Quote Routes", () => {
         // Act
         const res = await request(server)
         .get(pathWithQuoteId)
-        .set(getHeaders(Enums.EntityTypeEnum.QUOTES, ["date"]));
+        .set(getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.GET, null, ["date"]));
 
         const messages = consumer.getEvents();
 
@@ -241,7 +251,7 @@ describe("FSPIOP API Service Quote Routes", () => {
         const res = await request(server)
         .put(pathWithQuoteId)
         .send(validPutPayload)
-        .set(getHeaders(Enums.EntityTypeEnum.QUOTES, ["date"]));
+        .set(getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.PUT, null, ["date"]));
 
         const messages = consumer.getEvents();
 

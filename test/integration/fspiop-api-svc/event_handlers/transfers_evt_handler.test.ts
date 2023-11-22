@@ -33,7 +33,6 @@
 
 import path from "path";
 import jestOpenAPI from "jest-openapi";
-import waitForExpect from "wait-for-expect";
 import { Constants, Enums, Request } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {
     QuoteRequestAcceptedEvt,
@@ -93,13 +92,15 @@ import {
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Service } from "../../../../packages/fspiop-api-svc/src/service";
 import request from "supertest";
-import { createMessage, getHeaders } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { createMessage, getHeaders, getJwsConfig } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import KafkaConsumer from "../helpers/kafkaproducer";
 import { MongoClient } from "mongodb";
 import { PostBulkTransfer, PostQuote, PutBulkTransfer, removeEmpty } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/transformer";
+import waitForExpect from "../helpers/utils";
 
 const server = process.env["SVC_DEFAULT_URL"] || "http://localhost:4000/";
 
+const jwsHelper = getJwsConfig();
 
 // Sets the location of your OpenAPI Specification file
 jestOpenAPI(path.join(__dirname, "../../../../packages/fspiop-api-svc/api-specs/api_spec.yaml"));
@@ -280,11 +281,14 @@ describe("FSPIOP API Service Transfers Handler", () => {
         // Arrange
         validTransferPostPayload.payerFsp = "nonexistingpayerfsp";
 
+        const headers = getHeaders(Enums.EntityTypeEnum.TRANSFERS, Enums.FspiopRequestMethodsEnum.POST);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validTransferPostPayload);
+
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.TRANSFERS)
         .send(removeEmpty(validTransferPostPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.TRANSFERS));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -301,11 +305,14 @@ describe("FSPIOP API Service Transfers Handler", () => {
         // Arrange
         validTransferPostPayload.payeeFsp = "nonexistingpayeefsp";
 
+        const headers = getHeaders(Enums.EntityTypeEnum.TRANSFERS, Enums.FspiopRequestMethodsEnum.POST);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validTransferPostPayload);
+
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.TRANSFERS)
         .send(removeEmpty(validTransferPostPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.TRANSFERS));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -319,11 +326,18 @@ describe("FSPIOP API Service Transfers Handler", () => {
     });
     
     it("should successfully create a transfer", async () => {
-        // Act & Arrange
+        // Arrange 
+        const headersQuotes = getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.POST);
+        headersQuotes[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headersQuotes, validQuotePostPayload);
+
+        const headersTransfers = getHeaders(Enums.EntityTypeEnum.TRANSFERS, Enums.FspiopRequestMethodsEnum.POST);
+        headersTransfers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headersTransfers, removeEmpty(validTransferPostPayload));
+
+        // Act
         await request(server)
         .post(Enums.EntityTypeEnum.QUOTES)
         .send(removeEmpty(validQuotePostPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.QUOTES));
+        .set(headersQuotes);
 
         await new Promise((r) => setTimeout(r, 10000));
 
@@ -344,7 +358,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await request(server)
         .post(Enums.EntityTypeEnum.TRANSFERS)
         .send(removeEmpty(validTransferPostPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.TRANSFERS));
+        .set(headersTransfers);
 
         const messages = consumer.getEvents();
 
@@ -409,13 +423,16 @@ describe("FSPIOP API Service Transfers Handler", () => {
 
     // #region GET Transfer
     it("should return error event due to non existing payer fsp", async () => {
+        // Arrange
         const headerOverride = { 
             "fspiop-source": "nonexistingfsp",
             "fspiop-destination": "bluebank" 
         };
+
+        // Act
         await request(server)
         .get(Enums.EntityTypeEnum.TRANSFERS + "/" + validTransferPostPayload.transferId)
-        .set(getHeaders(Enums.EntityTypeEnum.TRANSFERS, [], headerOverride));
+        .set(getHeaders(Enums.EntityTypeEnum.TRANSFERS, Enums.FspiopRequestMethodsEnum.GET, null, [], headerOverride));
 
         const messages = consumer.getEvents();
 
@@ -431,7 +448,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
     it("should return error event due to transfer not being found", async () => {
         await request(server)
         .get(Enums.EntityTypeEnum.TRANSFERS + "/" + "nonexistingtransferid")
-        .set(getHeaders(Enums.EntityTypeEnum.TRANSFERS));
+        .set(getHeaders(Enums.EntityTypeEnum.TRANSFERS, Enums.FspiopRequestMethodsEnum.GET));
 
         const messages = consumer.getEvents();
 
@@ -447,7 +464,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
     it("should successfully return an existing transfer", async () => {
         await request(server)
         .get(Enums.EntityTypeEnum.TRANSFERS + "/" + validTransferPostPayload.transferId)
-        .set(getHeaders(Enums.EntityTypeEnum.TRANSFERS));
+        .set(getHeaders(Enums.EntityTypeEnum.TRANSFERS, Enums.FspiopRequestMethodsEnum.GET));
 
         const messages = consumer.getEvents();
 
@@ -489,11 +506,14 @@ describe("FSPIOP API Service Transfers Handler", () => {
         validBulkTransferPostPayload.bulkTransferId = "2fbee1f5-c58e-5afe-8cdd-7e65eea2fca9";
         validBulkTransferPostPayload.payerFsp = "nonexistingpayerfsp";
 
+        const headers = getHeaders(Enums.EntityTypeEnum.BULK_TRANSFERS, Enums.FspiopRequestMethodsEnum.POST);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, removeEmpty(validBulkTransferPostPayload));
+
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.BULK_TRANSFERS)
         .send(removeEmpty(validBulkTransferPostPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_TRANSFERS));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -514,11 +534,14 @@ describe("FSPIOP API Service Transfers Handler", () => {
         validBulkTransferPostPayload.bulkTransferId = "1fbee1f4-c58e-5afe-8cdd-7e65eea2fca9";
         validBulkTransferPostPayload.payeeFsp = "nonexistingpayeefsp";
 
+        const headers = getHeaders(Enums.EntityTypeEnum.BULK_TRANSFERS, Enums.FspiopRequestMethodsEnum.POST);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, removeEmpty(validBulkTransferPostPayload));
+
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.BULK_TRANSFERS)
         .send(removeEmpty(validBulkTransferPostPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_TRANSFERS));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -557,10 +580,15 @@ describe("FSPIOP API Service Transfers Handler", () => {
         
         // await consumer.clearEvents();
 
+        // Arrange
+        const headers = getHeaders(Enums.EntityTypeEnum.BULK_TRANSFERS, Enums.FspiopRequestMethodsEnum.POST);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, removeEmpty(validBulkTransferPostPayload));
+
+        // Act
         await request(server)
         .post(Enums.EntityTypeEnum.BULK_TRANSFERS)
         .send(removeEmpty(validBulkTransferPostPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_TRANSFERS));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -634,7 +662,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         // Act
         await request(server)
         .get(Enums.EntityTypeEnum.BULK_TRANSFERS + "/" + validBulkTransferPostPayload.bulkTransferId)
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_TRANSFERS, [], headerOverride));
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_TRANSFERS, Enums.FspiopRequestMethodsEnum.GET, null, [], headerOverride));
 
         const messages = consumer.getEvents();
 

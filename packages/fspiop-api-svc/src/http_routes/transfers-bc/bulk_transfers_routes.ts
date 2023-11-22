@@ -98,7 +98,9 @@ export class TransfersBulkRoutes extends BaseRoutes {
                 return;
             }
 
-            this._jwsHelper.validate(req.headers, req.body);
+            const signature = this._jwsHelper.sign(req.headers, req.body);
+
+            const test = this._jwsHelper.validate(req.headers, req.body);
 
             const msgPayload: BulkTransferQueryReceivedEvtPayload = {
                 bulkTransferId: bulkTransfersId,
@@ -163,6 +165,10 @@ export class TransfersBulkRoutes extends BaseRoutes {
             for(let i=0 ; i<individualTransfers.length ; i+=1) {
                 this._validator.currencyAndAmount(individualTransfers[i].transferAmount);
             }
+
+            const signature = this._jwsHelper.sign(req.headers, req.body);
+
+            const test = this._jwsHelper.validate(req.headers, req.body);
 
             const msgPayload: BulkTransferPrepareRequestedEvtPayload = {
                 bulkTransferId: bulkTransferId,
@@ -243,7 +249,9 @@ export class TransfersBulkRoutes extends BaseRoutes {
                 return;
             }
 
-            this._jwsHelper.validate(req.headers, req.body);
+            const signature = this._jwsHelper.sign(req.headers, req.body);
+
+            const test = this._jwsHelper.validate(req.headers, req.body);
 
             const msgPayload: BulkTransferFulfilRequestedEvtPayload = {
                 bulkTransferId: bulkTransferId,
@@ -301,7 +309,9 @@ export class TransfersBulkRoutes extends BaseRoutes {
                 return;
             }
 
-            this._jwsHelper.validate(req.headers, req.body);
+            const signature = this._jwsHelper.sign(req.headers, req.body);
+
+            const test = this._jwsHelper.validate(req.headers, req.body);
 
             const msgPayload: BulkTransferRejectRequestedEvtPayload = {
                 bulkTransferId: bulkTransferId,

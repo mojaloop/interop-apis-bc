@@ -313,6 +313,7 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadQuotingRequestPost(payload);
 
+            clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.POST;
             clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
@@ -354,6 +355,7 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadQuotingResponsePut(payload);
 
+            clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
             clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
@@ -402,6 +404,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             
             const transformedPayload = Transformer.transformPayloadQuotingResponseGet(payload);
 
+            clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
             clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
@@ -445,6 +448,7 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadBulkQuotingResponsePost(payload);
 
+            clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.POST;
             clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
@@ -488,6 +492,7 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadBulkQuotingResponsePut(payload);
 
+            clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
             clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
@@ -528,6 +533,7 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadBulkQuotingResponsePut(payload);
 
+            clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
             clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);

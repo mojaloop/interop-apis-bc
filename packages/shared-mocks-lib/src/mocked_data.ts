@@ -29,21 +29,59 @@
 
 "use strict";
 
+import path from "path";
+import { readFileSync } from "fs";
 import {IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
-type UnknownProperties = { [k: string]: string };
+import { FspiopJwsSignature } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import {ConsoleLogger, ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
 
-export const getHeaders = (entity: string, remove?: string[], override?: UnknownProperties): UnknownProperties => {
+
+type UnknownProperties = { [k: string]: string | null };
+
+const removeEmpty = (obj: any) => {
+	Object.entries(obj).forEach(([key, val]) =>
+		(val && typeof val === 'object') && removeEmpty(val) ||
+		(val === null || val === "") && delete obj[key]
+	);
+	return obj;
+};
+
+export const getJwsConfig = (): any => {
+    const logger: ILogger = new ConsoleLogger();
+    logger.setLogLevel(LogLevel.FATAL);
+
+    const privKey = path.join(__dirname, "privatekey.pem");
+    const pubKey = path.join(__dirname, "publickey.cer");
+    const pubKeyCont = readFileSync(pubKey)
+    const privKeyCont = readFileSync(privKey)
+    const jwsConfig = {
+        privateKey: privKeyCont,
+        publicKeys: {
+            "bluebank": pubKeyCont,
+            "greenbank": pubKeyCont
+        }
+    }
+    
+    const jwsHelper = new FspiopJwsSignature(jwsConfig, logger);   
+    return jwsHelper;
+};
+
+
+export const getHeaders = (entity: string, method: string, signature: string | null = null, remove?: string[], override?: UnknownProperties): UnknownProperties => {
     const minimalWorkingHeaders = {
         "accept": `application/vnd.interoperability.${entity}+json;version=1.1`,
         "content-type": `application/vnd.interoperability.${entity}+json;version=1.1`,
         "date": "Mon, 10 Apr 2023 04:04:04 GMT",
+        "fspiop-http-method": method,
+        "fspiop-uri": `/${entity}`,
+        "fspiop-signature": signature,
         "fspiop-source": "bluebank",
         "fspiop-destination": "greenbank",
         "traceparent": "00-aabb8e170bb7474d09e73aebcdf0b293-0123456789abcdef0-00"
     };
 
     const result: UnknownProperties  = {
-        ...minimalWorkingHeaders,
+        ...removeEmpty(minimalWorkingHeaders),
         ...override
     };
 
@@ -144,7 +182,8 @@ export const createMessage = (message: IMessage, entity: string, fspiopOpaqueSta
             "fspiop-source": "bluebank",
             "fspiop-destination": "bluebank",
             "traceparent": "00-aabb8e170bb7474d09e73aebcdf0b293-0123456789abcdef0-00",
-            "connection": "close"
+            "connection": "close",
+            "fspiop-uri": `/${entity}`,
         }
     };
 
@@ -156,6 +195,8 @@ export const createMessage = (message: IMessage, entity: string, fspiopOpaqueSta
     }
     return message as unknown as UnknownProperties;
 };
+
+
 
 
 export const defaultEntryValidRequest = null;

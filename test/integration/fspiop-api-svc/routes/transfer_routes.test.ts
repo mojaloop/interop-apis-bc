@@ -44,8 +44,8 @@ import {
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Service } from "../../../../packages/fspiop-api-svc/src";
 import KafkaConsumer from "../helpers/kafkaproducer";
-import { getHeaders } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
-import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { getHeaders, getJwsConfig } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { Constants, Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import waitForExpect from "../helpers/utils";
 
 // Sets the location of your OpenAPI Specification file
@@ -88,6 +88,8 @@ const pathWithTransferId = `/${Enums.EntityTypeEnum.TRANSFERS}/123456789`;
 
 const consumer = new KafkaConsumer([TransfersBCTopics.DomainRequests])
 
+const jwsHelper = getJwsConfig();
+
 describe("FSPIOP API Service Transfer Routes", () => {
 
     beforeAll(async () => {
@@ -108,7 +110,7 @@ describe("FSPIOP API Service Transfer Routes", () => {
         // Act
         const res = await request(server)
         .get(pathWithTransferId)
-        .set(getHeaders(Enums.EntityTypeEnum.TRANSFERS));
+        .set(getHeaders(Enums.EntityTypeEnum.TRANSFERS, Enums.FspiopRequestMethodsEnum.GET));
 
         const messages = consumer.getEvents();
 
@@ -124,11 +126,15 @@ describe("FSPIOP API Service Transfer Routes", () => {
     });
 
     it("should successfully call transferPrepareRequested endpoint", async () => {
+        // Arrange
+        const headers = getHeaders(Enums.EntityTypeEnum.TRANSFERS, Enums.FspiopRequestMethodsEnum.POST);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validPostPayload);
+        
         // Act
         const res = await request(server)
         .post(pathWithoutTransferId)
         .send(validPostPayload)
-        .set(getHeaders(Enums.EntityTypeEnum.TRANSFERS));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -144,11 +150,15 @@ describe("FSPIOP API Service Transfer Routes", () => {
     });
 
     it("should successfully call transferFulfilCommittedRequested endpoint", async () => {
+        // Arrange
+        const headers = getHeaders(Enums.EntityTypeEnum.TRANSFERS, Enums.FspiopRequestMethodsEnum.PUT);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validPutPayload);
+        
         // Act
         const res = await request(server)
         .put(pathWithoutTransferId + "/" + validPostPayload.transferId)
         .send(validPutPayload)
-        .set(getHeaders(Enums.EntityTypeEnum.TRANSFERS));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -163,18 +173,22 @@ describe("FSPIOP API Service Transfer Routes", () => {
         });
     });
 
-    it("should successfully call transferFulfilCommittedRequested endpoint", async () => {
+    it("should successfully call transferRejectRequested endpoint", async () => {
+        // Arrange
+        const headers = getHeaders(Enums.EntityTypeEnum.TRANSFERS, Enums.FspiopRequestMethodsEnum.PUT);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validErrorPayload);
+        
         // Act
         const res = await request(server)
         .put(pathWithoutTransferId + "/" + validPostPayload.transferId + "/" + "error")
         .send(validErrorPayload)
-        .set(getHeaders(Enums.EntityTypeEnum.TRANSFERS));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
         // Assert
         await waitForExpect(() => {
-            expect(res.statusCode).toEqual(202);
+            expect(res.statusCode).toEqual(200);
             expect(res.body).toStrictEqual(null);
             expect(messages.length).toBe(2);
             expect(messages[0].msgName).toBe(TransferRejectRequestedEvt.name);

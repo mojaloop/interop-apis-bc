@@ -33,33 +33,11 @@ optionally within square brackets <email>.
 
 import {Currency} from "@mojaloop/platform-configuration-bc-public-types-lib";
 import { ClientErrors } from "./enums";
-
-type ErrorInformation = {
-	errorInformation: {
-		errorCode: string;
-		errorDescription: string;
-		extensionList: {
-			extension: {
-				key: string;
-				value: string | string[];
-			}[]
-		} | null;
-	}
-}
+import { ValidationdError } from "./errors";
 
 type Amount =  {
 	currency: string;
 	amount: string | null;
-}
-
-export class ValidationdError extends Error {
-	public errorInformation: ErrorInformation | null = null;
-
-    constructor(errorInformation: ErrorInformation) {
-        super(errorInformation.errorInformation.errorDescription);
-
-		this.errorInformation = errorInformation;
-    }
 }
 
 export class FspiopValidator {

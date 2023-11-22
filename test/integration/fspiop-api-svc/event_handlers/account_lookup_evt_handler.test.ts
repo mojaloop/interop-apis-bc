@@ -61,7 +61,7 @@ import {
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Service } from "../../../../packages/fspiop-api-svc/src/service";
 import request from "supertest";
-import { createMessage, getHeaders } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { createMessage, getHeaders, getJwsConfig } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import KafkaConsumer from "../helpers/kafkaproducer";
 import { MongoClient } from "mongodb";
 import { PostParticipant, removeEmpty } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/transformer";
@@ -98,6 +98,8 @@ const res = async () => {
     return await sendRequestSpy.mock.results[sendRequestSpy.mock.results.length-1].value;
 };
 
+const jwsHelper = getJwsConfig();
+
 describe("FSPIOP API Service Account Lookup Handler", () => {
 
     beforeAll(async () => {
@@ -121,7 +123,7 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
         await Service.stop();
         await consumer.destroy();
 
-        // // Start mongo client and service before conducting all tests
+        // Start mongo client and service before conducting all tests
         // mongoClient = new MongoClient(CONNECTION_STRING);
         // await mongoClient.connect();
 
@@ -143,14 +145,16 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
     // #region POST Participant By Type and Id
     it("should return error event due to non existing payer fsp", async () => {
         // Arrange 
-
-         validParticipantPostPayload.fspId = "nonexistingfsp";
+        validParticipantPostPayload.fspId = "nonexistingfsp";
+        
+        const headers = getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validParticipantPostPayload);
 
         // Act
-        await request(server)
+        const test = await request(server)
         .post(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "MSISDN" + "/" + "123")
         .send(removeEmpty(validParticipantPostPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -163,11 +167,15 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
     });
 
     it("should return error event due to non existing oracle", async () => {
-        // Arrange & Act
+        // Arrange 
+        const headers = getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validParticipantPostPayload);
+        
+        // Act
         await request(server)
         .post(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "nonexistingpartytype" + "/" + "nonexistingpartyid")
         .send(removeEmpty(validParticipantPostPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -180,11 +188,15 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
     });
 
     it("should successfully associate a participant", async () => {
-        // Arrange & Act
+        // Arrange 
+        const headers = getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validParticipantPostPayload);
+        
+        // Act
         await request(server)
         .post(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "MSISDN" + "/" + "37713803068")
         .send(removeEmpty(validParticipantPostPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -196,12 +208,16 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
         });
     });
 
-    it("should return error from trying to create an already existing association", async () => {
-        // Arrange & Act
+it("should return error from trying to create an already existing association", async () => {
+        // Arrange 
+        const headers = getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validParticipantPostPayload);
+        
+        // Act
         await request(server)
         .post(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "MSISDN" + "/" + "37713803068")
         .send(removeEmpty(validParticipantPostPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -219,11 +235,14 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
         // Arrange 
         validParticipantPostPayload.fspId = "nonexistingfsp";
 
+        const headers = getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validParticipantPostPayload);
+
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "MSISDN" + "/" + "123" + "/" + "456")
         .send(removeEmpty(validParticipantPostPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -236,11 +255,15 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
     });
 
     it("should return error event due to non existing oracle", async () => {
-        // Arrange & Act
+        // Arrange 
+        const headers = getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validParticipantPostPayload);
+                
+        // Act
         await request(server)
         .post(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "nonexistingpartytype" + "/" + "nonexistingpartyid" + "nonexistingpartysubid")
         .send(removeEmpty(validParticipantPostPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -253,11 +276,15 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
     });
 
     it("should successfully associate a participant", async () => {
-        // Arrange & Act
+        // Arrange 
+        const headers = getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validParticipantPostPayload);
+        
+        // Act
         await request(server)
         .post(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "MSISDN" + "/" + "37713803068" + "/" + "111222333")
         .send(removeEmpty(validParticipantPostPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -270,11 +297,15 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
     });
 
     it("should return error from trying to create an already existing association", async () => {
-        // Arrange & Act
+        // Arrange 
+        const headers = getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validParticipantPostPayload);
+        
+        // Act
         await request(server)
         .post(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "MSISDN" + "/" + "37713803068" + "111222333")
         .send(removeEmpty(validParticipantPostPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -317,7 +348,7 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
         // Act
         await request(server)
         .get(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "MSISDN" + "/" + "37713803068")
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, [], headerOverride));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.GET, null, [], headerOverride));
 
         const messages = consumer.getEvents();
 
@@ -333,7 +364,7 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
         // Arrange & Act
         await request(server)
         .get(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "nonexistingpartytype" + "/" + "nonexistingpartyid")
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.GET));
 
         const messages = consumer.getEvents();
 
@@ -349,7 +380,7 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
         // Arrange & Act
         await request(server)
         .get(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "MSISDN" + "/" + "37713803068")
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.GET));
 
         const messages = consumer.getEvents();
 
@@ -398,7 +429,7 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
         // Act
         await request(server)
         .get(Enums.EntityTypeEnum.PARTIES + "/" + "MSISDN" + "/" + "37713803068")
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, [], headerOverride));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.GET, null, [], headerOverride));
 
         const messages = consumer.getEvents();
 
@@ -414,7 +445,7 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
         // Arrange & Act
         await request(server)
         .get(Enums.EntityTypeEnum.PARTIES + "/" + "MSISDN" + "/" + "37713803068")
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.GET));
 
         const messages = consumer.getEvents();
 
@@ -505,11 +536,15 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
     // });
 
     it("should return error event due to non existing oracle", async () => {
-        // Arrange & Act
+        // Arrange 
+        const headers = getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validParticipantPostPayload);
+
+        // Act
         await request(server)
         .post(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "nonexistingpartytype" + "/" + "nonexistingpartyid")
         .send(removeEmpty(validParticipantPostPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -522,10 +557,14 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
     });
 
     it("should successfully disassociate a participant", async () => {
-        // Arrange & Act
+        // Arrange 
+        const headers = getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validParticipantPostPayload);
+        
+        // Act
         await request(server)
         .del(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "MSISDN" + "/" + "37713803068")
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -568,7 +607,7 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
         // Act
         await request(server)
         .del(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "MSISDN" + "/" + "123" + "/" + "456")
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, [], headerOverride));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.DELETE, null, [], headerOverride));
 
         const messages = consumer.getEvents();
 
@@ -581,11 +620,15 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
     });
 
     it("should return error event due to non existing oracle", async () => {
-        // Arrange & Act
+        // Arrange 
+        const headers = getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, removeEmpty(validParticipantPostPayload));
+        
+        // Act
         await request(server)
         .post(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "nonexistingpartytype" + "/" + "nonexistingpartyid" + "nonexistingpartysubid")
         .send(removeEmpty(validParticipantPostPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -598,10 +641,10 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
     });
 
     it("should successfully disassociate a participant", async () => {
-        // Arrange & Act
+        // Act
         await request(server)
         .del(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "MSISDN" + "/" + "37713803068" + "/" + "111222333")
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.DELETE));
 
         const messages = consumer.getEvents();
 

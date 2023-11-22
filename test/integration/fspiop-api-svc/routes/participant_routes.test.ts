@@ -36,8 +36,8 @@ import request from "supertest";
 import { Service } from "../../../../packages/fspiop-api-svc/src";
 import KafkaConsumer from "../helpers/kafkaproducer";
 import { AccountLookupBCTopics, ParticipantAssociationRequestReceivedEvt, ParticipantDisassociateRequestReceivedEvt, ParticipantQueryReceivedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { getHeaders, defaultEntryValidRequest, missingPropertyResponse } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
-import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { getHeaders, defaultEntryValidRequest, missingPropertyResponse, getJwsConfig } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { Constants, Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import waitForExpect from "../helpers/utils";
 
 const SVC_DEFAULT_HTTP_PORT = process.env["SVC_DEFAULT_HTTP_PORT"] || 4000;
@@ -53,6 +53,8 @@ const topic = process.env["KAFKA_ACCOUNTS_LOOKUP_TOPIC"] || AccountLookupBCTopic
 const pathWithoutSubType = `/${Enums.EntityTypeEnum.PARTICIPANTS}/MSISDN/123456789`;
 const pathWithSubType = `/${Enums.EntityTypeEnum.PARTICIPANTS}/MSISDN/123456789/123`;
 
+const jwsHelper = getJwsConfig();
+
 describe("FSPIOP API Service Participant Routes", () => {
 
     beforeAll(async () => {
@@ -62,18 +64,18 @@ describe("FSPIOP API Service Participant Routes", () => {
 
     afterAll(async () => {
         await Service.stop();
-        await consumer.destroy()
+        // await consumer.destroy()
     });
 
     beforeEach(async () => {
-        await consumer.clearEvents()
+        await consumer.clearEvents() 
     });
 
     it("should successfully call getParticipantsByTypeAndID endpoint", async () => {
         // Act
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.GET));
 
         const messages = consumer.getEvents();
 
@@ -90,7 +92,7 @@ describe("FSPIOP API Service Participant Routes", () => {
         // Act
         const res = await request(server)
         .get(pathWithSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.GET));
 
         const messages = consumer.getEvents();
 
@@ -108,7 +110,7 @@ describe("FSPIOP API Service Participant Routes", () => {
         // Act
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, ["date"]));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.GET, null, ["date"]));
 
         const messages = consumer.getEvents();
 
@@ -129,7 +131,7 @@ describe("FSPIOP API Service Participant Routes", () => {
         // Act
         const res = await request(server)
         .get(pathWithSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, ["accept"]));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.GET, null, ["accept"]));
 
         const messages = consumer.getEvents();
 
@@ -156,7 +158,7 @@ describe("FSPIOP API Service Participant Routes", () => {
         const res = await request(server)
         .post(pathWithoutSubType)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, ["accept"]));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.GET, null, ["accept"]));
 
         const messages = consumer.getEvents();
 
@@ -178,7 +180,7 @@ describe("FSPIOP API Service Participant Routes", () => {
         const res = await request(server)
         .post(pathWithSubType)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, ["date"]));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST, null, ["date"]));
 
         const messages = consumer.getEvents();
 
@@ -194,7 +196,7 @@ describe("FSPIOP API Service Participant Routes", () => {
         // Act
         const res = await request(server)
         .delete(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, ["content-type"]));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST, null, ["content-type"]));
 
         const messages = consumer.getEvents();
 
@@ -215,7 +217,7 @@ describe("FSPIOP API Service Participant Routes", () => {
         // Act
         const res = await request(server)
         .delete(pathWithSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, ["content-type"]));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST, null, ["content-type"]));
 
         const messages = consumer.getEvents();
 
@@ -238,11 +240,14 @@ describe("FSPIOP API Service Participant Routes", () => {
             "fspId": "test-fsp-id"
         };
 
+        const headers = getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, payload);
+
         // Act
         const res = await request(server)
         .post(pathWithoutSubType)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -261,11 +266,14 @@ describe("FSPIOP API Service Participant Routes", () => {
             "fspId": "test-fsp-id"
         };
 
+        const headers = getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, payload);
+
         // Act
         const res = await request(server)
         .post(pathWithSubType)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -284,11 +292,14 @@ describe("FSPIOP API Service Participant Routes", () => {
             "fspId": "test-fsp-id"
         };
         
+        const headers = getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.DELETE);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, payload);
+
         // Act
         const res = await request(server)
         .delete(pathWithoutSubType)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -305,7 +316,7 @@ describe("FSPIOP API Service Participant Routes", () => {
         // Act
         const res = await request(server)
         .delete(pathWithSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.DELETE));
 
         const messages = consumer.getEvents();
 

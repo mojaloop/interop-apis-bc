@@ -70,7 +70,7 @@ import {
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Service } from "../../../../packages/fspiop-api-svc/src/service";
 import request from "supertest";
-import { createMessage, getHeaders } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { createMessage, getHeaders, getJwsConfig } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import KafkaConsumer from "../helpers/kafkaproducer";
 import { MongoClient } from "mongodb";
 import { PostBulkQuote, PostQuote, PutBulkQuote, PutQuote, removeEmpty } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/transformer";
@@ -110,6 +110,8 @@ let sendRequestSpy = jest.spyOn(Request, "sendRequest");
 const res = async () => {
     return await sendRequestSpy.mock.results[sendRequestSpy.mock.results.length-1].value;
 };
+
+const jwsHelper = getJwsConfig();
 
 describe("FSPIOP API Service Quoting Handler", () => {
 
@@ -325,11 +327,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Arrange
         validPostPayload.payer.partyIdInfo.fspId = "nonexistingfsp";
 
+        const headers = getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.POST);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validPostPayload);
+
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.QUOTES)
         .send(removeEmpty(validPostPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.QUOTES));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -345,11 +350,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Arrange
         validPostPayload.payee.partyIdInfo.fspId = "nonexistingfsp";
 
+        const headers = getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.POST);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validPostPayload);
+
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.QUOTES)
         .send(removeEmpty(validPostPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.QUOTES));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -365,11 +373,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Arrange
         validPostPayload.amount.currency = "AUD";
 
+        const headers = getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.POST);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validPostPayload);
+
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.QUOTES)
         .send(removeEmpty(validPostPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.QUOTES));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -385,11 +396,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Arrange
         validPostPayload.expiration = "2022-05-24T08:38:08.699-04:00";
 
+        const headers = getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.POST);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validPostPayload);
+
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.QUOTES)
         .send(removeEmpty(validPostPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.QUOTES));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -402,11 +416,15 @@ describe("FSPIOP API Service Quoting Handler", () => {
     });
 
     it("should successful add a quote", async () => {
-        // Arrange & Act
+        // Arrange
+        const headers = getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.POST);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validPostPayload);
+
+        // Act
         await request(server)
         .post(Enums.EntityTypeEnum.QUOTES)
         .send(removeEmpty(validPostPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.QUOTES));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -450,11 +468,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Arrange
         validPutPayload.transferAmount.currency = "AUD";
 
+        const headers = getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.PUT);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validPutPayload);
+
         // Act
         await request(server)
         .put(Enums.EntityTypeEnum.QUOTES + "/" + validPostPayload.quoteId)
         .send(removeEmpty(validPutPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.QUOTES));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -473,11 +494,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
             "fspiop-destination": "bluebank" 
         };
 
+        const headers = getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.PUT, null, [], headerOverride);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validPutPayload);
+
         // Act
         await request(server)
         .put(Enums.EntityTypeEnum.QUOTES + "/" + validPostPayload.quoteId)
         .send(removeEmpty(validPutPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.QUOTES, [], headerOverride));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -496,11 +520,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
             "fspiop-destination": "nonexistingfsp" 
         };
 
+        const headers = getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.PUT, null, [], headerOverride);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validPutPayload);
+        
         // Act
         await request(server)
         .put(Enums.EntityTypeEnum.QUOTES + "/" + validPostPayload.quoteId)
         .send(removeEmpty(validPutPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.QUOTES, [], headerOverride));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -519,11 +546,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
             "fspiop-destination": "bluebank" 
         };
 
+        const headers = getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.PUT, null, [], headerOverride);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validPutPayload);
+
         // Act
         await request(server)
         .put(Enums.EntityTypeEnum.QUOTES + "/" + "nonexistingid")
         .send(removeEmpty(validPutPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.QUOTES, [], headerOverride));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -569,7 +599,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Act
         await request(server)
         .get(Enums.EntityTypeEnum.QUOTES + "/" + validPostPayload.quoteId)
-        .set(getHeaders(Enums.EntityTypeEnum.QUOTES, [], headerOverride));
+        .set(getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.GET, null, [], headerOverride));
 
         const messages = consumer.getEvents();
 
@@ -591,7 +621,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Act
         await request(server)
         .get(Enums.EntityTypeEnum.QUOTES + "/" + "nonexistingid")
-        .set(getHeaders(Enums.EntityTypeEnum.QUOTES, [], headerOverride));
+        .set(getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.GET, null, [], headerOverride));
 
         const messages = consumer.getEvents();
 
@@ -613,7 +643,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Act
         await request(server)
         .get(Enums.EntityTypeEnum.QUOTES + "/" + validPostPayload.quoteId)
-        .set(getHeaders(Enums.EntityTypeEnum.QUOTES, [], headerOverride));
+        .set(getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.GET, null, [], headerOverride));
 
         const messages = consumer.getEvents();
 
@@ -657,11 +687,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
             "fspiop-destination": "greenbank" 
         };
 
+        const headers = getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.POST, null, [], headerOverride);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validBulkPostPayload);
+
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.BULK_QUOTES)
         .send(removeEmpty(validBulkPostPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, [], headerOverride));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -680,11 +713,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
             "fspiop-destination": "nonexistingfsp" 
         };
 
+        const headers = getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.POST, null, [], headerOverride);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validBulkPostPayload);
+
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.BULK_QUOTES)
         .send(removeEmpty(validBulkPostPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, [], headerOverride));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -700,11 +736,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Arrange
         validBulkPostPayload.expiration = "2022-05-24T08:38:08.699-04:00";
 
+        const headers = getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.POST);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validBulkPostPayload);
+
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.BULK_QUOTES)
         .send(removeEmpty(validBulkPostPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -717,11 +756,15 @@ describe("FSPIOP API Service Quoting Handler", () => {
     });
 
     it("should successful add a bulk quote", async () => {
-        // Arrange & Act
+        // Arrange
+        const headers = getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.POST);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validBulkPostPayload);
+        
+        //Act
         await request(server)
         .post(Enums.EntityTypeEnum.BULK_QUOTES)
         .send(removeEmpty(validBulkPostPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -768,11 +811,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
             "fspiop-destination": "bluebank" 
         };
 
+        const headers = getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.PUT, null, [], headerOverride);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, removeEmpty(validBulkPutPayload));
+
         // Act
         await request(server)
         .put(Enums.EntityTypeEnum.BULK_QUOTES + "/" + validBulkPostPayload.bulkQuoteId)
         .send(removeEmpty(validBulkPutPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, [], headerOverride));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -791,11 +837,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
             "fspiop-destination": "nonexistingfsp" 
         };
 
+        const headers = getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.PUT, null, [], headerOverride);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, removeEmpty(validBulkPutPayload));
+
         // Act
         await request(server)
         .put(Enums.EntityTypeEnum.BULK_QUOTES + "/" + validBulkPostPayload.bulkQuoteId)
         .send(removeEmpty(validBulkPutPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, [], headerOverride));
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.GET, null, [], headerOverride));
 
         const messages = consumer.getEvents();
 
@@ -811,11 +860,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Arrange
         validBulkPutPayload.expiration = "2022-05-24T08:38:08.699-04:00";
 
+        const headers = getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.PUT);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, removeEmpty(validBulkPutPayload));
+
         // Act
         await request(server)
         .put(Enums.EntityTypeEnum.BULK_QUOTES + "/" + validBulkPostPayload.bulkQuoteId)
         .send(removeEmpty(validBulkPutPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -836,12 +888,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
         validBulkPutPayload.bulkQuoteId = "nonexistingid";
 
+        const headers = getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.PUT, null, [], headerOverride);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, removeEmpty(validBulkPutPayload));
 
         // Act
         await request(server)
         .put(Enums.EntityTypeEnum.BULK_QUOTES + "/" + "nonexistingid")
         .send(removeEmpty(validBulkPutPayload))
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, [], headerOverride));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -887,7 +941,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Act
         await request(server)
         .get(Enums.EntityTypeEnum.BULK_QUOTES + "/" + validPostPayload.quoteId)
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, [], headerOverride));
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.GET, null, [], headerOverride));
 
         const messages = consumer.getEvents();
 
@@ -909,7 +963,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Act
         await request(server)
         .get(Enums.EntityTypeEnum.BULK_QUOTES + "/" + validPostPayload.quoteId)
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, [], headerOverride));
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.GET, null, [], headerOverride));
 
         const messages = consumer.getEvents();
 
@@ -931,7 +985,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Act
         await request(server)
         .get(Enums.EntityTypeEnum.BULK_QUOTES + "/" + "nonexistingid")
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, [], headerOverride));
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.GET, null, [], headerOverride));
 
         const messages = consumer.getEvents();
 
@@ -953,7 +1007,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Act
         await request(server)
         .get(Enums.EntityTypeEnum.BULK_QUOTES + "/" + validBulkPostPayload.bulkQuoteId)
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, [], headerOverride));
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.GET, null, [], headerOverride));
 
         const messages = consumer.getEvents();
 

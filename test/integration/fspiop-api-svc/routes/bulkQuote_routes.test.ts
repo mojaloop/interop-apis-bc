@@ -38,10 +38,10 @@ import {
     QuotingBCTopics 
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import KafkaConsumer from "../helpers/kafkaproducer";
-import { getHeaders, missingPropertyResponse } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
-import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import waitForExpect from "wait-for-expect";
+import { getHeaders, missingPropertyResponse, getJwsConfig } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { Constants, Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { Service } from "../../../../packages/fspiop-api-svc/src";
+import waitForExpect from "../helpers/utils";
 
 const server = "http://localhost:4000";
 
@@ -122,6 +122,8 @@ const topic = process.env["KAFKA_QUOTING_TOPIC"] || QuotingBCTopics.DomainReques
 const pathWithoutBulkQuoteId = `/${Enums.EntityTypeEnum.BULK_QUOTES}`;
 const pathWithBulkQuoteId = `/${Enums.EntityTypeEnum.BULK_QUOTES}/123456789`;
 
+const jwsHelper = getJwsConfig();
+
 describe("FSPIOP API Service Bulk Quotes Routes", () => {
 
     beforeAll(async () => {
@@ -139,11 +141,15 @@ describe("FSPIOP API Service Bulk Quotes Routes", () => {
     });
 
     it("should successfully call bulkQuoteRequest endpoint", async () => {
+        // Arrange
+        const headers = getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.POST);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validPostPayload);
+
         // Act
         const res = await request(server)
         .post(pathWithoutBulkQuoteId)
         .send(validPostPayload)
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -157,11 +163,15 @@ describe("FSPIOP API Service Bulk Quotes Routes", () => {
     });
 
     it("should successfully call bulkQuotePending endpoint", async () => {
+        // Arrange
+        const headers = getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.PUT);
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validPutPayload);
+
         // Act
         const res = await request(server)
         .put(pathWithBulkQuoteId)
         .send(validPutPayload)
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES));
+        .set(headers);
 
         const messages = consumer.getEvents();
 
@@ -178,7 +188,7 @@ describe("FSPIOP API Service Bulk Quotes Routes", () => {
         // Act
         const res = await request(server)
         .post(pathWithoutBulkQuoteId)
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES));
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.POST));
 
         const messages = consumer.getEvents();
 
@@ -195,7 +205,7 @@ describe("FSPIOP API Service Bulk Quotes Routes", () => {
         const res = await request(server)
         .post(pathWithoutBulkQuoteId)
         .send(validPostPayload)
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, ["date"]));
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.POST, null, ["date"]));
 
         const messages = consumer.getEvents();
 
@@ -213,7 +223,7 @@ describe("FSPIOP API Service Bulk Quotes Routes", () => {
         const res = await request(server)
         .put(pathWithBulkQuoteId)
         .send(validPutPayload)
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, ["date"]));
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.PUT, null, ["date"]));
 
         const messages = consumer.getEvents();
 

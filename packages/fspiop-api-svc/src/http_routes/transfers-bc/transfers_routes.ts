@@ -114,6 +114,10 @@ export class TransfersRoutes extends BaseRoutes {
 
             this._validator.currencyAndAmount(amount);
 
+            const signature = this._jwsHelper.sign(req.headers, req.body);
+
+            const test = this._jwsHelper.validate(req.headers, req.body);
+            
             const msgPayload: TransferPrepareRequestedEvtPayload = {
                 transferId: transferId,
                 payeeFsp: payeeFsp,
@@ -194,7 +198,9 @@ export class TransfersRoutes extends BaseRoutes {
                 return;
             }
 
-            this._jwsHelper.validate(req.headers, req.body);
+            const signature = this._jwsHelper.sign(req.headers, req.body);
+
+            const test = this._jwsHelper.validate(req.headers, req.body);
 
             const msgPayload: TransferFulfilRequestedEvtPayload = {
                 transferId: transferId,
@@ -261,7 +267,9 @@ export class TransfersRoutes extends BaseRoutes {
                 return;
             }
 
-            this._jwsHelper.validate(req.headers, req.body);
+            const signature = this._jwsHelper.sign(req.headers, req.body);
+
+            const test = this._jwsHelper.validate(req.headers, req.body);
 
             const msgPayload: TransferRejectRequestedEvtPayload = {
                 transferId: transferId,
@@ -286,7 +294,7 @@ export class TransfersRoutes extends BaseRoutes {
 
             this.logger.debug("transferRejectRequested sent message");
 
-            res.status(202).json(null);
+            res.status(200).json(null);
 
             this.logger.debug("transferRejectRequested responded");
 
@@ -320,8 +328,6 @@ export class TransfersRoutes extends BaseRoutes {
                 res.status(400).json(transformError);
                 return;
             }
-
-            this._jwsHelper.validate(req.headers, req.body);
 
             const msgPayload: TransferQueryReceivedEvtPayload = {
                 transferId: transferId,

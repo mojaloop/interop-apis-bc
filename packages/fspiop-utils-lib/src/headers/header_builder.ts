@@ -117,7 +117,7 @@ export default class HeaderBuilder implements IHeaderBuilder {
             return this;
         }
 
-        if (this.headers.fspiopSource.match(FSPIOP_HEADERS_SWITCH_REGEX) === null) {
+        // if (this.headers.fspiopSource.match(FSPIOP_HEADERS_SWITCH_REGEX) === null) {
             if (
                 config.httpMethod.toLowerCase() === httpMethod.toLowerCase()
             ) {
@@ -127,7 +127,7 @@ export default class HeaderBuilder implements IHeaderBuilder {
                 // HTTP Methods DO NOT match, and thus a change is required for target HTTP Method
                 this.headers.fspiopHttpMethod = config.httpMethod;
             }
-        }
+        // }
 
         return this;
     }

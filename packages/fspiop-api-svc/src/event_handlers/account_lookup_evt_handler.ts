@@ -282,6 +282,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadPartyAssociationPut(payload);
 
+            clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
             clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
@@ -328,6 +329,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadPartyDisassociationPut(payload);
 
+            clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
             clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
@@ -379,6 +381,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadPartyInfoRequestedPut(payload);
 
+            clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.GET;
             clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
 
             if (!clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === "") {
@@ -434,6 +437,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadPartyInfoReceivedPut(payload);
 
+            clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
             clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
 
             if(fspiopOpaqueState) {
@@ -478,7 +482,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
-
+            clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
+            
             const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
@@ -491,6 +496,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadParticipantPut(payload);
 
+            clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
             clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);

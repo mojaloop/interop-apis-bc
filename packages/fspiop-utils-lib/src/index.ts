@@ -34,5 +34,6 @@ export * as Constants from "./constants";
 export * as Enums from "./enums";
 export * as Transformer from "./transformer";
 export * as Request from "./request";
+export * from "./errors";
 export * from "./validator";
 export * from "./jws";
