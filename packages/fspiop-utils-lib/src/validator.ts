@@ -99,6 +99,15 @@ export class FspiopValidator {
 
 
 		if(amount.amount) {
+			if(amount.amount === "0") {
+				throw new ValidationdError({
+					"errorInformation": {
+						"errorCode": ClientErrors.GENERIC_VALIDATION_ERROR.code,
+						"errorDescription": `Transfer amount cannot be equal to 0`,
+						"extensionList": null
+					}
+				});
+			}
 			const decimalValue = amount.amount.toString().split('.');
 
 			if(decimalValue.length === 2 && currency.decimals < decimalValue[1].length) {
