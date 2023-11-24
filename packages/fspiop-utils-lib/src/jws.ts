@@ -44,6 +44,7 @@ const uriRegex = /(?:^.*)(\/(participants|parties|quotes|bulkQuotes|transfers|bu
 const ALLOWED_SIGNATURE_ALGORITHMS = ["RS256"];
 
 export type JwsConfig = {
+    enabled: boolean;
     privateKey: Buffer;
     publicKeys: {
         [key:string]: Buffer
@@ -57,6 +58,7 @@ type FspiopSignatureFormat = {
 
 export class FspiopJwsSignature {
     private _logger: ILogger;
+    private _enabled: boolean;
     private _privateKey: Buffer;
 	private _publicKeys: any;
 
@@ -64,12 +66,16 @@ export class FspiopJwsSignature {
         if(!config.publicKeys) {
             throw new InvalidJWSKeysError('Validation keys must be supplied as config argument');
         }
-
+        this._enabled = config.enabled;
         this._publicKeys = config.publicKeys;
         this._privateKey = config.privateKey;
         this._logger = logger;
     }
 
+    get isEnabled():boolean {
+        return this._enabled;
+    }
+    
     public validate(headers: any, payload: any) {
         try {
             if(!payload) {

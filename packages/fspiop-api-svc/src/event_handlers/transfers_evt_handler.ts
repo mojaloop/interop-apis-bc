@@ -378,8 +378,10 @@ export class TransferEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadTransferRequestPost(payload);
 
-            clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.POST;
-            clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
+            if(this._jwsHelper.isEnabled) {
+                clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.POST;
+                clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
+            }
 
             await Request.sendRequest({
                 url: urlBuilder.build(),
@@ -421,8 +423,10 @@ export class TransferEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadTransferRequestPut(payload);
 
-            clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
-            clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
+            if(this._jwsHelper.isEnabled) {
+                clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
+                clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
+            }
 
             const urlBuilderPayer = new Request.URLBuilder(requestedEndpointPayer.value);
             urlBuilderPayer.setEntity(Enums.EntityTypeEnum.TRANSFERS);
@@ -486,8 +490,10 @@ export class TransferEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadTransferRequestGet(payload);
 
-            clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
-            clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
+            if(this._jwsHelper.isEnabled) {
+                clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
+                clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
+            }
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.TRANSFERS);
@@ -573,8 +579,10 @@ export class TransferEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadBulkTransferRequestPost(payload);
 
-            clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.POST;
-            clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
+            if(this._jwsHelper.isEnabled) {
+                clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.POST;
+                clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
+            }
 
             const urlBuilderPayer = new Request.URLBuilder(requestedEndpointPayer.value);
             urlBuilderPayer.setEntity(Enums.EntityTypeEnum.BULK_TRANSFERS);
@@ -619,8 +627,10 @@ export class TransferEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadBulkTransferRequestPut(payload);
 
-            clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
-            clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
+            if(this._jwsHelper.isEnabled) {
+                clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
+                clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
+            }
 
             const urlBuilderPayer = new Request.URLBuilder(requestedEndpointPayer.value);
             urlBuilderPayer.setEntity(Enums.EntityTypeEnum.BULK_TRANSFERS);
@@ -668,8 +678,10 @@ export class TransferEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadBulkTransferRequestGet(payload);
 
-            clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
-            clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
+            if(this._jwsHelper.isEnabled) {
+                clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
+                clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
+            }
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_TRANSFERS);

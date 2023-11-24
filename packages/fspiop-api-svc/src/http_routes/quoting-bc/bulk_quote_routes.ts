@@ -92,10 +92,6 @@ export class QuoteBulkRoutes extends BaseRoutes {
                 return;
             }
 
-            const signature = this._jwsHelper.sign(req.headers, req.body);
-
-            const test = this._jwsHelper.validate(req.headers, req.body);
-
             const msgPayload: BulkQuoteQueryReceivedEvtPayload = {
                 bulkQuoteId: bulkQuoteId,
             };
@@ -165,9 +161,9 @@ export class QuoteBulkRoutes extends BaseRoutes {
                 }
             }
 
-            const signature = this._jwsHelper.sign(req.headers, req.body);
-
-            const test = this._jwsHelper.validate(req.headers, req.body);
+            if(this._jwsHelper.isEnabled) {
+                this._jwsHelper.validate(req.headers, req.body);
+            }
 
             const msgPayload: BulkQuoteRequestedEvtPayload = {
                 bulkQuoteId: bulkQuoteId,
@@ -255,9 +251,9 @@ export class QuoteBulkRoutes extends BaseRoutes {
                 }
             }
 
-            const signature = this._jwsHelper.sign(req.headers, req.body);
-
-            const test = this._jwsHelper.validate(req.headers, req.body);
+            if(this._jwsHelper.isEnabled) {
+                this._jwsHelper.validate(req.headers, req.body);
+            }
 
             const msgPayload: BulkQuotePendingReceivedEvtPayload = {
                 bulkQuoteId: bulkQuoteId,
@@ -325,9 +321,9 @@ export class QuoteBulkRoutes extends BaseRoutes {
                 return;
             }
 
-            const signature = this._jwsHelper.sign(req.headers, req.body);
-
-            const test = this._jwsHelper.validate(req.headers, req.body);
+            if(this._jwsHelper.isEnabled) {
+                this._jwsHelper.validate(req.headers, req.body);
+            }
 
             const msgPayload: GetBulkQuoteQueryRejectedEvtPayload = {
                 bulkQuoteId,

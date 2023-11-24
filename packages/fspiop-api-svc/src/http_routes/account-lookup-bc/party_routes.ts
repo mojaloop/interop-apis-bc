@@ -259,9 +259,9 @@ export class PartyRoutes extends BaseRoutes {
                 });
             }
 
-            const signature = this._jwsHelper.sign(req.headers, req.body);
-
-            const test = this._jwsHelper.validate(req.headers, req.body);
+            if(this._jwsHelper.isEnabled) {
+                this._jwsHelper.validate(req.headers, req.body);
+            }
 
             const msgPayload: PartyInfoAvailableEvtPayload = {
                 requesterFspId: requesterFspId,
@@ -349,9 +349,9 @@ export class PartyRoutes extends BaseRoutes {
                 });
             }
 
-            const signature = this._jwsHelper.sign(req.headers, req.body);
-
-            const test = this._jwsHelper.validate(req.headers, req.body);
+            if(this._jwsHelper.isEnabled) {
+                this._jwsHelper.validate(req.headers, req.body);
+            }
 
             const msgPayload: PartyInfoAvailableEvtPayload = {
                 requesterFspId: requesterFspId,
@@ -434,10 +434,10 @@ export class PartyRoutes extends BaseRoutes {
                 });
             }
 
-            const signature = this._jwsHelper.sign(req.headers, req.body);
-
-            const test = this._jwsHelper.validate(req.headers, req.body);
-
+            if(this._jwsHelper.isEnabled) {
+                this._jwsHelper.validate(req.headers, req.body);
+            }
+            
             const msgPayload: GetPartyQueryRejectedEvtPayload = {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId,
@@ -515,10 +515,10 @@ export class PartyRoutes extends BaseRoutes {
                 });
             }
 
-            const signature = this._jwsHelper.sign(req.headers, req.body);
+            if(this._jwsHelper.isEnabled) {
+                this._jwsHelper.validate(req.headers, req.body);
+            }
 
-            const test = this._jwsHelper.validate(req.headers, req.body);
-            
             const msgPayload: GetPartyQueryRejectedEvtPayload = {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId,

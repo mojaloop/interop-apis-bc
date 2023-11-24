@@ -101,7 +101,7 @@ const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
 
 const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
-const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || path.join(__dirname, "../dist/tmp_key_file");
+const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || "/app/data/audit_private_key.pem";
 
 // Account Lookup
 const PARTICIPANTS_URL_RESOURCE_NAME = "participants";
@@ -145,7 +145,10 @@ const pubKey = path.join(__dirname, "../dist/publickey.cer");
 const pubKeyCont = readFileSync(pubKey)
 const privKeyCont = readFileSync(privKey)
 
+const JWS_ENABLED = process.env["JWS_ENABLED"] || true;
+
 const jwsConfig = {
+    enabled: JWS_ENABLED as boolean,
     privateKey: privKeyCont,
     publicKeys: {
         "bluebank": pubKeyCont,

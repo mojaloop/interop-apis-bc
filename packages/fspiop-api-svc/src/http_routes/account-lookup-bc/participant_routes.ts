@@ -239,9 +239,9 @@ export class ParticipantRoutes extends BaseRoutes {
                 });
             }
 
-            const signature = this._jwsHelper.sign(req.headers, req.body);
-
-            const test = this._jwsHelper.validate(req.headers, req.body);
+            if(this._jwsHelper.isEnabled) {
+                this._jwsHelper.validate(req.headers, req.body);
+            }
 
             const msgPayload: ParticipantAssociationRequestReceivedEvtPayload = {
                 ownerFspId: ownerFspId,
@@ -313,9 +313,9 @@ export class ParticipantRoutes extends BaseRoutes {
                 });
             }
 
-            const signature = this._jwsHelper.sign(req.headers, req.body);
-
-            const test = this._jwsHelper.validate(req.headers, req.body);
+            if(this._jwsHelper.isEnabled) {
+                this._jwsHelper.validate(req.headers, req.body);
+            }
 
             const msgPayload: ParticipantAssociationRequestReceivedEvtPayload = {
                 ownerFspId: ownerFspId,

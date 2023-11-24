@@ -114,9 +114,9 @@ export class TransfersRoutes extends BaseRoutes {
 
             this._validator.currencyAndAmount(amount);
 
-            const signature = this._jwsHelper.sign(req.headers, req.body);
-
-            const test = this._jwsHelper.validate(req.headers, req.body);
+            if(this._jwsHelper.isEnabled) {
+                this._jwsHelper.validate(req.headers, req.body);
+            }
             
             const msgPayload: TransferPrepareRequestedEvtPayload = {
                 transferId: transferId,
@@ -198,9 +198,9 @@ export class TransfersRoutes extends BaseRoutes {
                 return;
             }
 
-            const signature = this._jwsHelper.sign(req.headers, req.body);
-
-            const test = this._jwsHelper.validate(req.headers, req.body);
+            if(this._jwsHelper.isEnabled) {
+                this._jwsHelper.validate(req.headers, req.body);
+            }
 
             const msgPayload: TransferFulfilRequestedEvtPayload = {
                 transferId: transferId,
@@ -267,9 +267,9 @@ export class TransfersRoutes extends BaseRoutes {
                 return;
             }
 
-            const signature = this._jwsHelper.sign(req.headers, req.body);
-
-            const test = this._jwsHelper.validate(req.headers, req.body);
+            if(this._jwsHelper.isEnabled) {
+                this._jwsHelper.validate(req.headers, req.body);
+            }
 
             const msgPayload: TransferRejectRequestedEvtPayload = {
                 transferId: transferId,

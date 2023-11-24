@@ -55,6 +55,7 @@ export const getJwsConfig = (): any => {
     const pubKeyCont = readFileSync(pubKey)
     const privKeyCont = readFileSync(privKey)
     const jwsConfig = {
+        enabled: true,
         privateKey: privKeyCont,
         publicKeys: {
             "bluebank": pubKeyCont,

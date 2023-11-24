@@ -106,9 +106,9 @@ export class QuoteRoutes extends BaseRoutes {
                 this._validator.currencyAndAmount(fees);
             }
 
-            const signature = this._jwsHelper.sign(req.headers, req.body);
-
-            const test = this._jwsHelper.validate(req.headers, req.body);
+            if(this._jwsHelper.isEnabled) {
+                this._jwsHelper.validate(req.headers, req.body);
+            }
 
             const msgPayload: QuoteRequestReceivedEvtPayload = {
                 requesterFspId: requesterFspId,
@@ -210,9 +210,9 @@ export class QuoteRoutes extends BaseRoutes {
                 this._validator.currencyAndAmount(payeeFspFee);
             }
 
-            const signature = this._jwsHelper.sign(req.headers, req.body);
-
-            const test = this._jwsHelper.validate(req.headers, req.body);
+            if(this._jwsHelper.isEnabled) {
+                this._jwsHelper.validate(req.headers, req.body);
+            }
 
             const msgPayload: QuoteResponseReceivedEvtPayload = {
                 requesterFspId: requesterFspId,
@@ -341,9 +341,9 @@ export class QuoteRoutes extends BaseRoutes {
                 return;
             }
 
-            const signature = this._jwsHelper.sign(req.headers, req.body);
-
-            const test = this._jwsHelper.validate(req.headers, req.body);
+            if(this._jwsHelper.isEnabled) {
+                this._jwsHelper.validate(req.headers, req.body);
+            }
 
             const msgPayload: GetQuoteQueryRejectedEvtPayload = {
                 quoteId: quoteId,
