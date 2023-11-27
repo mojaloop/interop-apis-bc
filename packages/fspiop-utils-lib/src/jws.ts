@@ -36,7 +36,7 @@ import base64url from 'base64url';
 import { JsonWebSignatureHelper, AllowedSigningAlgorithms } from "@mojaloop/security-bc-client-lib";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { FSPIOP_HEADERS_DATE, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_URI } from './constants';
-import { InvalidAlgHeaderInProtectedHeader, InvalidFSPIOPHttpSourceHeaderError, InvalidFSPIOPPayloadError, InvalidFSPIOPURIHeaderError, InvalidJWSKeysError, MissingAlgHeaderInProtectedHeader, MissingFSPIOPDateHeaderInProtectedHeader, MissingFSPIOPDestinationHeader, MissingFSPIOPDestinationInProtectedHeader, MissingFSPIOPHttpMethodHeader, MissingFSPIOPHttpMethodHeaderInDecodedHeader, MissingFSPIOPHttpMethodHeaderInProtectedHeader, MissingFSPIOPSourceHeaderInDecodedHeader, MissingFSPIOPSourceHeaderInProtectedHeader, MissingFSPIOPURIHeaderInDecodedHeader, MissingFSPIOPURIHeaderInProtectedHeader, MissingRequiredJWSFSPIOPHeaders, NonMatchingFSPIOPDateJWSHeader, NonMatchingFSPIOPDestinationJWSHeader, NonMatchingFSPIOPHttpMethodJWSHeader, NonMatchingFSPIOPSourceJWSHeader, NonMatchingFSPIOPURIJWSHeader, PublicKeyNotAvailableForDFSPError } from './errors';
+import { InvalidAlgHeaderInProtectedHeader, InvalidFSPIOPHttpSourceHeaderError, InvalidFSPIOPPayloadError, InvalidFSPIOPURIHeaderError, MissingAlgHeaderInProtectedHeader, MissingFSPIOPDateHeaderInProtectedHeader, MissingFSPIOPDestinationHeader, MissingFSPIOPDestinationInProtectedHeader, MissingFSPIOPHttpMethodHeader, MissingFSPIOPHttpMethodHeaderInDecodedHeader, MissingFSPIOPHttpMethodHeaderInProtectedHeader, MissingFSPIOPSourceHeaderInDecodedHeader, MissingFSPIOPSourceHeaderInProtectedHeader, MissingFSPIOPURIHeaderInDecodedHeader, MissingFSPIOPURIHeaderInProtectedHeader, MissingRequiredJWSFSPIOPHeaders, NonMatchingFSPIOPDateJWSHeader, NonMatchingFSPIOPDestinationJWSHeader, NonMatchingFSPIOPHttpMethodJWSHeader, NonMatchingFSPIOPSourceJWSHeader, NonMatchingFSPIOPURIJWSHeader, PublicKeyNotAvailableForDFSPError } from './errors';
 
 // a regular expression to extract the Mojaloop API spec compliant HTTP-URI header value
 const uriRegex = /(?:^.*)(\/(participants|parties|quotes|bulkQuotes|transfers|bulkTransfers|transactionRequests|thirdpartyRequests|authorizations|consents|consentRequests|)(\/.*)*)$/;
@@ -50,11 +50,6 @@ export type JwsConfig = {
         [key:string]: Buffer
     } 
 };
-
-type FspiopSignatureFormat = {
-    protectedHeader: string,
-    signature: string
-}
 
 export class FspiopJwsSignature {
     private _logger: ILogger;

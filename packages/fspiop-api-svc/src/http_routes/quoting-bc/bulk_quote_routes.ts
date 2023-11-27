@@ -36,7 +36,6 @@ import { Constants, JwsConfig, Transformer, ValidationdError } from "@mojaloop/i
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import express from "express";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";

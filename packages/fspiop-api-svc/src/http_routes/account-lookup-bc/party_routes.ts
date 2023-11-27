@@ -37,7 +37,6 @@
 import express from "express";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { Constants, JwsConfig, Transformer, ValidationdError } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {
     PartyQueryReceivedEvt,
     PartyQueryReceivedEvtPayload,
