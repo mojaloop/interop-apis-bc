@@ -45,6 +45,8 @@ import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { Server } from "http";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import path from "path";
+import { readFileSync } from "fs";
 const packageJSON = require("../../package.json");
 
 const BC_NAME = "interop-apis-bc";
@@ -73,6 +75,21 @@ const pathWithSubType = `/${Enums.EntityTypeEnum.PARTIES}/MSISDN/123456789/123`;
 let configClientMock : IConfigurationClient;
 
 jest.setTimeout(10000);
+
+// JWS Signature
+const privKey = path.join(__dirname, "../../dist/privatekey.pem");
+const pubKey = path.join(__dirname, "../../dist/publickey.cer");
+const pubKeyCont = readFileSync(pubKey)
+const privKeyCont = readFileSync(privKey)
+
+const jwsConfig = {
+    enabled: false,
+    privateKey: privKeyCont,
+    publicKeys: {
+        "bluebank": pubKeyCont,
+        "greenbank": pubKeyCont
+    }
+}
 
 describe("FSPIOP Routes - Unit Tests Party", () => {
     let app: Express;
@@ -114,7 +131,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
         producer = new MLKafkaJsonProducer(kafkaJsonProducerOptions);
         // await producer.connect();
 
-        partyRoutes = new PartyRoutes(configClientMock, producer, logger);
+        partyRoutes = new PartyRoutes(configClientMock, producer, jwsConfig, logger);
         app.use(`/${PARTIES_URL_RESOURCE_NAME}`, partyRoutes.router);
 
         let portNum = SVC_DEFAULT_HTTP_PORT;
@@ -143,7 +160,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
         // Arrange & Act
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["fspiop-source"]));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES,  Enums.FspiopRequestMethodsEnum.GET, null, ["fspiop-source"]));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -162,7 +179,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
         // Act
         const res = await request(server)
         .get(`${pathWithoutSubType}?currency=${currency}`)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.GET));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -196,7 +213,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
         // Arrange & Act
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.GET));
 
         // Assert
         expect(res.statusCode).toEqual(500);
@@ -212,7 +229,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
         // Arrange & Act
         const res = await request(server)
         .get(pathWithSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["fspiop-source"]));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.GET, null, ["fspiop-source"]));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -231,7 +248,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
         // Act
         const res = await request(server)
         .get(`${pathWithSubType}?currency=${currency}`)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.GET));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -265,7 +282,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
         // Arrange & Act
         const res = await request(server)
         .get(pathWithSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.GET));
 
         // Assert
         expect(res.statusCode).toEqual(500);
@@ -303,7 +320,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
         const res = await request(server)
         .put(pathWithoutSubType)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["fspiop-source"]));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.PUT, null, ["fspiop-source"]));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -342,7 +359,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
         const res = await request(server)
         .get(`${pathWithoutSubType}?currency=${currency}`)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.GET));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -398,7 +415,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
         const res = await request(server)
         .put(pathWithoutSubType)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.PUT));
 
         // Assert
         expect(res.statusCode).toEqual(500);
@@ -436,7 +453,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
         const res = await request(server)
         .put(pathWithSubType)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["fspiop-source"]));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.PUT, null, ["fspiop-source"]));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -476,7 +493,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
         const res = await request(server)
         .get(`${pathWithSubType}?currency=${currency}`)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.GET));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -532,7 +549,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
         const res = await request(server)
         .put(pathWithoutSubType)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.PUT));
 
         // Assert
         expect(res.statusCode).toEqual(500);
@@ -559,7 +576,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
         const res = await request(server)
         .put(pathWithoutSubType + "/error")
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["fspiop-source"]));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.PUT, null,  ["fspiop-source"]));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -585,7 +602,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
         const res = await request(server)
         .put(`${pathWithoutSubType}"/error?currency=${currency}`)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.PUT));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -628,7 +645,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
         const res = await request(server)
         .put(pathWithoutSubType + "/error")
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.PUT));
 
         // Assert
         expect(res.statusCode).toEqual(500);
@@ -655,7 +672,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
         const res = await request(server)
         .put(pathWithSubType + "/error")
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["fspiop-source"]));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.PUT, null, ["fspiop-source"]));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -681,7 +698,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
         const res = await request(server)
         .put(`${pathWithSubType}"/error?currency=${currency}`)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.PUT));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -724,7 +741,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
         const res = await request(server)
         .put(pathWithSubType + "/error")
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.PUT));
 
         // Assert
         expect(res.statusCode).toEqual(500);

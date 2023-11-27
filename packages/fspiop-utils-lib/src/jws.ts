@@ -36,7 +36,7 @@ import base64url from 'base64url';
 import { JsonWebSignatureHelper, AllowedSigningAlgorithms } from "@mojaloop/security-bc-client-lib";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { FSPIOP_HEADERS_DATE, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_URI } from './constants';
-import { InvalidAlgHeaderInProtectedHeader, InvalidFSPIOPHttpSourceHeaderError, InvalidFSPIOPPayloadError, InvalidFSPIOPURIHeaderError, InvalidJWSKeysError, MissingAlgHeaderInProtectedHeader, MissingFSPIOPDateHeaderInProtectedHeader, MissingFSPIOPDestinationHeader, MissingFSPIOPDestinationInProtectedHeader, MissingFSPIOPHttpMethodHeader, MissingFSPIOPHttpMethodHeaderInProtectedHeader, MissingFSPIOPSourceHeaderInProtectedHeader, MissingFSPIOPURIHeaderInProtectedHeader, MissingRequiredJWSFSPIOPHeaders, NonMatchingFSPIOPDateJWSHeader, NonMatchingFSPIOPDestinationJWSHeader, NonMatchingFSPIOPHttpMethodJWSHeader, NonMatchingFSPIOPSourceJWSHeader, NonMatchingFSPIOPURIJWSHeader, PublicKeyNotAvailableForDFSPError } from './errors';
+import { InvalidAlgHeaderInProtectedHeader, InvalidFSPIOPHttpSourceHeaderError, InvalidFSPIOPPayloadError, InvalidFSPIOPURIHeaderError, InvalidJWSKeysError, MissingAlgHeaderInProtectedHeader, MissingFSPIOPDateHeaderInProtectedHeader, MissingFSPIOPDestinationHeader, MissingFSPIOPDestinationInProtectedHeader, MissingFSPIOPHttpMethodHeader, MissingFSPIOPHttpMethodHeaderInDecodedHeader, MissingFSPIOPHttpMethodHeaderInProtectedHeader, MissingFSPIOPSourceHeaderInDecodedHeader, MissingFSPIOPSourceHeaderInProtectedHeader, MissingFSPIOPURIHeaderInDecodedHeader, MissingFSPIOPURIHeaderInProtectedHeader, MissingRequiredJWSFSPIOPHeaders, NonMatchingFSPIOPDateJWSHeader, NonMatchingFSPIOPDestinationJWSHeader, NonMatchingFSPIOPHttpMethodJWSHeader, NonMatchingFSPIOPSourceJWSHeader, NonMatchingFSPIOPURIJWSHeader, PublicKeyNotAvailableForDFSPError } from './errors';
 
 // a regular expression to extract the Mojaloop API spec compliant HTTP-URI header value
 const uriRegex = /(?:^.*)(\/(participants|parties|quotes|bulkQuotes|transfers|bulkTransfers|transactionRequests|thirdpartyRequests|authorizations|consents|consentRequests|)(\/.*)*)$/;
@@ -48,7 +48,7 @@ export type JwsConfig = {
     privateKey: Buffer;
     publicKeys: {
         [key:string]: Buffer
-    }
+    } 
 };
 
 type FspiopSignatureFormat = {
@@ -63,16 +63,13 @@ export class FspiopJwsSignature {
 	private _publicKeys: any;
 
     constructor(config:JwsConfig, logger: ILogger) {
-        if(!config.publicKeys) {
-            throw new InvalidJWSKeysError('Validation keys must be supplied as config argument');
-        }
         this._enabled = config.enabled;
         this._publicKeys = config.publicKeys;
         this._privateKey = config.privateKey;
         this._logger = logger;
     }
 
-    get isEnabled():boolean {
+    get isEnabled(): boolean {
         return this._enabled;
     }
     
@@ -129,7 +126,7 @@ export class FspiopJwsSignature {
 
         // check FSPIOP-URI is present and matches
         if(!decodedProtectedHeader['FSPIOP-URI']) {
-            throw new MissingFSPIOPURIHeaderInProtectedHeader(`Decoded protected header does not contain required FSPIOP-URI element: ${util.inspect(decodedProtectedHeader)}`);
+            throw new MissingFSPIOPURIHeaderInDecodedHeader(`Decoded protected header does not contain required FSPIOP-URI element: ${util.inspect(decodedProtectedHeader)}`);
         }
         if(!headers['fspiop-uri']) {
             throw new MissingFSPIOPURIHeaderInProtectedHeader(`FSPIOP-URI HTTP header not present in request headers: ${util.inspect(headers)}`);
@@ -141,7 +138,7 @@ export class FspiopJwsSignature {
 
         // check FSPIOP-HTTP-Method is present and matches
         if(!decodedProtectedHeader['FSPIOP-HTTP-Method']) {
-            throw new MissingFSPIOPHttpMethodHeaderInProtectedHeader(`Decoded protected header does not contain required FSPIOP-HTTP-Method element: ${util.inspect(decodedProtectedHeader)}`);
+            throw new MissingFSPIOPHttpMethodHeaderInDecodedHeader(`Decoded protected header does not contain required FSPIOP-HTTP-Method element: ${util.inspect(decodedProtectedHeader)}`);
         }
         if(!headers['fspiop-http-method']) {
             throw new MissingFSPIOPHttpMethodHeaderInProtectedHeader(`FSPIOP-HTTP-Method HTTP header not present in request headers: ${util.inspect(headers)}`);
@@ -153,7 +150,7 @@ export class FspiopJwsSignature {
 
         // check FSPIOP-Source is present and matches
         if(!decodedProtectedHeader['FSPIOP-Source']) {
-            throw new MissingFSPIOPSourceHeaderInProtectedHeader(`Decoded protected header does not contain required FSPIOP-Source element: ${util.inspect(decodedProtectedHeader)}`);
+            throw new MissingFSPIOPSourceHeaderInDecodedHeader(`Decoded protected header does not contain required FSPIOP-Source element: ${util.inspect(decodedProtectedHeader)}`);
         }
         if(!headers['fspiop-source']) {
             throw new MissingFSPIOPSourceHeaderInProtectedHeader(`FSPIOP-Source HTTP header not present in request headers: ${util.inspect(headers)}`);
@@ -173,10 +170,10 @@ export class FspiopJwsSignature {
 
         // if we have an HTTP fspiop-destination header it should also be in the protected header and the values should match exactly
         if(headers['fspiop-destination'] && !decodedProtectedHeader['FSPIOP-Destination']) {
-            throw new MissingFSPIOPDestinationHeader(`HTTP fspiop-destination header is present but is not present in protected header: ${util.inspect(decodedProtectedHeader)}`); 
+            throw new MissingFSPIOPDestinationInProtectedHeader(`HTTP fspiop-destination header is present but is not present in protected header: ${util.inspect(decodedProtectedHeader)}`); 
         }
         if(decodedProtectedHeader['FSPIOP-Destination'] && !headers['fspiop-destination']) {
-            throw new MissingFSPIOPDestinationInProtectedHeader(`FSPIOP-Destination header is present in protected header but not in HTTP request: ${util.inspect(headers)}`);
+            throw new MissingFSPIOPDestinationHeader(`FSPIOP-Destination header is present in protected header but not in HTTP request: ${util.inspect(headers)}`);
         }
         if(headers['fspiop-destination'] && (headers['fspiop-destination'] !== decodedProtectedHeader['FSPIOP-Destination'])) {
             throw new NonMatchingFSPIOPDestinationJWSHeader(`HTTP FSPIOP-Destination header: ${headers['fspiop-destination']} does not match protected header FSPIOP-Destination value: ${decodedProtectedHeader['FSPIOP-Destination']}`);
@@ -253,6 +250,7 @@ export class FspiopJwsSignature {
                 "FSPIOP-HTTP-Method": headers[FSPIOP_HEADERS_HTTP_METHOD],
                 "FSPIOP-Source": headers[FSPIOP_HEADERS_SOURCE],
                 "FSPIOP-Destination": headers[FSPIOP_HEADERS_DESTINATION],
+                "FSPIOP-Date": headers[FSPIOP_HEADERS_DATE]
             },
             JSON.stringify(payload), 
             AllowedSigningAlgorithms.RS256

@@ -41,10 +41,12 @@ import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
 import request from "supertest";
 import { MemoryConfigClientMock, getHeaders } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
-import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Enums, JwsConfig } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { Server } from "http";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import path from "path";
+import { readFileSync } from "fs";
 const packageJSON = require("../../package.json");
 
 const BC_NAME = "interop-apis-bc";
@@ -73,6 +75,21 @@ const pathWithoutId = `/${Enums.EntityTypeEnum.BULK_QUOTES}`;
 let configClientMock : IConfigurationClient;
 
 jest.setTimeout(10000);
+
+
+// JWS Signature
+const privKey = path.join(__dirname, "../../dist/privatekey.pem");
+const pubKey = path.join(__dirname, "../../dist/publickey.cer");
+const pubKeyCont = readFileSync(pubKey)
+const privKeyCont = readFileSync(privKey)
+
+const jwsConfig = {
+    enabled: false,
+    privateKey: privKeyCont,
+    publicKeys: {
+
+    }
+}
 
 describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
     let app: Express;
@@ -114,7 +131,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         producer = new MLKafkaJsonProducer(kafkaJsonProducerOptions);
         // await producer.connect();
 
-        bulkQuoteRoutes = new QuoteBulkRoutes(configClientMock, producer, logger);
+        bulkQuoteRoutes = new QuoteBulkRoutes(configClientMock, producer, jwsConfig, logger);
         app.use(`/${BULK_QUOTES_URL_RESOURCE_NAME}`, bulkQuoteRoutes.router);
 
         let portNum = SVC_DEFAULT_HTTP_PORT;
@@ -143,7 +160,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         // Arrange & Act
         const res = await request(server)
         .get(pathWithId)
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, ["fspiop-source"]));
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.GET, null, ["fspiop-source"]));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -159,7 +176,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         // Arrange & Act
         const res = await request(server)
         .get(pathWithId)
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES));
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.GET));
 
         // Assert
         expect(res.statusCode).toEqual(500);
@@ -217,7 +234,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         const res = await request(server)
         .post(pathWithoutId)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, ["fspiop-source"]));
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.POST, null,["fspiop-source"]));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -275,7 +292,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         const res = await request(server)
             .post(pathWithoutId)
             .send(payload)
-            .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES));
+            .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.POST, null, ));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -351,7 +368,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         const res = await request(server)
             .post(pathWithoutId)
             .send(payload)
-            .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES));
+            .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.POST));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -410,7 +427,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         const res = await request(server)
         .post(pathWithoutId)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES));
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.POST));
 
         // Assert
         expect(res.statusCode).toEqual(500);
@@ -472,7 +489,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         const res = await request(server)
         .put(pathWithId)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, ["fspiop-source"]));
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.PUT, null, ["fspiop-source"]));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -534,7 +551,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         const res = await request(server)
         .put(pathWithId)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES));
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.PUT));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -614,7 +631,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         const res = await request(server)
         .put(pathWithId)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES));
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.PUT));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -677,7 +694,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         const res = await request(server)
         .put(pathWithId)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES));
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.PUT));
 
         // Assert
         expect(res.statusCode).toEqual(500);
@@ -702,7 +719,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         const res = await request(server)
         .put(pathWithId + "/error")
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, ["fspiop-source"]));
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.PUT, null, ["fspiop-source"]));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -727,7 +744,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         const res = await request(server)
         .put(pathWithId + "/error")
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES));
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.PUT));
 
         // Assert
         expect(res.statusCode).toEqual(500);

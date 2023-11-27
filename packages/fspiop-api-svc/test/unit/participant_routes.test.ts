@@ -46,6 +46,8 @@ import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { Server } from "http";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import path from "path";
+import { readFileSync } from "fs";
 const packageJSON = require("../../package.json");
 
 const BC_NAME = "interop-apis-bc";
@@ -74,6 +76,21 @@ const pathWithSubType = `/${Enums.EntityTypeEnum.PARTICIPANTS}/MSISDN/123456789/
 let configClientMock : IConfigurationClient;
 
 jest.setTimeout(10000);
+
+// JWS Signature
+const privKey = path.join(__dirname, "../../dist/privatekey.pem");
+const pubKey = path.join(__dirname, "../../dist/publickey.cer");
+const pubKeyCont = readFileSync(pubKey)
+const privKeyCont = readFileSync(privKey)
+
+const jwsConfig = {
+    enabled: false,
+    privateKey: privKeyCont,
+    publicKeys: {
+        "bluebank": pubKeyCont,
+        "greenbank": pubKeyCont
+    }
+}
 
 describe("FSPIOP Routes - Participant", () => {
     let app: Express;
@@ -115,7 +132,7 @@ describe("FSPIOP Routes - Participant", () => {
         producer = new MLKafkaJsonProducer(kafkaJsonProducerOptions);
         // await producer.connect();
 
-        participantRoutes = new ParticipantRoutes(configClientMock, producer, logger);
+        participantRoutes = new ParticipantRoutes(configClientMock, producer, jwsConfig, logger);
         app.use(`/${PARTICIPANTS_URL_RESOURCE_NAME}`, participantRoutes.router);
 
         let portNum = SVC_DEFAULT_HTTP_PORT;
@@ -151,7 +168,7 @@ describe("FSPIOP Routes - Participant", () => {
 
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["fspiop-source"]));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.GET, null, ["fspiop-source"]));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -172,7 +189,7 @@ describe("FSPIOP Routes - Participant", () => {
 
         const res = await request(server)
         .get(`${pathWithoutSubType}?currency=${currency}`)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.GET));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -211,7 +228,7 @@ describe("FSPIOP Routes - Participant", () => {
         // Act
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.GET));
 
         // Assert
         expect(res.statusCode).toEqual(500);
@@ -234,7 +251,7 @@ describe("FSPIOP Routes - Participant", () => {
 
         const res = await request(server)
         .get(pathWithSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, ["fspiop-source"]));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.GET, null, ["fspiop-source"]));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -255,7 +272,7 @@ describe("FSPIOP Routes - Participant", () => {
 
         const res = await request(server)
         .get(`${pathWithSubType}?currency=${currency}`)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.GET));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -294,7 +311,7 @@ describe("FSPIOP Routes - Participant", () => {
         // Act
         const res = await request(server)
         .get(pathWithSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.GET));
 
         // Assert
         expect(res.statusCode).toEqual(500);
@@ -318,7 +335,7 @@ describe("FSPIOP Routes - Participant", () => {
         const res = await request(server)
         .post(pathWithoutSubType)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, ["fspiop-source"]));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST, null, ["fspiop-source"]));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -344,7 +361,7 @@ describe("FSPIOP Routes - Participant", () => {
         const res = await request(server)
         .get(`${pathWithoutSubType}?currency=${currency}`)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.GET));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -385,7 +402,7 @@ describe("FSPIOP Routes - Participant", () => {
         const res = await request(server)
         .post(pathWithoutSubType)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST));
 
         // Assert
         expect(res.statusCode).toEqual(500);
@@ -409,7 +426,7 @@ describe("FSPIOP Routes - Participant", () => {
         const res = await request(server)
         .post(pathWithSubType)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, ["fspiop-source"]));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS,  Enums.FspiopRequestMethodsEnum.POST, null, ["fspiop-source"]));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -434,7 +451,7 @@ describe("FSPIOP Routes - Participant", () => {
         const res = await request(server)
         .get(`${pathWithSubType}?currency=${currency}`)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.GET));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -474,7 +491,7 @@ describe("FSPIOP Routes - Participant", () => {
         const res = await request(server)
         .post(pathWithSubType)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST));
 
         // Assert
         expect(res.statusCode).toEqual(500);
@@ -492,7 +509,7 @@ describe("FSPIOP Routes - Participant", () => {
 
         const res = await request(server)
         .del(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, ["fspiop-source"]));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.DELETE, null, ["fspiop-source"]));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -508,7 +525,7 @@ describe("FSPIOP Routes - Participant", () => {
         // Arrange & Act
         const res = await request(server)
         .del(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.DELETE));
 
         // Assert
         expect(res.statusCode).toEqual(500);
@@ -526,7 +543,7 @@ describe("FSPIOP Routes - Participant", () => {
 
         const res = await request(server)
         .del(pathWithSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, ["fspiop-source"]));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.DELETE, null, ["fspiop-source"]));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -547,7 +564,7 @@ describe("FSPIOP Routes - Participant", () => {
 
         const res = await request(server)
         .del(`${pathWithSubType}?currency=${currency}`)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.DELETE));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -581,7 +598,7 @@ describe("FSPIOP Routes - Participant", () => {
         // Arrange & Act
         const res = await request(server)
         .del(pathWithSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.DELETE));
 
         // Assert
         expect(res.statusCode).toEqual(500);

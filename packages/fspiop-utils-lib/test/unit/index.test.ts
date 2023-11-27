@@ -34,7 +34,7 @@
 
 
 import { FSPIOP_HEADERS_ACCEPT, FSPIOP_HEADERS_CONTENT_LENGTH, FSPIOP_HEADERS_CONTENT_TYPE, FSPIOP_HEADERS_DATE, FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION, FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_ENCRYPTION, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_SWITCH, FSPIOP_HEADERS_URI, FSPIOP_HEADERS_X_FORWARDED_FOR } from "../../src/constants";
-import { Enums, Request } from "../../src";
+import { Enums, FspiopJwsSignature, InvalidFSPIOPHttpSourceHeaderError, InvalidFSPIOPPayloadError, InvalidFSPIOPURIHeaderError, MissingAlgHeaderInProtectedHeader, MissingFSPIOPDateHeaderInProtectedHeader, MissingFSPIOPDestinationHeader, MissingFSPIOPDestinationInProtectedHeader, MissingFSPIOPHttpMethodHeader, MissingFSPIOPHttpMethodHeaderInDecodedHeader, MissingFSPIOPHttpMethodHeaderInProtectedHeader, MissingFSPIOPSourceHeaderInDecodedHeader, MissingFSPIOPSourceHeaderInProtectedHeader, MissingFSPIOPURIHeaderInDecodedHeader, MissingFSPIOPURIHeaderInProtectedHeader, MissingRequiredJWSFSPIOPHeaders, NonMatchingFSPIOPDateJWSHeader, NonMatchingFSPIOPDestinationJWSHeader, NonMatchingFSPIOPHttpMethodJWSHeader, NonMatchingFSPIOPSourceJWSHeader, NonMatchingFSPIOPURIJWSHeader, PublicKeyNotAvailableForDFSPError, Request } from "../../src";
 import axios from "axios";
 import HeaderBuilder from "../../src/headers/header_builder";
 import { removeEmpty, transformPayloadError, transformPayloadParticipantPut, transformPayloadPartyAssociationPut, transformPayloadPartyDisassociationPut, transformPayloadPartyInfoReceivedPut, transformPayloadPartyInfoRequestedPut, transformPayloadQuotingRequestPost } from "../../src/transformer";
@@ -46,8 +46,57 @@ import {
     PartyQueryResponseEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { URLBuilder } from "../../src/request";
+import path from "path";
+import { readFileSync } from "fs";
+import {ConsoleLogger, ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
+import { JsonWebSignatureHelper, AllowedSigningAlgorithms } from "@mojaloop/security-bc-client-lib";
 
 jest.mock("axios");
+
+// JWS Signature
+const privKey = path.join(__dirname, "../../dist/privatekey.pem");
+const pubKey = path.join(__dirname, "../../dist/publickey.cer");
+const pubKeyCont = readFileSync(pubKey)
+const privKeyCont = readFileSync(privKey)
+
+const jwsConfig = {
+    enabled: true,
+    privateKey: privKeyCont,
+    publicKeys: {
+        "bluebank": pubKeyCont,
+        "greenbank": pubKeyCont
+    }
+}
+
+const logger: ILogger = new ConsoleLogger();
+logger.setLogLevel(LogLevel.FATAL);
+
+const jwsHelper = new FspiopJwsSignature(jwsConfig, logger);
+
+const validSignature = '{"signature":"AtIc2YhY2iDHET8QKncbcaG0f4ABI_gaLim4nc0naGdpXtE9bF-f4FIRNaqbBAp3capp45GY_IMompxvkS3I6CbX8m-PjklOdUWYutDS2eg-W-w_y1XFvl9Qd0-2J7Vus4EhwfjYWuOFNq1XL33Jf67f4VAGWGPFg09QVTysE26fX21E5KKwJbSIztwVLWQ4862OmNhf6_kWqCX93PMT9pL9Hb0ZVFxV7vNlCemIaE9MlYpLep5orzFzU58TtJQf_wOrcS1aXZjlBP6KB6fC1K3P-5FWneCMIu4Kp51-tcQFho0eyrmcdUwnH_rzfh69gd8NwXhIyBOaTBXLew9_-Q","protectedHeader":"eyJhbGciOiJSUzI1NiIsIkZTUElPUC1VUkkiOiIvdHJhbnNmZXJzIiwiRlNQSU9QLUhUVFAtTWV0aG9kIjoiUE9TVCIsIkZTUElPUC1Tb3VyY2UiOiJibHVlYmFuayJ9"}';
+
+const signWithoutValidation = (headers:any, payload:any) => {
+    const token = JsonWebSignatureHelper.sign(Buffer.from(privKeyCont).toString(), 
+        {
+            "alg": "RS256",
+            "FSPIOP-URI": headers[FSPIOP_HEADERS_URI],
+            "FSPIOP-HTTP-Method": headers[FSPIOP_HEADERS_HTTP_METHOD],
+            "FSPIOP-Source": headers[FSPIOP_HEADERS_SOURCE],
+            "FSPIOP-Destination": headers[FSPIOP_HEADERS_DESTINATION],
+            "Date": headers[FSPIOP_HEADERS_DATE]
+        },
+        JSON.stringify(payload), 
+        AllowedSigningAlgorithms.RS256
+    );
+    const [ protectedHeaderBase64, , signature ] = token.split('.');
+
+    const signatureObject = {
+        signature: signature,
+        protectedHeader: protectedHeaderBase64
+    };
+
+    return JSON.stringify(signatureObject)
+}
 
 describe("FSPIOP Utils Lib", () => {
     let urlBuilder: URLBuilder;
@@ -109,6 +158,7 @@ describe("FSPIOP Utils Lib", () => {
                 "fspiop-source": "1",
                 "fspiop-uri": "1",
                 "x-forwarded-for": undefined,
+                "alg": AllowedSigningAlgorithms.RS256
             },
             "method": "PUT",
             "responseType": "json",
@@ -427,51 +477,51 @@ describe("FSPIOP Utils Lib", () => {
 
         // Assert
         expect(urlBuilder.getParams().toString()).toEqual("param1=value1&param2=value2");
-      });
-    
-      it("should clear query parameters", () => {
+    });
+
+    it("should clear query parameters", () => {
         // Arrange & Act
         urlBuilder.appendQueryParam("param1", "value1");
         urlBuilder.clearQueryParams();
 
         // Assert
         expect(urlBuilder.getParams().toString()).toEqual("");
-      });
-    
-      it("should delete a query parameter", () => {
+    });
+
+    it("should delete a query parameter", () => {
         // Arrange & Act
         urlBuilder.appendQueryParam("param1", "value1");
         urlBuilder.deleteQueryParam("param1");
 
         // Assert
         expect(urlBuilder.getParams().toString()).toEqual("");
-      });
-    
-      it("should set the path", () => {
+    });
+
+    it("should set the path", () => {
         // Arrange & Act
         urlBuilder.setPath("/newpath");
 
         // Assert
         expect(urlBuilder.getPath()).toEqual("/newpath");
-      });
+    });
 
-      it("should build url without any adicional parameters", () => {
+    it("should build url without any adicional parameters", () => {
         // Arrange & Act
         const result = urlBuilder.build();
 
         // Assert
         expect(result).toEqual("https://example.com");
-      });
+    });
 
-      it("should build url with specified parameters parameters", () => {
+    it("should build url with specified parameters parameters", () => {
         // Arrange & Act
         const result = urlBuilder.build();
 
         // Assert
         expect(result).toEqual("https://example.com");
-      });
+    });
 
-      it("should get different set", () => {
+    it("should get different set", () => {
         // Arrange & Act
         urlBuilder.setEntity("randomentity");
         urlBuilder.setLocation(["newlocation1", "newlocation2"]);
@@ -487,9 +537,9 @@ describe("FSPIOP Utils Lib", () => {
         expect(urlBuilder.getParams().toString()).toEqual("randomquerystring=");
         expect(urlBuilder.getQueryString().toString()).toEqual("randomquerystring=");
         expect(urlBuilder.getQueryParam("randomquerystring=")).toEqual(undefined);
-      });
-      
-      it("should build url with specified parameters", () => {
+    });
+    
+    it("should build url with specified parameters", () => {
         // Arrange & Act
         urlBuilder.setEntity("randomentity");
         urlBuilder.setLocation(["newlocation1", "newlocation2"]);
@@ -500,7 +550,402 @@ describe("FSPIOP Utils Lib", () => {
 
         // Assert
         expect(result).toEqual("https://example.com/randomentity/newlocation1/newlocation2/randomid/error");
-      });
+    });
     //#endregion
+
+    //#region JWS validate
+    it("should throw InvalidFSPIOPPayloadError when validating a JWS signature without payload", () => {
+        // Arrange
+        const headers = {
+            [FSPIOP_HEADERS_SOURCE]: "bluebank",
+        }
+
+        // Act & Assert
+        expect(() => jwsHelper.validate(headers, null)).toThrow(InvalidFSPIOPPayloadError);
+    });
+
+    it("should throw InvalidFSPIOPHttpSourceHeaderError when validating a JWS signature without fspiop source header", () => {
+        // Arrange
+        const headers = {}
+
+        const payload = {}
+
+        // Act & Assert
+        expect(() => jwsHelper.validate(headers, payload)).toThrow(InvalidFSPIOPHttpSourceHeaderError);
+    });
+
+    it("should throw PublicKeyNotAvailableForDFSPError when validating a JWS signature without a pubkey for the fspiop source header", () => {
+        // Arrange
+        const headers = {
+            [FSPIOP_HEADERS_SOURCE]: "nonexistingdfsp"
+        }
+
+        const payload = {}
+
+        // Act & Assert
+        expect(() => jwsHelper.validate(headers, payload)).toThrow(PublicKeyNotAvailableForDFSPError);
+    });
+    
+    it("should throw MissingRequiredJWSFSPIOPHeaders when validating a JWS signature without URI header", () => {
+        // Arrange
+        const headers = {
+            [FSPIOP_HEADERS_SOURCE]: "bluebank",
+        }
+
+        const payload = {}
+
+        // Act & Assert
+        expect(() => jwsHelper.validate(headers, payload)).toThrow(MissingRequiredJWSFSPIOPHeaders);
+    });
+
+    it("should throw MissingRequiredJWSFSPIOPHeaders when validating a JWS signature without http-method header", () => {
+        // Arrange
+        const headers = {
+            [FSPIOP_HEADERS_SOURCE]: "bluebank",
+            [FSPIOP_HEADERS_URI]: "/transfers"
+        }
+
+        const payload = {}
+
+        // Act & Assert
+        expect(() => jwsHelper.validate(headers, payload)).toThrow(MissingRequiredJWSFSPIOPHeaders);
+    });
+
+    it("should throw MissingRequiredJWSFSPIOPHeaders when validating a JWS signature without signature header", () => {
+        // Arrange
+        const headers = {
+            [FSPIOP_HEADERS_SOURCE]: "bluebank",
+            [FSPIOP_HEADERS_URI]: "/transfers",
+            [FSPIOP_HEADERS_HTTP_METHOD]: "POST"
+        }
+
+        const payload = {}
+
+        // Act & Assert
+        expect(() => jwsHelper.validate(headers, payload)).toThrow(MissingRequiredJWSFSPIOPHeaders);
+    });
+    
+    it("should throw unable to verify token error when validating a JWS signature due to invalid signature token", () => {
+        // Arrange
+        const headers = {
+            [FSPIOP_HEADERS_SOURCE]: "bluebank",
+            [FSPIOP_HEADERS_URI]: "/transfers",
+            [FSPIOP_HEADERS_HTTP_METHOD]: "POST",
+            [FSPIOP_HEADERS_SIGNATURE]: "{}"
+        }
+
+        const payload = {}
+
+        // Act & Assert
+        expect(() => jwsHelper.validate(headers, payload)).toThrow("Unable to verify token - invalid token");
+    });
+
+    it("should throw MissingFSPIOPURIHeaderInDecodedHeader when validating a JWS with a signature with missing URI decoded header", () => {
+        // Arrange
+        let headers = {
+            [FSPIOP_HEADERS_SOURCE]: "bluebank",
+            [FSPIOP_HEADERS_URI]: "/transfers",
+            [FSPIOP_HEADERS_HTTP_METHOD]: "POST",
+            [FSPIOP_HEADERS_SIGNATURE]: "1"
+        }
+
+        const payload = {}
+        
+        const missingHeaders = {}
+
+        headers[FSPIOP_HEADERS_SIGNATURE] = signWithoutValidation(missingHeaders, payload);
+
+        // Act & Assert
+        expect(() => jwsHelper.validate(headers, payload)).toThrow(MissingFSPIOPURIHeaderInDecodedHeader);
+    });
+
+    it("should throw NonMatchingFSPIOPURIJWSHeader when validating a JWS with a signature with non matching URI protected header", () => {
+        // Arrange
+        let headers = {
+            [FSPIOP_HEADERS_SOURCE]: "bluebank",
+            [FSPIOP_HEADERS_URI]: "/transfers",
+            [FSPIOP_HEADERS_HTTP_METHOD]: "POST",
+            [FSPIOP_HEADERS_SIGNATURE]: "1"
+        }
+
+        const payload = {}
+        
+        const missingHeaders = {
+            [FSPIOP_HEADERS_URI]: "/quotes"
+        }
+
+        headers[FSPIOP_HEADERS_SIGNATURE] = signWithoutValidation(missingHeaders, payload);
+
+        // Act & Assert
+        expect(() => jwsHelper.validate(headers, payload)).toThrow(NonMatchingFSPIOPURIJWSHeader);
+    });
+
+    it("should throw MissingFSPIOPHttpMethodHeaderInDecodedHeader when validating a JWS with a signature with missing http method protected header", () => {
+        // Arrange
+        let headers = {
+            [FSPIOP_HEADERS_SOURCE]: "bluebank",
+            [FSPIOP_HEADERS_URI]: "/transfers",
+            [FSPIOP_HEADERS_HTTP_METHOD]: "POST",
+            [FSPIOP_HEADERS_SIGNATURE]: "1"
+        }
+
+        const payload = {}
+        
+        const missingHeaders = {
+            [FSPIOP_HEADERS_URI]: "/transfers"
+        }
+
+        headers[FSPIOP_HEADERS_SIGNATURE] = signWithoutValidation(missingHeaders, payload);
+
+        // Act & Assert
+        expect(() => jwsHelper.validate(headers, payload)).toThrow(MissingFSPIOPHttpMethodHeaderInDecodedHeader);
+    });
+    
+    it("should throw NonMatchingFSPIOPHttpMethodJWSHeader when validating a JWS with a signature with non matching http method protected header", () => {
+        // Arrange
+        let headers = {
+            [FSPIOP_HEADERS_SOURCE]: "bluebank",
+            [FSPIOP_HEADERS_URI]: "/transfers",
+            [FSPIOP_HEADERS_HTTP_METHOD]: "POST",
+            [FSPIOP_HEADERS_SIGNATURE]: "1"
+        }
+
+        const payload = {}
+        
+        const missingHeaders = {
+            [FSPIOP_HEADERS_URI]: "/transfers",
+            [FSPIOP_HEADERS_HTTP_METHOD]: "PUT"
+        }
+
+        headers[FSPIOP_HEADERS_SIGNATURE] = signWithoutValidation(missingHeaders, payload);
+
+        // Act & Assert
+        expect(() => jwsHelper.validate(headers, payload)).toThrow(NonMatchingFSPIOPHttpMethodJWSHeader);
+    });
+    
+    it("should throw MissingFSPIOPSourceHeaderInProtectedHeader when validating a JWS with a signature with missing fspiop source protected header", () => {
+        // Arrange
+        let headers = {
+            [FSPIOP_HEADERS_SOURCE]: "bluebank",
+            [FSPIOP_HEADERS_URI]: "/transfers",
+            [FSPIOP_HEADERS_HTTP_METHOD]: "POST",
+            [FSPIOP_HEADERS_SIGNATURE]: "1"
+        }
+
+        const payload = {}
+        
+        const missingHeaders = {
+            [FSPIOP_HEADERS_URI]: "/transfers",
+            [FSPIOP_HEADERS_HTTP_METHOD]: "POST"
+        }
+
+        headers[FSPIOP_HEADERS_SIGNATURE] = signWithoutValidation(missingHeaders, payload);
+
+        // Act & Assert
+        expect(() => jwsHelper.validate(headers, payload)).toThrow(MissingFSPIOPSourceHeaderInDecodedHeader);
+    });
+
+    it("should throw NonMatchingFSPIOPSourceJWSHeader when validating a JWS with a signature with non matching fspiop source protected header", () => {
+        // Arrange
+        let headers = {
+            [FSPIOP_HEADERS_SOURCE]: "bluebank",
+            [FSPIOP_HEADERS_URI]: "/transfers",
+            [FSPIOP_HEADERS_HTTP_METHOD]: "POST",
+            [FSPIOP_HEADERS_SIGNATURE]: "1"
+        }
+
+        const payload = {}
+        
+        const missingHeaders = {
+            [FSPIOP_HEADERS_SOURCE]: "randomsource",
+            [FSPIOP_HEADERS_URI]: "/transfers",
+            [FSPIOP_HEADERS_HTTP_METHOD]: "POST"
+        }
+
+        headers[FSPIOP_HEADERS_SIGNATURE] = signWithoutValidation(missingHeaders, payload);
+
+        // Act & Assert
+        expect(() => jwsHelper.validate(headers, payload)).toThrow(NonMatchingFSPIOPSourceJWSHeader);
+    });
+    
+    it("should throw MissingFSPIOPDateHeaderInProtectedHeader when validating a JWS with a signature with missing protected date", () => {
+        // Arrange
+        let headers = {
+            [FSPIOP_HEADERS_SOURCE]: "bluebank",
+            [FSPIOP_HEADERS_URI]: "/transfers",
+            [FSPIOP_HEADERS_HTTP_METHOD]: "POST",
+            [FSPIOP_HEADERS_SIGNATURE]: "1"
+        }
+
+        const payload = {}
+        
+        const missingHeaders = {
+            [FSPIOP_HEADERS_SOURCE]: "bluebank",
+            [FSPIOP_HEADERS_URI]: "/transfers",
+            [FSPIOP_HEADERS_HTTP_METHOD]: "POST",
+            [FSPIOP_HEADERS_DATE]: "Tue, 23 May 2017 21:12:31 GMT"
+        }
+
+        headers[FSPIOP_HEADERS_SIGNATURE] = signWithoutValidation(missingHeaders, payload);
+
+        // Act & Assert
+        expect(() => jwsHelper.validate(headers, payload)).toThrow(MissingFSPIOPDateHeaderInProtectedHeader);
+    });
+        
+    it("should throw NonMatchingFSPIOPDateJWSHeader when validating a JWS with a signature with non matching fspiop source protected date", () => {
+        // Arrange
+        let headers = {
+            [FSPIOP_HEADERS_SOURCE]: "bluebank",
+            [FSPIOP_HEADERS_URI]: "/transfers",
+            [FSPIOP_HEADERS_HTTP_METHOD]: "POST",
+            [FSPIOP_HEADERS_SIGNATURE]: "1",
+            [FSPIOP_HEADERS_DATE]: "Wed, 23 May 2017 21:12:31 GMT"
+        }
+
+        const payload = {}
+        
+        const missingHeaders = {
+            [FSPIOP_HEADERS_SOURCE]: "bluebank",
+            [FSPIOP_HEADERS_URI]: "/transfers",
+            [FSPIOP_HEADERS_HTTP_METHOD]: "POST",
+            [FSPIOP_HEADERS_DATE]: "Tue, 23 May 2017 21:12:31 GMT"
+        }
+
+        headers[FSPIOP_HEADERS_SIGNATURE] = signWithoutValidation(missingHeaders, payload);
+
+        // Act & Assert
+        expect(() => jwsHelper.validate(headers, payload)).toThrow(NonMatchingFSPIOPDateJWSHeader);
+    });
+
+    it("should throw MissingFSPIOPDestinationInProtectedHeader when validating a JWS with a signature with missing fspiop destination protected header", () => {
+        // Arrange
+        let headers = {
+            [FSPIOP_HEADERS_SOURCE]: "bluebank",
+            [FSPIOP_HEADERS_DESTINATION]: "greenbank",
+            [FSPIOP_HEADERS_URI]: "/transfers",
+            [FSPIOP_HEADERS_HTTP_METHOD]: "POST",
+            [FSPIOP_HEADERS_SIGNATURE]: "1"
+        }
+
+        const payload = {}
+        
+        const missingHeaders = {
+            [FSPIOP_HEADERS_SOURCE]: "bluebank",
+            [FSPIOP_HEADERS_URI]: "/transfers",
+            [FSPIOP_HEADERS_HTTP_METHOD]: "POST"
+        }
+
+        headers[FSPIOP_HEADERS_SIGNATURE] = signWithoutValidation(missingHeaders, payload);
+
+        // Act & Assert
+        expect(() => jwsHelper.validate(headers, payload)).toThrow(MissingFSPIOPDestinationInProtectedHeader);
+    });
+
+    it("should throw MissingFSPIOPDestinationHeader when validating a JWS with a signature with missing fspiop destination in request headers", () => {
+        // Arrange
+        let headers = {
+            [FSPIOP_HEADERS_SOURCE]: "bluebank",
+            [FSPIOP_HEADERS_URI]: "/transfers",
+            [FSPIOP_HEADERS_HTTP_METHOD]: "POST",
+            [FSPIOP_HEADERS_SIGNATURE]: "1"
+        }
+
+        const payload = {}
+        
+        const missingHeaders = {
+            [FSPIOP_HEADERS_SOURCE]: "bluebank",
+            [FSPIOP_HEADERS_DESTINATION]: "greenbank",
+            [FSPIOP_HEADERS_URI]: "/transfers",
+            [FSPIOP_HEADERS_HTTP_METHOD]: "POST"
+        }
+
+        headers[FSPIOP_HEADERS_SIGNATURE] = signWithoutValidation(missingHeaders, payload);
+
+        // Act & Assert
+        expect(() => jwsHelper.validate(headers, payload)).toThrow(MissingFSPIOPDestinationHeader);
+    });
+    
+    it("should throw NonMatchingFSPIOPDestinationJWSHeader when validating a JWS with a signature with non matching fspiop destination", () => {
+        // Arrange
+        let headers = {
+            [FSPIOP_HEADERS_SOURCE]: "bluebank",
+            [FSPIOP_HEADERS_DESTINATION]: "greenbank",
+            [FSPIOP_HEADERS_URI]: "/transfers",
+            [FSPIOP_HEADERS_HTTP_METHOD]: "POST",
+            [FSPIOP_HEADERS_SIGNATURE]: "1"
+        }
+
+        const payload = {}
+        
+        const missingHeaders = {
+            [FSPIOP_HEADERS_SOURCE]: "bluebank",
+            [FSPIOP_HEADERS_DESTINATION]: "randomdestination",
+            [FSPIOP_HEADERS_URI]: "/transfers",
+            [FSPIOP_HEADERS_HTTP_METHOD]: "POST"
+        }
+
+        headers[FSPIOP_HEADERS_SIGNATURE] = signWithoutValidation(missingHeaders, payload);
+
+        // Act & Assert
+        expect(() => jwsHelper.validate(headers, payload)).toThrow(NonMatchingFSPIOPDestinationJWSHeader);
+    });
+    //#endregion
+
+    //#region JWS sign
+    it("should throw InvalidFSPIOPPayloadError when signing without payload", () => {
+        // Arrange
+        const headers = {
+            [FSPIOP_HEADERS_SOURCE]: "bluebank",
+        }
+
+        // Act & Assert
+        expect(() => jwsHelper.sign(headers, null)).toThrow(InvalidFSPIOPPayloadError);
+    });
+
+    it("should throw InvalidFSPIOPURIHeaderError when signing without URI header", () => {
+        // Arrange
+        const headers = {
+            [FSPIOP_HEADERS_SOURCE]: "bluebank",
+        }
+
+        const payload = {}
+
+        // Act & Assert
+        expect(() => jwsHelper.sign(headers, payload)).toThrow(InvalidFSPIOPURIHeaderError);
+    });
+
+    it("should throw MissingFSPIOPHttpMethodHeader when signing with missing http method protected header", () => {
+        // Arrange
+        let headers = {
+            [FSPIOP_HEADERS_SOURCE]: "bluebank",
+            [FSPIOP_HEADERS_URI]: "/transfers",
+            [FSPIOP_HEADERS_SIGNATURE]: "1"
+        }
+
+        const payload = {}
+
+        // Act & Assert
+        expect(() => jwsHelper.sign(headers, payload)).toThrow(MissingFSPIOPHttpMethodHeader);
+    });
+
+    
+    it("should successfully return a signature", () => {
+        // Arrange
+        let headers = {
+            [FSPIOP_HEADERS_SOURCE]: "bluebank",
+            [FSPIOP_HEADERS_URI]: "/transfers",
+            [FSPIOP_HEADERS_HTTP_METHOD]: "POST"
+        }
+
+        const payload = {}
+
+        // Act
+        const result = jwsHelper.sign(headers, payload);
+
+        // Assert
+        expect(result).toEqual(validSignature);
+    });
+    //#endregion
+
 });
 

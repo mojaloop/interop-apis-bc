@@ -35,6 +35,7 @@ import request from 'axios';
 import { FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION,FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_CONTENT_TYPE, FSPIOP_HEADERS_ACCEPT, FSPIOP_HEADERS_DATE, FSPIOP_HEADERS_URI, FSPIOP_HEADERS_SWITCH } from './constants';
 import { FspiopRequestMethodsEnum, ResponseTypeEnum } from './enums';
 import HeaderBuilder from './headers/header_builder';
+import { AllowedSigningAlgorithms } from "@mojaloop/security-bc-client-lib";
 
 export interface FspiopHttpHeaders {
   [FSPIOP_HEADERS_ACCEPT]: string;
@@ -99,8 +100,11 @@ export const sendRequest = async ({
     builder.setFspiopDestination(headers[FSPIOP_HEADERS_DESTINATION]);
     builder.setFspiopHttpMethod(headers[FSPIOP_HEADERS_HTTP_METHOD], config);
     builder.setFspiopUri(headers[FSPIOP_HEADERS_URI]);
-    builder.setFspiopSignature(headers[FSPIOP_HEADERS_SIGNATURE]);
-    builder.setAlgorithm("RS256");
+    
+    if(headers[FSPIOP_HEADERS_SIGNATURE]) {
+        builder.setFspiopSignature(headers[FSPIOP_HEADERS_SIGNATURE]);
+        builder.setAlgorithm(AllowedSigningAlgorithms.RS256);
+    }
 
     const transformedHeaders = builder.getResult().build();
 

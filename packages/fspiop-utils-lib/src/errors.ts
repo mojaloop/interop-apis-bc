@@ -98,6 +98,12 @@ export class InvalidAlgHeaderInProtectedHeader extends Error {
     }
 }
 
+export class MissingFSPIOPURIHeaderInDecodedHeader extends Error {
+    constructor(message: string) {
+        super(message);
+    }
+}
+
 export class MissingFSPIOPURIHeaderInProtectedHeader extends Error {
     constructor(message: string) {
         super(message);
@@ -116,6 +122,11 @@ export class MissingFSPIOPHttpMethodHeader extends Error {
     }
 }
 
+export class MissingFSPIOPHttpMethodHeaderInDecodedHeader extends Error {
+    constructor(message: string) {
+        super(message);
+    }
+}
 
 export class MissingFSPIOPHttpMethodHeaderInProtectedHeader extends Error {
     constructor(message: string) {
@@ -124,6 +135,12 @@ export class MissingFSPIOPHttpMethodHeaderInProtectedHeader extends Error {
 }
 
 export class NonMatchingFSPIOPHttpMethodJWSHeader extends Error {
+    constructor(message: string) {
+        super(message);
+    }
+}
+
+export class MissingFSPIOPSourceHeaderInDecodedHeader extends Error {
     constructor(message: string) {
         super(message);
     }
