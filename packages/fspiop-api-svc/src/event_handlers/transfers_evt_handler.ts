@@ -88,13 +88,7 @@ import { BaseEventHandler, HandlerNames } from "./base_event_handler";
 import { IParticipantService } from "../interfaces/infrastructure";
 import { TransferFulfilRequestedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { TransferRejectRequestedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { AllowedSigningAlgorithms, JsonWebSignatureHelper } from "@mojaloop/security-bc-client-lib";
-import path from "path";
-import { readFileSync } from "fs";
-import base64url from "base64url";
-const crypto = require("crypto");
-const privKey = path.join(__dirname, "../../dist/privatekey.pem");
-const pubKey = path.join(__dirname, "../../dist/publickey.cer");
+
 
 export class TransferEventHandler extends BaseEventHandler {
     constructor(

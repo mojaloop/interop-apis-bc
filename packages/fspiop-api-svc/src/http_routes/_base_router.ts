@@ -31,7 +31,6 @@ optionally within square brackets <email>.
 "use strict";
 import express from "express";
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { deserializeIlpPacket } from 'ilp-packet';
 import {Currency, IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
 import { FspiopJwsSignature, FspiopValidator, JwsConfig } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
