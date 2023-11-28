@@ -42,7 +42,7 @@ import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
 import request from "supertest";
 import { MemoryConfigClientMock, getHeaders } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
-import { Enums } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Enums, JwsConfig } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { Server } from "http";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
@@ -61,7 +61,6 @@ const SVC_DEFAULT_HTTP_PORT = process.env["SVC_DEFAULT_HTTP_PORT"] || 4000;
 
 const server = `http://localhost:${SVC_DEFAULT_HTTP_PORT}`;
 
-// Account Lookup
 const PARTICIPANTS_URL_RESOURCE_NAME = "participants";
 
 const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
@@ -83,7 +82,7 @@ const pubKey = path.join(__dirname, "../../dist/publickey.cer");
 const pubKeyCont = readFileSync(pubKey)
 const privKeyCont = readFileSync(privKey)
 
-const jwsConfig = {
+const jwsConfig:JwsConfig = {
     enabled: false,
     privateKey: privKeyCont,
     publicKeys: {

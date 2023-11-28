@@ -89,11 +89,13 @@ export class TransfersBulkRoutes extends BaseRoutes {
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
 
             if (!bulkTransfersId || !requesterFspId) {
-                res.status(400).json({
+                const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
+
+                res.status(400).json(transformError);
                 return;
             }
 
@@ -153,11 +155,13 @@ export class TransfersBulkRoutes extends BaseRoutes {
             //TODO: validate ilpPacket
 
             if (!requesterFspId || !bulkTransferId || !bulkQuoteId || !payerFsp || !payeeFsp || !individualTransfers) {
-                res.status(400).json({
+                const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
+
+                res.status(400).json(transformError);
                 return;
             }
 
@@ -240,11 +244,13 @@ export class TransfersBulkRoutes extends BaseRoutes {
             const extensionList = req.body["extensionList"] || null;
 
             if (!bulkTransferId || !requesterFspId || !individualTransferResults) {
-                res.status(400).json({
+                const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
                 });
+
+                res.status(400).json(transformError);
                 return;
             }
 
@@ -291,7 +297,7 @@ export class TransfersBulkRoutes extends BaseRoutes {
     }
 
     private async bulkTransfersRejectRequest(req: express.Request, res: express.Response): Promise<void> {
-        this.logger.debug("Got bulk quote rejected request");
+        this.logger.debug("Got bulk transfer rejected request");
 
         try{
             const clonedHeaders = { ...req.headers };
@@ -301,10 +307,14 @@ export class TransfersBulkRoutes extends BaseRoutes {
             const bulkTransferId = req.params["id"] as string || null;
             const errorInformation = req.body["errorInformation"] || null;
 
-            if(!bulkTransferId || !errorInformation) {
-                res.status(400).json({
-                    status: "No bulkTransferId or errorInformation provided"
+            if(!bulkTransferId || !errorInformation || !requesterFspId) {
+                const transformError = Transformer.transformPayloadError({
+                    errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
+                    errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
+                    extensionList: null
                 });
+
+                res.status(400).json(transformError);
                 return;
             }
 
@@ -329,13 +339,13 @@ export class TransfersBulkRoutes extends BaseRoutes {
 
             await this.kafkaProducer.send(msg);
 
-            this.logger.debug("bulk quote rejected sent message");
+            this.logger.debug("bulk transfer rejected sent message");
 
             res.status(202).json({
                 status: "ok"
             });
 
-            this.logger.debug("bulk quote rejected responded");
+            this.logger.debug("bulk transfer rejected responded");
         }
         catch (error: unknown) {
             const transformError = Transformer.transformPayloadError({

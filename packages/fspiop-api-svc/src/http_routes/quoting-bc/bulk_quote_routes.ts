@@ -325,7 +325,7 @@ export class QuoteBulkRoutes extends BaseRoutes {
             }
 
             const msgPayload: GetBulkQuoteQueryRejectedEvtPayload = {
-                bulkQuoteId,
+                bulkQuoteId: bulkQuoteId,
                 errorInformation: errorInformation
             };
 

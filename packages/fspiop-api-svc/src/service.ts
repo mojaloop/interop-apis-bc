@@ -142,8 +142,8 @@ const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
 // JWS Signature
 const privKey = path.join(__dirname, "../dist/privatekey.pem");
 const pubKey = path.join(__dirname, "../dist/publickey.cer");
-const pubKeyCont = readFileSync(pubKey)
-const privKeyCont = readFileSync(privKey)
+const pubKeyCont = readFileSync(pubKey);
+const privKeyCont = readFileSync(privKey);
 
 const JWS_ENABLED = process.env["JWS_ENABLED"] || "true";
 
@@ -154,7 +154,7 @@ const jwsConfig = {
         "bluebank": pubKeyCont,
         "greenbank": pubKeyCont
     }
-}
+};
 
 let globalLogger: ILogger;
 

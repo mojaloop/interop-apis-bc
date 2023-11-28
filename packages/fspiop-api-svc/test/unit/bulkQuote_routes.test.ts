@@ -60,7 +60,6 @@ const SVC_DEFAULT_HTTP_PORT = process.env["SVC_DEFAULT_HTTP_PORT"] || 4000;
 
 const server = `http://localhost:${SVC_DEFAULT_HTTP_PORT}`;
 
-// Account Lookup
 const BULK_QUOTES_URL_RESOURCE_NAME = "bulkQuotes";
 
 const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
@@ -83,7 +82,7 @@ const pubKey = path.join(__dirname, "../../dist/publickey.cer");
 const pubKeyCont = readFileSync(pubKey)
 const privKeyCont = readFileSync(privKey)
 
-const jwsConfig = {
+const jwsConfig:JwsConfig = {
     enabled: false,
     privateKey: privKeyCont,
     publicKeys: {

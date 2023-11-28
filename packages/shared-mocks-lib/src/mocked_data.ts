@@ -52,8 +52,8 @@ export const getJwsConfig = (): any => {
 
     const privKey = path.join(__dirname, "privatekey.pem");
     const pubKey = path.join(__dirname, "publickey.cer");
-    const pubKeyCont = readFileSync(pubKey)
-    const privKeyCont = readFileSync(privKey)
+    const pubKeyCont = readFileSync(pubKey);
+    const privKeyCont = readFileSync(privKey);
     const jwsConfig = {
         enabled: true,
         privateKey: privKeyCont,
@@ -61,7 +61,7 @@ export const getJwsConfig = (): any => {
             "bluebank": pubKeyCont,
             "greenbank": pubKeyCont
         }
-    }
+    };
     
     const jwsHelper = new FspiopJwsSignature(jwsConfig, logger);   
     return jwsHelper;
