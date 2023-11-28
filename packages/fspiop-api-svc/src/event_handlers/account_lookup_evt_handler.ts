@@ -60,7 +60,7 @@ import {
     AccountLookupBCRequiredDestinationParticipantIdMismatchErrorEvent,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseEventHandler, HandlerNames } from "./base_event_handler";
-import { Constants, Enums, JwsConfig, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Enums, FspiopJwsSignature, JwsConfig, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 
@@ -75,9 +75,9 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             producerOptions: MLKafkaJsonProducerOptions,
             kafkaTopics : string[],
             participantService: IParticipantService,
-            jwsConfig: JwsConfig
+            jwsHelper: FspiopJwsSignature
     ) {
-        super(logger, consumerOptions, producerOptions, kafkaTopics, participantService, HandlerNames.AccountLookUp, jwsConfig);
+        super(logger, consumerOptions, producerOptions, kafkaTopics, participantService, HandlerNames.AccountLookUp, jwsHelper);
     }
 
     async processMessage (sourceMessage: IMessage) : Promise<void> {
@@ -282,7 +282,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadPartyAssociationPut(payload);
 
-            if(this._jwsHelper.isEnabled) {
+            if(this._jwsHelper.isEnabled()) {
                 clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
                 clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
             }
@@ -331,7 +331,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadPartyDisassociationPut(payload);
 
-            if(this._jwsHelper.isEnabled) {
+            if(this._jwsHelper.isEnabled()) {
                 clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
                 clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
             }
@@ -385,7 +385,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadPartyInfoRequestedPut(payload);
 
-            if(this._jwsHelper.isEnabled) {
+            if(this._jwsHelper.isEnabled()) {
                 clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.GET;
                 clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
             }
@@ -443,7 +443,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadPartyInfoReceivedPut(payload);
 
-            if(this._jwsHelper.isEnabled) {
+            if(this._jwsHelper.isEnabled()) {
                 clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
                 clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
             }
@@ -504,7 +504,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadParticipantPut(payload);
 
-            if(this._jwsHelper.isEnabled) {
+            if(this._jwsHelper.isEnabled()) {
                 clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
                 clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
             }

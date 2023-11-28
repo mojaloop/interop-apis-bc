@@ -82,6 +82,7 @@ import {
 } from "@mojaloop/platform-configuration-bc-client-lib";
 import {GetParticipantsConfigs} from "./configset";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { FspiopValidator, FspiopJwsSignature } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 
 const API_SPEC_FILE_PATH = process.env["API_SPEC_FILE_PATH"] || "../dist/api_spec.yaml";
 
@@ -136,7 +137,7 @@ const SERVICE_START_TIMEOUT_MS= (process.env["SERVICE_START_TIMEOUT_MS"] && pars
 const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
     kafkaBrokerList: KAFKA_URL,
     producerClientId: `${BC_NAME}_${APP_NAME}`,
-    skipAcknowledgements: false, // never change this to true without understanding what it does
+    skipAcknowledgements: false // never change this to true without understanding what it does
 };
 
 // JWS Signature
@@ -263,18 +264,29 @@ export class Service {
         }
         this.participantService = participantService;
 
-        await Service.setupEventHandlers();
+        // Singleton for Validation and JWS functions
+        const currencyList = this.configClient.globalConfigs.getCurrencies();
+        const routeValidator = FspiopValidator.getInstance();
+        routeValidator.addCurrencyList(currencyList);
+
+        const jwsHelper = FspiopJwsSignature.getInstance();
+        jwsHelper.addLogger(this.logger);
+        jwsHelper.enableJws(jwsConfig.enabled);
+        jwsHelper.addPublicKeys(jwsConfig.publicKeys);
+        jwsHelper.addPrivateKey(jwsConfig.privateKey);
+
+        await Service.setupEventHandlers(routeValidator, jwsHelper);
 
         // Create and initialise the http hanlders
         this.producer = new MLKafkaJsonProducer(kafkaJsonProducerOptions);
         await this.producer.connect();
 
-        this.participantRoutes = new ParticipantRoutes(this.configClient, this.producer, jwsConfig, this.logger);
-        this.partyRoutes = new PartyRoutes(this.configClient, this.producer, jwsConfig, this.logger);
-        this.quotesRoutes = new QuoteRoutes(this.configClient, this.producer, jwsConfig, this.logger);
-        this.bulkQuotesRoutes = new QuoteBulkRoutes(this.configClient, this.producer, jwsConfig, this.logger);
-        this.transfersRoutes = new TransfersRoutes(this.configClient, this.producer, jwsConfig, this.logger);
-        this.bulkTransfersRoutes = new TransfersBulkRoutes(this.configClient, this.producer, jwsConfig, this.logger);
+        this.participantRoutes = new ParticipantRoutes(this.producer, routeValidator, jwsHelper, this.logger);
+        this.partyRoutes = new PartyRoutes(this.producer, routeValidator, jwsHelper, this.logger);
+        this.quotesRoutes = new QuoteRoutes(this.producer, routeValidator, jwsHelper, this.logger);
+        this.bulkQuotesRoutes = new QuoteBulkRoutes(this.producer, routeValidator, jwsHelper, this.logger);
+        this.transfersRoutes = new TransfersRoutes(this.producer, routeValidator, jwsHelper, this.logger);
+        this.bulkTransfersRoutes = new TransfersBulkRoutes(this.producer, routeValidator, jwsHelper, this.logger);
 
         await Promise.all([
             this.participantRoutes.init(),
@@ -293,7 +305,7 @@ export class Service {
         clearTimeout(this.startupTimer);
     }
 
-    static async setupEventHandlers():Promise<void>{
+    static async setupEventHandlers(routeValidator:FspiopValidator, jwsHelper:FspiopJwsSignature):Promise<void>{
         const accountEvtHandlerConsumerOptions: MLKafkaJsonConsumerOptions = {
             kafkaBrokerList: KAFKA_URL,
             kafkaGroupId: `${BC_NAME}_${APP_NAME}_AccountLookupEventHandler`,
@@ -305,7 +317,7 @@ export class Service {
             kafkaJsonProducerOptions,
             [AccountLookupBCTopics.DomainEvents],
             this.participantService,
-            jwsConfig
+            jwsHelper
         );
 
         const quotingEvtHandlerConsumerOptions: MLKafkaJsonConsumerOptions = {
@@ -319,7 +331,7 @@ export class Service {
             kafkaJsonProducerOptions,
             [QuotingBCTopics.DomainEvents],
             this.participantService,
-            jwsConfig
+            jwsHelper
         );
 
         const transferEvtHandlerConsumerOptions: MLKafkaJsonConsumerOptions = {
@@ -333,7 +345,7 @@ export class Service {
             kafkaJsonProducerOptions,
             [TransfersBCTopics.DomainEvents],
             this.participantService,
-            jwsConfig
+            jwsHelper
         );
 
         await Promise.all([

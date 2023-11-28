@@ -39,24 +39,21 @@ import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-li
 export abstract class BaseRoutes {
     private _logger: ILogger;
     private _kafkaProducer: IMessageProducer;
-    private _configClient: IConfigurationClient;
     private _router = express.Router();
-    protected _currencyList: Currency[];
+
     protected _validator: FspiopValidator;
     protected _jwsHelper: FspiopJwsSignature;
-
+    
     constructor(
-        configClient: IConfigurationClient,
         producer: IMessageProducer,
-        jwsConfig: JwsConfig,
+        validator: FspiopValidator,
+        jwsHelper: FspiopJwsSignature,
         logger: ILogger
     ) {
-        this._configClient = configClient;
         this._kafkaProducer = producer;
         this._logger = logger;
-        this._currencyList = this._configClient.globalConfigs.getCurrencies();
-        this._validator = new FspiopValidator(this._currencyList); // TODO: convert to a singleton
-        this._jwsHelper = new FspiopJwsSignature(jwsConfig, this._logger); // TODO: convert to a singleton
+        this._validator = validator
+        this._jwsHelper = jwsHelper
     }
 
     get logger(): ILogger {

@@ -83,7 +83,7 @@ import {
     TransferPayerIdMismatchEvt,
     TransferPayeeIdMismatchEvt
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { Constants, Request, Enums, Transformer, JwsConfig } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Request, Enums, Transformer, JwsConfig, FspiopJwsSignature } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { BaseEventHandler, HandlerNames } from "./base_event_handler";
 import { IParticipantService } from "../interfaces/infrastructure";
 import { TransferFulfilRequestedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
@@ -97,9 +97,9 @@ export class TransferEventHandler extends BaseEventHandler {
             producerOptions: MLKafkaJsonProducerOptions,
             kafkaTopics : string[],
             participantService: IParticipantService,
-            jwsConfig: JwsConfig
+            jwsHelper: FspiopJwsSignature
     ) {
-        super(logger, consumerOptions, producerOptions, kafkaTopics, participantService, HandlerNames.Transfers, jwsConfig);
+        super(logger, consumerOptions, producerOptions, kafkaTopics, participantService, HandlerNames.Transfers, jwsHelper);
     }
 
     async processMessage (sourceMessage: IMessage) : Promise<void> {
@@ -372,7 +372,7 @@ export class TransferEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadTransferRequestPost(payload);
 
-            if(this._jwsHelper.isEnabled) {
+            if(this._jwsHelper.isEnabled()) {
                 clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.POST;
                 clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
             }
@@ -417,7 +417,7 @@ export class TransferEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadTransferRequestPut(payload);
 
-            if(this._jwsHelper.isEnabled) {
+            if(this._jwsHelper.isEnabled()) {
                 clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
                 clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
             }
@@ -484,7 +484,7 @@ export class TransferEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadTransferRequestGet(payload);
 
-            if(this._jwsHelper.isEnabled) {
+            if(this._jwsHelper.isEnabled()) {
                 clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
                 clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
             }
@@ -573,7 +573,7 @@ export class TransferEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadBulkTransferRequestPost(payload);
 
-            if(this._jwsHelper.isEnabled) {
+            if(this._jwsHelper.isEnabled()) {
                 clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.POST;
                 clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
             }
@@ -621,7 +621,7 @@ export class TransferEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadBulkTransferRequestPut(payload);
 
-            if(this._jwsHelper.isEnabled) {
+            if(this._jwsHelper.isEnabled()) {
                 clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
                 clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
             }
@@ -672,7 +672,7 @@ export class TransferEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadBulkTransferRequestGet(payload);
 
-            if(this._jwsHelper.isEnabled) {
+            if(this._jwsHelper.isEnabled()) {
                 clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
                 clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
             }

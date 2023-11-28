@@ -61,7 +61,7 @@ export abstract class BaseEventHandler  {
     protected readonly _kafkaConsumer: MLKafkaJsonConsumer;
     protected readonly _kafkaProducer: MLKafkaJsonProducer;
     protected readonly _handlerName: string;
-    protected _jwsHelper: FspiopJwsSignature;
+    protected readonly _jwsHelper: FspiopJwsSignature;
 
     constructor(
             logger: ILogger,
@@ -70,7 +70,7 @@ export abstract class BaseEventHandler  {
             kafkaTopics : string[],
             participantService: IParticipantService,
             handlerName: string,
-            jwsConfig: JwsConfig,
+            jwsHelper: FspiopJwsSignature,
     ) {
         this._logger = logger.createChild(this.constructor.name);
         this._consumerOpts = consumerOptions;
@@ -80,7 +80,7 @@ export abstract class BaseEventHandler  {
         this._handlerName = handlerName;
         this._kafkaConsumer = new MLKafkaJsonConsumer(this._consumerOpts, this._logger);
         this._kafkaProducer = new MLKafkaJsonProducer(this._producerOptions);
-        this._jwsHelper = new FspiopJwsSignature(jwsConfig, this._logger); // TODO: convert to a singleton
+        this._jwsHelper = jwsHelper
     }
 
     async init () : Promise<void> {

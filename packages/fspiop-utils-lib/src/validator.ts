@@ -41,11 +41,33 @@ type Amount =  {
 }
 
 export class FspiopValidator {
+	private static instance: FspiopValidator;
+
 	private _currencyList: Currency[];
 
-	constructor(currencyList: Currency[]) {
+	private constructor() {}
+  
+	static getInstance() {
+		if (FspiopValidator.instance) {
+			return this.instance;
+		}
+		this.instance = new FspiopValidator();
+
+		return this.instance;
+	}
+
+
+	get currencyList(): Currency[] {
+		return this._currencyList;
+	}
+	set currencyList(currencyList: Currency[]) {
 		this._currencyList = currencyList;
 	}
+
+	public addCurrencyList(currencyList: Currency[]):Currency[] {
+		return this.currencyList = currencyList;
+	}
+
 
 	currencyAndAmount(amount:Amount) {
 		const currency = this._currencyList.find((currency) => currency.code === amount.currency);

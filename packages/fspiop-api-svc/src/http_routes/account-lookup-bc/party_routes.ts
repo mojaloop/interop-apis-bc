@@ -36,7 +36,7 @@
 
 import express from "express";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import { Constants, JwsConfig, Transformer, ValidationdError } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, FspiopJwsSignature, FspiopValidator, JwsConfig, Transformer, ValidationdError } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {
     PartyQueryReceivedEvt,
     PartyQueryReceivedEvtPayload,
@@ -53,12 +53,12 @@ import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-li
 export class PartyRoutes extends BaseRoutes {
 
     constructor(
-        configClient: IConfigurationClient,
         producer: IMessageProducer,
-        jwsConfig: JwsConfig,
+        validator: FspiopValidator,
+        jwsHelper: FspiopJwsSignature,
         logger: ILogger
     ) {
-        super(configClient, producer, jwsConfig, logger);
+        super(producer, validator, jwsHelper, logger);
 
         // bind routes
 
@@ -258,7 +258,7 @@ export class PartyRoutes extends BaseRoutes {
                 });
             }
 
-            if(this._jwsHelper.isEnabled) {
+            if(this._jwsHelper.isEnabled()) {
                 this._jwsHelper.validate(req.headers, req.body);
             }
 
@@ -348,7 +348,7 @@ export class PartyRoutes extends BaseRoutes {
                 });
             }
 
-            if(this._jwsHelper.isEnabled) {
+            if(this._jwsHelper.isEnabled()) {
                 this._jwsHelper.validate(req.headers, req.body);
             }
 
@@ -433,7 +433,7 @@ export class PartyRoutes extends BaseRoutes {
                 });
             }
 
-            if(this._jwsHelper.isEnabled) {
+            if(this._jwsHelper.isEnabled()) {
                 this._jwsHelper.validate(req.headers, req.body);
             }
             
@@ -514,7 +514,7 @@ export class PartyRoutes extends BaseRoutes {
                 });
             }
 
-            if(this._jwsHelper.isEnabled) {
+            if(this._jwsHelper.isEnabled()) {
                 this._jwsHelper.validate(req.headers, req.body);
             }
 

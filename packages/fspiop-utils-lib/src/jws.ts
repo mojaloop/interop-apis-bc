@@ -52,22 +52,72 @@ export type JwsConfig = {
 };
 
 export class FspiopJwsSignature {
+    private static instance: FspiopJwsSignature;
+
     private _logger: ILogger;
     private _enabled: boolean;
     private _privateKey: Buffer;
 	private _publicKeys: any;
 
-    constructor(config:JwsConfig, logger: ILogger) {
-        this._enabled = config.enabled;
-        this._publicKeys = config.publicKeys;
-        this._privateKey = config.privateKey;
-        this._logger = logger;
-    }
+	private constructor() {}
 
-    get isEnabled(): boolean {
-        return this._enabled;
-    }
+    static getInstance() {
+		if (FspiopJwsSignature.instance) {
+			return this.instance;
+		}
+		this.instance = new FspiopJwsSignature();
+		
+		return this.instance;
+	}
+
+    get logger(): ILogger {
+		return this._logger;
+	}
+	set logger(_logger: ILogger) {
+		this._logger = _logger;
+	}
+
+	public addLogger(logger: ILogger): ILogger {
+		return this._logger = logger;
+	}
+
+	get enabled(): boolean {
+		return this._enabled;
+	}
+	set enabled(_enabled: boolean) {
+		this._enabled = _enabled;
+	}
+
+	public enableJws(enabled: boolean): boolean {
+		return this._enabled = enabled;
+	}
+
+    public isEnabled(): boolean {
+		return this._enabled;
+	}
+
+    get publicKeys(): any {
+		return this._publicKeys;
+	}
+	set publicKeys(_publicKeys: any) {
+		this._publicKeys = _publicKeys;
+	}
+
+	public addPublicKeys(publicKeys: any): any {
+		return this._publicKeys = publicKeys;
+	}
     
+    get privateKey(): Buffer {
+		return this._privateKey;
+	}
+	set privateKey(privateKey: Buffer) {
+		this._privateKey = privateKey;
+	}
+
+	public addPrivateKey(privateKey: Buffer): Buffer {
+		return this._privateKey = privateKey;
+	}
+
     public validate(headers: any, payload: any) {
         try {
             if(!payload) {

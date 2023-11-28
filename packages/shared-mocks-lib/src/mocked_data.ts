@@ -63,7 +63,12 @@ export const getJwsConfig = (): any => {
         }
     };
     
-    const jwsHelper = new FspiopJwsSignature(jwsConfig, logger);   
+    const jwsHelper = FspiopJwsSignature.getInstance();   
+    jwsHelper.addLogger(logger);
+    jwsHelper.enableJws(jwsConfig.enabled);
+    jwsHelper.addPublicKeys(jwsConfig.publicKeys);
+    jwsHelper.addPrivateKey(jwsConfig.privateKey);
+
     return jwsHelper;
 };
 

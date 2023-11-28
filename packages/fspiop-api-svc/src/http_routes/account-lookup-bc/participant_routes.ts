@@ -35,7 +35,7 @@
 "use strict";
 import express from "express";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import { Constants, JwsConfig, Transformer, ValidationdError } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, FspiopJwsSignature, FspiopValidator, JwsConfig, Transformer, ValidationdError } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { ParticipantQueryReceivedEvtPayload, ParticipantQueryReceivedEvt, ParticipantDisassociateRequestReceivedEvt, ParticipantDisassociateRequestReceivedEvtPayload, ParticipantAssociationRequestReceivedEvt, ParticipantAssociationRequestReceivedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
@@ -45,12 +45,12 @@ import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-li
 export class ParticipantRoutes extends BaseRoutes {
 
     constructor(
-        configClient: IConfigurationClient,
         producer: IMessageProducer,
-        jwsConfig: JwsConfig,
+        validator: FspiopValidator,
+        jwsHelper: FspiopJwsSignature,
         logger: ILogger
     ) {
-        super(configClient, producer, jwsConfig, logger);
+        super(producer, validator, jwsHelper, logger);
 
         // bind routes
 
@@ -238,7 +238,7 @@ export class ParticipantRoutes extends BaseRoutes {
                 });
             }
 
-            if(this._jwsHelper.isEnabled) {
+            if(this._jwsHelper.isEnabled()) {
                 this._jwsHelper.validate(req.headers, req.body);
             }
 
@@ -312,7 +312,7 @@ export class ParticipantRoutes extends BaseRoutes {
                 });
             }
 
-            if(this._jwsHelper.isEnabled) {
+            if(this._jwsHelper.isEnabled()) {
                 this._jwsHelper.validate(req.headers, req.body);
             }
 

@@ -67,7 +67,7 @@ import {
     QuoteBCRequiredRequesterParticipantIdMismatchErrorEvent,
     QuoteBCRequiredDestinationParticipantIdMismatchErrorEvent
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { Constants, Enums, JwsConfig, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Enums, FspiopJwsSignature, JwsConfig, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 
@@ -82,9 +82,9 @@ export class QuotingEventHandler extends BaseEventHandler {
             producerOptions: MLKafkaJsonProducerOptions,
             kafkaTopics : string[],
             participantService: IParticipantService,
-            jwsConfig: JwsConfig
+            jwsHelper: FspiopJwsSignature
     ) {
-        super(logger, consumerOptions, producerOptions, kafkaTopics, participantService, HandlerNames.Quotes, jwsConfig);
+        super(logger, consumerOptions, producerOptions, kafkaTopics, participantService, HandlerNames.Quotes, jwsHelper);
     }
 
     async processMessage (sourceMessage: IMessage) : Promise<void> {
@@ -313,7 +313,7 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadQuotingRequestPost(payload);
 
-            if(this._jwsHelper.isEnabled) {
+            if(this._jwsHelper.isEnabled()) {
                 clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.POST;
                 clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
             }
@@ -357,7 +357,7 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadQuotingResponsePut(payload);
 
-            if(this._jwsHelper.isEnabled) {
+            if(this._jwsHelper.isEnabled()) {
                 clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
                 clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
             }
@@ -408,7 +408,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             
             const transformedPayload = Transformer.transformPayloadQuotingResponseGet(payload);
 
-            if(this._jwsHelper.isEnabled) {
+            if(this._jwsHelper.isEnabled()) {
                 clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
                 clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
             }
@@ -454,7 +454,7 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadBulkQuotingResponsePost(payload);
 
-            if(this._jwsHelper.isEnabled) {
+            if(this._jwsHelper.isEnabled()) {
                 clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.POST;
                 clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
             }
@@ -500,7 +500,7 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadBulkQuotingResponsePut(payload);
 
-            if(this._jwsHelper.isEnabled) {
+            if(this._jwsHelper.isEnabled()) {
                 clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
                 clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
             }
@@ -543,7 +543,7 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadBulkQuotingResponsePut(payload);
 
-            if(this._jwsHelper.isEnabled) {
+            if(this._jwsHelper.isEnabled()) {
                 clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
                 clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
             }

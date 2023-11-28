@@ -33,7 +33,7 @@
 
 import express from "express";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import { Constants, Transformer, Enums, ValidationdError, JwsConfig } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Transformer, Enums, ValidationdError, JwsConfig, FspiopValidator, FspiopJwsSignature } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {
     TransferPrepareRequestedEvt,
     TransferPrepareRequestedEvtPayload,
@@ -46,18 +46,17 @@ import {
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
-import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
 export class TransfersRoutes extends BaseRoutes {
 
     constructor(
-        configClient: IConfigurationClient,
         producer: IMessageProducer,
-        jwsConfig: JwsConfig,
+        validator: FspiopValidator,
+        jwsHelper: FspiopJwsSignature,
         logger: ILogger
     ) {
-        super(configClient, producer, jwsConfig, logger);
+        super(producer, validator, jwsHelper, logger);
 
         // bind routes
 
@@ -113,7 +112,7 @@ export class TransfersRoutes extends BaseRoutes {
 
             this._validator.currencyAndAmount(amount);
 
-            if(this._jwsHelper.isEnabled) {
+            if(this._jwsHelper.isEnabled()) {
                 this._jwsHelper.validate(req.headers, req.body);
             }
             
@@ -197,7 +196,7 @@ export class TransfersRoutes extends BaseRoutes {
                 return;
             }
 
-            if(this._jwsHelper.isEnabled) {
+            if(this._jwsHelper.isEnabled()) {
                 this._jwsHelper.validate(req.headers, req.body);
             }
 
@@ -266,7 +265,7 @@ export class TransfersRoutes extends BaseRoutes {
                 return;
             }
 
-            if(this._jwsHelper.isEnabled) {
+            if(this._jwsHelper.isEnabled()) {
                 this._jwsHelper.validate(req.headers, req.body);
             }
 
