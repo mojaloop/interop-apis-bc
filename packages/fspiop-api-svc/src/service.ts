@@ -62,13 +62,8 @@ import { QuoteRoutes } from "./http_routes/quoting-bc/quote_routes";
 import { QuoteBulkRoutes } from "./http_routes/quoting-bc/bulk_quote_routes";
 import { TransfersRoutes } from "./http_routes/transfers-bc/transfers_routes";
 import { IParticipantService } from "./interfaces/infrastructure";
-import {
-    AuthenticatedHttpRequester,
-    AuthorizationClient,
-    LoginHelper,
-    TokenHelper
-} from "@mojaloop/security-bc-client-lib";
-import {IAuthenticatedHttpRequester, IAuthorizationClient, ITokenHelper, ILoginHelper} from "@mojaloop/security-bc-public-types-lib";
+import {AuthenticatedHttpRequester} from "@mojaloop/security-bc-client-lib";
+import {IAuthenticatedHttpRequester} from "@mojaloop/security-bc-public-types-lib";
 import path from "path";
 import { OpenApiDocument, OpenApiValidator } from "express-openapi-validate";
 import jsYaml from "js-yaml";
@@ -102,7 +97,7 @@ const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
 
 const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
-const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || "/app/data/audit_private_key.pem";
+const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || path.join(__dirname, "../dist/tmp_key_file");
 
 // Account Lookup
 const PARTICIPANTS_URL_RESOURCE_NAME = "participants";
@@ -120,19 +115,15 @@ const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecre
 
 const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
 const AUTH_N_SVC_TOKEN_URL = AUTH_N_SVC_BASEURL + "/token"; // TODO this should not be known here, libs that use the base should add the suffix
-const AUTH_N_TOKEN_ISSUER_NAME = process.env["AUTH_N_TOKEN_ISSUER_NAME"] || "mojaloop.vnext.dev.default_issuer";
-const AUTH_N_TOKEN_AUDIENCE = process.env["AUTH_N_TOKEN_AUDIENCE"] || "mojaloop.vnext.dev.default_audience";
 
-const AUTH_N_SVC_JWKS_URL = process.env["AUTH_N_SVC_JWKS_URL"] || `${AUTH_N_SVC_BASEURL}/.well-known/jwks.json`;
 
 const PARTICIPANTS_SVC_URL = process.env["PARTICIPANTS_SVC_URL"] || "http://localhost:3010";
 const PARTICIPANTS_CACHE_TIMEOUT_MS = (process.env["PARTICIPANTS_CACHE_TIMEOUT_MS"] && parseInt(process.env["PARTICIPANTS_CACHE_TIMEOUT_MS"])) || 5*60*1000;
 
-const LOGIN_SVC_BASE_URL = "http://localhost:3201";
-const TOKEN_URL = `${LOGIN_SVC_BASE_URL}/token`;
-
 // this service has more handlers, might take longer than the usual 30 sec
 const SERVICE_START_TIMEOUT_MS= (process.env["SERVICE_START_TIMEOUT_MS"] && parseInt(process.env["SERVICE_START_TIMEOUT_MS"])) || 120_000;
+
+const JWS_FILES_PATH = process.env["JWS_FILES_PATH"] || "/app/data/keys/";
 
 const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
     kafkaBrokerList: KAFKA_URL,
@@ -141,20 +132,16 @@ const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
 };
 
 // JWS Signature
-const privKey = path.join(__dirname, "../dist/privatekey.pem");
-const pubKey = path.join(__dirname, "../dist/publickey.cer");
-const pubKeyCont = readFileSync(pubKey);
-const privKeyCont = readFileSync(privKey);
+const JWS_DISABLED = process.env["JWS_DISABLED"] || "false";
 
-const JWS_ENABLED = process.env["JWS_ENABLED"] || "true";
-
-const jwsConfig = {
-    enabled: JWS_ENABLED === "true" ? false : false,
-    privateKey: privKeyCont,
-    publicKeys: {
-        "bluebank": pubKeyCont,
-        "greenbank": pubKeyCont
-    }
+const jwsConfig: {
+    enabled: boolean;
+    privateKey: Buffer | null;
+    publicKeys: { [key: string]: Buffer }
+} = {
+    enabled: JWS_DISABLED === "false" ? true : false,
+    privateKey: null,
+    publicKeys: {}
 };
 
 let globalLogger: ILogger;
@@ -193,7 +180,6 @@ export class Service {
 
     static async start(
         logger?:ILogger,
-        expressServer?: Server,
         participantService?: IParticipantService,
         auditClient?: IAuditClient,
         configProvider?: IConfigProvider,
@@ -269,13 +255,26 @@ export class Service {
         const routeValidator = FspiopValidator.getInstance();
         routeValidator.addCurrencyList(currencyList);
 
+        if(jwsConfig.enabled) {
+            const privateKey = fs.readFileSync(path.join(__dirname, `${JWS_FILES_PATH}/hub/privatekey.pem`));
+            jwsConfig.privateKey = privateKey;
+
+            const fileList = fs.readdirSync(path.join(__dirname, `${JWS_FILES_PATH}/dfsps/`));
+            for (const fileName of fileList) {
+                const publicKey = fs.readFileSync(path.join(__dirname, `${JWS_FILES_PATH}/dfsps/${fileName}`));
+                jwsConfig.publicKeys[fileName.replace("-pub.pem", "")] = publicKey;
+            }
+        }
+
         const jwsHelper = FspiopJwsSignature.getInstance();
         jwsHelper.addLogger(this.logger);
         jwsHelper.enableJws(jwsConfig.enabled);
         jwsHelper.addPublicKeys(jwsConfig.publicKeys);
-        jwsHelper.addPrivateKey(jwsConfig.privateKey);
+        if(jwsConfig.privateKey) {
+            jwsHelper.addPrivateKey(jwsConfig.privateKey);
+        }
 
-        await Service.setupEventHandlers(routeValidator, jwsHelper);
+        await Service.setupEventHandlers(jwsHelper);
 
         // Create and initialise the http hanlders
         this.producer = new MLKafkaJsonProducer(kafkaJsonProducerOptions);
@@ -305,7 +304,7 @@ export class Service {
         clearTimeout(this.startupTimer);
     }
 
-    static async setupEventHandlers(routeValidator:FspiopValidator, jwsHelper:FspiopJwsSignature):Promise<void>{
+    static async setupEventHandlers(jwsHelper:FspiopJwsSignature):Promise<void>{
         const accountEvtHandlerConsumerOptions: MLKafkaJsonConsumerOptions = {
             kafkaBrokerList: KAFKA_URL,
             kafkaGroupId: `${BC_NAME}_${APP_NAME}_AccountLookupEventHandler`,

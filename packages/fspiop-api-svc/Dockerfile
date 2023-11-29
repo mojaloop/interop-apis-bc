@@ -43,6 +43,8 @@ FROM node:18.13-alpine
 WORKDIR /app
 RUN mkdir /app/data
 
+VOLUME /app/data/keys
+
 RUN apk add librdkafka
 
 COPY --from=builder /app .
