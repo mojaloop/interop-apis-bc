@@ -184,7 +184,7 @@ export const getRouteValidator = (): FspiopValidator => {
     }]);
 
     return routeValidator;
-}
+};
 
 // JWS Signature
 export const privateKey = `-----BEGIN RSA PRIVATE KEY-----
@@ -253,7 +253,7 @@ export const getJwsConfig = (): FspiopJwsSignature => {
             "bluebank": privKeyBuffer,
             "greenbank": publicKeyBuffer
         }
-    }
+    };
     
     const jwsHelper = FspiopJwsSignature.getInstance();   
     jwsHelper.addLogger(logger);

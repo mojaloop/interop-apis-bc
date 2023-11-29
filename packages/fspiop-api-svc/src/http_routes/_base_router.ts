@@ -52,8 +52,8 @@ export abstract class BaseRoutes {
     ) {
         this._kafkaProducer = producer;
         this._logger = logger;
-        this._validator = validator
-        this._jwsHelper = jwsHelper
+        this._validator = validator;
+        this._jwsHelper = jwsHelper;
     }
 
     get logger(): ILogger {

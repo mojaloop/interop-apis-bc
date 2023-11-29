@@ -80,7 +80,7 @@ export abstract class BaseEventHandler  {
         this._handlerName = handlerName;
         this._kafkaConsumer = new MLKafkaJsonConsumer(this._consumerOpts, this._logger);
         this._kafkaProducer = new MLKafkaJsonProducer(this._producerOptions);
-        this._jwsHelper = jwsHelper
+        this._jwsHelper = jwsHelper;
     }
 
     async init () : Promise<void> {
