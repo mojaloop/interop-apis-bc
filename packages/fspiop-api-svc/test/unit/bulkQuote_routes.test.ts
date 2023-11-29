@@ -40,8 +40,8 @@ import { AccountLookupBCTopics } from "@mojaloop/platform-shared-lib-public-mess
 import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
 import request from "supertest";
-import { MemoryConfigClientMock, getHeaders } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
-import { Enums, JwsConfig } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { MemoryConfigClientMock, getHeaders, getJwsConfig, getRouteValidator } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { Enums, FspiopJwsSignature, FspiopValidator, JwsConfig } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { Server } from "http";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
@@ -71,24 +71,11 @@ const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
 const pathWithId = `/${Enums.EntityTypeEnum.BULK_QUOTES}/2243fdbe-5dea-3abd-a210-3780e7f2f1f4`;
 const pathWithoutId = `/${Enums.EntityTypeEnum.BULK_QUOTES}`;
 
-let configClientMock : IConfigurationClient;
+let configClientMock: IConfigurationClient;
+let jwsHelperMock: FspiopJwsSignature;
+let routeValidatorMock: FspiopValidator;
 
 jest.setTimeout(10000);
-
-
-// JWS Signature
-const privKey = path.join(__dirname, "../../dist/privatekey.pem");
-const pubKey = path.join(__dirname, "../../dist/publickey.cer");
-const pubKeyCont = readFileSync(pubKey)
-const privKeyCont = readFileSync(privKey)
-
-const jwsConfig:JwsConfig = {
-    enabled: false,
-    privateKey: privKeyCont,
-    publicKeys: {
-
-    }
-}
 
 describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
     let app: Express;
@@ -128,9 +115,12 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         configClientMock = new MemoryConfigClientMock(logger, authTokenUrl);
 
         producer = new MLKafkaJsonProducer(kafkaJsonProducerOptions);
-        // await producer.connect();
+           
+        routeValidatorMock = getRouteValidator();
 
-        bulkQuoteRoutes = new QuoteBulkRoutes(configClientMock, producer, jwsConfig, logger);
+        jwsHelperMock = getJwsConfig();
+
+        bulkQuoteRoutes = new QuoteBulkRoutes(producer, routeValidatorMock, jwsHelperMock, logger);
         app.use(`/${BULK_QUOTES_URL_RESOURCE_NAME}`, bulkQuoteRoutes.router);
 
         let portNum = SVC_DEFAULT_HTTP_PORT;

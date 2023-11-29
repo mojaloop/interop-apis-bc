@@ -26,18 +26,64 @@
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
-
+ 
  --------------
  **/
 
 "use strict";
 
-
-import { FSPIOP_HEADERS_ACCEPT, FSPIOP_HEADERS_CONTENT_LENGTH, FSPIOP_HEADERS_CONTENT_TYPE, FSPIOP_HEADERS_DATE, FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION, FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_ENCRYPTION, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_SWITCH, FSPIOP_HEADERS_URI, FSPIOP_HEADERS_X_FORWARDED_FOR } from "../../src/constants";
-import { Enums, FspiopJwsSignature, InvalidFSPIOPHttpSourceHeaderError, InvalidFSPIOPPayloadError, InvalidFSPIOPURIHeaderError, MissingAlgHeaderInProtectedHeader, MissingFSPIOPDateHeaderInProtectedHeader, MissingFSPIOPDestinationHeader, MissingFSPIOPDestinationInProtectedHeader, MissingFSPIOPHttpMethodHeader, MissingFSPIOPHttpMethodHeaderInDecodedHeader, MissingFSPIOPHttpMethodHeaderInProtectedHeader, MissingFSPIOPSourceHeaderInDecodedHeader, MissingFSPIOPSourceHeaderInProtectedHeader, MissingFSPIOPURIHeaderInDecodedHeader, MissingFSPIOPURIHeaderInProtectedHeader, MissingRequiredJWSFSPIOPHeaders, NonMatchingFSPIOPDateJWSHeader, NonMatchingFSPIOPDestinationJWSHeader, NonMatchingFSPIOPHttpMethodJWSHeader, NonMatchingFSPIOPSourceJWSHeader, NonMatchingFSPIOPURIJWSHeader, PublicKeyNotAvailableForDFSPError, Request } from "../../src";
+import {ConsoleLogger, ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
+import { JsonWebSignatureHelper, AllowedSigningAlgorithms } from "@mojaloop/security-bc-client-lib";
+import { publicKey, privateKey } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import {
+    FSPIOP_HEADERS_ACCEPT,
+    FSPIOP_HEADERS_CONTENT_LENGTH,
+    FSPIOP_HEADERS_CONTENT_TYPE,
+    FSPIOP_HEADERS_DATE,
+    FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION,
+    FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION,
+    FSPIOP_HEADERS_DESTINATION,
+    FSPIOP_HEADERS_ENCRYPTION,
+    FSPIOP_HEADERS_HTTP_METHOD,
+    FSPIOP_HEADERS_SIGNATURE,
+    FSPIOP_HEADERS_SOURCE,
+    FSPIOP_HEADERS_SWITCH,
+    FSPIOP_HEADERS_URI,
+    FSPIOP_HEADERS_X_FORWARDED_FOR
+} from "../../src/constants";
+import { Enums,
+    FspiopJwsSignature,
+    InvalidFSPIOPHttpSourceHeaderError,
+    InvalidFSPIOPPayloadError,
+    InvalidFSPIOPURIHeaderError,
+    MissingFSPIOPDateHeaderInProtectedHeader,
+    MissingFSPIOPDestinationHeader,
+    MissingFSPIOPDestinationInProtectedHeader,
+    MissingFSPIOPHttpMethodHeader,
+    MissingFSPIOPHttpMethodHeaderInDecodedHeader,
+    MissingFSPIOPSourceHeaderInDecodedHeader,
+    MissingFSPIOPURIHeaderInDecodedHeader,
+    MissingFSPIOPURIHeaderInProtectedHeader,
+    MissingRequiredJWSFSPIOPHeaders,
+    NonMatchingFSPIOPDateJWSHeader,
+    NonMatchingFSPIOPDestinationJWSHeader,
+    NonMatchingFSPIOPHttpMethodJWSHeader,
+    NonMatchingFSPIOPSourceJWSHeader,
+    NonMatchingFSPIOPURIJWSHeader,
+    PublicKeyNotAvailableForDFSPError,
+    Request
+} from "../../src";
 import axios from "axios";
 import HeaderBuilder from "../../src/headers/header_builder";
-import { removeEmpty, transformPayloadError, transformPayloadParticipantPut, transformPayloadPartyAssociationPut, transformPayloadPartyDisassociationPut, transformPayloadPartyInfoReceivedPut, transformPayloadPartyInfoRequestedPut, transformPayloadQuotingRequestPost } from "../../src/transformer";
+import { 
+    removeEmpty,
+    transformPayloadError,
+    transformPayloadParticipantPut,
+    transformPayloadPartyAssociationPut,
+    transformPayloadPartyDisassociationPut,
+    transformPayloadPartyInfoReceivedPut,
+    transformPayloadPartyInfoRequestedPut
+} from "../../src/transformer";
 import { 
     ParticipantAssociationCreatedEvtPayload, 
     ParticipantAssociationRemovedEvtPayload,
@@ -46,18 +92,12 @@ import {
     PartyQueryResponseEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { URLBuilder } from "../../src/request";
-import path from "path";
-import { readFileSync } from "fs";
-import {ConsoleLogger, ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
-import { JsonWebSignatureHelper, AllowedSigningAlgorithms } from "@mojaloop/security-bc-client-lib";
 
 jest.mock("axios");
 
 // JWS Signature
-const privKey = path.join(__dirname, "../../dist/privatekey.pem");
-const pubKey = path.join(__dirname, "../../dist/publickey.cer");
-const pubKeyCont = readFileSync(pubKey)
-const privKeyCont = readFileSync(privKey)
+const pubKeyCont = Buffer.from(publicKey)
+const privKeyCont = Buffer.from(privateKey)
 
 const jwsConfig = {
     enabled: true,
@@ -71,9 +111,13 @@ const jwsConfig = {
 const logger: ILogger = new ConsoleLogger();
 logger.setLogLevel(LogLevel.FATAL);
 
-const jwsHelper = new FspiopJwsSignature(jwsConfig, logger);
+const jwsHelper = FspiopJwsSignature.getInstance();
+jwsHelper.addLogger(logger);
+jwsHelper.enableJws(jwsConfig.enabled);
+jwsHelper.addPublicKeys(jwsConfig.publicKeys);
+jwsHelper.addPrivateKey(jwsConfig.privateKey);
 
-const validSignature = '{"signature":"AtIc2YhY2iDHET8QKncbcaG0f4ABI_gaLim4nc0naGdpXtE9bF-f4FIRNaqbBAp3capp45GY_IMompxvkS3I6CbX8m-PjklOdUWYutDS2eg-W-w_y1XFvl9Qd0-2J7Vus4EhwfjYWuOFNq1XL33Jf67f4VAGWGPFg09QVTysE26fX21E5KKwJbSIztwVLWQ4862OmNhf6_kWqCX93PMT9pL9Hb0ZVFxV7vNlCemIaE9MlYpLep5orzFzU58TtJQf_wOrcS1aXZjlBP6KB6fC1K3P-5FWneCMIu4Kp51-tcQFho0eyrmcdUwnH_rzfh69gd8NwXhIyBOaTBXLew9_-Q","protectedHeader":"eyJhbGciOiJSUzI1NiIsIkZTUElPUC1VUkkiOiIvdHJhbnNmZXJzIiwiRlNQSU9QLUhUVFAtTWV0aG9kIjoiUE9TVCIsIkZTUElPUC1Tb3VyY2UiOiJibHVlYmFuayJ9"}';
+const validSignature = '{"signature":"AtIc2YhY2iDHET8QKncbcaG0f4ABI_gaLim4nc0naGdpXtE9bF-f4FIRNaqbBAp3capp45GY_IMompxvkS3I6CbX8m-PjklOdUWYutDS2eg-W-w_y1XFvl9Qd0-2J7Vus4EhwfjYWuOFNq1XL33Jf67f4VAGWGPFg09QVTysE26fX21E5KKwJbSIztwVLWQ4862OmNhf6_kWqCX93PMT9pL9Hb0ZVFxV7vNlCemIaE9MlYpLep5orzFzU58TtJQf_wOrcS1aXZjlBP6KB6fC1K3P-5FWneCMIu4Kp51-tcQFho0eyrmcdUwnH_rzfh69gd8NwXhIyBOaTBXLew9_-Q","protectedHeader":"eyJhbGciOiJSUzI1NiIsIkZTUElPUC1VUkkiOiIvdHJhbnNmZXJzIiwiRlNQSU9QLUhUVFAtTWV0aG9kIjoiUE9TVCIsIkZTUElPUC1Tb3VyY2UiOiJibHVlYmFuayJ9"}'
 
 const signWithoutValidation = (headers:any, payload:any) => {
     const token = JsonWebSignatureHelper.sign(Buffer.from(privKeyCont).toString(), 
@@ -467,7 +511,7 @@ describe("FSPIOP Utils Lib", () => {
             },
         });
     });
-    // #region
+    // #endregion
 
     // #region URLBuilder
     it("should append query parameters", () => {
@@ -640,6 +684,25 @@ describe("FSPIOP Utils Lib", () => {
         expect(() => jwsHelper.validate(headers, payload)).toThrow("Unable to verify token - invalid token");
     });
 
+    it("should throw MissingFSPIOPURIHeaderInDecodedHeader when validating a JWS with a signature with missing URI decoded header", () => {
+        // Arrange
+        let headers = {
+            [FSPIOP_HEADERS_SOURCE]: "bluebank",
+            [FSPIOP_HEADERS_URI]: "/transfers",
+            [FSPIOP_HEADERS_HTTP_METHOD]: "POST",
+            [FSPIOP_HEADERS_SIGNATURE]: "1"
+        }
+
+        const payload = {}
+        
+        const missingHeaders = {}
+
+        headers[FSPIOP_HEADERS_SIGNATURE] = signWithoutValidation(missingHeaders, payload);
+
+        // Act & Assert
+        expect(() => jwsHelper.validate(headers, payload)).toThrow(MissingFSPIOPURIHeaderInDecodedHeader);
+    });
+    
     it("should throw MissingFSPIOPURIHeaderInDecodedHeader when validating a JWS with a signature with missing URI decoded header", () => {
         // Arrange
         let headers = {

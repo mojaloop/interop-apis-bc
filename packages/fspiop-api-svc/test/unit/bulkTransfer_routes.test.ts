@@ -39,8 +39,8 @@ import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platfor
 import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
 import request from "supertest";
-import { MemoryConfigClientMock, getHeaders } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
-import { Enums, JwsConfig } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { MemoryConfigClientMock, getHeaders, getJwsConfig, getRouteValidator } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { Enums, FspiopJwsSignature, FspiopValidator, JwsConfig } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { Server } from "http";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
@@ -70,24 +70,11 @@ const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
 const pathWithId = `/${Enums.EntityTypeEnum.BULK_TRANSFERS}/1fbee0f3-c58e-5afe-8cdd-7e65eea2fca9`;
 const pathWithoutId = `/${Enums.EntityTypeEnum.BULK_TRANSFERS}`;
 
-let configClientMock : IConfigurationClient;
+let configClientMock: IConfigurationClient;
+let jwsHelperMock: FspiopJwsSignature;
+let routeValidatorMock: FspiopValidator;
 
 jest.setTimeout(10000);
-
-
-// JWS Signature
-const privKey = path.join(__dirname, "../../dist/privatekey.pem");
-const pubKey = path.join(__dirname, "../../dist/publickey.cer");
-const pubKeyCont = readFileSync(pubKey)
-const privKeyCont = readFileSync(privKey)
-
-const jwsConfig:JwsConfig = {
-    enabled: false,
-    privateKey: privKeyCont,
-    publicKeys: {
-
-    }
-}
 
 describe("FSPIOP Routes - Unit Tests Bulk Transfer", () => {
     let app: Express;
@@ -128,7 +115,11 @@ describe("FSPIOP Routes - Unit Tests Bulk Transfer", () => {
 
         producer = new MLKafkaJsonProducer(kafkaJsonProducerOptions);
 
-        bulkTransferRoutes = new TransfersBulkRoutes(configClientMock, producer, jwsConfig, logger);
+        routeValidatorMock = getRouteValidator();
+
+        jwsHelperMock = getJwsConfig();
+
+        bulkTransferRoutes = new TransfersBulkRoutes(producer, routeValidatorMock, jwsHelperMock, logger);
         app.use(`/${BULK_TRANSFERS_URL_RESOURCE_NAME}`, bulkTransferRoutes.router);
 
         let portNum = SVC_DEFAULT_HTTP_PORT;

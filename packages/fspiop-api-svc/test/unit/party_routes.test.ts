@@ -36,17 +36,14 @@
 import express, {Express} from "express";
 import { PartyRoutes } from "../../src/http_routes/account-lookup-bc/party_routes";
 import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import { AccountLookupBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
 import request from "supertest";
-import { MemoryConfigClientMock, getHeaders } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
-import { Enums, JwsConfig } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { MemoryConfigClientMock, getHeaders, getJwsConfig, getRouteValidator } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { Enums, FspiopJwsSignature, FspiopValidator } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { Server } from "http";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import path from "path";
-import { readFileSync } from "fs";
 const packageJSON = require("../../package.json");
 
 const BC_NAME = "interop-apis-bc";
@@ -71,24 +68,11 @@ const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
 const pathWithoutSubType = `/${Enums.EntityTypeEnum.PARTIES}/MSISDN/123456789`;
 const pathWithSubType = `/${Enums.EntityTypeEnum.PARTIES}/MSISDN/123456789/123`;
 
-let configClientMock : IConfigurationClient;
+let configClientMock: IConfigurationClient;
+let jwsHelperMock: FspiopJwsSignature;
+let routeValidatorMock: FspiopValidator;
 
 jest.setTimeout(10000);
-
-// JWS Signature
-const privKey = path.join(__dirname, "../../dist/privatekey.pem");
-const pubKey = path.join(__dirname, "../../dist/publickey.cer");
-const pubKeyCont = readFileSync(pubKey)
-const privKeyCont = readFileSync(privKey)
-
-const jwsConfig:JwsConfig = {
-    enabled: false,
-    privateKey: privKeyCont,
-    publicKeys: {
-        "bluebank": pubKeyCont,
-        "greenbank": pubKeyCont
-    }
-}
 
 describe("FSPIOP Routes - Unit Tests Party", () => {
     let app: Express;
@@ -128,9 +112,12 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
         configClientMock = new MemoryConfigClientMock(logger, authTokenUrl);
 
         producer = new MLKafkaJsonProducer(kafkaJsonProducerOptions);
-        // await producer.connect();
+        
+        routeValidatorMock = getRouteValidator();
 
-        partyRoutes = new PartyRoutes(configClientMock, producer, jwsConfig, logger);
+        jwsHelperMock = getJwsConfig();
+
+        partyRoutes = new PartyRoutes(producer, routeValidatorMock, jwsHelperMock, logger);
         app.use(`/${PARTIES_URL_RESOURCE_NAME}`, partyRoutes.router);
 
         let portNum = SVC_DEFAULT_HTTP_PORT;
