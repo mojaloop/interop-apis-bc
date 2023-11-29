@@ -59,6 +59,7 @@ export class FspiopJwsSignature {
     private _privateKey: Buffer;
 	private _publicKeys: any;
 
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
 	private constructor() {}
 
     static getInstance() {

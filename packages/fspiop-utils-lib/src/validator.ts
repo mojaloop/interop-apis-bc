@@ -45,6 +45,7 @@ export class FspiopValidator {
 
 	private _currencyList: Currency[];
 
+	// eslint-disable-next-line @typescript-eslint/no-empty-function
 	private constructor() {}
   
 	static getInstance() {
