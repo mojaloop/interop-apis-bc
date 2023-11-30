@@ -372,18 +372,13 @@ export class TransferEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadTransferRequestPost(payload);
 
-            if(this._jwsHelper.isEnabled()) {
-                clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.POST;
-                clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
-            }
-
             await Request.sendRequest({
                 url: urlBuilder.build(),
                 headers: clonedHeaders,
                 source: requesterFspId,
                 destination: destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.POST,
-                payload: transformedPayload,
+                payload: transformedPayload
             });
 
             this._logger.info("_handleTransferPreparedEvt -> end");
@@ -417,11 +412,6 @@ export class TransferEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadTransferRequestPut(payload);
 
-            if(this._jwsHelper.isEnabled()) {
-                clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
-                clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
-            }
-
             const urlBuilderPayer = new Request.URLBuilder(requestedEndpointPayer.value);
             urlBuilderPayer.setEntity(Enums.EntityTypeEnum.TRANSFERS);
             urlBuilderPayer.setLocation([payload.transferId]);
@@ -432,10 +422,13 @@ export class TransferEventHandler extends BaseEventHandler {
                 source: requesterFspId,
                 destination: destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: transformedPayload,
+                payload: transformedPayload
             });
 
             if(payload.notifyPayee) {
+                clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PATCH;
+                clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
+
                 const urlBuilderPayee = new Request.URLBuilder(requestedEndpointPayee.value);
                 urlBuilderPayee.setEntity(Enums.EntityTypeEnum.TRANSFERS);
                 urlBuilderPayee.setLocation([payload.transferId]);
@@ -446,7 +439,7 @@ export class TransferEventHandler extends BaseEventHandler {
                     source: requesterFspId,
                     destination: destinationFspId,
                     method: Enums.FspiopRequestMethodsEnum.PATCH,
-                    payload: transformedPayload,
+                    payload: transformedPayload
                 });
             }
 
@@ -484,11 +477,6 @@ export class TransferEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadTransferRequestGet(payload);
 
-            if(this._jwsHelper.isEnabled()) {
-                clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
-                clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
-            }
-
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.TRANSFERS);
             urlBuilder.setId(payload.transferId);
@@ -499,7 +487,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 source: requesterFspId,
                 destination: destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadTransferRequestGet(payload),
+                payload: transformedPayload
             });
 
             this._logger.info("_handleTransferQueryResponseEvt -> end");
@@ -573,11 +561,6 @@ export class TransferEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadBulkTransferRequestPost(payload);
 
-            if(this._jwsHelper.isEnabled()) {
-                clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.POST;
-                clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
-            }
-
             const urlBuilderPayer = new Request.URLBuilder(requestedEndpointPayer.value);
             urlBuilderPayer.setEntity(Enums.EntityTypeEnum.BULK_TRANSFERS);
 
@@ -587,7 +570,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 source: requesterFspId,
                 destination: destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.POST,
-                payload: Transformer.transformPayloadBulkTransferRequestPost(payload),
+                payload: transformedPayload
             });
 
             this._logger.info("_handleBulkTransferPreparedEvt -> end");
@@ -621,11 +604,6 @@ export class TransferEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadBulkTransferRequestPut(payload);
 
-            if(this._jwsHelper.isEnabled()) {
-                clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
-                clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
-            }
-
             const urlBuilderPayer = new Request.URLBuilder(requestedEndpointPayer.value);
             urlBuilderPayer.setEntity(Enums.EntityTypeEnum.BULK_TRANSFERS);
             urlBuilderPayer.setLocation([payload.bulkTransferId]);
@@ -636,7 +614,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 source: requesterFspId,
                 destination: destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadBulkTransferRequestPut(payload),
+                payload: transformedPayload
             });
 
             this._logger.info("_handleBulkTransferFulfiledEvt -> end");
@@ -672,11 +650,6 @@ export class TransferEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadBulkTransferRequestGet(payload);
 
-            if(this._jwsHelper.isEnabled()) {
-                clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
-                clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
-            }
-
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_TRANSFERS);
             urlBuilder.setId(payload.bulkTransferId);
@@ -687,7 +660,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 source: requesterFspId,
                 destination: destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadBulkTransferRequestGet(payload),
+                payload: transformedPayload
             });
 
             this._logger.info("_handleBulkTransferQueryResponseEvt -> end");
@@ -717,6 +690,8 @@ export class TransferEventHandler extends BaseEventHandler {
 
             // Always validate the payload and headers received
             message.validatePayload();
+          
+            const transformedPayload = Transformer.transformPayloadBulkTransferRequestPutError(payload);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_TRANSFERS);
@@ -729,7 +704,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 source: requesterFspId,
                 destination: destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadBulkTransferRequestPutError(payload),
+                payload: transformedPayload
             });
 
             this._logger.info("_handleBulkTransferRejectRequestEvt -> end");

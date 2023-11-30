@@ -312,11 +312,6 @@ export class QuotingEventHandler extends BaseEventHandler {
             message.validatePayload();
 
             const transformedPayload = Transformer.transformPayloadQuotingRequestPost(payload);
-
-            if(this._jwsHelper.isEnabled()) {
-                clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.POST;
-                clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
-            }
             
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
@@ -327,7 +322,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 source: requesterFspId,
                 destination: destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.POST,
-                payload: Transformer.transformPayloadQuotingRequestPost(payload),
+                payload: transformedPayload
             });
 
             this._logger.info("_handleQuotingCreatedRequestReceivedEvt -> end");
@@ -357,11 +352,6 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadQuotingResponsePut(payload);
 
-            if(this._jwsHelper.isEnabled()) {
-                clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
-                clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
-            }
-
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
             urlBuilder.setLocation([payload.quoteId]);
@@ -372,7 +362,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 source: requesterFspId,
                 destination: requesterFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadQuotingResponsePut(payload),
+                payload: transformedPayload
             });
 
             this._logger.info("_handleQuotingResponseAcceptedEvt -> end");
@@ -408,11 +398,6 @@ export class QuotingEventHandler extends BaseEventHandler {
             
             const transformedPayload = Transformer.transformPayloadQuotingResponseGet(payload);
 
-            if(this._jwsHelper.isEnabled()) {
-                clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
-                clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
-            }
-
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
             urlBuilder.setId(payload.quoteId);
@@ -423,7 +408,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 source: requesterFspId,
                 destination: destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadQuotingResponseGet(payload),
+                payload: transformedPayload
             });
 
             this._logger.info("_handleQuotingQueryResponseEvt -> end");
@@ -454,11 +439,6 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadBulkQuotingResponsePost(payload);
 
-            if(this._jwsHelper.isEnabled()) {
-                clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.POST;
-                clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
-            }
-
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);
 
@@ -468,7 +448,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 source: requesterFspId,
                 destination: requesterFspId,
                 method: Enums.FspiopRequestMethodsEnum.POST,
-                payload: Transformer.transformPayloadBulkQuotingResponsePost(payload),
+                payload: transformedPayload
             });
 
             this._logger.info("_handleBulkQuotingRequestReceivedEvt -> end");
@@ -500,11 +480,6 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadBulkQuotingResponsePut(payload);
 
-            if(this._jwsHelper.isEnabled()) {
-                clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
-                clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
-            }
-
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);
             urlBuilder.setId(payload.bulkQuoteId);
@@ -515,7 +490,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 source: requesterFspId,
                 destination: requesterFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadBulkQuotingResponsePut(payload),
+                payload: transformedPayload
             });
 
             this._logger.info("_handleBulkQuoteAcceptedResponseEvt -> end");
@@ -543,11 +518,6 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadBulkQuotingResponsePut(payload);
 
-            if(this._jwsHelper.isEnabled()) {
-                clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
-                clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
-            }
-
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);
             urlBuilder.setId(payload.bulkQuoteId);
@@ -558,7 +528,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 source: requesterFspId,
                 destination: requesterFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadBulkQuotingResponsePut(payload),
+                payload: transformedPayload
             });
 
             this._logger.info("_handleBulkQuoteQueryResponseEvt -> end");

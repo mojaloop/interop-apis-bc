@@ -282,11 +282,6 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadPartyAssociationPut(payload);
 
-            if(this._jwsHelper.isEnabled()) {
-                clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
-                clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
-            }
-
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
             urlBuilder.setLocation([partyType, partyId, partySubType]);
@@ -297,7 +292,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 source: requesterFspId,
                 destination: requesterFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadPartyAssociationPut(payload),
+                payload: transformedPayload
             });
 
             this._logger.info("_handleParticipantAssociationRequestReceivedEvt -> end");
@@ -331,11 +326,6 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadPartyDisassociationPut(payload);
 
-            if(this._jwsHelper.isEnabled()) {
-                clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
-                clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
-            }
-
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
             urlBuilder.setLocation([partyType, partyId, partySubType]);
@@ -346,7 +336,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 source: requesterFspId,
                 destination: requesterFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadPartyDisassociationPut(payload),
+                payload: transformedPayload
             });
 
             this._logger.info("_handleParticipantDisassociateRequestReceivedEvt -> end");
@@ -385,11 +375,6 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadPartyInfoRequestedPut(payload);
 
-            if(this._jwsHelper.isEnabled()) {
-                clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.GET;
-                clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
-            }
-
             if (!clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === "") {
                 clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = destinationFspId;
             }
@@ -404,7 +389,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 source: requesterFspId,
                 destination: destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.GET,
-                payload: Transformer.transformPayloadPartyInfoRequestedPut(payload),
+                payload: transformedPayload
             });
 
             this._logger.info("_handlePartyInfoRequestedEvt -> end");
@@ -443,11 +428,6 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadPartyInfoReceivedPut(payload);
 
-            if(this._jwsHelper.isEnabled()) {
-                clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
-                clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
-            }
-
             if(fspiopOpaqueState) {
                 if (!clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === "") {
                     clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = destinationFspId;
@@ -464,7 +444,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 source: requesterFspId,
                 destination: destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadPartyInfoReceivedPut(payload),
+                payload: transformedPayload
             });
 
             this._logger.info("_handlePartyQueryResponseEvt -> end");
@@ -503,11 +483,6 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             message.validatePayload();
 
             const transformedPayload = Transformer.transformPayloadParticipantPut(payload);
-
-            if(this._jwsHelper.isEnabled()) {
-                clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
-                clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
-            }
             
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
@@ -519,7 +494,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 source: requesterFspId,
                 destination: destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadParticipantPut(payload),
+                payload: transformedPayload
             });
 
             this._logger.info("_handleParticipantQueryResponseEvt -> end");
