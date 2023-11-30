@@ -324,7 +324,11 @@ export class TransferEventHandler extends BaseEventHandler {
             }
             case TransferPayerIdMismatchEvt.name:
             case TransferPayerNotActiveEvt.name:
-            case TransferPayerNotApprovedEvt.name:
+            case TransferPayerNotApprovedEvt.name: {
+                errorResponse.errorCode = Enums.PayerErrors.GENERIC_PAYER_BLOCKED_ERROR.code;
+                errorResponse.errorDescription = Enums.PayerErrors.GENERIC_PAYER_BLOCKED_ERROR.name;
+                break;
+            }
             case TransferPrepareInvalidPayerCheckFailedEvt.name:
             case TransferQueryInvalidPayerParticipantIdEvt.name: {
                 errorResponse.errorCode = Enums.PayerErrors.GENERIC_PAYER_ERROR.code;
@@ -333,7 +337,11 @@ export class TransferEventHandler extends BaseEventHandler {
             }
             case TransferPayeeIdMismatchEvt.name:
             case TransferPayeeNotActiveEvt.name:
-            case TransferPayeeNotApprovedEvt.name:
+            case TransferPayeeNotApprovedEvt.name: {
+                errorResponse.errorCode = Enums.ClientErrors.DESTINATION_FSP_ERROR.code;
+                errorResponse.errorDescription = Enums.ClientErrors.DESTINATION_FSP_ERROR.name;
+                break;
+            }
             case TransferPrepareInvalidPayeeCheckFailedEvt.name:
             case TransferQueryInvalidPayeeParticipantIdEvt.name: {
                 errorResponse.errorCode = Enums.PayeeErrors.GENERIC_PAYEE_ERROR.code;
