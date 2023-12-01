@@ -169,9 +169,11 @@ export abstract class BaseEventHandler  {
                     extensionList: message.payload.errorInformation ? message.payload.errorInformation.extensionList : null
                 });
 
-                clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
-                clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
-
+                if(this._jwsHelper.isEnabled()) { 
+                    clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
+                    clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
+                }
+                
                 await Request.sendRequest({
                     url: url,
                     headers: clonedHeaders,
