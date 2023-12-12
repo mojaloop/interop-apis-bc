@@ -210,7 +210,7 @@ export class QuoteBulkRoutes extends BaseRoutes {
 
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
-                res.status(400).json(error.errorInformation);
+                res.status(400).json((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
@@ -298,7 +298,7 @@ export class QuoteBulkRoutes extends BaseRoutes {
 
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
-                res.status(400).json(error.errorInformation);
+                res.status(400).json((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
