@@ -434,9 +434,11 @@ export class TransferEventHandler extends BaseEventHandler {
             });
 
             if(payload.notifyPayee) {
-                clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PATCH;
-                clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
-
+                if(this._jwsHelper.isEnabled()) { 
+                    clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PATCH;
+                    clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
+                }
+                
                 const urlBuilderPayee = new Request.URLBuilder(requestedEndpointPayee.value);
                 urlBuilderPayee.setEntity(Enums.EntityTypeEnum.TRANSFERS);
                 urlBuilderPayee.setLocation([payload.transferId]);

@@ -166,6 +166,7 @@ export const transformPayloadPartyInfoReceivedPut = (payload: PartyQueryResponse
 				partyIdentifier: payload.partyId,
 				partySubIdOrType: payload.partySubType,
 				fspId: payload.ownerFspId,
+				extensionList: payload.extensionList
 			},
 			merchantClassificationCode: payload.merchantClassificationCode,
 			name: payload.name,

@@ -239,6 +239,7 @@ export class PartyRoutes extends BaseRoutes {
             const middleName = req.body.party.personalInfo.complexName["middleName"] || null;
             const lastName = req.body.party.personalInfo.complexName["lastName"] || null;
             const partyDoB = req.body.party.personalInfo["dateOfBirth"] || null;
+            const extensionList = req.body.party.partyIdInfo["extensionList"] || null;
 
             if (!type || !id || !requesterFspId || !ownerFspId) {
                 const transformError = Transformer.transformPayloadError({
@@ -275,7 +276,8 @@ export class PartyRoutes extends BaseRoutes {
                 firstName: firstName,
                 middleName: middleName,
                 lastName: lastName,
-                partyDoB: partyDoB
+                partyDoB: partyDoB,
+                extensionList: extensionList
             };
 
 
@@ -329,6 +331,7 @@ export class PartyRoutes extends BaseRoutes {
             const middleName = req.body.party.personalInfo.complexName["middleName"] || null;
             const lastName = req.body.party.personalInfo.complexName["lastName"] || null;
             const partyDoB = req.body.party.personalInfo["dateOfBirth"] || null;
+            const extensionList = req.body.party.partyIdInfo["extensionList"] || null;
 
             if (!type || !id || !requesterFspId || !ownerFspId) {
                 const transformError = Transformer.transformPayloadError({
@@ -365,7 +368,8 @@ export class PartyRoutes extends BaseRoutes {
                 firstName: firstName,
                 middleName: middleName,
                 lastName: lastName,
-                partyDoB: partyDoB
+                partyDoB: partyDoB,
+                extensionList: extensionList
             };
 
             const msg = new PartyInfoAvailableEvt(msgPayload);

@@ -465,7 +465,8 @@ describe("FSPIOP Utils Lib", () => {
             lastName: "test-last-name",
             partyDoB: new Date(),
             partySubType: null,
-            currency: null
+            currency: null,
+            extensionList: null
         };
 
         // Act
