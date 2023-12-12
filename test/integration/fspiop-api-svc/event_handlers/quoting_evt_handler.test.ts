@@ -33,7 +33,7 @@
 
 import path from "path";
 import jestOpenAPI from "jest-openapi";
-import { Constants, Enums, Request } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Enums, Request, PostBulkQuote, PostQuote, PutBulkQuote, PutQuote } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {
     QuoteQueryResponseEvt,
     QuoteRequestAcceptedEvt,
@@ -73,7 +73,7 @@ import request from "supertest";
 import { createMessage, getHeaders, getJwsConfig } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import KafkaConsumer from "../helpers/kafkaproducer";
 import { MongoClient } from "mongodb";
-import { PostBulkQuote, PostQuote, PutBulkQuote, PutQuote, removeEmpty } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/transformer";
+import { removeEmpty } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/transformer";
 import waitForExpect from "../helpers/utils";
 
 const server = process.env["SVC_DEFAULT_URL"] || "http://localhost:4000/";

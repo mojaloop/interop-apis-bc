@@ -33,7 +33,7 @@
 
 import path from "path";
 import jestOpenAPI from "jest-openapi";
-import { Constants, Enums, Request } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Enums, PostParticipant, Request } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {
     AccountLookupBCTopics,
     ParticipantAssociationRequestReceivedEvt,
@@ -64,7 +64,7 @@ import request from "supertest";
 import { createMessage, getHeaders, getJwsConfig } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import KafkaConsumer from "../helpers/kafkaproducer";
 import { MongoClient } from "mongodb";
-import { PostParticipant, removeEmpty } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/transformer";
+import { removeEmpty } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/transformer";
 import { FSPIOP_PARTY_ACCOUNT_TYPES } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants";
 import { ClientErrors } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/enums";
 import waitForExpect from "../helpers/utils";
@@ -496,7 +496,8 @@ it("should return error from trying to create an already existing association", 
             middleName: "P",
             firstName: "Paul",
             lastName: "Lopez",
-            partyDoB: null
+            partyDoB: null,
+            extensionList: null
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
