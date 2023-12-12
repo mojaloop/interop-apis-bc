@@ -31,9 +31,7 @@ optionally within square brackets <email>.
 "use strict";
 import express from "express";
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import { deserializeIlpPacket } from 'ilp-packet';
-import {Currency, IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
-import { FspiopJwsSignature, FspiopValidator, JwsConfig } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { FspiopJwsSignature, FspiopValidator } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
 export abstract class BaseRoutes {
@@ -76,19 +74,4 @@ export abstract class BaseRoutes {
         return Promise.resolve();
     }
 
-    // TODO move decodeIlpPacket from the _base_router.ts to the fspiop-utils-lib (static fn)
-    decodeIlpPacket (base64IlpPacket:string): string|null {
-        let decodedIlpPacketDataJsonString = null;
-        try {
-            const ilpPacketBuffer:any = Buffer.from(base64IlpPacket, "base64");
-            const decodedIlpPacket:any = deserializeIlpPacket(ilpPacketBuffer);
-            decodedIlpPacketDataJsonString = JSON.parse(
-                Buffer.from(decodedIlpPacket.data.data.toString("utf8"), "base64").toString("utf8")
-            );
-        } catch (error: unknown) {
-            console.error("Unable to decode ILP Packet", (error as Error).message);
-        }
-
-        return decodedIlpPacketDataJsonString;
-    }
 }

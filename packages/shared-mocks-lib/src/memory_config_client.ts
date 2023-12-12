@@ -31,6 +31,7 @@
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {ConfigFeatureFlag, ConfigParameter, ConfigSecret, Currency, IBoundedContextConfigurationClient, IConfigurationClient, IGlobalConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
 export class MemoryGlobalConfigClientMock implements IGlobalConfigurationClient {
 	getCurrencies(): Currency[] {
 		return [{
@@ -117,3 +118,4 @@ export class MemoryConfigClientMock implements IConfigurationClient {
 
 
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */

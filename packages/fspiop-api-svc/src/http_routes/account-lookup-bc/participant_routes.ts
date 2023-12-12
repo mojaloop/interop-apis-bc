@@ -35,11 +35,17 @@
 "use strict";
 import express from "express";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import { Constants, FspiopJwsSignature, FspiopValidator, JwsConfig, Transformer, ValidationdError } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { ParticipantQueryReceivedEvtPayload, ParticipantQueryReceivedEvt, ParticipantDisassociateRequestReceivedEvt, ParticipantDisassociateRequestReceivedEvtPayload, ParticipantAssociationRequestReceivedEvt, ParticipantAssociationRequestReceivedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { Constants, FspiopJwsSignature, FspiopValidator, Transformer, ValidationdError } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { 
+    ParticipantQueryReceivedEvtPayload,
+    ParticipantQueryReceivedEvt,
+    ParticipantDisassociateRequestReceivedEvt,
+    ParticipantDisassociateRequestReceivedEvtPayload,
+    ParticipantAssociationRequestReceivedEvt,
+    ParticipantAssociationRequestReceivedEvtPayload
+} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
-import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
 export class ParticipantRoutes extends BaseRoutes {

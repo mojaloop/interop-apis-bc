@@ -51,6 +51,8 @@ export type JwsConfig = {
     } 
 };
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 export class FspiopJwsSignature {
     private static instance: FspiopJwsSignature;
 
@@ -313,3 +315,5 @@ export class FspiopJwsSignature {
         return JSON.stringify(signatureObject);
     }
 }
+
+/* eslint-enable @typescript-eslint/no-explicit-any */

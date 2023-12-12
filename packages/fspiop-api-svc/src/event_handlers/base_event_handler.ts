@@ -33,7 +33,12 @@ optionally within square brackets <email>.
 
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { IDomainMessage, IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { MLKafkaJsonConsumer, MLKafkaJsonConsumerOptions, MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import { 
+    MLKafkaJsonConsumer,
+    MLKafkaJsonConsumerOptions,
+    MLKafkaJsonProducer,
+    MLKafkaJsonProducerOptions
+} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { IParticipantEndpoint } from "@mojaloop/participants-bc-client-lib";
 import { IParticipantService } from "../interfaces/infrastructure";
 import {
@@ -44,7 +49,13 @@ import {
     TransfersBCOperatorErrorPayload,
     TransfersBCOperatorErrorEvent
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { Constants, Request, Enums, Transformer, JwsConfig, FspiopJwsSignature } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { 
+    Constants,
+    Request,
+    Enums,
+    Transformer,
+    FspiopJwsSignature 
+} from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 
 export const HandlerNames = {
     AccountLookUp: 'AccountLookUpEventHandler',

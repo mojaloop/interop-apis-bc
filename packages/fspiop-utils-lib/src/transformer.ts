@@ -50,26 +50,24 @@ import {
 	BulkTransferQueryResponseEvtPayload,
 	BulkTransferRejectRequestProcessedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { 
+	ExtensionList,
+	FspiopError,
+	GetBulkTransfer,
+	GetTransfer,
+	PostBulkQuote,
+	PostBulkTransfer,
+	PostQuote,
+	PostTransfer,
+	PutBulkQuote,
+	PutBulkTransfer,
+	PutParticipant,
+	PutParty,
+	PutQuote,
+	PutTransfer 
+} from "./types";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
-export interface ExtensionList {
-	extension: {
-		key: string,
-
-		value: string
-	}[]
-}
-export interface FspiopError {
-	errorInformation: {
-		errorCode: string,
-		errorDescription: string,
-		extensionList?: ExtensionList | null
-	}
-}
-
-
-
 export const removeEmpty = (obj: any) => {
 	Object.entries(obj).forEach(([key, val]) =>
 		(val && typeof val === 'object') && removeEmpty(val) ||
@@ -78,41 +76,11 @@ export const removeEmpty = (obj: any) => {
 	return obj;
 };
 
-export interface PostParticipant {
-	fspId: string;
-}
-
-export interface PutParticipant {
-	fspId: string,
-}
-
 export const transformPayloadParticipantPut = (payload: ParticipantQueryResponseEvtPayload): PutParticipant => {
 	return {
 		fspId: payload.ownerFspId
 	};
 };
-
-export interface PutParty {
-	party: {
-		partyIdInfo: {
-			partyIdType: string,
-			partyIdentifier: string,
-			partySubIdOrType: string | null,
-			fspId: string,
-			extensionList?: ExtensionList
-		}
-	},
-	merchantClassificationCode?: string,
-	name: string,
-	personalInfo: {
-		complexName: {
-			firstName: string,
-			middleName: string,
-			lastName: string
-		},
-		dateOfBirth: Date | null
-	}
-}
 
 export const transformPayloadPartyAssociationPut = (payload: ParticipantAssociationCreatedEvtPayload): PutParty => {
 	const info = {
@@ -207,245 +175,6 @@ export const transformPayloadError = ({
 	return payload;
 };
 
-// Quoting
-
-export interface PostQuote {
-	quoteId: string,
-	transactionId: string,
-	payee: {
-		partyIdInfo: {
-			partyIdType: string;
-			partyIdentifier: string;
-			partySubIdOrType: string | null;
-			fspId: string | null;
-		};
-		merchantClassificationCode: string | null;
-		name: string | null;
-		personalInfo: {
-			complexName: {
-				firstName: string | null;
-				middleName: string | null;
-				lastName: string | null;
-			} | null;
-			dateOfBirth: string | null;
-		} | null;
-	},
-	payer: {
-		partyIdInfo: {
-			partyIdType: string;
-			partyIdentifier: string;
-			partySubIdOrType: string | null;
-			fspId: string | null;
-		};
-		merchantClassificationCode: string | null;
-		name: string | null;
-		personalInfo: {
-			complexName: {
-				firstName: string | null;
-				middleName: string | null;
-				lastName: string | null;
-			} | null;
-			dateOfBirth: string | null;
-		} | null;
-	},
-	amountType: "SEND" | "RECEIVE",
-	amount: {
-		currency: string;
-		amount: string;
-	},
-	transactionType: {
-		scenario: string;
-		subScenario: string | null;
-		initiator: string;
-		initiatorType: string;
-		refundInfo: {
-			originalTransactionId: string;
-			refundReason: string | null;
-		} | null;
-		balanceOfPayments: string | null;
-	},
-	expiration: string | null;
-}
-
-export interface PutQuote {
-	transferAmount: {
-		currency: string,
-		amount: string,
-	},
-	expiration: string,
-	ilpPacket: string,
-	condition: string,
-	payeeReceiveAmount: {
-		currency: string,
-		amount: string,
-	} | null,
-	payeeFspFee: {
-		currency: string,
-		amount: string,
-	} | null,
-	payeeFspCommission: {
-		currency: string,
-		amount: string,
-	} | null,
-	geoCode: {
-		latitude: string,
-		longitude: string,
-	} | null,
-	extensionList: {
-		extension: {
-			key: string,
-			value: string,
-		}[],
-	} | null
-}
-
-export interface PostBulkQuote {
-	bulkQuoteId: string,
-	payer: {
-		partyIdInfo: {
-			partyIdType: string,
-			partyIdentifier: string,
-			partySubIdOrType: string | null,
-			fspId: string | null,
-		};
-		merchantClassificationCode: string | null,
-		name: string | null,
-		personalInfo: {
-			complexName: {
-				firstName: string | null,
-				middleName: string | null,
-				lastName: string | null,
-			} | null,
-			dateOfBirth: string | null,
-		} | null,
-	},
-	geoCode: {
-		latitude: string,
-		longitude: string,
-	} | null,
-	expiration: string | null,
-	individualQuotes: {
-		quoteId: string,
-		transactionId: string,
-		payee: {
-			partyIdInfo: {
-				partyIdType: string,
-				partyIdentifier: string,
-				partySubIdOrType: string | null,
-				fspId: string | null,
-			},
-			merchantClassificationCode: string | null,
-			name: string | null,
-			personalInfo: {
-				complexName: {
-					firstName: string | null,
-					middleName: string | null,
-					lastName: string | null,
-				} | null,
-				dateOfBirth: string | null,
-			} | null,
-		},
-		amountType: "SEND" | "RECEIVE",
-		amount: {
-			currency: string,
-			amount: string,
-		},
-		fees: {
-			currency: string,
-			amount: string,
-		} | null,
-		transactionType: {
-			scenario: string,
-			subScenario: string | null,
-			initiator: string,
-			initiatorType: string,
-			refundInfo: {
-				originalTransactionId: string,
-				refundReason: string | null,
-			} | null,
-			balanceOfPayments: string | null,
-		},
-		note: string | null,
-		extensionList: {
-			extension: {
-				key: string,
-				value: string,
-			}[],
-		} | null,
-	}[],
-	extensionList: {
-		extension: {
-			key: string,
-			value: string,
-		}[],
-	} | null
-}
-
-export interface PutBulkQuote {
-	bulkQuoteId: string,
-	individualQuoteResults: {
-		quoteId: string,
-		payee: {
-			partyIdInfo: {
-				partyIdType: string,
-				partyIdentifier: string,
-				partySubIdOrType: string | null,
-				fspId: string | null,
-			},
-			merchantClassificationCode: string | null,
-			name: string | null,
-			personalInfo: {
-				complexName: {
-					firstName: string | null,
-					middleName: string | null,
-					lastName: string | null,
-				} | null,
-				dateOfBirth: string | null,
-			} | null,
-		} | null,
-		transferAmount: {
-			currency: string,
-			amount: string,
-		} | null,
-		payeeReceiveAmount: {
-			currency: string,
-			amount: string,
-		} | null,
-		payeeFspFee: {
-			currency: string,
-			amount: string,
-		} | null,
-		payeeFspCommission: {
-			currency: string,
-			amount: string,
-		} | null,
-		ilpPacket: string | null,
-		condition: string | null,
-		errorInformation: {
-			errorCode: string,
-			errorDescription: string,
-			extensionList: {
-				extension: {
-					key: string,
-					value: string,
-				}[],
-			},
-		} | null,
-		extensionList: {
-			extension: {
-				key: string,
-				value: string,
-			}[],
-		} | null,
-	}[],
-	expiration: string | null,
-	extensionList: {
-		extension: {
-			key: string,
-			value: string,
-		}[],
-	} | null,
-}
 
 export const transformPayloadQuotingRequestPost = (payload: QuoteRequestAcceptedEvtPayload): PostQuote => {
 	const info: PostQuote = {
@@ -523,145 +252,6 @@ export const transformPayloadBulkQuotingResponsePut = (payload: BulkQuoteAccepte
 
 	return removeEmpty(info);
 };
-
-// Transfer
-export interface PostTransfer {
-	transferId: string,
-	payeeFsp: string,
-	payerFsp: string,
-	amount: {
-		currency: string;
-		amount: string;
-	},
-	ilpPacket: string,
-	condition: string,
-	expiration: number
-}
-
-export interface PutTransfer {
-	transferState: string,
-	fulfilment: string | null,
-	completedTimestamp: string,
-	extensionList: {
-		extension: {
-			key: string,
-			value: string,
-		}[],
-	} | null
-}
-
-export interface GetTransfer {
-	transferState: string,
-	fulfilment: string | null,
-	completedTimestamp: string | null,
-	extensionList: {
-		extension: {
-			key: string,
-			value: string,
-		}[],
-	} | null
-}
-
-export interface GetTransfer {
-	transferState: string,
-	fulfilment: string | null,
-	completedTimestamp: string | null,
-	extensionList: {
-		extension: {
-			key: string,
-			value: string,
-		}[],
-	} | null
-}
-
-export interface PostBulkTransfer {
-    bulkTransferId: string;
-    bulkQuoteId: string;
-    payeeFsp: string;
-    payerFsp: string;
-    expiration: string;
-    individualTransfers: {
-        transferId: string;
-        amount: string;
-        currencyCode: string;
-        ilpPacket: string;
-        condition: string;
-        extensionList: {
-            extension: {
-                key: string;
-                value: string;
-            }[];
-        } | null;
-    }[];
-    extensionList: {
-        extension: {
-            key: string;
-            value: string;
-        }[];
-    } | null;
-}
-
-export interface PutBulkTransfer {
-    completedTimestamp: number;
-    bulkTransferState: string;
-    individualTransferResults: {
-        transferId: string;
-        fulfilment: string | null;
-        errorInformation: {
-            errorCode: string;
-            errorDescription: string;
-            extensionList: {
-                extension: {
-                    key: string;
-                    value: string;
-                }[];
-            } | null;
-        };
-        extensionList: {
-            extension: {
-                key: string;
-                value: string;
-            }[];
-        } | null;
-    }[];
-    extensionList: {
-        extension: {
-            key: string;
-            value: string;
-        }[];
-    } | null;
-}
-
-export interface GetBulkTransfer {
-    completedTimestamp: number | null;
-	bulkTransferState: string;
-    individualTransferResults: {
-        transferId: string;
-        fulfilment: string | null;
-        errorInformation: {
-            errorCode: string;
-            errorDescription: string;
-            extensionList: {
-                extension: {
-                    key: string;
-                    value: string;
-                }[];
-            } | null;
-        };
-        extensionList: {
-            extension: {
-                key: string;
-                value: string;
-            }[];
-        } | null;
-    }[];
-    extensionList: {
-        extension: {
-            key: string;
-            value: string;
-        }[];
-    } | null;
-}
 
 export const transformPayloadTransferRequestPost = (payload: TransferPreparedEvtPayload): PostTransfer => {
 	const info: PostTransfer = {

@@ -33,7 +33,16 @@
 
 import express from "express";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import { Constants, Transformer, Enums, ValidationdError, JwsConfig, FspiopValidator, FspiopJwsSignature } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { 
+    Constants,
+    Transformer,
+    Enums,
+    ValidationdError,
+    FspiopValidator,
+    FspiopJwsSignature,
+    decodeIlpPacket,
+    PostQuote
+} from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {
     TransferPrepareRequestedEvt,
     TransferPrepareRequestedEvtPayload,
@@ -93,7 +102,7 @@ export class TransfersRoutes extends BaseRoutes {
 
             //TODO: validate ilpPacket
 
-            const decodedIlpPacket:any = this.decodeIlpPacket(ilpPacket);
+            const decodedIlpPacket:PostQuote = decodeIlpPacket(ilpPacket);
 
             const payerIdType = decodedIlpPacket.payer.partyIdInfo.partyIdType;
             const payeeIdType = decodedIlpPacket.payee.partyIdInfo.partyIdType;

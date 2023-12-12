@@ -37,3 +37,5 @@ export * as Request from "./request";
 export * from "./errors";
 export * from "./validator";
 export * from "./jws";
+export * from "./ilp";
+export * from "./types";

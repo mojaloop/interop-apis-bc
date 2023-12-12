@@ -67,12 +67,11 @@ import {
     QuoteBCRequiredRequesterParticipantIdMismatchErrorEvent,
     QuoteBCRequiredDestinationParticipantIdMismatchErrorEvent
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { Constants, Enums, FspiopJwsSignature, JwsConfig, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Enums, FspiopJwsSignature, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-// import { QuotesPost } from "../errors";
 import { IParticipantService } from "../interfaces/infrastructure";
 
 export class QuotingEventHandler extends BaseEventHandler {

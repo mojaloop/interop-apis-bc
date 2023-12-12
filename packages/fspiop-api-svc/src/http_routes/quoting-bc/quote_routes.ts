@@ -31,13 +31,27 @@
 
 "use strict";
 
-import { Constants, FspiopJwsSignature, FspiopValidator, JwsConfig, Transformer, ValidationdError } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { GetQuoteQueryRejectedEvt, GetQuoteQueryRejectedEvtPayload, QuoteQueryReceivedEvt, QuoteQueryReceivedEvtPayload, QuoteRequestReceivedEvt, QuoteRequestReceivedEvtPayload, QuoteResponseReceivedEvt, QuoteResponseReceivedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { 
+    Constants,
+    FspiopJwsSignature,
+    FspiopValidator,
+    Transformer,
+    ValidationdError
+} from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { 
+    GetQuoteQueryRejectedEvt,
+    GetQuoteQueryRejectedEvtPayload,
+    QuoteQueryReceivedEvt,
+    QuoteQueryReceivedEvtPayload,
+    QuoteRequestReceivedEvt,
+    QuoteRequestReceivedEvtPayload,
+    QuoteResponseReceivedEvt,
+    QuoteResponseReceivedEvtPayload
+} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import express from "express";
-import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
 export class QuoteRoutes extends BaseRoutes {
@@ -124,7 +138,7 @@ export class QuoteRoutes extends BaseRoutes {
                 geoCode: geoCode,
                 note: note,
                 expiration: expiration,
-                extensionList: extensionList,
+                extensionList: extensionList
             } as QuoteRequestReceivedEvtPayload;
 
             const msg = new QuoteRequestReceivedEvt(msgPayload);

@@ -41,12 +41,19 @@ import {
     BulkTransferRejectRequestedEvt,
     BulkTransferRejectRequestedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { Constants, FspiopJwsSignature, FspiopValidator, JwsConfig, Transformer, ValidationdError } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { 
+    Constants,
+    FspiopJwsSignature,
+    FspiopValidator,
+    Transformer,
+    ValidationdError,
+    decodeIlpPacket,
+    PostQuote
+} from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import express from "express";
-import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
 export class TransfersBulkRoutes extends BaseRoutes {
@@ -172,19 +179,19 @@ export class TransfersBulkRoutes extends BaseRoutes {
             if(this._jwsHelper.isEnabled()) {
                 this._jwsHelper.validate(req.headers, req.body);
             }
-
+            
             const msgPayload: BulkTransferPrepareRequestedEvtPayload = {
                 bulkTransferId: bulkTransferId,
                 bulkQuoteId: bulkQuoteId,
                 payerFsp: payerFsp,
                 payeeFsp: payeeFsp,
                 expiration: expiration,
-                individualTransfers: individualTransfers.map((individualTransfer:any) => {
-                    const decodedIlpPacket:any = this.decodeIlpPacket(individualTransfer.ilpPacket);
+                individualTransfers: individualTransfers.map((individualTransfer:BulkTransferPrepareRequestedEvtPayload["individualTransfers"][number]) => {
+                    const decodedIlpPacket:PostQuote = decodeIlpPacket(individualTransfer.ilpPacket);
 
                     individualTransfer.payerIdType = decodedIlpPacket.payer.partyIdInfo.partyIdType;
                     individualTransfer.payeeIdType = decodedIlpPacket.payee.partyIdInfo.partyIdType;
-                    individualTransfer. transferType = decodedIlpPacket.transactionType.scenario;
+                    individualTransfer.transferType = decodedIlpPacket.transactionType.scenario;
 
                     return individualTransfer;
                 }),

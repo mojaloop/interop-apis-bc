@@ -60,7 +60,7 @@ import {
     AccountLookupBCRequiredDestinationParticipantIdMismatchErrorEvent,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseEventHandler, HandlerNames } from "./base_event_handler";
-import { Constants, Enums, FspiopJwsSignature, JwsConfig, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Enums, FspiopJwsSignature, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 

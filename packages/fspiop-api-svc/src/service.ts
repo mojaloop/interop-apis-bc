@@ -30,7 +30,7 @@ optionally within square brackets <email>.
 
 
 "use strict";
-import {existsSync, readFileSync} from "fs";
+import {existsSync} from "fs";
 import {Server} from "http";
 import express, {Express} from "express";
 import {ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";

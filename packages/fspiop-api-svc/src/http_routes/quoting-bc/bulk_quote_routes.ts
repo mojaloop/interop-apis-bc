@@ -31,13 +31,26 @@
 
 "use strict";
 
-import { BulkQuotePendingReceivedEvt, BulkQuotePendingReceivedEvtPayload, BulkQuoteQueryReceivedEvt, BulkQuoteQueryReceivedEvtPayload, BulkQuoteRequestedEvt, BulkQuoteRequestedEvtPayload, GetBulkQuoteQueryRejectedEvt, GetBulkQuoteQueryRejectedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { Constants, FspiopJwsSignature, FspiopValidator, JwsConfig, Transformer, ValidationdError } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { 
+    BulkQuotePendingReceivedEvt,
+    BulkQuotePendingReceivedEvtPayload,
+    BulkQuoteQueryReceivedEvt,
+    BulkQuoteQueryReceivedEvtPayload,
+    BulkQuoteRequestedEvt,
+    BulkQuoteRequestedEvtPayload,
+    GetBulkQuoteQueryRejectedEvt,
+    GetBulkQuoteQueryRejectedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { 
+    Constants,
+    FspiopJwsSignature, 
+    FspiopValidator,
+    Transformer,
+    ValidationdError
+} from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import express from "express";
-import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
 export class QuoteBulkRoutes extends BaseRoutes {

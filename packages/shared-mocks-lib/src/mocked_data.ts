@@ -36,6 +36,7 @@ import {ConsoleLogger, ILogger, LogLevel} from "@mojaloop/logging-bc-public-type
 
 type UnknownProperties = { [k: string]: string | null };
 
+/* eslint-disable-next-line @typescript-eslint/no-explicit-any */
 const removeEmpty = (obj: any) => {
 	Object.entries(obj).forEach(([key, val]) =>
 		(val && typeof val === 'object') && removeEmpty(val) ||
