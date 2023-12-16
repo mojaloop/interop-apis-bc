@@ -1,70 +1,73 @@
 {
-  "name": "@mojaloop/interop-apis-bc",
-  "version": "0.0.1",
-  "description": "Mojaloop vNext interoperability APIs Bounded bounded context.",
-  "license": "Apache-2.0",
-  "homepage": "https://github.com/mojaloop/interop-apis-bc",
-  "private": true,
-  "bugs": {
-    "url": "https://github.com/mojaloop/interop-apis-bc/issues#readme"
-  },
-  "contributors": [
-    "Pedro Sousa Barreto <pedrosousabarreto@gmail.com>",
-    "Jose Antunes <jose.antunes@arg.software>",
-    "Rui Rocha <rui.rocha@arg.software>"
-  ],
-  "scripts": {
-    "prepare": "husky install",
-    "pre_commit_check": "npm run build && npm run lint && npm run test:unit",
-    "start": "npm -ws -v run start",
-    "start:fspiop-api-svc": "npm -w @mojaloop/interop-apis-bc-fspiop-api-svc run start",
-    "build": "npm -ws run build",
-    "watch": "npm -ws  run watch",
-    "clean": "(npm run clean:dist || true) && npm run clean:npm",
-    "clean:npm": "(rm -Rf node_modules || true) && npm -ws run clean:npm",
-    "clean:dist": "(rm -Rf dist || true) && npm -ws run clean:dist",
-    "docker:build": "npm run build && docker build . -t \"mojaloop/interop-apis-bc-fspiop-api-svc\"",
-    "pretest": "npm run build",
-    "standard": "npm run --no-progress --stream lint'",
-    "lint": "npm -ws run lint",
-    "lint:fix": "npm -ws run lint:fix",
-    "test": "npm run test:unit && npm run test:integration",
-    "test:unit": "npm -ws --if-present run test:unit",
-    "test:coverage": "npm -ws run test:coverage",
-    "test:coverage-check": "npm -ws run test:coverage-check",
-    "test:integration": "jest --runInBand --forceExit --detectOpenHandles",
-    "posttest": "npm run coverage:merge && npm run coverage:gen-report",
-    "coverage:merge": "nyc merge ./coverage/ ./coverage/coverage.json",
-    "coverage:gen-report": "nyc report --reporter=lcov --reporter=text --temp-dir=./coverage",
-    "audit:resolve": "npm -ws run audit:resolve",
-    "audit:check": "npm -ws run audit:check",
-    "dep:check": "(ncu -e 2 || true) && npm -ws run dep:check",
-    "dep:update": "(ncu -e 2 -u || true) && npm -ws run dep:update"
-  },
-  "devDependencies": {
-    "@types/jest": "^29.5.11",
-    "@types/node": "^20.3.3",
-    "@typescript-eslint/eslint-plugin": "^5.60.1",
-    "@typescript-eslint/parser": "^5.60.1",
-    "eslint": "^8.43.0",
-    "jest": "^29.5.0",
-    "jest-openapi": "^0.14.2",
-    "mongodb": "^5.3.0",
-    "npm-check-updates": "^16.10.19",
-    "nyc": "^15.1.0",
-    "supertest": "^6.3.3",
-    "ts-jest": "^29.1.1",
-    "tslib": "~2.6.2",
-    "typescript": "^5.1.6"
-  },
-  "workspaces": [
-    "packages/fspiop-utils-lib",
-    "packages/fspiop-api-svc",
-    "packages/shared-mocks-lib",
-    "packages/*"
-  ],
-  "dependencies": {
-    "husky": "^8.0.3",
-    "ilp-packet": "^2.2.0"
-  }
+    "name": "@mojaloop/interop-apis-bc",
+    "version": "0.5.0",
+    "description": "Mojaloop vNext interoperability APIs Bounded bounded context.",
+    "license": "Apache-2.0",
+    "homepage": "https://github.com/mojaloop/interop-apis-bc",
+    "private": true,
+    "bugs": {
+        "url": "https://github.com/mojaloop/interop-apis-bc/issues#readme"
+    },
+    "contributors": [
+        "Pedro Sousa Barreto <pedrosousabarreto@gmail.com>",
+        "Jose Antunes <jose.antunes@arg.software>",
+        "Rui Rocha <rui.rocha@arg.software>"
+    ],
+    "scripts": {
+        "prepare": "husky install",
+        "pre_commit_check": "npm run build && npm run lint && npm run test:unit",
+        "start": "npm -ws -v run start",
+        "start:fspiop-api-svc": "npm -w @mojaloop/interop-apis-bc-fspiop-api-svc run start",
+        "build": "npm -ws run build",
+        "watch": "npm -ws  run watch",
+        "clean": "(npm run clean:dist || true) && npm run clean:npm",
+        "clean:npm": "(rm -Rf node_modules || true) && npm -ws run clean:npm",
+        "clean:dist": "(rm -Rf dist || true) && npm -ws run clean:dist",
+        "docker:build": "npm run build && docker build . -t \"mojaloop/interop-apis-bc-fspiop-api-svc\"",
+        "pretest": "npm run build",
+        "standard": "npm run --no-progress --stream lint'",
+        "lint": "npm -ws run lint",
+        "lint:fix": "npm -ws run lint:fix",
+        "test": "npm run test:unit && npm run test:integration",
+        "test:unit": "npm -ws --if-present run test:unit",
+        "test:coverage": "npm -ws run test:coverage",
+        "test:coverage-check": "npm -ws run test:coverage-check",
+        "test:integration": "jest --runInBand --forceExit --detectOpenHandles",
+        "posttest": "npm run coverage:merge && npm run coverage:gen-report",
+        "coverage:merge": "nyc merge ./coverage/ ./coverage/coverage.json",
+        "coverage:gen-report": "nyc report --reporter=lcov --reporter=text --temp-dir=./coverage",
+        "audit:resolve": "npm -ws run audit:resolve",
+        "audit:check": "npm -ws run audit:check",
+        "dep:check": "(ncu -e 2 || true) && npm -ws run dep:check",
+        "dep:update": "(ncu -e 2 -u || true) && npm -ws run dep:update"
+    },
+    "devDependencies": {
+        "@types/jest": "^29.5.11",
+        "@types/node": "^20.3.3",
+        "@typescript-eslint/eslint-plugin": "^5.60.1",
+        "@typescript-eslint/parser": "^5.60.1",
+        "eslint": "^8.43.0",
+        "jest": "^29.5.0",
+        "jest-openapi": "^0.14.2",
+        "mongodb": "^5.3.0",
+        "npm-check-updates": "^16.10.19",
+        "nyc": "^15.1.0",
+        "supertest": "^6.3.3",
+        "ts-jest": "^29.1.1",
+        "tslib": "~2.6.2",
+        "typescript": "^5.1.6"
+    },
+    "workspaces": [
+        "packages/fspiop-utils-lib",
+        "packages/fspiop-api-svc",
+        "packages/shared-mocks-lib",
+        "packages/*"
+    ],
+    "dependencies": {
+        "husky": "^8.0.3",
+        "ilp-packet": "^2.2.0"
+    },
+    "engines": {
+        "node": ">=20.10.0"
+    }
 }

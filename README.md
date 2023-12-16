@@ -31,7 +31,7 @@ Make sure you have the following services up and running (available in platform-
     - redis
     - prometheus
     - zoo
-	
+
 - cross-cutting
 	- auditing-svc
 	- authentication-svc
@@ -58,7 +58,7 @@ Make sure you have the following services up and running (available in platform-
 
 # Collect coverage (from both unit and integration test types)
 
-After running the unit and/or integration tests: 
+After running the unit and/or integration tests:
 
 ```shell
 npm run posttest
@@ -68,4 +68,10 @@ You can then consult the html report in:
 
 ```shell
 coverage/lcov-report/index.html
+```
+
+# Run all tests at once
+Requires integration tests pre-requisites
+```shell
+npm run test
 ```
