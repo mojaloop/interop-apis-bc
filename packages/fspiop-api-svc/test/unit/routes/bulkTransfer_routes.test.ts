@@ -34,7 +34,7 @@
 
 
 import express, {Express} from "express";
-import { TransfersBulkRoutes } from "../../src/http_routes/transfers-bc/bulk_transfers_routes";
+import { TransfersBulkRoutes } from "../../../src/http_routes/transfers-bc/bulk_transfers_routes";
 import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
@@ -46,7 +46,7 @@ import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import path from "path";
 import { readFileSync } from "fs";
-const packageJSON = require("../../package.json");
+const packageJSON = require("../../../package.json");
 
 const BC_NAME = "interop-apis-bc";
 const APP_NAME = "fspiop-api-svc";
@@ -386,7 +386,8 @@ describe("FSPIOP Routes - Unit Tests Bulk Transfer", () => {
             "bulkTransferState": "COMPLETED",
             "individualTransferResults": {
                 "transferId": "1fbee2f3-c58e-5afe-8cdd-6e65eea2fca9",
-                "fulfilment": "on1meDEOvLmjYTvujP438_lhaMCi8V0wx0uUvjp8vT0"            }
+                "fulfilment": "on1meDEOvLmjYTvujP438_lhaMCi8V0wx0uUvjp8vT0"            
+            }
         };
         
         // Act

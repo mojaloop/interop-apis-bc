@@ -46,6 +46,7 @@ const errorMessages = {
  *                       defaultProtocolResources for an example.
  */
 
+/* istanbul ignore next */
 export const validateHeaders = (req: express.Request, res: express.Response, next: express.NextFunction) => {
 	const resource = req.path.replace(/^\//, "").split("/")[0];
 

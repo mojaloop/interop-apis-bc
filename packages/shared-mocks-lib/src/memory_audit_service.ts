@@ -1,11 +1,10 @@
 /**
  License
  --------------
- Copyright © 2021 Mojaloop Foundation
+ Copyright © 2017 Bill & Melinda Gates Foundation
+ The Mojaloop files are made available by the Bill & Melinda Gates Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License. You may obtain a copy of the License at
 
- The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License.
-
- You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+ http://www.apache.org/licenses/LICENSE-2.0
 
  Unless required by applicable law or agreed to in writing, the Mojaloop files are distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
@@ -22,24 +21,40 @@
 
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
-
+ 
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
 
  --------------
- **/
+**/
 
 "use strict";
 
-import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
+import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
+import {AuditEntryLabel, AuditSecurityContext, IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 
-export interface IParticipantServiceAdapter {
-    getParticipantInfo(fspId: string): Promise<IParticipant| null>;
-    getParticipantsInfo(fspIds: string[]): Promise<IParticipant[]|null>;
+export class MemoryAuditService implements IAuditClient {
+	private readonly logger: ILogger;
+	
+	constructor(
+		logger: ILogger,
+	) {
+		this.logger = logger;
+	}
+
+	init(): Promise<void> {
+        return Promise.resolve();
+    }
+
+    destroy(): Promise<void> {
+        return Promise.resolve();
+    }
+
+	audit(_actionType: string, _actionSuccessful: boolean, _securityContext?: AuditSecurityContext | undefined, _labels?: AuditEntryLabel[] | undefined): Promise<void> {
+        return Promise.resolve();
+	}
+
+
+	
 }
-
-export interface IAccountLookupService {
-    getAccountFspId(partyId:string, partyType:string, partySubIdOrType:string | null, currency:string | null): Promise<string| null>;
-}
-

@@ -72,7 +72,7 @@ import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import { IParticipantService } from "../interfaces/infrastructure";
+import { IParticipantServiceAdapter } from "../interfaces/infrastructure";
 
 export class QuotingEventHandler extends BaseEventHandler {
     constructor(
@@ -80,7 +80,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             consumerOptions: MLKafkaJsonConsumerOptions,
             producerOptions: MLKafkaJsonProducerOptions,
             kafkaTopics : string[],
-            participantService: IParticipantService,
+            participantService: IParticipantServiceAdapter,
             jwsHelper: FspiopJwsSignature
     ) {
         super(logger, consumerOptions, producerOptions, kafkaTopics, participantService, HandlerNames.Quotes, jwsHelper);
@@ -359,7 +359,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 url: urlBuilder.build(),
                 headers: clonedHeaders,
                 source: requesterFspId,
-                destination: requesterFspId,
+                destination: destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: transformedPayload
             });
@@ -405,7 +405,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 url: urlBuilder.build(),
                 headers: clonedHeaders,
                 source: requesterFspId,
-                destination: destinationFspId,
+                destination: requesterFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: transformedPayload
             });

@@ -659,7 +659,6 @@ it("should return error from trying to create an already existing association", 
     // #region
 
     // #region Error events
-    // Act
     it("should return AccountLookUpUnknownErrorEvent http call for participant type", async () => {
         // Arrange
         const msg = new AccountLookUpUnknownErrorEvent({

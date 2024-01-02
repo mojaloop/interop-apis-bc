@@ -34,7 +34,7 @@
 
 
 import express, {Express} from "express";
-import { TransfersRoutes } from "../../src/http_routes/transfers-bc/transfers_routes";
+import { TransfersRoutes } from "../../../src/http_routes/transfers-bc/transfers_routes";
 import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { AccountLookupBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
@@ -48,7 +48,7 @@ import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import path from "path";
 import { readFileSync } from "fs";
-const packageJSON = require("../../package.json");
+const packageJSON = require("../../../package.json");
 
 const BC_NAME = "interop-apis-bc";
 const APP_NAME = "fspiop-api-svc";

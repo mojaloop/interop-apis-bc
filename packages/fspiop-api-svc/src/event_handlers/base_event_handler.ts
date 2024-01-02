@@ -40,7 +40,7 @@ import {
     MLKafkaJsonProducerOptions
 } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { IParticipantEndpoint } from "@mojaloop/participants-bc-client-lib";
-import { IParticipantService } from "../interfaces/infrastructure";
+import { IParticipantServiceAdapter } from "../interfaces/infrastructure";
 import {
     AccountLookUpBCOperatorErrorEvent,
     AccountLookUpBCOperatorErrorPayload,
@@ -68,7 +68,7 @@ export abstract class BaseEventHandler  {
     protected readonly _consumerOpts: MLKafkaJsonConsumerOptions;
     protected readonly _kafkaTopics: string[];
     protected readonly _producerOptions: MLKafkaJsonProducerOptions;
-    protected readonly _participantService: IParticipantService;
+    protected readonly _participantService: IParticipantServiceAdapter;
     protected readonly _kafkaConsumer: MLKafkaJsonConsumer;
     protected readonly _kafkaProducer: MLKafkaJsonProducer;
     protected readonly _handlerName: string;
@@ -79,7 +79,7 @@ export abstract class BaseEventHandler  {
             consumerOptions: MLKafkaJsonConsumerOptions,
             producerOptions: MLKafkaJsonProducerOptions,
             kafkaTopics : string[],
-            participantService: IParticipantService,
+            participantService: IParticipantServiceAdapter,
             handlerName: string,
             jwsHelper: FspiopJwsSignature,
     ) {

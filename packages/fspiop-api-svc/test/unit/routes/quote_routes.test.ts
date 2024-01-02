@@ -34,7 +34,7 @@
 
 
 import express, {Express} from "express";
-import { QuoteRoutes } from "../../src/http_routes/quoting-bc/quote_routes";
+import { QuoteRoutes } from "../../../src/http_routes/quoting-bc/quote_routes";
 import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
@@ -44,7 +44,7 @@ import { Enums, FspiopJwsSignature, FspiopValidator } from "@mojaloop/interop-ap
 import { Server } from "http";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
-const packageJSON = require("../../package.json");
+const packageJSON = require("../../../package.json");
 
 const BC_NAME = "interop-apis-bc";
 const APP_NAME = "fspiop-api-svc";

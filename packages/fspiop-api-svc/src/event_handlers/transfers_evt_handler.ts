@@ -85,7 +85,7 @@ import {
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Transformer, FspiopJwsSignature } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { BaseEventHandler, HandlerNames } from "./base_event_handler";
-import { IParticipantService } from "../interfaces/infrastructure";
+import { IParticipantServiceAdapter } from "../interfaces/infrastructure";
 import { TransferFulfilRequestedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { TransferRejectRequestedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 
@@ -96,7 +96,7 @@ export class TransferEventHandler extends BaseEventHandler {
             consumerOptions: MLKafkaJsonConsumerOptions,
             producerOptions: MLKafkaJsonProducerOptions,
             kafkaTopics : string[],
-            participantService: IParticipantService,
+            participantService: IParticipantServiceAdapter,
             jwsHelper: FspiopJwsSignature
     ) {
         super(logger, consumerOptions, producerOptions, kafkaTopics, participantService, HandlerNames.Transfers, jwsHelper);

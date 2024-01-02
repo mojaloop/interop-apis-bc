@@ -65,7 +65,7 @@ import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import { IParticipantService } from "../interfaces/infrastructure";
+import { IParticipantServiceAdapter } from "../interfaces/infrastructure";
 
 export class AccountLookupEventHandler extends BaseEventHandler {
 
@@ -74,7 +74,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             consumerOptions: MLKafkaJsonConsumerOptions,
             producerOptions: MLKafkaJsonProducerOptions,
             kafkaTopics : string[],
-            participantService: IParticipantService,
+            participantService: IParticipantServiceAdapter,
             jwsHelper: FspiopJwsSignature
     ) {
         super(logger, consumerOptions, producerOptions, kafkaTopics, participantService, HandlerNames.AccountLookUp, jwsHelper);

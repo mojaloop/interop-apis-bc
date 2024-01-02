@@ -147,7 +147,7 @@ export const missingPropertyResponse = (field: string, type: string) => {
     return result;
 };
 
-export const createMessage = (message: IMessage, entity: string, fspiopOpaqueState?: UnknownProperties): UnknownProperties => {
+export const createMessage = (message: IMessage, entity: string, fspiopOpaqueState?: UnknownProperties): IMessage => {
     message.fspiopOpaqueState = {
         "requesterFspId": "bluebank",
         "destinationFspId": null,
@@ -171,7 +171,7 @@ export const createMessage = (message: IMessage, entity: string, fspiopOpaqueSta
             ...fspiopOpaqueState
         };
     }
-    return message as unknown as UnknownProperties;
+    return message;
 };
 
 export const defaultEntryValidRequest = null;

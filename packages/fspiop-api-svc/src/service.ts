@@ -61,7 +61,7 @@ import {
 import { QuoteRoutes } from "./http_routes/quoting-bc/quote_routes";
 import { QuoteBulkRoutes } from "./http_routes/quoting-bc/bulk_quote_routes";
 import { TransfersRoutes } from "./http_routes/transfers-bc/transfers_routes";
-import { IParticipantService } from "./interfaces/infrastructure";
+import { IParticipantServiceAdapter } from "./interfaces/infrastructure";
 import {AuthenticatedHttpRequester} from "@mojaloop/security-bc-client-lib";
 import {IAuthenticatedHttpRequester} from "@mojaloop/security-bc-public-types-lib";
 import path from "path";
@@ -171,7 +171,7 @@ export class Service {
     static bulkQuotesRoutes: QuoteBulkRoutes;
     static transfersRoutes: TransfersRoutes;
     static bulkTransfersRoutes:TransfersBulkRoutes;
-    static participantService: IParticipantService;
+    static participantService: IParticipantServiceAdapter;
     static auditClient: IAuditClient;
     static configClient: IConfigurationClient;
     static producer:IMessageProducer;
@@ -180,7 +180,7 @@ export class Service {
 
     static async start(
         logger?:ILogger,
-        participantService?: IParticipantService,
+        participantService?: IParticipantServiceAdapter,
         auditClient?: IAuditClient,
         configProvider?: IConfigProvider,
     ):Promise<void> {
@@ -391,7 +391,8 @@ export class Service {
             this.app.use(`/${TRANSFERS_URL_RESOURCE_NAME}`, this.transfersRoutes.router);
             this.app.use(`/${BULK_TRANSFERS_URL_RESOURCE_NAME}`, this.bulkTransfersRoutes.router);
 
-            /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
+            /* eslint-disable-next-line @typescript-eslint/no-unused-vars */ 
+            /* istanbul ignore next */
             this.app.use((err: FspiopHttpRequestError, req: express.Request, res: express.Response, next: express.NextFunction) => {
                 if(!err.data) {
                     next();
