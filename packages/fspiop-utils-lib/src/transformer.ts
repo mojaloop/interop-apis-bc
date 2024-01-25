@@ -144,8 +144,10 @@ export const transformPayloadPartyInfoReceivedPut = (payload: PartyQueryResponse
 					middleName: payload.middleName,
 					lastName: payload.lastName
 				},
-				dateOfBirth: payload.partyDoB
-			}
+				dateOfBirth: payload.partyDoB,
+				kycInformation: payload.kycInfo,
+			},
+			supportedCurrencies: payload.supportedCurrencies,
 		}
 	};
 
