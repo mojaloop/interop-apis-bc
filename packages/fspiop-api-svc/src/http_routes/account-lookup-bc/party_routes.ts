@@ -245,6 +245,8 @@ export class PartyRoutes extends BaseRoutes {
             const lastName = req.body.party.personalInfo.complexName["lastName"] || null;
             const partyDoB = req.body.party.personalInfo["dateOfBirth"] || null;
             const extensionList = req.body.party.partyIdInfo["extensionList"] || null;
+            const kycInfo = req.body.party.personalInfo["kycInformation"] || null;
+            const supportedCurrencies = req.body.party["supportedCurrencies"] || null;
 
             if (!type || !id || !requesterFspId || !ownerFspId) {
                 const transformError = Transformer.transformPayloadError({
@@ -282,7 +284,9 @@ export class PartyRoutes extends BaseRoutes {
                 middleName: middleName,
                 lastName: lastName,
                 partyDoB: partyDoB,
-                extensionList: extensionList
+                extensionList: extensionList,
+                kycInfo: kycInfo,
+                supportedCurrencies: supportedCurrencies,
             };
 
 
@@ -337,6 +341,8 @@ export class PartyRoutes extends BaseRoutes {
             const lastName = req.body.party.personalInfo.complexName["lastName"] || null;
             const partyDoB = req.body.party.personalInfo["dateOfBirth"] || null;
             const extensionList = req.body.party.partyIdInfo["extensionList"] || null;
+            const kycInfo = req.body.party.personalInfo["kycInformation"] || null;
+            const supportedCurrencies = req.body.party["supportedCurrencies"] || null;
 
             if (!type || !id || !requesterFspId || !ownerFspId) {
                 const transformError = Transformer.transformPayloadError({
@@ -374,7 +380,9 @@ export class PartyRoutes extends BaseRoutes {
                 middleName: middleName,
                 lastName: lastName,
                 partyDoB: partyDoB,
-                extensionList: extensionList
+                extensionList: extensionList,
+                kycInfo: kycInfo,
+                supportedCurrencies: supportedCurrencies,
             };
 
             const msg = new PartyInfoAvailableEvt(msgPayload);
