@@ -186,7 +186,7 @@ describe("FSPIOP Utils Lib", () => {
 
 
         // Assert
-        expect(axios).toBeCalledWith({
+        expect(axios).toHaveBeenCalledWith({
             "data": {
                 "fspId": "1",
             },
@@ -466,7 +466,9 @@ describe("FSPIOP Utils Lib", () => {
             partyDoB: new Date(),
             partySubType: null,
             currency: null,
-            extensionList: null
+            extensionList: null,
+            supportedCurrencies: null,
+            kycInfo: null,
         };
 
         // Act
