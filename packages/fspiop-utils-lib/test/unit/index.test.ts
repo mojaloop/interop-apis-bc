@@ -186,7 +186,7 @@ describe("FSPIOP Utils Lib", () => {
 
 
         // Assert
-        expect(axios).toBeCalledWith({
+        expect(axios).toHaveBeenCalledWith({
             "data": {
                 "fspId": "1",
             },
@@ -194,7 +194,7 @@ describe("FSPIOP Utils Lib", () => {
                 "accept": "1",
                 "content-length": undefined,
                 "content-type": "1",
-                "date": "Mon, 01 Jan 2001 00:00:00 GMT",
+                "date": "Sun, 31 Dec 2000 17:30:00 GMT",
                 "fspiop-destination": "1",
                 "fspiop-encryption": undefined,
                 "fspiop-http-method": "PUT",
@@ -466,7 +466,9 @@ describe("FSPIOP Utils Lib", () => {
             partyDoB: new Date(),
             partySubType: null,
             currency: null,
-            extensionList: null
+            extensionList: null,
+            supportedCurrencies: null,
+            kycInfo: null,
         };
 
         // Act

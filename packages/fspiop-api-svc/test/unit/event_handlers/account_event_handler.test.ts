@@ -413,7 +413,9 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             partyDoB: new Date(),
             partySubType: "456",
             currency: null,
-            extensionList: null
+            extensionList: null,
+            supportedCurrencies: null,
+            kycInfo: null,
         })
 
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES, {
@@ -458,7 +460,9 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             partyDoB: new Date(),
             partySubType: "456",
             currency: null,
-            extensionList: null
+            extensionList: null,
+            supportedCurrencies: null,
+            kycInfo: null,
         })
 
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTICIPANTS, {
