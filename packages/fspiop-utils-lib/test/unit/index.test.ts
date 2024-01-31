@@ -194,7 +194,7 @@ describe("FSPIOP Utils Lib", () => {
                 "accept": "1",
                 "content-length": undefined,
                 "content-type": "1",
-                "date": "Sun, 31 Dec 2000 17:30:00 GMT",
+                "date": "Mon, 01 Jan 2001 00:00:00 GMT",
                 "fspiop-destination": "1",
                 "fspiop-encryption": undefined,
                 "fspiop-http-method": "PUT",
