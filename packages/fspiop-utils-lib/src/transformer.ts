@@ -48,9 +48,10 @@ import {
 	BulkTransferPreparedEvtPayload,
 	BulkTransferFulfiledEvtPayload,
 	BulkTransferQueryResponseEvtPayload,
-	BulkTransferRejectRequestProcessedEvtPayload
+	BulkTransferRejectRequestProcessedEvtPayload,
+    FxQueryResponseEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { 
+import {
 	ExtensionList,
 	FspiopError,
 	GetBulkTransfer,
@@ -64,7 +65,8 @@ import {
 	PutParticipant,
 	PutParty,
 	PutQuote,
-	PutTransfer 
+	PutTransfer,
+    PutFXQuery
 } from "./types";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -352,4 +354,12 @@ export const transformPayloadBulkTransferRequestPutError = (payload: BulkTransfe
 	};
 
 	return removeEmpty(info);
+};
+
+export const transformedPayloadFXQueryRequestPUT = (payload: FxQueryResponseEvtPayload): PutFXQuery => {
+    const info: PutFXQuery = {
+        providers: payload.providers
+    };
+
+    return info;
 };

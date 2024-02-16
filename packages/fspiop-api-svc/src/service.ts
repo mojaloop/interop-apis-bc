@@ -55,6 +55,7 @@ import { QuotingEventHandler } from "./event_handlers/quoting_evt_handler";
 import { TransferEventHandler } from "./event_handlers/transfers_evt_handler";
 import {
     AccountLookupBCTopics,
+    ForeignExchangeBCTopics,
     QuotingBCTopics,
     TransfersBCTopics
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
@@ -78,6 +79,8 @@ import {
 import {GetParticipantsConfigs} from "./configset";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { FspiopValidator, FspiopJwsSignature } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { ForeignExchangeRoutes } from "./http_routes/foreign-exchange-bc/fx_services_routes";
+import { ForeignExchangeEventHandler } from "./event_handlers/fx_evt_handler";
 
 const API_SPEC_FILE_PATH = process.env["API_SPEC_FILE_PATH"] || "../dist/api_spec.yaml";
 
@@ -108,6 +111,9 @@ const BULK_QUOTES_URL_RESOURCE_NAME = "bulkQuotes";
 // Transfers
 const TRANSFERS_URL_RESOURCE_NAME = "transfers";
 const BULK_TRANSFERS_URL_RESOURCE_NAME = "bulkTransfers";
+
+// Forign Exchange
+const FOREIGN_EXCHANGE_SERVICE_RESOURCE_NAME = "services";
 
 const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "interop-api-bc-fspiop-api-svc";
 const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
@@ -150,6 +156,7 @@ let globalLogger: ILogger;
 let accountEvtHandler:AccountLookupEventHandler;
 let quotingEvtHandler:QuotingEventHandler;
 let transferEvtHandler:TransferEventHandler;
+let foreignExchangeEvtHandler:ForeignExchangeEventHandler;
 
 type FspiopHttpRequestError = {
     name: string;
@@ -171,6 +178,7 @@ export class Service {
     static bulkQuotesRoutes: QuoteBulkRoutes;
     static transfersRoutes: TransfersRoutes;
     static bulkTransfersRoutes:TransfersBulkRoutes;
+    static foreignExchangeRoutes: ForeignExchangeRoutes;
     static participantService: IParticipantServiceAdapter;
     static auditClient: IAuditClient;
     static configClient: IConfigurationClient;
@@ -286,6 +294,7 @@ export class Service {
         this.bulkQuotesRoutes = new QuoteBulkRoutes(this.producer, routeValidator, jwsHelper, this.logger);
         this.transfersRoutes = new TransfersRoutes(this.producer, routeValidator, jwsHelper, this.logger);
         this.bulkTransfersRoutes = new TransfersBulkRoutes(this.producer, routeValidator, jwsHelper, this.logger);
+        this.foreignExchangeRoutes = new ForeignExchangeRoutes(this.producer, routeValidator, jwsHelper, this.logger);
 
         await Promise.all([
             this.participantRoutes.init(),
@@ -293,7 +302,8 @@ export class Service {
             this.quotesRoutes.init(),
             this.bulkQuotesRoutes.init(),
             this.transfersRoutes.init(),
-            this.bulkTransfersRoutes.init()
+            this.bulkTransfersRoutes.init(),
+            this.foreignExchangeRoutes.init()
         ]);
 
         await Service.setupExpress();
@@ -347,10 +357,25 @@ export class Service {
             jwsHelper
         );
 
+        const foreignExchangeEventHandlerConsumerOptions: MLKafkaJsonConsumerOptions = {
+            kafkaBrokerList: KAFKA_URL,
+            kafkaGroupId: `${BC_NAME}_${APP_NAME}_ForeignExchangeEventHandler`,
+        };
+
+        foreignExchangeEvtHandler = new ForeignExchangeEventHandler(
+            this.logger,
+            foreignExchangeEventHandlerConsumerOptions,
+            kafkaJsonProducerOptions,
+            [ForeignExchangeBCTopics.DomainEvents],
+            this.participantService,
+            jwsHelper
+        );
+
         await Promise.all([
             accountEvtHandler.init(),
             quotingEvtHandler.init(),
-            transferEvtHandler.init()
+            transferEvtHandler.init(),
+            foreignExchangeEvtHandler.init()
         ]);
     }
 
@@ -390,8 +415,9 @@ export class Service {
             this.app.use(`/${BULK_QUOTES_URL_RESOURCE_NAME}`, this.bulkQuotesRoutes.router);
             this.app.use(`/${TRANSFERS_URL_RESOURCE_NAME}`, this.transfersRoutes.router);
             this.app.use(`/${BULK_TRANSFERS_URL_RESOURCE_NAME}`, this.bulkTransfersRoutes.router);
+            this.app.use(`/${FOREIGN_EXCHANGE_SERVICE_RESOURCE_NAME}`, this.foreignExchangeRoutes.router);
 
-            /* eslint-disable-next-line @typescript-eslint/no-unused-vars */ 
+            /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
             /* istanbul ignore next */
             this.app.use((err: FspiopHttpRequestError, req: express.Request, res: express.Response, next: express.NextFunction) => {
                 if(!err.data) {
@@ -489,6 +515,7 @@ export class Service {
             await this.bulkQuotesRoutes.destroy();
             await this.bulkQuotesRoutes.destroy();
             await this.transfersRoutes.destroy();
+            await this.foreignExchangeRoutes.destroy();
 
             await this.expressServer.close();
             // const closeExpress = util.promisify(this.expressServer.close);
@@ -501,6 +528,7 @@ export class Service {
         await accountEvtHandler.destroy();
         await quotingEvtHandler.destroy();
         await transferEvtHandler.destroy();
+        await foreignExchangeEvtHandler.destroy();
 
         await this.auditClient.destroy();
         setTimeout(async () => {

@@ -459,3 +459,7 @@ export interface GetBulkTransfer {
         }[];
     } | null;
 }
+
+export interface PutFXQuery {
+    providers: string[]
+}
