@@ -76,6 +76,7 @@ export class ForeignExchangeRoutes extends BaseRoutes {
     this.logger.debug("Got getFXPServices request");
 
     try {
+      const clonedHeaders = { ...req.headers };
       const sourceCurrency = (req.query["sourceCurrency"] as string) || null;
       const targetCurrency = (req.query["targetCurrency"] as string) || null;
       const requesterFspId =
@@ -99,6 +100,12 @@ export class ForeignExchangeRoutes extends BaseRoutes {
       };
 
       const msg = new FxQueryReceivedEvt(msgPayload);
+
+      // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
+      msg.fspiopOpaqueState = {
+        requesterFspId: requesterFspId,
+        headers: clonedHeaders,
+      };
 
       await this.kafkaProducer.send(msg);
 
