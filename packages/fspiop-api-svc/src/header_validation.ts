@@ -18,7 +18,8 @@ const defaultProtocolResources = [
   "bulkTransfers",
   "bulkQuotes",
   "transactionRequests",
-  "authorizations"
+  "authorizations",
+  "services"
 ];
 
 const defaultProtocolVersions = [

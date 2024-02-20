@@ -143,7 +143,7 @@ export class ForeignExchangeEventHandler extends BaseEventHandler {
     message: DomainErrorEventMsg,
     fspiopOpaqueState: Request.FspiopHttpHeaders
   ): Promise<void> {
-    this._logger.info("_handleTransferErrorReceivedEvt -> start");
+    this._logger.info("_handleFXErrorReceivedEvt -> start");
 
     const clonedHeaders = fspiopOpaqueState;
     const sourceFspId = clonedHeaders[
@@ -168,7 +168,7 @@ export class ForeignExchangeEventHandler extends BaseEventHandler {
       errorResponse: errorResponse,
     });
 
-    this._logger.info("_handleTransferErrorReceivedEvt -> end");
+    this._logger.info("_handleFXErrorReceivedEvt -> end");
 
     return;
   }
@@ -219,7 +219,7 @@ export class ForeignExchangeEventHandler extends BaseEventHandler {
       message.validatePayload();
 
       const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
-      urlBuilder.setEntity(Enums.EntityTypeEnum.TRANSFERS);
+      urlBuilder.setEntity(Enums.EntityTypeEnum.FX_SERVICES);
 
       const transformedPayload =
         Transformer.transformedPayloadFXQueryRequestPUT(payload);
