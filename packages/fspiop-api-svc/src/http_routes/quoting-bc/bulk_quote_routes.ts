@@ -167,10 +167,6 @@ export class QuoteBulkRoutes extends BaseRoutes {
 
             for(let i=0 ; i<individualQuotes.length ; i+=1) {
                 this._validator.currencyAndAmount(individualQuotes[i].amount);
-
-                if(individualQuotes[i].fees) {
-                    this._validator.currencyAndAmount(individualQuotes[i].fees);
-                }
             }
 
             if(this._jwsHelper.isEnabled()) {
@@ -254,9 +250,6 @@ export class QuoteBulkRoutes extends BaseRoutes {
                 }
                 if(individualQuoteResults[i].payeeReceiveAmount) {
                     this._validator.currencyAndAmount(individualQuoteResults[i].payeeReceiveAmount);
-                }
-                if(individualQuoteResults[i].payeeFspFee) {
-                    this._validator.currencyAndAmount(individualQuoteResults[i].payeeFspFee);
                 }
                 if(individualQuoteResults[i].payeeFspCommission) {
                     this._validator.currencyAndAmount(individualQuoteResults[i].payeeFspCommission);

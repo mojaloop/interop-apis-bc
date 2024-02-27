@@ -115,10 +115,6 @@ export class QuoteRoutes extends BaseRoutes {
 
             this._validator.currencyAndAmount(amount);
 
-            if(fees) {
-                this._validator.currencyAndAmount(fees);
-            }
-
             if(this._jwsHelper.isEnabled()) {
                 this._jwsHelper.validate(req.headers, req.body);
             }
@@ -215,12 +211,6 @@ export class QuoteRoutes extends BaseRoutes {
 
             if(payeeReceiveAmount) {
                 this._validator.currencyAndAmount(payeeReceiveAmount);
-            }
-            if(payeeFspFee) {
-                this._validator.currencyAndAmount(payeeFspFee);
-            }
-            if(payeeFspFee) {
-                this._validator.currencyAndAmount(payeeFspFee);
             }
 
             if(this._jwsHelper.isEnabled()) {
