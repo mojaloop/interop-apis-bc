@@ -525,7 +525,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
                         "amount": "11"
                     },
                     "transferAmount": {
-                        "currency": "USD",
+                        "currency": "SGD",
                         "amount": "22"
                     },
                     "payeeReceiveAmount": {
@@ -606,11 +606,11 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
                     },
                     "transferAmount": {
                         "currency": "USD",
-                        "amount": "22"
+                        "amount": "22.999"
                     },
                     "payeeReceiveAmount": {
                         "currency": "USD",
-                        "amount": "33"
+                        "amount": "33.9"
                     }
                 }
             ]
