@@ -143,11 +143,7 @@ describe("FSPIOP Routes - Participant", () => {
 
 
     it("should give a bad request calling getParticipantsByTypeAndID endpoint", async () => {
-        // Arrange
-        const payload = {
-            "fspId": "test-fsp-id"
-        };
-
+        
         // Act
         await participantRoutes.init();
 
@@ -205,10 +201,6 @@ describe("FSPIOP Routes - Participant", () => {
     });
 
     it("should throw an error on kafka producer calling getParticipantsByTypeAndID endpoint", async () => {
-        // Arrange
-        const payload = {
-            "fspId": "test-fsp-id"
-        };
 
         // Act
         const res = await request(server)
@@ -226,11 +218,7 @@ describe("FSPIOP Routes - Participant", () => {
     });
 
     it("should give a bad request calling getParticipantsByTypeAndIDAndSubId endpoint", async () => {
-        // Arrange
-        const payload = {
-            "fspId": "test-fsp-id"
-        };
-
+        
         // Act
         await participantRoutes.init();
 
@@ -288,10 +276,6 @@ describe("FSPIOP Routes - Participant", () => {
     });
 
     it("should throw an error on kafka producer calling getParticipantsByTypeAndIDAndSubId endpoint", async () => {
-        // Arrange
-        const payload = {
-            "fspId": "test-fsp-id"
-        };
 
         // Act
         const res = await request(server)
