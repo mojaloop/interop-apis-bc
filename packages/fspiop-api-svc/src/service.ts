@@ -79,8 +79,10 @@ import {
 import {GetParticipantsConfigs} from "./configset";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { FspiopValidator, FspiopJwsSignature } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { ForeignExchangeRoutes } from "./http_routes/foreign-exchange-bc/fx_services_routes";
-import { ForeignExchangeEventHandler } from "./event_handlers/fx_evt_handler";
+import { ForeignExchangeServicesRoutes } from "./http_routes/foreign-exchange-bc/fx_services_routes";
+import { ForeignExchangeServicesEventHandler } from "./event_handlers/fx_services_evt_handler";
+import { ForeignExchangeQuotesEventHandler } from "./event_handlers/fx_quotes_evt_handler";
+import { ForeignExchangeQuotesRoutes } from "./http_routes/foreign-exchange-bc/fx_quotes_routes";
 
 const API_SPEC_FILE_PATH = process.env["API_SPEC_FILE_PATH"] || "../dist/api_spec.yaml";
 
@@ -114,6 +116,7 @@ const BULK_TRANSFERS_URL_RESOURCE_NAME = "bulkTransfers";
 
 // Forign Exchange
 const FOREIGN_EXCHANGE_SERVICE_RESOURCE_NAME = "services";
+const FOREIGN_EXCHANGE_QUOTES_RESOURCE_NAME = "fxQuotes";
 
 const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "interop-api-bc-fspiop-api-svc";
 const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
@@ -156,7 +159,8 @@ let globalLogger: ILogger;
 let accountEvtHandler:AccountLookupEventHandler;
 let quotingEvtHandler:QuotingEventHandler;
 let transferEvtHandler:TransferEventHandler;
-let foreignExchangeEvtHandler:ForeignExchangeEventHandler;
+let foreignExchangeServicesEvtHandler:ForeignExchangeServicesEventHandler;
+let foreignExchangeQuotesEvtHandler: ForeignExchangeQuotesEventHandler;
 
 type FspiopHttpRequestError = {
     name: string;
@@ -178,7 +182,8 @@ export class Service {
     static bulkQuotesRoutes: QuoteBulkRoutes;
     static transfersRoutes: TransfersRoutes;
     static bulkTransfersRoutes:TransfersBulkRoutes;
-    static foreignExchangeRoutes: ForeignExchangeRoutes;
+    static foreignExchangeServicesRoutes: ForeignExchangeServicesRoutes;
+    static foreignExchangeQuotesRoutes: ForeignExchangeQuotesRoutes;
     static participantService: IParticipantServiceAdapter;
     static auditClient: IAuditClient;
     static configClient: IConfigurationClient;
@@ -294,7 +299,8 @@ export class Service {
         this.bulkQuotesRoutes = new QuoteBulkRoutes(this.producer, routeValidator, jwsHelper, this.logger);
         this.transfersRoutes = new TransfersRoutes(this.producer, routeValidator, jwsHelper, this.logger);
         this.bulkTransfersRoutes = new TransfersBulkRoutes(this.producer, routeValidator, jwsHelper, this.logger);
-        this.foreignExchangeRoutes = new ForeignExchangeRoutes(this.producer, routeValidator, jwsHelper, this.logger);
+        this.foreignExchangeServicesRoutes = new ForeignExchangeServicesRoutes(this.producer, routeValidator, jwsHelper, this.logger);
+        this.foreignExchangeQuotesRoutes = new ForeignExchangeQuotesRoutes(this.producer, routeValidator, jwsHelper, this.logger);
 
         await Promise.all([
             this.participantRoutes.init(),
@@ -303,7 +309,8 @@ export class Service {
             this.bulkQuotesRoutes.init(),
             this.transfersRoutes.init(),
             this.bulkTransfersRoutes.init(),
-            this.foreignExchangeRoutes.init()
+            this.foreignExchangeServicesRoutes.init(),
+            this.foreignExchangeQuotesRoutes.init()
         ]);
 
         await Service.setupExpress();
@@ -362,7 +369,16 @@ export class Service {
             kafkaGroupId: `${BC_NAME}_${APP_NAME}_ForeignExchangeEventHandler`,
         };
 
-        foreignExchangeEvtHandler = new ForeignExchangeEventHandler(
+        foreignExchangeServicesEvtHandler = new ForeignExchangeServicesEventHandler(
+            this.logger,
+            foreignExchangeEventHandlerConsumerOptions,
+            kafkaJsonProducerOptions,
+            [ForeignExchangeBCTopics.DomainEvents],
+            this.participantService,
+            jwsHelper
+        );
+
+        foreignExchangeQuotesEvtHandler = new ForeignExchangeQuotesEventHandler(
             this.logger,
             foreignExchangeEventHandlerConsumerOptions,
             kafkaJsonProducerOptions,
@@ -375,7 +391,8 @@ export class Service {
             accountEvtHandler.init(),
             quotingEvtHandler.init(),
             transferEvtHandler.init(),
-            foreignExchangeEvtHandler.init()
+            foreignExchangeServicesEvtHandler.init(),
+            foreignExchangeQuotesEvtHandler.init()
         ]);
     }
 
@@ -415,7 +432,8 @@ export class Service {
             this.app.use(`/${BULK_QUOTES_URL_RESOURCE_NAME}`, this.bulkQuotesRoutes.router);
             this.app.use(`/${TRANSFERS_URL_RESOURCE_NAME}`, this.transfersRoutes.router);
             this.app.use(`/${BULK_TRANSFERS_URL_RESOURCE_NAME}`, this.bulkTransfersRoutes.router);
-            this.app.use(`/${FOREIGN_EXCHANGE_SERVICE_RESOURCE_NAME}`, this.foreignExchangeRoutes.router);
+            this.app.use(`/${FOREIGN_EXCHANGE_SERVICE_RESOURCE_NAME}`, this.foreignExchangeServicesRoutes.router);
+            this.app.use(`/${FOREIGN_EXCHANGE_QUOTES_RESOURCE_NAME}`, this.foreignExchangeQuotesRoutes.router);
 
             /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
             /* istanbul ignore next */
@@ -515,7 +533,8 @@ export class Service {
             await this.bulkQuotesRoutes.destroy();
             await this.bulkQuotesRoutes.destroy();
             await this.transfersRoutes.destroy();
-            await this.foreignExchangeRoutes.destroy();
+            await this.foreignExchangeServicesRoutes.destroy();
+            await this.foreignExchangeQuotesRoutes.destroy();
 
             await this.expressServer.close();
             // const closeExpress = util.promisify(this.expressServer.close);
@@ -528,7 +547,8 @@ export class Service {
         await accountEvtHandler.destroy();
         await quotingEvtHandler.destroy();
         await transferEvtHandler.destroy();
-        await foreignExchangeEvtHandler.destroy();
+        await foreignExchangeServicesEvtHandler.destroy();
+        await foreignExchangeQuotesEvtHandler.destroy();
 
         await this.auditClient.destroy();
         setTimeout(async () => {

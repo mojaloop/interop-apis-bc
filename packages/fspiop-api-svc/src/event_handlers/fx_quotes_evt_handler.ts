@@ -46,8 +46,10 @@ import {
   ForeignExchangeBCInvalidMessageTypeErrorEvent,
   ForeignExchangeBCInvalidRequesterParticipantErrorEvent,
   ForeignExchangeBCUnknownErrorEvent,
-  FxQueryReceivedEvt,
-  FxQueryResponseEvt,
+  FxQuoteQueryRespondedEvt,
+  FxQuoteRejectRespondedEvt,
+  FxQuoteRequestAcceptedEvt,
+  FxQuoteResponseAcceptedEvt,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import {
   Constants,
@@ -59,7 +61,7 @@ import {
 import { BaseEventHandler, HandlerNames } from "./base_event_handler";
 import { IParticipantServiceAdapter } from "../interfaces/infrastructure";
 
-export class ForeignExchangeEventHandler extends BaseEventHandler {
+export class ForeignExchangeQuotesEventHandler extends BaseEventHandler {
   constructor(
     logger: ILogger,
     consumerOptions: MLKafkaJsonConsumerOptions,
@@ -91,13 +93,25 @@ export class ForeignExchangeEventHandler extends BaseEventHandler {
       }
 
       switch (message.msgName) {
-        case FxQueryResponseEvt.name:
-          await this._handleFXQueryResponseEvt(
-            new FxQueryResponseEvt(message.payload),
+        case FxQuoteRequestAcceptedEvt.name:
+          await this._handleFxQuoteRequestAcceptedEvt(
+            new FxQuoteRequestAcceptedEvt(message.payload),
             message.fspiopOpaqueState.headers
           );
           break;
-        case FxQueryReceivedEvt.name:
+        case FxQuoteResponseAcceptedEvt.name:
+          await this._handleFxQuoteResponseAcceptedEvt(
+            new FxQuoteResponseAcceptedEvt(message.payload),
+            message.fspiopOpaqueState.headers
+          );
+          break;
+        case FxQuoteQueryRespondedEvt.name:
+        case FxQuoteRejectRespondedEvt.name:
+          await this._handleFxQuoteRejectRespondedEvt(
+            new FxQuoteRejectRespondedEvt(message.payload),
+            message.fspiopOpaqueState.headers
+          );
+          break;
         case ForeignExchangeBCInvalidMessageTypeErrorEvent.name:
         case ForeignExchangeBCInvalidRequesterParticipantErrorEvent.name:
         case ForeignExchangeBCUnknownErrorEvent.name:
@@ -192,20 +206,70 @@ export class ForeignExchangeEventHandler extends BaseEventHandler {
       errorCode: Enums.CommunicationErrors.COMMUNCATION_ERROR.code,
       errorDescription: Enums.CommunicationErrors.COMMUNCATION_ERROR.name,
       sourceFspId: sourceFspId,
-      destinationFspId: null,
+      destinationFspId: destinationFspId,
     };
 
     return errorResponse;
   }
 
-  private async _handleFXQueryResponseEvt(
-    message: FxQueryResponseEvt,
+  private async _handleFxQuoteRequestAcceptedEvt(
+    message: FxQuoteRequestAcceptedEvt,
     fspiopOpaqueState: Request.FspiopHttpHeaders
   ): Promise<void> {
     const { payload } = message;
 
     const clonedHeaders = fspiopOpaqueState;
-    const requesterFspId = payload.requesterFspId;
+    const requesterFspId = clonedHeaders[
+      Constants.FSPIOP_HEADERS_SOURCE
+    ] as string;
+    const destinationFspId = clonedHeaders[
+      Constants.FSPIOP_HEADERS_DESTINATION
+    ] as string;
+
+    // TODO validate vars above
+
+    try {
+      this._logger.info("_handleFXQueryResponseEvt -> start");
+      const requestedEndpoint = await this._validateParticipantAndGetEndpoint(
+        destinationFspId
+      );
+
+      // Always validate the payload and headers received
+      message.validatePayload();
+
+      const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
+      urlBuilder.setEntity(Enums.EntityTypeEnum.FX_SERVICES);
+
+      await Request.sendRequest({
+        url: urlBuilder.build(),
+        headers: clonedHeaders,
+        source: requesterFspId,
+        destination: destinationFspId,
+        method: Enums.FspiopRequestMethodsEnum.PUT,
+        payload: payload,
+      });
+
+      this._logger.info("_handleFXQueryResponseEvt -> end");
+    } catch (error: unknown) {
+      this._logger.error(error, "_handleFXQueryResponseEvt -> error");
+      throw Error("_handleFXQueryResponseEvt -> error");
+    }
+
+    return;
+  }
+  private async _handleFxQuoteResponseAcceptedEvt(
+    message: FxQuoteResponseAcceptedEvt,
+    fspiopOpaqueState: Request.FspiopHttpHeaders
+  ): Promise<void> {
+    const { payload } = message;
+
+    const clonedHeaders = fspiopOpaqueState;
+    const requesterFspId = clonedHeaders[
+      Constants.FSPIOP_HEADERS_SOURCE
+    ] as string;
+    const destinationFspId = clonedHeaders[
+      Constants.FSPIOP_HEADERS_DESTINATION
+    ] as string;
 
     // TODO validate vars above
 
@@ -221,16 +285,58 @@ export class ForeignExchangeEventHandler extends BaseEventHandler {
       const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
       urlBuilder.setEntity(Enums.EntityTypeEnum.FX_SERVICES);
 
-      const transformedPayload =
-        Transformer.transformedPayloadFXQueryRequestPUT(payload);
+      await Request.sendRequest({
+        url: urlBuilder.build(),
+        headers: clonedHeaders,
+        source: requesterFspId,
+        destination: destinationFspId,
+        method: Enums.FspiopRequestMethodsEnum.PUT,
+        payload: payload,
+      });
+
+      this._logger.info("_handleFXQueryResponseEvt -> end");
+    } catch (error: unknown) {
+      this._logger.error(error, "_handleFXQueryResponseEvt -> error");
+      throw Error("_handleFXQueryResponseEvt -> error");
+    }
+
+    return;
+  }
+  private async _handleFxQuoteRejectRespondedEvt(
+    message: FxQuoteRejectRespondedEvt,
+    fspiopOpaqueState: Request.FspiopHttpHeaders
+  ): Promise<void> {
+    const { payload } = message;
+
+    const clonedHeaders = fspiopOpaqueState;
+    const requesterFspId = clonedHeaders[
+      Constants.FSPIOP_HEADERS_SOURCE
+    ] as string;
+    const destinationFspId = clonedHeaders[
+      Constants.FSPIOP_HEADERS_DESTINATION
+    ] as string;
+
+    // TODO validate vars above
+
+    try {
+      this._logger.info("_handleFXQueryResponseEvt -> start");
+      const requestedEndpoint = await this._validateParticipantAndGetEndpoint(
+        requesterFspId
+      );
+
+      // Always validate the payload and headers received
+      message.validatePayload();
+
+      const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
+      urlBuilder.setEntity(Enums.EntityTypeEnum.FX_SERVICES);
 
       await Request.sendRequest({
         url: urlBuilder.build(),
         headers: clonedHeaders,
         source: requesterFspId,
-        destination: requesterFspId,
+        destination: destinationFspId,
         method: Enums.FspiopRequestMethodsEnum.PUT,
-        payload: transformedPayload,
+        payload: payload,
       });
 
       this._logger.info("_handleFXQueryResponseEvt -> end");

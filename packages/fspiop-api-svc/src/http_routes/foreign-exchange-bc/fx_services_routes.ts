@@ -50,7 +50,7 @@ import express from "express";
 import { FSPIOPErrorCodes } from "../../validation";
 import { BaseRoutes } from "../_base_router";
 
-export class ForeignExchangeRoutes extends BaseRoutes {
+export class ForeignExchangeServicesRoutes extends BaseRoutes {
   constructor(
     producer: IMessageProducer,
     validator: FspiopValidator,
@@ -70,8 +70,7 @@ export class ForeignExchangeRoutes extends BaseRoutes {
 
   private async fxpServicesReceived(
     req: express.Request,
-    res: express.Response,
-    next: express.NextFunction
+    res: express.Response
   ): Promise<void> {
     this.logger.debug("Got getFXPServices request");
 
@@ -90,7 +89,7 @@ export class ForeignExchangeRoutes extends BaseRoutes {
         });
 
         res.status(400).json(transformError);
-        return next();
+        return;
       }
 
       const msgPayload: FxQueryReceivedEvtPayload = {
