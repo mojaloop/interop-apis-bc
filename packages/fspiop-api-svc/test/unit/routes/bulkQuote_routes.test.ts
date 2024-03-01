@@ -176,7 +176,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
 
     it("should give a bad request calling bulkQuoteRequest endpoint", async () => {
         // Arrange
-        const payload = {
+        const bulkQuoteRequest = {
             "bulkQuoteId": "2244fdbe-5dea-3abd-a210-3780e7f2f1f4",
             "payer": {
                 "partyIdInfo": {
@@ -219,7 +219,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         // Act
         const res = await request(server)
         .post(pathWithoutId)
-        .send(payload)
+        .send(bulkQuoteRequest)
         .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.POST, null,["fspiop-source"]));
 
         // Assert
@@ -234,7 +234,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
 
     it("should give a bad request due to currency code not allowed calling bulkQuoteRequest endpoint", async () => {
         // Arrange
-        const payload = {
+        const bulkQuoteRequsetCurrency = {
             "bulkQuoteId": "2244fdbe-5dea-3abd-a210-3780e7f2f1f4",
             "payer": {
                 "partyIdInfo": {
@@ -277,7 +277,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         // Act
         const res = await request(server)
             .post(pathWithoutId)
-            .send(payload)
+            .send(bulkQuoteRequsetCurrency)
             .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.POST, null, ));
 
         // Assert
@@ -310,7 +310,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
 
     it("should give a bad request due to currency code not allowing decimals points length calling bulkQuoteRequest endpoint", async () => {
         // Arrange
-        const payload = {
+        const bulkQuoteRequestDecimal = {
             "bulkQuoteId": "2244fdbe-5dea-3abd-a210-3780e7f2f1f4",
             "payer": {
                 "partyIdInfo": {
@@ -353,7 +353,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         // Act
         const res = await request(server)
             .post(pathWithoutId)
-            .send(payload)
+            .send(bulkQuoteRequestDecimal)
             .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.POST));
 
         // Assert
@@ -369,7 +369,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
 
     it("should throw an error on kafka producer calling bulkQuoteRequest endpoint", async () => {
         // Arrange
-        const payload = {
+        const bulkQuoteRequestKafka = {
             "bulkQuoteId": "2244fdbe-5dea-3abd-a210-3780e7f2f1f4",
             "payer": {
                 "partyIdInfo": {
@@ -412,7 +412,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         // Act
         const res = await request(server)
         .post(pathWithoutId)
-        .send(payload)
+        .send(bulkQuoteRequestKafka)
         .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.POST));
 
         // Assert
@@ -427,7 +427,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
 
     it("should give a bad request calling bulkQuotePending endpoint", async () => {
         // Arrange
-        const payload = {
+        const bulkQuotePending = {
             "expiration": "6908-02-29T07:27:32.463Z",
             "individualQuoteResults": [
                 {
@@ -474,7 +474,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         // Act
         const res = await request(server)
         .put(pathWithId)
-        .send(payload)
+        .send(bulkQuotePending)
         .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.PUT, null, ["fspiop-source"]));
 
         // Assert
@@ -489,7 +489,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
 
     it("should give a bad request due to currency code not allowed calling bulkQuotePending endpoint", async () => {
         // Arrange
-        const payload = {
+        const bulkQuotePendingCurrency = {
             "expiration": "6908-02-29T07:27:32.463Z",
             "individualQuoteResults": [
                 {
@@ -536,7 +536,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         // Act
         const res = await request(server)
         .put(pathWithId)
-        .send(payload)
+        .send(bulkQuotePendingCurrency)
         .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.PUT));
 
         // Assert
@@ -569,7 +569,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
 
     it("should give a bad request due to currency code not allowing decimals points length calling bulkQuotePending endpoint", async () => {
         // Arrange
-        const payload = {
+        const bulkQuotePendingDecimal = {
             "expiration": "6908-02-29T07:27:32.463Z",
             "individualQuoteResults": [
                 {
@@ -616,7 +616,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         // Act
         const res = await request(server)
         .put(pathWithId)
-        .send(payload)
+        .send(bulkQuotePendingDecimal)
         .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.PUT));
 
         // Assert
@@ -632,7 +632,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
 
     it("should throw an error on kafka producer calling bulkQuotePending endpoint", async () => {
         // Arrange
-        const payload = {
+        const bulkQuotePendingKafka = {
             "expiration": "6908-02-29T07:27:32.463Z",
             "individualQuoteResults": [
                 {
@@ -679,7 +679,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         // Act
         const res = await request(server)
         .put(pathWithId)
-        .send(payload)
+        .send(bulkQuotePendingKafka)
         .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.PUT));
 
         // Assert
@@ -694,7 +694,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
 
     it("should give a bad request calling bulkQuoteRejectRequest endpoint", async () => {
         // Arrange
-        const payload = {
+        const bulkQuoteRejectRequest = {
             "errorInformation": {
                 "errorCode": "1234",
                 "errorDescription": "quote error description"
@@ -704,7 +704,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         // Act
         const res = await request(server)
         .put(pathWithId + "/error")
-        .send(payload)
+        .send(bulkQuoteRejectRequest)
         .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.PUT, null, ["fspiop-source"]));
 
         // Assert
@@ -719,7 +719,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
 
     it("should throw an error on kafka producer calling bulkQuoteRejectRequest endpoint", async () => {
         // Arrange
-        const payload = {
+        const bulkQuoteRejectRequestKafka = {
             "errorInformation": {
                 "errorCode": "1234",
                 "errorDescription": "quote error description"
@@ -729,7 +729,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         // Act
         const res = await request(server)
         .put(pathWithId + "/error")
-        .send(payload)
+        .send(bulkQuoteRejectRequestKafka)
         .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.PUT));
 
         // Assert
