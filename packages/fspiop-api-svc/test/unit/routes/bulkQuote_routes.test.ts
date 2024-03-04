@@ -217,14 +217,14 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         };
 
         // Act
-        const res = await request(server)
+        const bulkQuoteRes = await request(server)
         .post(pathWithoutId)
         .send(bulkQuoteRequest)
         .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.POST, null,["fspiop-source"]));
 
         // Assert
-        expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual({
+        expect(bulkQuoteRes.statusCode).toEqual(400);
+        expect(bulkQuoteRes.body).toStrictEqual({
             "errorInformation": {
                 "errorCode": "3101",
                 "errorDescription": "Malformed syntax"
@@ -275,14 +275,14 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         };
 
         // Act
-        const res = await request(server)
+        const bulkQuoteCurrencyRes = await request(server)
             .post(pathWithoutId)
             .send(bulkQuoteRequsetCurrency)
             .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.POST, null, ));
 
         // Assert
-        expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual({
+        expect(bulkQuoteCurrencyRes.statusCode).toEqual(400);
+        expect(bulkQuoteCurrencyRes.body).toStrictEqual({
             "errorInformation": {
                 "errorCode": "3100",
                 "errorDescription": "must be equal to one of the allowed values - path: /body/amount/currency",
@@ -351,14 +351,14 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         };
 
         // Act
-        const res = await request(server)
+        const bulkQuoteDecimalRes = await request(server)
             .post(pathWithoutId)
             .send(bulkQuoteRequestDecimal)
             .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.POST));
 
         // Assert
-        expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual({
+        expect(bulkQuoteDecimalRes.statusCode).toEqual(400);
+        expect(bulkQuoteDecimalRes.body).toStrictEqual({
             "errorInformation": {
                 "errorCode": "3100",
                 "errorDescription": "Amount exceeds allowed decimal points for participant account of USD currency",
@@ -410,14 +410,14 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         };
 
         // Act
-        const res = await request(server)
+        const bulkQuoteKafkaRes = await request(server)
         .post(pathWithoutId)
         .send(bulkQuoteRequestKafka)
         .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.POST));
 
         // Assert
-        expect(res.statusCode).toEqual(500);
-        expect(res.body).toStrictEqual({
+        expect(bulkQuoteKafkaRes.statusCode).toEqual(500);
+        expect(bulkQuoteKafkaRes.body).toStrictEqual({
             "errorInformation": {
                 "errorCode": "2001",
                 "errorDescription": "Producer not connected"
@@ -472,14 +472,14 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         };
 
         // Act
-        const res = await request(server)
+        const bulkQuotePendingRes = await request(server)
         .put(pathWithId)
         .send(bulkQuotePending)
         .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.PUT, null, ["fspiop-source"]));
 
         // Assert
-        expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual({
+        expect(bulkQuotePendingRes.statusCode).toEqual(400);
+        expect(bulkQuotePendingRes.body).toStrictEqual({
             "errorInformation": {
                 "errorCode": "3101",
                 "errorDescription": "Malformed syntax"
@@ -534,14 +534,14 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         };
 
         // Act
-        const res = await request(server)
+        const bulkQuotePendingCurrencyRes = await request(server)
         .put(pathWithId)
         .send(bulkQuotePendingCurrency)
         .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.PUT));
 
         // Assert
-        expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual({
+        expect(bulkQuotePendingCurrencyRes.statusCode).toEqual(400);
+        expect(bulkQuotePendingCurrencyRes.body).toStrictEqual({
             "errorInformation": {
                 "errorCode": "3100",
                 "errorDescription": "must be equal to one of the allowed values - path: /body/amount/currency",
@@ -614,14 +614,14 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         };
 
         // Act
-        const res = await request(server)
+        const bulkQuotePendingDecimalRes = await request(server)
         .put(pathWithId)
         .send(bulkQuotePendingDecimal)
         .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.PUT));
 
         // Assert
-        expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual({
+        expect(bulkQuotePendingDecimalRes.statusCode).toEqual(400);
+        expect(bulkQuotePendingDecimalRes.body).toStrictEqual({
             "errorInformation": {
                 "errorCode": "3100",
                 "errorDescription": "Amount exceeds allowed decimal points for participant account of USD currency",
@@ -677,14 +677,14 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         };
 
         // Act
-        const res = await request(server)
+        const bulkQuotePendingKafkaRes = await request(server)
         .put(pathWithId)
         .send(bulkQuotePendingKafka)
         .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.PUT));
 
         // Assert
-        expect(res.statusCode).toEqual(500);
-        expect(res.body).toStrictEqual({
+        expect(bulkQuotePendingKafkaRes.statusCode).toEqual(500);
+        expect(bulkQuotePendingKafkaRes.body).toStrictEqual({
             "errorInformation": {
                 "errorCode": "2001",
                 "errorDescription": "Producer not connected"
