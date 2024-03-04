@@ -176,7 +176,7 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
 
     it("should give a bad request calling quoteRequestReceived endpoint", async () => {
         // Arrange
-        const payload = {
+        const quoteRequestReceived = {
             "quoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
             "transactionId": "9f5d9784-3a57-5865-9aa0-7dde77915481",
             "payee": {
@@ -208,7 +208,7 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
         // Act
         const res = await request(server)
         .post(pathWithoutId)
-        .send(payload)
+        .send(quoteRequestReceived)
         .set(getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.POST, null,  ["fspiop-source"]));
 
         // Assert
@@ -223,7 +223,7 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
 
     it("should give a bad request due to currency code not allowed calling quoteRequestReceived endpoint", async () => {
         // Arrange
-        const payload = {
+        const quoteRequestReceivedCurrency = {
             "quoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
             "transactionId": "9f5d9784-3a57-5865-9aa0-7dde77915481",
             "payee": {
@@ -255,7 +255,7 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
         // Act
         const res = await request(server)
             .post(pathWithoutId)
-            .send(payload)
+            .send(quoteRequestReceivedCurrency)
             .set(getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.POST));
 
         // Assert
@@ -288,7 +288,7 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
 
     it("should give a bad request due to currency code not allowing decimals points length calling quoteRequestReceived endpoint", async () => {
         // Arrange
-        const payload = {
+        const quoteRequestReceivedDecimal = {
             "quoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
             "transactionId": "9f5d9784-3a57-5865-9aa0-7dde77915481",
             "payee": {
@@ -320,7 +320,7 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
         // Act
         const res = await request(server)
             .post(pathWithoutId)
-            .send(payload)
+            .send(quoteRequestReceivedDecimal)
             .set(getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.POST));
 
         // Assert
@@ -336,7 +336,7 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
 
     it("should throw an error on kafka producer calling quoteRequestReceived endpoint", async () => {
         // Arrange
-        const payload = {
+        const quoteRequestReceivedKafka = {
             "quoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
             "transactionId": "9f5d9784-3a57-5865-9aa0-7dde77915481",
             "payee": {
@@ -368,7 +368,7 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
         // Act
         const res = await request(server)
         .post(pathWithoutId)
-        .send(payload)
+        .send(quoteRequestReceivedKafka)
         .set(getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.POST));
 
         // Assert
@@ -383,7 +383,7 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
 
     it("should give a bad request calling quoteResponseReceived endpoint", async () => {
         // Arrange
-        const payload = {
+        const quoteResponseReceived = {
             "transferAmount": {
                 "currency": "USD",
                 "amount": "1"
@@ -412,7 +412,7 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
         // Act
         const res = await request(server)
         .put(pathWithId)
-        .send(payload)
+        .send(quoteResponseReceived)
         .set(getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.PUT, null,  ["fspiop-source"]));
 
         // Assert
@@ -427,7 +427,7 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
 
     it("should give a bad request due to currency code not allowed calling quoteResponseReceived endpoint", async () => {
         // Arrange
-        const payload = {
+        const quoteResponseReceivedCurrency = {
             "transferAmount": {
                 "currency": "AED",
                 "amount": "1"
@@ -456,7 +456,7 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
         // Act
         const res = await request(server)
         .put(pathWithId)
-        .send(payload)
+        .send(quoteResponseReceivedCurrency)
         .set(getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.PUT, null, ));
 
         // Assert
@@ -489,7 +489,7 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
 
     it("should give a bad request due to currency code not allowing decimals points length calling quoteResponseReceived endpoint", async () => {
         // Arrange
-        const payload = {
+        const quoteResponseReceivedDecimal = {
             "transferAmount": {
                 "currency": "USD",
                 "amount": "1.999"
@@ -518,7 +518,7 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
         // Act
         const res = await request(server)
         .put(pathWithId)
-        .send(payload)
+        .send(quoteResponseReceivedDecimal)
         .set(getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.PUT));
 
         // Assert
@@ -534,7 +534,7 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
 
     it("should throw an error on kafka producer calling quoteResponseReceived endpoint", async () => {
         // Arrange
-        const payload = {
+        const quoteResponseReceivedKafka = {
             "transferAmount": {
                 "currency": "USD",
                 "amount": "1"
@@ -563,7 +563,7 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
         // Act
         const res = await request(server)
         .put(pathWithId)
-        .send(payload)
+        .send(quoteResponseReceivedKafka)
         .set(getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.PUT));
 
         // Assert
@@ -578,7 +578,7 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
 
     it("should give a bad request calling quoteRejectRequest endpoint", async () => {
         // Arrange
-        const payload = {
+        const quoteRejectRequest = {
             "errorInformation": {
                 "errorCode": "1234",
                 "errorDescription": "quote error description"
@@ -588,7 +588,7 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
         // Act
         const res = await request(server)
         .put(pathWithId + "/error")
-        .send(payload)
+        .send(quoteRejectRequest)
         .set(getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.PUT, null, ["fspiop-source"]));
 
         // Assert
@@ -603,7 +603,7 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
 
     it("should throw an error on kafka producer calling quoteRejectRequest endpoint", async () => {
         // Arrange
-        const payload = {
+        const quoteRejectRequestKafka = {
             "errorInformation": {
                 "errorCode": "1234",
                 "errorDescription": "quote error description"
@@ -613,7 +613,7 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
         // Act
         const res = await request(server)
         .put(pathWithId + "/error")
-        .send(payload)
+        .send(quoteRejectRequestKafka)
         .set(getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.PUT));
 
         // Assert
