@@ -36,18 +36,14 @@
 import express, {Express} from "express";
 import { TransfersRoutes } from "../../../src/http_routes/transfers-bc/transfers_routes";
 import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import { AccountLookupBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
 import request from "supertest";
-import { getHeaders, getJwsConfig, getRouteValidator } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
-import { Enums, FspiopJwsSignature, FspiopValidator, JwsConfig } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { getHeaders, getJwsConfig, getRouteValidator, MemoryConfigClientMock } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { Enums, FspiopJwsSignature, FspiopValidator } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { Server } from "http";
-import { MemoryConfigClientMock } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import path from "path";
-import { readFileSync } from "fs";
 const packageJSON = require("../../../package.json");
 
 const BC_NAME = "interop-apis-bc";
