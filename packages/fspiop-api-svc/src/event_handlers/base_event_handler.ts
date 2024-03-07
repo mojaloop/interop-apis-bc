@@ -33,7 +33,7 @@ optionally within square brackets <email>.
 
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { IDomainMessage, IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { 
+import {
     MLKafkaJsonConsumer,
     MLKafkaJsonConsumerOptions,
     MLKafkaJsonProducer,
@@ -49,12 +49,12 @@ import {
     TransfersBCOperatorErrorPayload,
     TransfersBCOperatorErrorEvent
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { 
+import {
     Constants,
     Request,
     Enums,
     Transformer,
-    FspiopJwsSignature 
+    FspiopJwsSignature
 } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 
 export const HandlerNames = {
@@ -180,11 +180,11 @@ export abstract class BaseEventHandler  {
                     extensionList: message.payload.errorInformation ? message.payload.errorInformation.extensionList : null
                 });
 
-                if(this._jwsHelper.isEnabled()) { 
+                if(this._jwsHelper.isEnabled()) {
                     clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
                     clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
                 }
-                
+
                 await Request.sendRequest({
                     url: url,
                     headers: clonedHeaders,
@@ -291,6 +291,10 @@ export abstract class BaseEventHandler  {
             }
             case header && header.includes("services"): {
                 urlBuilder.setEntity(Enums.EntityTypeEnum.FX_SERVICES);
+                break;
+            }
+            case header && header.includes("fxQuotes"): {
+                urlBuilder.setEntity(Enums.EntityTypeEnum.FX_QUOTES);
                 break;
             }
             default:
