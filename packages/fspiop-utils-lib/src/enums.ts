@@ -382,7 +382,8 @@ export enum EntityTypeEnum {
     BULK_QUOTES = "bulkQuotes",
     TRANSFERS = "transfers",
     BULK_TRANSFERS = "bulkTransfers",
-    FX_SERVICES = "services"
+    FX_SERVICES = "services",
+    FX_QUOTES = "fxQuotes"
 }
 
 export enum AmountTypeEnum {

@@ -220,6 +220,7 @@ export class ForeignExchangeServicesEventHandler extends BaseEventHandler {
 
       const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
       urlBuilder.setEntity(Enums.EntityTypeEnum.FX_SERVICES);
+      urlBuilder.setLocation(['FXP']);
 
       const transformedPayload =
         Transformer.transformedPayloadFXQueryRequestPUT(payload);

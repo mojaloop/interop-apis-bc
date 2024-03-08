@@ -1,6 +1,6 @@
 openapi: 3.0.2
 info:
-  version: 2.0-draft
+  version: 2.0
   title: Open API for FSP Interoperability (FSPIOP)
   description: >-
     Revision date: 2023-11-23 Based on [API Definition updated on 2020-05-19
@@ -4676,21 +4676,21 @@ components:
     ID:
       name: ID
       in: path
-      required: true
+      required: false
       schema:
         type: string
       description: The identifier value.
     SourceCurrency:
       name: SourceCurrency
       in: path
-      required: true
+      required: false
       schema:
         type: string
       description: ISO 4217 currency code for the source currency.
     SubId:
       name: SubId
       in: path
-      required: true
+      required: false
       schema:
         type: string
       description: >-
@@ -4699,14 +4699,14 @@ components:
     TargetCurrency:
       name: TargetCurrency
       in: path
-      required: true
+      required: false
       schema:
         type: string
       description: ISO 4217 currency code for the target currency.
     Type:
       name: Type
       in: path
-      required: true
+      required: false
       schema:
         type: string
       description: The type of the party identifier. For example, `MSISDN`, `PERSONAL_ID`.
@@ -4836,4 +4836,4 @@ components:
       schema:
         type: string
       required: true
-      description: The `Content-Type` header indicates the specific version of the API used to send the payload body.
+      # description: The `Content-Type` header indicates the specific version of the API used to send the payload body.
