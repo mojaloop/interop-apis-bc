@@ -55,7 +55,6 @@ import {
   Constants,
   Request,
   Enums,
-  Transformer,
   FspiopJwsSignature,
 } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { BaseEventHandler, HandlerNames } from "./base_event_handler";

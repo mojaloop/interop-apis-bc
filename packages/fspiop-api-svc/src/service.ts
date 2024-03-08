@@ -55,7 +55,8 @@ import { QuotingEventHandler } from "./event_handlers/quoting_evt_handler";
 import { TransferEventHandler } from "./event_handlers/transfers_evt_handler";
 import {
     AccountLookupBCTopics,
-    ForeignExchangeBCTopics,
+    ForeignExchangeBCSvcTopics,
+    ForeignExchangeBCQuoteTopics,
     QuotingBCTopics,
     TransfersBCTopics
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
@@ -373,7 +374,7 @@ export class Service {
             this.logger,
             foreignExchangeEventHandlerConsumerOptions,
             kafkaJsonProducerOptions,
-            [ForeignExchangeBCTopics.DomainEvents],
+            [ForeignExchangeBCSvcTopics.DomainEvents],
             this.participantService,
             jwsHelper
         );
@@ -382,7 +383,7 @@ export class Service {
             this.logger,
             foreignExchangeEventHandlerConsumerOptions,
             kafkaJsonProducerOptions,
-            [ForeignExchangeBCTopics.DomainEvents],
+            [ForeignExchangeBCQuoteTopics.DomainEvents],
             this.participantService,
             jwsHelper
         );
