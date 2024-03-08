@@ -182,14 +182,16 @@ export abstract class BaseEventHandler  {
 
                 if(this._jwsHelper.isEnabled()) { 
                     clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
+                    clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
+                    clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = fspId;
                     clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
                 }
                 
                 await Request.sendRequest({
                     url: url,
                     headers: clonedHeaders,
-                    source: fspId,
-                    destination: clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || null,
+                    source: Constants.FSPIOP_HEADERS_SWITCH,
+                    destination: fspId,
                     method: Enums.FspiopRequestMethodsEnum.PUT,
                     payload: transformedPayload
                 });
