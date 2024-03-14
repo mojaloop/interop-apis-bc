@@ -228,7 +228,7 @@ export class ForeignExchangeQuotesEventHandler extends BaseEventHandler {
     // TODO validate vars above
 
     try {
-      this._logger.info("_handleFXQueryResponseEvt -> start");
+      this._logger.info("_handleFxQuoteRequestAcceptedEvt -> start");
       const requestedEndpoint = await this._validateParticipantAndGetEndpoint(
         destinationFspId
       );
@@ -237,21 +237,21 @@ export class ForeignExchangeQuotesEventHandler extends BaseEventHandler {
       message.validatePayload();
 
       const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
-      urlBuilder.setEntity(Enums.EntityTypeEnum.FX_SERVICES);
+      urlBuilder.setEntity(Enums.EntityTypeEnum.FX_QUOTES);
 
       await Request.sendRequest({
         url: urlBuilder.build(),
         headers: clonedHeaders,
         source: requesterFspId,
         destination: destinationFspId,
-        method: Enums.FspiopRequestMethodsEnum.PUT,
+        method: Enums.FspiopRequestMethodsEnum.POST,
         payload: payload,
       });
 
-      this._logger.info("_handleFXQueryResponseEvt -> end");
+      this._logger.info("_handleFxQuoteRequestAcceptedEvt -> end");
     } catch (error: unknown) {
-      this._logger.error(error, "_handleFXQueryResponseEvt -> error");
-      throw Error("_handleFXQueryResponseEvt -> error");
+      this._logger.error(error, "_handleFxQuoteRequestAcceptedEvt -> error");
+      throw Error("_handleFxQuoteRequestAcceptedEvt -> error");
     }
 
     return;
@@ -273,16 +273,17 @@ export class ForeignExchangeQuotesEventHandler extends BaseEventHandler {
     // TODO validate vars above
 
     try {
-      this._logger.info("_handleFXQueryResponseEvt -> start");
+      this._logger.info("_handleFxQuoteResponseAcceptedEvt -> start");
       const requestedEndpoint = await this._validateParticipantAndGetEndpoint(
-        requesterFspId
+        destinationFspId
       );
 
       // Always validate the payload and headers received
       message.validatePayload();
 
       const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
-      urlBuilder.setEntity(Enums.EntityTypeEnum.FX_SERVICES);
+      urlBuilder.setEntity(Enums.EntityTypeEnum.FX_QUOTES);
+      urlBuilder.setLocation([payload.conversionRequestId]);
 
       await Request.sendRequest({
         url: urlBuilder.build(),
@@ -293,10 +294,10 @@ export class ForeignExchangeQuotesEventHandler extends BaseEventHandler {
         payload: payload,
       });
 
-      this._logger.info("_handleFXQueryResponseEvt -> end");
+      this._logger.info("_handleFxQuoteResponseAcceptedEvt -> end");
     } catch (error: unknown) {
-      this._logger.error(error, "_handleFXQueryResponseEvt -> error");
-      throw Error("_handleFXQueryResponseEvt -> error");
+      this._logger.error(error, "_handleFxQuoteResponseAcceptedEvt -> error");
+      throw Error("_handleFxQuoteResponseAcceptedEvt -> error");
     }
 
     return;
@@ -318,7 +319,7 @@ export class ForeignExchangeQuotesEventHandler extends BaseEventHandler {
     // TODO validate vars above
 
     try {
-      this._logger.info("_handleFXQueryResponseEvt -> start");
+      this._logger.info("_handleFxQuoteRejectRespondedEvt -> start");
       const requestedEndpoint = await this._validateParticipantAndGetEndpoint(
         requesterFspId
       );
@@ -338,10 +339,10 @@ export class ForeignExchangeQuotesEventHandler extends BaseEventHandler {
         payload: payload,
       });
 
-      this._logger.info("_handleFXQueryResponseEvt -> end");
+      this._logger.info("_handleFxQuoteRejectRespondedEvt -> end");
     } catch (error: unknown) {
-      this._logger.error(error, "_handleFXQueryResponseEvt -> error");
-      throw Error("_handleFXQueryResponseEvt -> error");
+      this._logger.error(error, "_handleFxQuoteRejectRespondedEvt -> error");
+      throw Error("_handleFxQuoteRejectRespondedEvt -> error");
     }
 
     return;

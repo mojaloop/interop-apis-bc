@@ -68,12 +68,12 @@ export class ForeignExchangeQuotesRoutes extends BaseRoutes {
     this.router.post("/", this.fxQuotesReceived.bind(this));
 
     this.router.put(
-      "/:conversionRequestId",
+      "/:id",
       this.fxQuotesResponseReceived.bind(this)
     );
 
     this.router.put(
-      "/:conversionRequestId/error",
+      "/:id/error",
       this.fxQuotesRejectRequest.bind(this)
     );
   }
@@ -161,7 +161,7 @@ export class ForeignExchangeQuotesRoutes extends BaseRoutes {
     try {
       const clonedHeaders = { ...req.headers };
       const conversionRequestId =
-        (req.params.conversionRequestId as string) || null;
+        (req.params.id as string) || null;
       const condition = (req.body.condition as string) || null;
       const conversionTerms = req.body.conversionTerms || null;
       const requesterFspId =
@@ -232,7 +232,7 @@ export class ForeignExchangeQuotesRoutes extends BaseRoutes {
     try {
       const clonedHeaders = { ...req.headers };
       const conversionRequestId =
-        (req.params.conversionRequestId as string) || null;
+        (req.params.id as string) || null;
       const errorInformation = req.body.errorInformation || null;
 
       const requesterFspId =
