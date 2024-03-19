@@ -35,10 +35,10 @@ import { FspiopJwsSignature, FspiopValidator } from "@mojaloop/interop-apis-bc-f
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import fastify, { FastifyInstance } from "fastify";
 
-export abstract class BaseRoutes {
+export abstract class BaseRoutesFastify {
     private _logger: ILogger;
     private _kafkaProducer: IMessageProducer;
-    private _router = fastify();
+    private _router: FastifyInstance;
 
     protected _validator: FspiopValidator;
     protected _jwsHelper: FspiopJwsSignature;
@@ -53,6 +53,7 @@ export abstract class BaseRoutes {
         this._logger = logger;
         this._validator = validator;
         this._jwsHelper = jwsHelper;
+        this._router = fastify({ logger: true });
     }
 
     get logger(): ILogger {
@@ -67,12 +68,13 @@ export abstract class BaseRoutes {
         return this._router;
     }
 
-    async init(): Promise<void>{
+    async init(): Promise<void> {
+        await this._router.ready();
         return Promise.resolve();
     }
 
-    async destroy(): Promise<void>{
+    async destroy(): Promise<void> {
+        await this._router.close();
         return Promise.resolve();
     }
-
 }

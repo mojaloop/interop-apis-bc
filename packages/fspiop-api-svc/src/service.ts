@@ -31,8 +31,6 @@ optionally within square brackets <email>.
 
 "use strict";
 import {existsSync} from "fs";
-import {Server} from "http";
-import express, {Express} from "express";
 import {ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
 import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
 import {
@@ -78,6 +76,9 @@ import {
 import {GetParticipantsConfigs} from "./configset";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { FspiopValidator, FspiopJwsSignature } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import fastify, { FastifyInstance, FastifyPluginCallback, FastifyPluginOptions } from "fastify";
+import fastifyOAS from "fastify-oas";
+import fastifyUrlData from "@fastify/url-data";
 
 const API_SPEC_FILE_PATH = process.env["API_SPEC_FILE_PATH"] || "../dist/api_spec.yaml";
 
@@ -132,7 +133,7 @@ const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
 };
 
 // JWS Signature
-const JWS_DISABLED = process.env["JWS_DISABLED"] || "false";
+const JWS_DISABLED = process.env["JWS_DISABLED"] || "true";
 
 const jwsConfig: {
     enabled: boolean;
@@ -163,8 +164,8 @@ type FspiopHttpRequestError = {
 }
 export class Service {
     static logger: ILogger;
-    static app: Express;
-    static expressServer: Server;
+    static app: FastifyInstance;
+    static fastifyServer: FastifyInstance;
     static participantRoutes: ParticipantRoutes;
     static partyRoutes: PartyRoutes;
     static quotesRoutes: QuoteRoutes;
@@ -356,46 +357,64 @@ export class Service {
 
     static async setupExpress(): Promise<void> {
         return new Promise<void>(resolve => {
-            this.app = express();
-            this.app.use(express.json({
-                limit: "100mb",
-                type: (req)=>{
-                    const contentLength = req.headers["content-length"];
-                    if(contentLength) {
-                        // We need to send this as a number
-                        req.headers["content-length"]= parseInt(contentLength) as unknown as string;
-                    }
-
-                    return req.headers["content-type"]?.toUpperCase()==="application/json".toUpperCase()
-                        || req.headers["content-type"]?.startsWith("application/vnd.interoperability.")
-                        || false;
+            this.app = fastify();
+            this.app.addContentTypeParser('application/json', { parseAs: 'string' }, (req, body, done) => {
+                // Custom logic to handle the request body
+                const contentLength = req.headers['content-length'];
+                if (contentLength) {
+                    // Convert content-length to a number
+                    req.headers['content-length'] = parseInt(contentLength) as unknown as string;
                 }
-            })); // for parsing application/json
-            this.app.use(express.urlencoded({limit: "100mb", extended: true})); // for parsing application/x-www-form-urlencoded
+            
+                // Check for valid content-type
+                if (
+                    req.headers['content-type'] &&
+                    (req.headers['content-type'].toUpperCase() === 'APPLICATION/JSON' ||
+                        req.headers['content-type'].toUpperCase().startsWith('APPLICATION/VND.INTEROPERABILITY.'))
+                ) {
+                    // Parse the JSON body
+                    try {
+                        const parsedBody = JSON.parse(body as unknown as string);
+                        done(null, parsedBody);
+                    } catch (err) {
+                        done(new Error('Invalid JSON'), undefined);
+                    }
+                } else {
+                    done(new Error('Invalid Content-Type'), undefined);
+                }
+            });
 
-            // // Call header validation
-            this.app.use(validateHeaders);
+            this.app.register(fastifyUrlData);
+
+            // Call header validation
+            this.app.register(validateHeaders);
 
             // Call the request validator in every request
             const openApiDocument = jsYaml.load(
                 fs.readFileSync(path.join(__dirname, API_SPEC_FILE_PATH), "utf-8"),
             ) as OpenApiDocument;
             const validator = new OpenApiValidator(openApiDocument); // TODO: find a way to limit currencies on this point
-            this.app.use(validator.match());
+            this.app.register(fastifyOAS, {
+                openapi: openApiDocument,
+                validator: {
+                    instance: validator,
+                    errorHandler: false,
+                },
+            });
 
-            // hook http handler's routes
-            this.app.use(`/${PARTICIPANTS_URL_RESOURCE_NAME}`, this.participantRoutes.router);
-            this.app.use(`/${PARTIES_URL_RESOURCE_NAME}`, this.partyRoutes.router);
-            this.app.use(`/${QUOTES_URL_RESOURCE_NAME}`, this.quotesRoutes.router);
-            this.app.use(`/${BULK_QUOTES_URL_RESOURCE_NAME}`, this.bulkQuotesRoutes.router);
-            this.app.use(`/${TRANSFERS_URL_RESOURCE_NAME}`, this.transfersRoutes.router);
-            this.app.use(`/${BULK_TRANSFERS_URL_RESOURCE_NAME}`, this.bulkTransfersRoutes.router);
+            this.app.register(this.participantRoutes.bindRoutes(), { prefix: `/${PARTICIPANTS_URL_RESOURCE_NAME}` }); 
+            this.app.register(this.partyRoutes.bindRoutes(), { prefix: `/${PARTIES_URL_RESOURCE_NAME}` }); 
+            this.app.register(this.quotesRoutes.bindRoutes(), { prefix: `/${QUOTES_URL_RESOURCE_NAME}` }); 
+            this.app.register(this.bulkQuotesRoutes.bindRoutes(), { prefix: `/${BULK_QUOTES_URL_RESOURCE_NAME}` }); 
+            this.app.register(this.transfersRoutes.bindRoutes(), { prefix: `/${TRANSFERS_URL_RESOURCE_NAME}` }); 
+            this.app.register(this.bulkTransfersRoutes.bindRoutes(), { prefix: `/${BULK_TRANSFERS_URL_RESOURCE_NAME}` }); 
 
             /* eslint-disable-next-line @typescript-eslint/no-unused-vars */ 
             /* istanbul ignore next */
-            this.app.use((err: FspiopHttpRequestError, req: express.Request, res: express.Response, next: express.NextFunction) => {
+            this.app.setErrorHandler((err: any, req: any, res: any) => {
+                debugger;
                 if(!err.data) {
-                    next();
+                    // next();
                     return;
                 }
 
@@ -450,29 +469,31 @@ export class Service {
             });
 
             /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
-            this.app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+            this.app.setNotFoundHandler((request, reply) => {
                 // catch all
-                this.logger.warn(`Received unhandled request to url: ${req.url}`);
-                res.status(404).json({
-                    errorInformation: {
-                        errorCode: "3002",
-                        errorDescription: "Unknown URI"
-                    }
+                this.logger.warn(`Received unhandled request to url: ${request.url}`);
+
+                reply.code(404).send({
+                  errorInformation: {
+                    errorCode: "3002",
+                    errorDescription: "Unknown URI"
+                  }
                 });
-
-                next();
             });
-
+            
             let portNum = SVC_DEFAULT_HTTP_PORT;
             if(process.env["SVC_HTTP_PORT"] && !isNaN(parseInt(process.env["SVC_HTTP_PORT"]))) {
                 portNum = parseInt(process.env["SVC_HTTP_PORT"]);
             }
-
-            this.expressServer = this.app.listen(portNum, () => {
+            
+            // Start the Fastify server
+            this.app.listen(portNum, () => {
                 this.logger.info(`🚀 Server ready at: http://localhost:${portNum}`);
                 this.logger.info(`FSPIOP-API-SVC Service started, version: ${APP_VERSION}`);
                 resolve();
             });
+
+            this.fastifyServer = this.app;
         });
     }
 
@@ -482,16 +503,16 @@ export class Service {
 
         // if (this.auditClient) await this.auditClient.destroy();
         // if (this.logger && this.logger instanceof KafkaLogger) await this.logger.destroy();
-        if (this.expressServer){
+        if (this.fastifyServer){
             await this.participantRoutes.destroy();
             await this.partyRoutes.destroy();
-            await this.quotesRoutes.destroy();
-            await this.bulkQuotesRoutes.destroy();
-            await this.bulkQuotesRoutes.destroy();
-            await this.transfersRoutes.destroy();
+            // await this.quotesRoutes.destroy();
+            // await this.bulkQuotesRoutes.destroy();
+            // await this.bulkQuotesRoutes.destroy();
+            // await this.transfersRoutes.destroy();
 
-            await this.expressServer.close();
-            // const closeExpress = util.promisify(this.expressServer.close);
+            await this.fastifyServer.close();
+            // const closeExpress = util.promisify(this.fastifyServer.close);
             // await closeExpress();
         }
         if(this.producer){

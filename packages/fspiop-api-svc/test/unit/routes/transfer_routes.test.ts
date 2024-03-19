@@ -32,8 +32,6 @@
 
 "use strict";
 
-
-import express, {Express} from "express";
 import { TransfersRoutes } from "../../../src/http_routes/transfers-bc/transfers_routes";
 import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
@@ -41,9 +39,10 @@ import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
 import request from "supertest";
 import { getHeaders, getJwsConfig, getRouteValidator, MemoryConfigClientMock } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { Enums, FspiopJwsSignature, FspiopValidator } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { Server } from "http";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import fastify, { FastifyInstance } from "fastify";
+import fastifyUrlData from "@fastify/url-data";
 const packageJSON = require("../../../package.json");
 
 const BC_NAME = "interop-apis-bc";
@@ -75,30 +74,41 @@ let routeValidatorMock: FspiopValidator;
 jest.setTimeout(10000);
 
 describe("FSPIOP Routes - Unit Tests Transfer", () => {
-    let app: Express;
-    let expressServer: Server;
+    let app: FastifyInstance;
+    let fastifyServer: FastifyInstance;
     let transferRoutes: TransfersRoutes;
     let logger: ILogger;
     let authTokenUrl: string;
     let producer:IMessageProducer;
 
     beforeAll(async () => {
-        app = express();
-        app.use(express.json({
-            limit: "100mb",
-            type: (req)=>{
-                const contentLength = req.headers["content-length"];
-                if(contentLength) {
-                    // We need to send this as a number
-                    req.headers["content-length"]= parseInt(contentLength) as unknown as string;
-                }
-
-                return req.headers["content-type"]?.toUpperCase()==="application/json".toUpperCase()
-                    || req.headers["content-type"]?.startsWith("application/vnd.interoperability.")
-                    || false;
+        app = fastify();
+        app.addContentTypeParser('application/json', { parseAs: 'string' }, (req, body, done) => {
+            // Custom logic to handle the request body
+            const contentLength = req.headers['content-length'];
+            if (contentLength) {
+                // Convert content-length to a number
+                req.headers['content-length'] = parseInt(contentLength) as unknown as string;
             }
-        })); // for parsing application/json
-        app.use(express.urlencoded({limit: "100mb", extended: true})); // for parsing application/x-www-form-urlencoded
+        
+            // Check for valid content-type
+            if (
+                req.headers['content-type'] &&
+                (req.headers['content-type'].toUpperCase() === 'APPLICATION/JSON' ||
+                    req.headers['content-type'].toUpperCase().startsWith('APPLICATION/VND.INTEROPERABILITY.'))
+            ) {
+                // Parse the JSON body
+                try {
+                    const parsedBody = JSON.parse(body as unknown as string);
+                    done(null, parsedBody);
+                } catch (err) {
+                    done(new Error('Invalid JSON'), undefined);
+                }
+            } else {
+                done(new Error('Invalid Content-Type'), undefined);
+            }
+        }); // for parsing application/json
+        app.register(fastifyUrlData) // for parsing application/x-www-form-urlencoded
 
         logger = new KafkaLogger(
             BC_NAME,
@@ -120,13 +130,15 @@ describe("FSPIOP Routes - Unit Tests Transfer", () => {
         jwsHelperMock = getJwsConfig();
 
         transferRoutes = new TransfersRoutes(producer, routeValidatorMock, jwsHelperMock, logger);
-        app.use(`/${TRANSFERS_URL_RESOURCE_NAME}`, transferRoutes.router);
+        app.register(transferRoutes.bindRoutes(), { prefix: `/${TRANSFERS_URL_RESOURCE_NAME}` }); 
 
         let portNum = SVC_DEFAULT_HTTP_PORT;
-        expressServer = app.listen(portNum, () => {
+        app.listen(portNum, () => {
             console.log(`🚀 Server ready at: http://localhost:${portNum}`);
             console.log(`FSPIOP-API-SVC Service started, version: ${APP_VERSION}`);
         });
+
+        fastifyServer = app;
 
         jest.spyOn(transferRoutes, "init").mockImplementation(jest.fn());
         jest.spyOn(logger, "debug").mockImplementation(jest.fn());
@@ -140,7 +152,7 @@ describe("FSPIOP Routes - Unit Tests Transfer", () => {
 
         await producer.destroy();
         await transferRoutes.destroy();
-        await expressServer.close()
+        await fastifyServer.close()
     });
 
 

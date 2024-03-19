@@ -34,7 +34,6 @@
 
 "use strict";
 
-import express from "express";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { 
     Constants,
@@ -54,6 +53,8 @@ import {
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { FastifyInstance, FastifyPluginOptions, FastifyReply, FastifyRequest } from "fastify";
+import { GetPartyByTypeAndIdAndSubIdQueryRejectDTO, GetPartyByTypeAndIdQueryRejectDTO, GetPartyInfoAvailableByTypeAndIdAndSubIdDTO, GetPartyInfoAvailableByTypeAndIdDTO, GetPartyQueryReceivedByTypeAndIdDTO, GetPartyQueryReceivedByTypeAndIdSubIdDTO } from "./party_route_dto";
 
 export class PartyRoutes extends BaseRoutes {
 
@@ -64,27 +65,29 @@ export class PartyRoutes extends BaseRoutes {
         logger: ILogger
     ) {
         super(producer, validator, jwsHelper, logger);
-
-        // bind routes
-
-        // Requests
-        // GET Party by Type & ID
-        this.router.get("/:type/:id/", this.getPartyQueryReceivedByTypeAndId.bind(this));
-        // GET Parties by Type, ID & SubId
-        this.router.get("/:type/:id/:subid", this.getPartyQueryReceivedByTypeAndIdSubId.bind(this));
-
-        // Callbacks
-        // PUT ERROR Party by Type & ID
-        this.router.put("/:type/:id/error", this.getPartyByTypeAndIdQueryReject.bind(this));
-        // PUT ERROR Parties by Type, ID & SubId
-        this.router.put("/:type/:id/:subid/error", this.getPartyByTypeAndIdAndSubIdQueryReject.bind(this));
-        // PUT Party by Type & ID
-        this.router.put("/:type/:id/", this.getPartyInfoAvailableByTypeAndId.bind(this));
-        // PUT Parties by Type, ID & SubId
-        this.router.put("/:type/:id/:subid", this.getPartyInfoAvailableByTypeAndIdAndSubId.bind(this));
     }
 
-    private async getPartyQueryReceivedByTypeAndId(req: express.Request, res: express.Response): Promise<void> {
+    bindRoutes(): (instance: FastifyInstance, opts: FastifyPluginOptions, done: (err?: Error) => void) => void {
+        // Create a function to register routes
+        return (fastifyInstance, opts, done) => {
+            // GET Party by Type & ID
+            fastifyInstance.get("/:type/:id/", this.getPartyQueryReceivedByTypeAndId.bind(this));
+            // GET Parties by Type, ID & SubId
+            fastifyInstance.get("/:type/:id/:subid", this.getPartyQueryReceivedByTypeAndIdSubId.bind(this));
+            // PUT ERROR Party by Type & ID
+            fastifyInstance.put("/:type/:id/error", this.getPartyByTypeAndIdQueryReject.bind(this));
+            // PUT ERROR Parties by Type, ID & SubId
+            fastifyInstance.put("/:type/:id/:subid/error", this.getPartyByTypeAndIdAndSubIdQueryReject.bind(this));
+            // PUT Party by Type & ID
+            fastifyInstance.put("/:type/:id/", this.getPartyInfoAvailableByTypeAndId.bind(this));
+            // PUT Parties by Type, ID & SubId
+            fastifyInstance.put("/:type/:id/:subid", this.getPartyInfoAvailableByTypeAndIdAndSubId.bind(this));
+            
+            done();
+        };
+    }
+
+    private async getPartyQueryReceivedByTypeAndId(req: FastifyRequest<GetPartyQueryReceivedByTypeAndIdDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got getPartyQueryReceivedByTypeAndId request");
         try {
             const clonedHeaders = { ...req.headers };
@@ -101,7 +104,7 @@ export class PartyRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -137,26 +140,26 @@ export class PartyRoutes extends BaseRoutes {
 
             this.logger.debug("getPartyQueryReceivedByTypeAndId sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
             this.logger.debug("getPartyQueryReceivedByTypeAndId responded");
 
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
-                res.status(400).json((error as ValidationdError).errorInformation);
+                reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-                res.status(500).json(transformError);
+                reply.code(500).send(transformError);
             }
             return;
         }
     }
 
-    private async getPartyQueryReceivedByTypeAndIdSubId(req: express.Request, res: express.Response): Promise<void> {
+    private async getPartyQueryReceivedByTypeAndIdSubId(req: FastifyRequest<GetPartyQueryReceivedByTypeAndIdSubIdDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got getPartyQueryReceivedByTypeAndIdSubId request");
 
         try {
@@ -175,7 +178,7 @@ export class PartyRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -208,26 +211,26 @@ export class PartyRoutes extends BaseRoutes {
 
             this.logger.debug("getPartyQueryReceivedByTypeAndIdSubId sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
             this.logger.debug("getPartyQueryReceivedByTypeAndIdSubId responded");
 
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
-                res.status(400).json((error as ValidationdError).errorInformation);
+                reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-                res.status(500).json(transformError);
+                reply.code(500).send(transformError);
             }
             return;
         }
     }
 
-    private async getPartyInfoAvailableByTypeAndId(req: express.Request, res: express.Response): Promise<void> {
+    private async getPartyInfoAvailableByTypeAndId(req: FastifyRequest<GetPartyInfoAvailableByTypeAndIdDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got getPartyInfoAvailableByTypeAndId request");
 
         try {
@@ -238,11 +241,11 @@ export class PartyRoutes extends BaseRoutes {
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
             const ownerFspId = req.body.party.partyIdInfo["fspId"] || null;
             const currency = req.query["currency"] as string || null;
-            const name = req.body.party["name"] || null;
-            const merchantClassificationCode = req.body.party["merchantClassificationCode"] || null;
-            const firstName = req.body.party.personalInfo.complexName["firstName"] || null;
-            const middleName = req.body.party.personalInfo.complexName["middleName"] || null;
-            const lastName = req.body.party.personalInfo.complexName["lastName"] || null;
+            const name = req.body.party["name"];
+            const merchantClassificationCode = req.body.party["merchantClassificationCode"];
+            const firstName = req.body.party.personalInfo.complexName["firstName"];
+            const middleName = req.body.party.personalInfo.complexName["middleName"];
+            const lastName = req.body.party.personalInfo.complexName["lastName"];
             const partyDoB = req.body.party.personalInfo["dateOfBirth"] || null;
             const extensionList = req.body.party.partyIdInfo["extensionList"] || null;
             const kycInfo = req.body.party.personalInfo["kycInformation"] || null;
@@ -255,7 +258,7 @@ export class PartyRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -303,26 +306,26 @@ export class PartyRoutes extends BaseRoutes {
 
             this.logger.debug("getPartyInfoAvailableByTypeAndId sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
             this.logger.debug("getPartyInfoAvailableByTypeAndId responded");
 
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
-                res.status(400).json((error as ValidationdError).errorInformation);
+                reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-                res.status(500).json(transformError);
+                reply.code(500).send(transformError);
             }
             return;
         }
     }
 
-    private async getPartyInfoAvailableByTypeAndIdAndSubId(req: express.Request, res: express.Response): Promise<void> {
+    private async getPartyInfoAvailableByTypeAndIdAndSubId(req: FastifyRequest<GetPartyInfoAvailableByTypeAndIdAndSubIdDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got getPartyInfoAvailableByTypeAndIdAndSubId request");
 
         try {
@@ -334,11 +337,11 @@ export class PartyRoutes extends BaseRoutes {
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
             const ownerFspId = req.body.party.partyIdInfo["fspId"] || null;
             const currency = req.query["currency"] as string || null;
-            const merchantClassificationCode = req.body.party["merchantClassificationCode"] || null;
-            const name = req.body.party["name"] || null;
-            const firstName = req.body.party.personalInfo.complexName["firstName"] || null;
-            const middleName = req.body.party.personalInfo.complexName["middleName"] || null;
-            const lastName = req.body.party.personalInfo.complexName["lastName"] || null;
+            const merchantClassificationCode = req.body.party["merchantClassificationCode"];
+            const name = req.body.party["name"];
+            const firstName = req.body.party.personalInfo.complexName["firstName"];
+            const middleName = req.body.party.personalInfo.complexName["middleName"];
+            const lastName = req.body.party.personalInfo.complexName["lastName"];
             const partyDoB = req.body.party.personalInfo["dateOfBirth"] || null;
             const extensionList = req.body.party.partyIdInfo["extensionList"] || null;
             const kycInfo = req.body.party.personalInfo["kycInformation"] || null;
@@ -351,7 +354,7 @@ export class PartyRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -398,26 +401,26 @@ export class PartyRoutes extends BaseRoutes {
 
             this.logger.debug("getPartyInfoAvailableByTypeAndIdAndSubId sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
             this.logger.debug("getPartyInfoAvailableByTypeAndIdAndSubId responded");
 
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
-                res.status(400).json((error as ValidationdError).errorInformation);
+                reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-                res.status(500).json(transformError);
+                reply.code(500).send(transformError);
             }
             return;
         }
     }
 
-    private async getPartyByTypeAndIdQueryReject(req: express.Request, res: express.Response): Promise<void> {
+    private async getPartyByTypeAndIdQueryReject(req: FastifyRequest<GetPartyByTypeAndIdQueryRejectDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got getPartyByTypeAndIdQueryReject request");
 
         try {
@@ -439,7 +442,7 @@ export class PartyRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -478,26 +481,26 @@ export class PartyRoutes extends BaseRoutes {
 
             this.logger.debug("getPartyByTypeAndIdQueryReject sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
             this.logger.debug("getPartyByTypeAndIdQueryReject responded");
 
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
-                res.status(400).json((error as ValidationdError).errorInformation);
+                reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-                res.status(500).json(transformError);
+                reply.code(500).send(transformError);
             }
             return;
         }
     }
 
-    private async getPartyByTypeAndIdAndSubIdQueryReject(req: express.Request, res: express.Response): Promise<void> {
+    private async getPartyByTypeAndIdAndSubIdQueryReject(req: FastifyRequest<GetPartyByTypeAndIdAndSubIdQueryRejectDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got getPartyByTypeAndIdAndSubIdQueryReject request");
 
         try {
@@ -520,7 +523,7 @@ export class PartyRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -559,20 +562,20 @@ export class PartyRoutes extends BaseRoutes {
 
             this.logger.debug("getPartyByTypeAndIdAndSubIdQueryReject sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
             this.logger.debug("getPartyByTypeAndIdAndSubIdQueryReject responded");
 
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
-                res.status(400).json((error as ValidationdError).errorInformation);
+                reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-                res.status(500).json(transformError);
+                reply.code(500).send(transformError);
             }
             return;
         }

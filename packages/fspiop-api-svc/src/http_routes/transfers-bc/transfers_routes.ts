@@ -31,7 +31,6 @@
 
 "use strict";
 
-import express from "express";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { 
     Constants,
@@ -56,6 +55,8 @@ import {
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { FastifyInstance, FastifyPluginOptions, FastifyReply, FastifyRequest } from "fastify";
+import { TransferFulfilRequestedDTO, TransferPrepareRequestedDTO, TransferQueryReceivedDTO, TransferRejectRequestedDTO } from "./transfers_routes_dto";
 
 export class TransfersRoutes extends BaseRoutes {
 
@@ -66,23 +67,30 @@ export class TransfersRoutes extends BaseRoutes {
         logger: ILogger
     ) {
         super(producer, validator, jwsHelper, logger);
-
-        // bind routes
-
-        // GET Transfer by ID
-        this.router.get("/:id/", this.transferQueryReceived.bind(this));
-
-        // POST Transfers
-        this.router.post("/", this.transferPrepareRequested.bind(this));
-
-        // PUT Transfers
-        this.router.put("/:id", this.transferFulfilRequested.bind(this));
-
-        // Errors
-        this.router.put("/:id/error", this.transferRejectRequested.bind(this));
     }
 
-    private async transferPrepareRequested(req: express.Request, res: express.Response): Promise<void> {
+    bindRoutes(): (instance: FastifyInstance, opts: FastifyPluginOptions, done: (err?: Error) => void) => void {
+        // bind routes
+
+        return (fastifyInstance, opts, done) => {
+
+            // GET Transfer by ID
+            fastifyInstance.get("/:id/", this.transferQueryReceived.bind(this));
+
+            // POST Transfers
+            fastifyInstance.post("/", this.transferPrepareRequested.bind(this));
+
+            // PUT Transfers
+            fastifyInstance.put("/:id", this.transferFulfilRequested.bind(this));
+
+            // Errors
+            fastifyInstance.put("/:id/error", this.transferRejectRequested.bind(this));
+
+            done();
+        };
+    }
+    
+    private async transferPrepareRequested(req: FastifyRequest<TransferPrepareRequestedDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got transferPrepareRequested request");
         try {
             // Headers
@@ -94,8 +102,8 @@ export class TransfersRoutes extends BaseRoutes {
             const transferId = req.body["transferId"] || null;
             const payeeFsp = req.body["payeeFsp"] || null;
             const payerFsp = req.body["payerFsp"] || null;
-            const amount: { currency: string, amount: string } = req.body["amount"] || null;
-            const ilpPacket = req.body["ilpPacket"] || null;
+            const amount = req.body["amount"] || null;
+            const ilpPacket = req.body["ilpPacket"];
             const condition = req.body["condition"] || null;
             const expiration = req.body["expiration"] || null;
             const extensionList = req.body["extensionList"] || null;
@@ -115,7 +123,7 @@ export class TransfersRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -158,26 +166,26 @@ export class TransfersRoutes extends BaseRoutes {
 
             this.logger.debug("transferPrepareRequested sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
             this.logger.debug("transferPrepareRequested responded");
 
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
-                res.status(400).json((error as ValidationdError).errorInformation);
+                reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-                res.status(500).json(transformError);
+                reply.code(500).send(transformError);
             }
             return;
         }
     }
 
-    private async transferFulfilRequested(req: express.Request, res: express.Response): Promise<void> {
+    private async transferFulfilRequested(req: FastifyRequest<TransferFulfilRequestedDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got transferFulfilRequested request");
         try {
             // Headers
@@ -201,7 +209,7 @@ export class TransfersRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -215,7 +223,7 @@ export class TransfersRoutes extends BaseRoutes {
                 fulfilment: fulfilment,
                 completedTimestamp: new Date(completedTimestamp).valueOf(),
                 extensionList: extensionList,
-                notifyPayee: transferState === Enums.TransferStateEnum.RESERVED && Constants.ALLOWED_PATCH_ACCEPTED_TRANSFER_HEADERS.includes(acceptedHeader)
+                notifyPayee: transferState as Enums.TransferStateEnum === Enums.TransferStateEnum.RESERVED && Constants.ALLOWED_PATCH_ACCEPTED_TRANSFER_HEADERS.includes(acceptedHeader)
             };
 
             const msg = new TransferFulfilRequestedEvt(msgPayload);
@@ -236,7 +244,7 @@ export class TransfersRoutes extends BaseRoutes {
 
             this.logger.debug("transferFulfilRequested sent message");
 
-            res.status(200).json(null);
+            reply.code(200).send(null);
 
             this.logger.debug("transferFulfilRequested responded");
 
@@ -247,11 +255,11 @@ export class TransfersRoutes extends BaseRoutes {
                 extensionList: null
             });
 
-            res.status(500).json(transformError);
+            reply.code(500).send(transformError);
         }
     }
 
-    private async transferRejectRequested(req: express.Request, res: express.Response): Promise<void> {
+    private async transferRejectRequested(req: FastifyRequest<TransferRejectRequestedDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got transferRejectRequested request");
         try {
             // Headers
@@ -270,7 +278,7 @@ export class TransfersRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -301,7 +309,7 @@ export class TransfersRoutes extends BaseRoutes {
 
             this.logger.debug("transferRejectRequested sent message");
 
-            res.status(200).json(null);
+            reply.code(200).send(null);
 
             this.logger.debug("transferRejectRequested responded");
 
@@ -312,11 +320,11 @@ export class TransfersRoutes extends BaseRoutes {
                 extensionList: null
             });
 
-            res.status(500).json(transformError);
+            reply.code(500).send(transformError);
         }
     }
 
-    private async transferQueryReceived(req: express.Request, res: express.Response): Promise<void> {
+    private async transferQueryReceived(req: FastifyRequest<TransferQueryReceivedDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got transferQueryReceived request");
         try {
             const clonedHeaders = { ...req.headers };
@@ -332,7 +340,7 @@ export class TransfersRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -355,7 +363,7 @@ export class TransfersRoutes extends BaseRoutes {
 
             this.logger.debug("transferQueryReceived sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
             this.logger.debug("transferQueryReceived responded");
 
@@ -366,7 +374,7 @@ export class TransfersRoutes extends BaseRoutes {
                 extensionList: null
             });
 
-            res.status(500).json(transformError);
+            reply.code(500).send(transformError);
         }
     }
 }

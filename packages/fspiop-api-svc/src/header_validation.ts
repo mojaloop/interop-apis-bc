@@ -6,8 +6,8 @@
 // accuracy of this statement has not been thoroughly tested.
 
 //Import the Enums
-import express from "express";
 import { parseAcceptHeader, parseContentTypeHeader, protocolVersions, FSPIOPErrorCodes } from "./validation";
+import { FastifyPluginAsync } from 'fastify';
 
 // Some defaults
 const defaultProtocolResources = [
@@ -47,136 +47,142 @@ const errorMessages = {
  */
 
 /* istanbul ignore next */
-export const validateHeaders = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-	const resource = req.path.replace(/^\//, "").split("/")[0];
-
-	// Only validate requests for the requested resources
-	if (!defaultProtocolResources.includes(resource)) {
-		return res.status(400).json({
-			errorInformation: {
+export const validateHeaders: FastifyPluginAsync = async (fastify) => {
+	fastify.addHook('preHandler', async (request:any, reply) => {
+		const resource = request.raw.url.replace(/^\//, "").split("/")[0];
+	
+		// Only validate requests for the requested resources
+		if (!defaultProtocolResources.includes(resource)) {
+			reply.status(400).send({
+				errorInformation: {
 				errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
 				errorDescription: errorMessages.INVALID_CONTENT_TYPE_HEADER
-			}
-		});
-	}
-
-    // TODO: find another way around this since it"s only a temporary fix for admin-ui date header
-	if(req.headers["fspiop-date"]) {
-		req.headers.date = req.headers["fspiop-date"] as string;
-		delete req.headers["fspiop-date"];
-	}
-  
-	const supportedProtocolAcceptVersions = defaultProtocolVersions;
-	// Always validate the accept header for a get request, or optionally if it has been
-	// supplied
-	if (req.method.toLowerCase() === "get" || req.headers.accept) {
-		if (req.headers["content-type"] === undefined || !req.headers["content-type"] || req.headers["content-type"] === "application/json") {
-			return res.status(400).json({
-				errorInformation: {
-					errorCode: FSPIOPErrorCodes.MISSING_ELEMENT.code,
-					errorDescription: errorMessages.REQUIRE_CONTENT_TYPE_HEADER
 				}
 			});
+			return;
 		}
-		const contentType = parseContentTypeHeader(resource, req.headers["content-type"]);
-		if (!contentType.valid) {
-			return res.status(400).json({
+	
+		// Temporary fix for admin-ui date header
+		if (request.headers["fspiop-date"]) {
+			request.headers.date = request.headers["fspiop-date"] as string;
+			delete request.headers["fspiop-date"];
+		}
+	
+		const supportedProtocolAcceptVersions = defaultProtocolVersions;
+	
+		// Always validate the accept header for a get request, or optionally if it has been supplied
+		if (request.method.toLowerCase() === "get" || request.headers.accept) {
+			if (request.headers["content-type"] === undefined || !request.headers["content-type"] || request.headers["content-type"] === "application/json") {
+				reply.status(400).send({
+					errorInformation: {
+						errorCode: FSPIOPErrorCodes.MISSING_ELEMENT.code,
+						errorDescription: errorMessages.REQUIRE_CONTENT_TYPE_HEADER
+					}
+				});
+				return;
+			}
+	
+			const contentType = parseContentTypeHeader(resource, request.headers["content-type"]);
+			if (!contentType.valid) {
+				reply.status(400).send({
 				errorInformation: {
 					errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
 					errorDescription: errorMessages.INVALID_CONTENT_TYPE_HEADER
 				}
-			});
-		}
-
-		if (req.headers.accept === undefined) {
-			return res.status(400).json({
+				});
+				return;
+			}
+	
+			if (request.headers.accept === undefined) {
+				reply.status(400).send({
+					errorInformation: {
+						errorCode: FSPIOPErrorCodes.MISSING_ELEMENT.code,
+						errorDescription: errorMessages.REQUIRE_ACCEPT_HEADER
+					}
+				});
+				return;
+			}
+	
+			const accept = parseAcceptHeader(resource, request.headers.accept);
+			if (!accept.valid) {
+				reply.status(400).send({
 				errorInformation: {
-					errorCode: FSPIOPErrorCodes.MISSING_ELEMENT.code,
-					errorDescription: errorMessages.REQUIRE_ACCEPT_HEADER
+					errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
+					errorDescription: errorMessages.INVALID_ACCEPT_HEADER
 				}
-			});
-        }
-
-        const accept = parseAcceptHeader(resource, req.headers.accept);
-        if (!accept.valid) {
-			return res.status(400).json({
-				errorInformation: {
-				errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
-				errorDescription: errorMessages.INVALID_ACCEPT_HEADER
-				}
-			});
-		}
-
-        const getVersionFromConfig = (resourceString:string) => {
-            const resourceVersionMap:{[key: string]: { contentVersion: string; acceptVersion: string; }} = {};
-            resourceString
-				.split(",")
-				.forEach((e) => e.split("=")
-                .reduce((p:string, c:string):any => { // eslint-disable-line @typescript-eslint/no-explicit-any
-					resourceVersionMap[p] = {
-						contentVersion: c,
-						acceptVersion: c.split(".")[0]
-					};
-					return null;
-                }));
-            return resourceVersionMap;
-		};
-		
-        const acceptVersion = getVersionFromConfig(req.headers["accept"]);
-
-        if(!acceptVersion || accept.versions === undefined) {
-			return res.status(400).json({
-				errorInformation: {
-					errorCode: FSPIOPErrorCodes.MISSING_ELEMENT.code,
-					errorDescription: errorMessages.INVALID_ACCEPT_HEADER,
-				}
-			});
-        }
-
-		if (!supportedProtocolAcceptVersions.some(supportedVer => accept.versions.has(supportedVer))) {
-			// const supportedVersionExtensionListMap = convertSupportedVersionToExtensionList(supportedProtocolAcceptVersions)
-			return res.status(400).json({
-				errorInformation: {
+				});
+				return;
+			}
+	
+			const getVersionFromConfig = (resourceString: string) => {
+				const resourceVersionMap: { [key: string]: { contentVersion: string; acceptVersion: string; } } = {};
+				resourceString.split(",").forEach((e) => e.split("=").reduce((p: string, c: string): any => { // eslint-disable-line @typescript-eslint/no-explicit-any
+				resourceVersionMap[p] = {
+					contentVersion: c,
+					acceptVersion: c.split(".")[0]
+				};
+				return null;
+				}));
+				return resourceVersionMap;
+			};
+	
+			const acceptVersion = getVersionFromConfig(request.headers["accept"]);
+	
+			if (!acceptVersion || accept.versions === undefined) {
+				reply.status(400).send({
+					errorInformation: {
 					errorCode: FSPIOPErrorCodes.MISSING_ELEMENT.code,
 					errorDescription: errorMessages.INVALID_ACCEPT_HEADER,
-				}
-			});
-		}
+					}
+				});
+				return;
+			}
+	
+			if (!supportedProtocolAcceptVersions.some(supportedVer => accept.versions.has(supportedVer))) {
+				// const supportedVersionExtensionListMap = convertSupportedVersionToExtensionList(supportedProtocolAcceptVersions)
+				reply.status(400).send({
+					errorInformation: {
+						errorCode: FSPIOPErrorCodes.MISSING_ELEMENT.code,
+						errorDescription: errorMessages.INVALID_ACCEPT_HEADER,
+					}
+				});
+				return;
+			}
 
-		const date:any = req.headers["date"]; // eslint-disable-line @typescript-eslint/no-explicit-any
-		let tempDate:string;
-		if (typeof date === "object" && date instanceof Date) {
-			tempDate = date.toUTCString();
-		} else {
-			try {
-				tempDate = (new Date(date)).toUTCString();
-				if (tempDate === "Invalid Date") {
-					return res.status(400).json({
-						errorInformation: {
+			const date: any = request.headers["date"]; // eslint-disable-line @typescript-eslint/no-explicit-any
+			let tempDate: string;
+			if (typeof date === "object" && date instanceof Date) {
+				tempDate = date.toUTCString();
+			} else {
+				try {
+					tempDate = (new Date(date)).toUTCString();
+					if (tempDate === "Invalid Date") {
+						reply.status(400).send({
+							errorInformation: {
 							errorCode: "3102",
 							errorDescription: "Invalid date-type"
-						}
-					});
+							}
+						});
+						return;
+					}
+				} catch (err) {
+					tempDate = date;
 				}
-			} catch (err) {
-				tempDate = date;
 			}
 		}
-	}
-
-	if(req.headers["date"]) {
-		// Determine which library to use to validate dates
-		const headerDate = new Date(req.headers["date"]);
-		if(headerDate.toDateString() === "Invalid Date") {
-			return res.status(400).json({
-				errorInformation: {
-					errorCode: "3102",
-					errorDescription: "Invalid date-type"
-				}
-			});
+	
+		if (request.headers["date"]) {
+			// Determine which library to use to validate dates
+			const headerDate = new Date(request.headers["date"]);
+			if (headerDate.toDateString() === "Invalid Date") {
+				reply.status(400).send({
+					errorInformation: {
+						errorCode: "3102",
+						errorDescription: "Invalid date-type"
+					}
+				});
+				return;
+			}
 		}
-	}
-
-	next();
-	return;
+	});
 };
