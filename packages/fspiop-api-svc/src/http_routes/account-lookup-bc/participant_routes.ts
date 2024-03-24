@@ -36,7 +36,7 @@
 import express from "express";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { Constants, FspiopJwsSignature, FspiopValidator, Transformer, ValidationdError } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { 
+import {
     ParticipantQueryReceivedEvtPayload,
     ParticipantQueryReceivedEvt,
     ParticipantDisassociateRequestReceivedEvt,
@@ -120,7 +120,10 @@ export class ParticipantRoutes extends BaseRoutes {
             msg.fspiopOpaqueState = {
                 requesterFspId: requesterFspId,
                 destinationFspId: null,
-                headers: clonedHeaders
+                headers: clonedHeaders,
+                tracing: {
+                    originalReqDateTimestamp: Date.now()
+                }
             };
 
             await this.kafkaProducer.send(msg);
@@ -175,7 +178,7 @@ export class ParticipantRoutes extends BaseRoutes {
                     amount: null
                 });
             }
-            
+
             const msgPayload: ParticipantQueryReceivedEvtPayload = {
                 requesterFspId: requesterFspId,
                 partyType: type,
@@ -190,7 +193,10 @@ export class ParticipantRoutes extends BaseRoutes {
             msg.fspiopOpaqueState = {
                 requesterFspId: requesterFspId,
                 destinationFspId: null,
-                headers: clonedHeaders
+                headers: clonedHeaders,
+                tracing: {
+                    originalReqDateTimestamp: Date.now()
+                }
             };
 
             await this.kafkaProducer.send(msg);
@@ -262,7 +268,10 @@ export class ParticipantRoutes extends BaseRoutes {
             msg.fspiopOpaqueState = {
                 requesterFspId: requesterFspId,
                 destinationFspId: null,
-                headers: clonedHeaders
+                headers: clonedHeaders,
+                tracing: {
+                    originalReqDateTimestamp: Date.now()
+                }
 
             };
 
@@ -336,7 +345,10 @@ export class ParticipantRoutes extends BaseRoutes {
             msg.fspiopOpaqueState = {
                 requesterFspId: requesterFspId,
                 destinationFspId: null,
-                headers: clonedHeaders
+                headers: clonedHeaders,
+                tracing: {
+                    originalReqDateTimestamp: Date.now()
+                }
 
             };
 
@@ -404,7 +416,10 @@ export class ParticipantRoutes extends BaseRoutes {
             msg.fspiopOpaqueState = {
                 requesterFspId: requesterFspId,
                 destinationFspId: null,
-                headers: clonedHeaders
+                headers: clonedHeaders,
+                tracing: {
+                    originalReqDateTimestamp: Date.now()
+                }
 
             };
 
@@ -458,7 +473,7 @@ export class ParticipantRoutes extends BaseRoutes {
                     amount: null
                 });
             }
-            
+
             const msgPayload: ParticipantDisassociateRequestReceivedEvtPayload = {
                 ownerFspId: requesterFspId,
                 partyId: id,
@@ -473,7 +488,10 @@ export class ParticipantRoutes extends BaseRoutes {
             msg.fspiopOpaqueState = {
                 requesterFspId: requesterFspId,
                 destinationFspId: null,
-                headers: clonedHeaders
+                headers: clonedHeaders,
+                tracing: {
+                    originalReqDateTimestamp: Date.now()
+                }
             };
 
             await this.kafkaProducer.send(msg);

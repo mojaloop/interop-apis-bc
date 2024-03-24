@@ -66,8 +66,10 @@ import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import { IParticipantService } from "../interfaces/infrastructure";
+import {IHistogram, IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 
 export class AccountLookupEventHandler extends BaseEventHandler {
+
 
     constructor(
             logger: ILogger,
@@ -75,12 +77,15 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             producerOptions: MLKafkaJsonProducerOptions,
             kafkaTopics : string[],
             participantService: IParticipantService,
-            jwsHelper: FspiopJwsSignature
+            jwsHelper: FspiopJwsSignature,
+            metrics: IMetrics
     ) {
-        super(logger, consumerOptions, producerOptions, kafkaTopics, participantService, HandlerNames.AccountLookUp, jwsHelper);
+        super(logger, consumerOptions, producerOptions, kafkaTopics, participantService, HandlerNames.AccountLookUp, jwsHelper, metrics);
     }
 
     async processMessage (sourceMessage: IMessage) : Promise<void> {
+        const processMessageTimer = this._histogram.startTimer({ callName: "processMessage"});
+
         try {
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
@@ -129,7 +134,11 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                     this._logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
                     break;
             }
+
+            processMessageTimer( {success:"true"});
         } catch (error: unknown) {
+            this._logger.error(error,"processMessage Error");
+
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
             const clonedHeaders = message.fspiopOpaqueState.headers;
@@ -137,6 +146,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             const partyType = message.payload.partyType as string;
             const partyId = message.payload.partyId as string;
             const partySubType = message.payload.partySubType as string;
+
+            processMessageTimer( {success:"false"});
 
             await this._sendErrorFeedbackToFsp({
                 message: message,
@@ -286,6 +297,11 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
             urlBuilder.setLocation([partyType, partyId, partySubType]);
 
+            // provide original headers for tracing and test header passthrough
+            (clonedHeaders as any).original_headers = {
+                ...clonedHeaders
+            };
+
             await Request.sendRequest({
                 url: urlBuilder.build(),
                 headers: clonedHeaders,
@@ -330,6 +346,11 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
             urlBuilder.setLocation([partyType, partyId, partySubType]);
 
+            // provide original headers for tracing and test header passthrough
+            (clonedHeaders as any).original_headers = {
+                ...clonedHeaders
+            };
+
             await Request.sendRequest({
                 url: urlBuilder.build(),
                 headers: clonedHeaders,
@@ -350,9 +371,10 @@ export class AccountLookupEventHandler extends BaseEventHandler {
     }
 
     private async _handlePartyInfoRequestedEvt(message: PartyInfoRequestedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
-        try {
-            this._logger.info("_handlePartyInfoRequestedEvt -> start");
+        this._logger.debug("_handlePartyInfoRequestedEvt -> start");
+        const mainTimer = this._histogram.startTimer({ callName: "handlePartyInfoRequestedEvt"});
 
+        try {
             const { payload } = message;
 
             const requesterFspId = payload.requesterFspId;
@@ -365,6 +387,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             // TODO handle the case where destinationFspId is null and remove ! below
 
             if(!destinationFspId){
+                this._logger.debug("_handlePartyInfoRequestedEvt -> required destination fspId is missing from the header");
                 throw Error("required destination fspId is missing from the header");
             }
 
@@ -383,19 +406,34 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
             urlBuilder.setLocation([partyType, partyId, partySubType]);
 
-            await Request.sendRequest({
-                url: urlBuilder.build(),
-                headers: clonedHeaders,
-                source: requesterFspId,
-                destination: destinationFspId,
-                method: Enums.FspiopRequestMethodsEnum.GET,
-                payload: transformedPayload
-            });
+            // provide original headers for tracing and test header passthrough
+            (clonedHeaders as any).original_headers = {
+                ...clonedHeaders
+            };
 
-            this._logger.info("_handlePartyInfoRequestedEvt -> end");
+            const requestTimer = this._histogram.startTimer({ callName: "handlePartyInfoRequestedEvt_sendRequest"});
+            try {
+                await Request.sendRequest({
+                    url: urlBuilder.build(),
+                    headers: clonedHeaders,
+                    source: requesterFspId,
+                    destination: destinationFspId,
+                    method: Enums.FspiopRequestMethodsEnum.GET,
+                    payload: transformedPayload
+                });
+                requestTimer({success:"true"});
+            }catch (err){
+                this._logger.error(err,"_handlePartyInfoRequestedEvt -> sendRequest error");
+                requestTimer({success:"false"});
+                throw Error("_handlePartyInfoRequestedEvt -> sendRequest error");
+            }
 
+            this._logger.debug("_handlePartyInfoRequestedEvt -> end");
+            mainTimer({success:"true"});
         } catch (error: unknown) {
             this._logger.error(error,"_handlePartyInfoRequestedEvt -> error");
+            mainTimer({success:"false"});
+
             throw Error("_handlePartyInfoRequestedEvt -> error");
         }
 
@@ -403,7 +441,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
     }
 
     private async _handlePartyQueryResponseEvt(message: PartyQueryResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
-        this._logger.info("_handlePartyQueryResponseEvt -> start");
+        this._logger.debug("_handlePartyQueryResponseEvt -> start");
+        const mainTimer = this._histogram.startTimer({ callName: "handlePartyQueryResponseEvt"});
 
         try {
             const { payload } = message;
@@ -438,18 +477,34 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
             urlBuilder.setLocation([partyType, partyId, partySubType]);
 
-            await Request.sendRequest({
-                url: urlBuilder.build(),
-                headers: clonedHeaders,
-                source: requesterFspId,
-                destination: destinationFspId,
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: transformedPayload
-            });
+            // provide original headers for tracing and test header passthrough
+            (clonedHeaders as any).original_headers = {
+                ...clonedHeaders
+            };
 
-            this._logger.info("_handlePartyQueryResponseEvt -> end");
+            const requestTimer = this._histogram.startTimer({ callName: "handlePartyQueryResponseEvt_sendRequest"});
+            try {
+                await Request.sendRequest({
+                    url: urlBuilder.build(),
+                    headers: clonedHeaders,
+                    source: requesterFspId,
+                    destination: destinationFspId,
+                    method: Enums.FspiopRequestMethodsEnum.PUT,
+                    payload: transformedPayload
+                });
+                requestTimer({success:"true"});
+            }catch (err){
+                this._logger.error(err,"_handlePartyQueryResponseEvt -> sendRequest error");
+                requestTimer({success:"false"});
+                throw Error("_handlePartyQueryResponseEvt -> sendRequest error");
+            }
+
+            this._logger.debug("_handlePartyQueryResponseEvt -> end");
+            mainTimer({success:"true"});
         } catch (error: unknown) {
             this._logger.error(error,"_handlePartyQueryResponseEvt -> error");
+            mainTimer({success:"false"});
+
             throw Error("_handlePartyQueryResponseEvt -> error");
         }
 
@@ -471,7 +526,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
             clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
-            
+
             const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
@@ -483,10 +538,15 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             message.validatePayload();
 
             const transformedPayload = Transformer.transformPayloadParticipantPut(payload);
-            
+
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
             urlBuilder.setLocation([partyType, partyId, partySubType]);
+
+            // provide original headers for tracing and test header passthrough
+            (clonedHeaders as any).original_headers = {
+                ...clonedHeaders
+            };
 
             await Request.sendRequest({
                 url: urlBuilder.build(),

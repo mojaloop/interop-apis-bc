@@ -78,6 +78,9 @@ import {
 import {GetParticipantsConfigs} from "./configset";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { FspiopValidator, FspiopJwsSignature } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import {PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-client-lib";
+import * as promBundle from "express-prom-bundle";
 
 const API_SPEC_FILE_PATH = process.env["API_SPEC_FILE_PATH"] || "../dist/api_spec.yaml";
 
@@ -175,6 +178,7 @@ export class Service {
     static auditClient: IAuditClient;
     static configClient: IConfigurationClient;
     static producer:IMessageProducer;
+    static metrics: IMetrics;
 
     static startupTimer: NodeJS.Timeout;
 
@@ -183,6 +187,7 @@ export class Service {
         participantService?: IParticipantService,
         auditClient?: IAuditClient,
         configProvider?: IConfigProvider,
+        metrics?: IMetrics,
     ):Promise<void> {
         console.log(`Fspiop-api-svc - service starting with PID: ${process.pid}`);
 
@@ -239,6 +244,15 @@ export class Service {
         }
         this.auditClient = auditClient;
 
+        if (!metrics) {
+            const labels: Map<string, string> = new Map<string, string>();
+            labels.set("bc", BC_NAME);
+            labels.set("app", APP_NAME);
+            labels.set("version", APP_VERSION);
+            PrometheusMetrics.Setup({prefix: "", defaultLabels: labels}, this.logger);
+            metrics = PrometheusMetrics.getInstance();
+        }
+        this.metrics = metrics;
 
         if(!participantService){
             const participantLogger = logger.createChild("participantLogger");
@@ -316,7 +330,8 @@ export class Service {
             kafkaJsonProducerOptions,
             [AccountLookupBCTopics.DomainEvents],
             this.participantService,
-            jwsHelper
+            jwsHelper,
+            this.metrics
         );
 
         const quotingEvtHandlerConsumerOptions: MLKafkaJsonConsumerOptions = {
@@ -330,7 +345,8 @@ export class Service {
             kafkaJsonProducerOptions,
             [QuotingBCTopics.DomainEvents],
             this.participantService,
-            jwsHelper
+            jwsHelper,
+            this.metrics
         );
 
         const transferEvtHandlerConsumerOptions: MLKafkaJsonConsumerOptions = {
@@ -344,7 +360,8 @@ export class Service {
             kafkaJsonProducerOptions,
             [TransfersBCTopics.DomainEvents],
             this.participantService,
-            jwsHelper
+            jwsHelper,
+            this.metrics
         );
 
         await Promise.all([
@@ -357,6 +374,25 @@ export class Service {
     static async setupExpress(): Promise<void> {
         return new Promise<void>(resolve => {
             this.app = express();
+
+            // setup prom-bundle to automatically collect express metrics
+            const metricsMiddleware = promBundle.default({
+                includeMethod: true,
+                includePath: true,
+                autoregister: false,
+                promRegistry: (this.metrics as any)._register // hack - fix
+            });
+            this.app.use(metricsMiddleware);
+
+            // Add health and metrics http routes
+            this.app.get("/health", (req: express.Request, res: express.Response) => {
+                return res.send({ status: "OK" });
+            });
+            this.app.get("/metrics", async (req: express.Request, res: express.Response) => {
+                const strMetrics = await (this.metrics as PrometheusMetrics).getMetricsForPrometheusScrapper();
+                return res.send(strMetrics);
+            });
+
             this.app.use(express.json({
                 limit: "100mb",
                 type: (req)=>{

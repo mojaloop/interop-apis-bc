@@ -33,7 +33,7 @@ optionally within square brackets <email>.
 
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { IDomainMessage, IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { 
+import {
     MLKafkaJsonConsumer,
     MLKafkaJsonConsumerOptions,
     MLKafkaJsonProducer,
@@ -49,13 +49,14 @@ import {
     TransfersBCOperatorErrorPayload,
     TransfersBCOperatorErrorEvent
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { 
+import {
     Constants,
     Request,
     Enums,
     Transformer,
-    FspiopJwsSignature 
+    FspiopJwsSignature
 } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import {IHistogram, IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 
 export const HandlerNames = {
     AccountLookUp: 'AccountLookUpEventHandler',
@@ -73,6 +74,8 @@ export abstract class BaseEventHandler  {
     protected readonly _kafkaProducer: MLKafkaJsonProducer;
     protected readonly _handlerName: string;
     protected readonly _jwsHelper: FspiopJwsSignature;
+    protected readonly _metrics: IMetrics;
+    protected readonly _histogram: IHistogram;
 
     constructor(
             logger: ILogger,
@@ -82,6 +85,7 @@ export abstract class BaseEventHandler  {
             participantService: IParticipantService,
             handlerName: string,
             jwsHelper: FspiopJwsSignature,
+            metrics: IMetrics
     ) {
         this._logger = logger.createChild(this.constructor.name);
         this._consumerOpts = consumerOptions;
@@ -92,6 +96,9 @@ export abstract class BaseEventHandler  {
         this._kafkaConsumer = new MLKafkaJsonConsumer(this._consumerOpts, this._logger);
         this._kafkaProducer = new MLKafkaJsonProducer(this._producerOptions);
         this._jwsHelper = jwsHelper;
+
+        this._metrics = metrics;
+        this._histogram = metrics.getHistogram("AccountLookupEventHandler", "AccountLookupEventHandler metrics", ["callName", "success"]);
     }
 
     async init () : Promise<void> {
@@ -113,11 +120,13 @@ export abstract class BaseEventHandler  {
     }
 
     protected async _validateParticipantAndGetEndpoint(fspId: string):Promise<IParticipantEndpoint>{
+        const mainTimer = this._histogram.startTimer({ callName: "BASE_validateParticipantAndGetEndpoint"});
         const participant = await this._participantService.getParticipantInfo(fspId);
+
 
         if (!participant) {
             const errorMessage = `_validateParticipantAndGetEndpoint could not get participant with id: "${fspId}"`;
-
+            mainTimer( {success:"false"});
             this._logger.error(errorMessage);
             throw Error(errorMessage);
         }
@@ -126,11 +135,12 @@ export abstract class BaseEventHandler  {
 
         if (!endpoint) {
             const errorMessage = `_validateParticipantAndGetEndpoint could not get "FSPIOP" endpoint from participant with id: "${fspId}"`;
-
+            mainTimer( {success:"false"});
             this._logger.error(errorMessage);
             throw Error(errorMessage);
         }
 
+        mainTimer( {success:"true"});
         return endpoint;
     }
 
@@ -180,11 +190,11 @@ export abstract class BaseEventHandler  {
                     extensionList: message.payload.errorInformation ? message.payload.errorInformation.extensionList : null
                 });
 
-                if(this._jwsHelper.isEnabled()) { 
+                if(this._jwsHelper.isEnabled()) {
                     clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
                     clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
                 }
-                
+
                 await Request.sendRequest({
                     url: url,
                     headers: clonedHeaders,

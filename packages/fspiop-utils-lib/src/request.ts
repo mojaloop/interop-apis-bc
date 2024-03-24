@@ -25,7 +25,7 @@
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
-  
+
  --------------
  ******/
 
@@ -36,6 +36,7 @@ import { FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION,FSPIOP_HEADERS_DEFAULT_
 import { FspiopRequestMethodsEnum, ResponseTypeEnum } from './enums';
 import HeaderBuilder from './headers/header_builder';
 import { AllowedSigningAlgorithms } from "@mojaloop/security-bc-client-lib";
+import keyValueBy from "npm-check-updates/build/src/lib/keyValueBy";
 
 export interface FspiopHttpHeaders {
   [FSPIOP_HEADERS_ACCEPT]: string;
@@ -50,17 +51,17 @@ export interface FspiopHttpHeaders {
 }
 
 type RequestOptions = {
-  url: string, 
-  headers: FspiopHttpHeaders, 
-  source: string, 
-  destination: string | null, 
-  method: FspiopRequestMethodsEnum, 
+  url: string,
+  headers: FspiopHttpHeaders,
+  source: string,
+  destination: string | null,
+  method: FspiopRequestMethodsEnum,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  payload: any, 
-  responseType?: ResponseTypeEnum, 
-  protocolVersions?: { 
-    content: typeof FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION; 
-    accept: typeof FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION; 
+  payload: any,
+  responseType?: ResponseTypeEnum,
+  protocolVersions?: {
+    content: typeof FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION;
+    accept: typeof FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION;
   }
 }
 
@@ -71,13 +72,13 @@ delete request.defaults.headers.common.Accept;
 
 
 export const sendRequest = async ({
-  url, 
-  headers, 
-  source, 
-  destination, 
-  method = FspiopRequestMethodsEnum.GET, 
-  payload, 
-  responseType = ResponseTypeEnum.JSON, 
+  url,
+  headers,
+  source,
+  destination,
+  method = FspiopRequestMethodsEnum.GET,
+  payload,
+  responseType = ResponseTypeEnum.JSON,
   protocolVersions = {
     content: FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION,
     accept: FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION
@@ -91,7 +92,7 @@ export const sendRequest = async ({
       headers
     };
 
-    
+
     const builder = new HeaderBuilder();
     builder.setAccept(headers[FSPIOP_HEADERS_ACCEPT]);
     builder.setContentType(headers[FSPIOP_HEADERS_CONTENT_TYPE]);
@@ -100,15 +101,23 @@ export const sendRequest = async ({
     builder.setFspiopDestination(headers[FSPIOP_HEADERS_DESTINATION]);
     builder.setFspiopHttpMethod(headers[FSPIOP_HEADERS_HTTP_METHOD], config);
     builder.setFspiopUri(headers[FSPIOP_HEADERS_URI]);
-    
+
     if(headers[FSPIOP_HEADERS_SIGNATURE]) {
         builder.setFspiopSignature(headers[FSPIOP_HEADERS_SIGNATURE]);
         builder.setAlgorithm(AllowedSigningAlgorithms.RS256);
     }
 
-    const transformedHeaders = builder.getResult().build();
+    let transformedHeaders = builder.getResult().build();
 
-    
+    // copy test headers
+    if (headers.hasOwnProperty("original_headers")) {
+        for (const key in (headers as any).original_headers){
+            if (key.toUpperCase().startsWith("TEST-") && !transformedHeaders.hasOwnProperty(key)){
+                (transformedHeaders as any)[key] =  (headers as any).original_headers[key];
+            }
+        }
+    }
+
     const requestOptions = {
       url,
       method,
@@ -190,16 +199,16 @@ export class URLBuilder {
     }
 
     setEntity(value: string) {
-        this._entity = value; 
+        this._entity = value;
     }
 
     setId(value: string) {
-        this._id = value; 
+        this._id = value;
     }
 
     setLocation(values: string[]) {
         const filtered = values.filter(x => x != null);
-        
+
         this._location = filtered.join("/");
     }
 
@@ -223,7 +232,7 @@ export class URLBuilder {
 
     hasError(value = true): URLBuilder | void {
         this._withError = value;
-        
+
         return this;
     }
 
@@ -242,7 +251,7 @@ export class URLBuilder {
         if(this._id) {
             url += `/${this._id}`;
         }
-        
+
         if(this._withError) {
             url += `/error`;
         }

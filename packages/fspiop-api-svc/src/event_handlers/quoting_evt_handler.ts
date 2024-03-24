@@ -73,6 +73,7 @@ import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import { IParticipantService } from "../interfaces/infrastructure";
+import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 
 export class QuotingEventHandler extends BaseEventHandler {
     constructor(
@@ -81,9 +82,10 @@ export class QuotingEventHandler extends BaseEventHandler {
             producerOptions: MLKafkaJsonProducerOptions,
             kafkaTopics : string[],
             participantService: IParticipantService,
-            jwsHelper: FspiopJwsSignature
+            jwsHelper: FspiopJwsSignature,
+            metrics: IMetrics
     ) {
-        super(logger, consumerOptions, producerOptions, kafkaTopics, participantService, HandlerNames.Quotes, jwsHelper);
+        super(logger, consumerOptions, producerOptions, kafkaTopics, participantService, HandlerNames.Quotes, jwsHelper, metrics);
     }
 
     async processMessage (sourceMessage: IMessage) : Promise<void> {
@@ -236,7 +238,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 errorResponse.errorCode = Enums.ClientErrors.DESTINATION_FSP_ERROR.code;
                 errorResponse.errorDescription = Enums.ClientErrors.DESTINATION_FSP_ERROR.name;
                 break;
-            }            
+            }
             case QuoteBCDuplicateQuoteErrorEvent.name:
             case QuoteBCUnableToAddQuoteToDatabaseErrorEvent.name:
             case QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent.name:
@@ -311,7 +313,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             message.validatePayload();
 
             const transformedPayload = Transformer.transformPayloadQuotingRequestPost(payload);
-            
+
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
 
@@ -394,13 +396,13 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             // Always validate the payload and headers received
             // message.validatePayload();
-            
+
             const transformedPayload = Transformer.transformPayloadQuotingResponseGet(payload);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
             urlBuilder.setId(payload.quoteId);
-            
+
             await Request.sendRequest({
                 url: urlBuilder.build(),
                 headers: clonedHeaders,

@@ -33,6 +33,7 @@ import express from "express";
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import { FspiopJwsSignature, FspiopValidator } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import {IHistogram, IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 
 export abstract class BaseRoutes {
     private _logger: ILogger;
@@ -41,7 +42,7 @@ export abstract class BaseRoutes {
 
     protected _validator: FspiopValidator;
     protected _jwsHelper: FspiopJwsSignature;
-    
+
     constructor(
         producer: IMessageProducer,
         validator: FspiopValidator,
@@ -49,7 +50,7 @@ export abstract class BaseRoutes {
         logger: ILogger
     ) {
         this._kafkaProducer = producer;
-        this._logger = logger;
+        this._logger = logger.createChild(this.constructor.name);
         this._validator = validator;
         this._jwsHelper = jwsHelper;
     }
