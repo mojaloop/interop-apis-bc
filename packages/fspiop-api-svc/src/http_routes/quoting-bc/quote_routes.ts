@@ -97,6 +97,8 @@ export class QuoteRoutes extends BaseRoutes {
             const amount: { currency: string, amount: string } = req.body["amount"] || null;
             const fees = req.body["fees"] || null;
             const transactionType = req.body["transactionType"] || null;
+            const converter = req.body["converter"] || null;
+            const currencyConversion = req.body["currencyConversion"] || null;
             const geoCode = req.body["geoCode"] || null;
             const note = req.body["note"] || null;
             const expiration = req.body["expiration"] || null;
@@ -131,6 +133,8 @@ export class QuoteRoutes extends BaseRoutes {
                 amount: amount,
                 fees: fees,
                 transactionType: transactionType,
+                converter: converter,
+                currencyConversion: currencyConversion,
                 geoCode: geoCode,
                 note: note,
                 expiration: expiration,

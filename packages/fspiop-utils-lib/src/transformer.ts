@@ -187,6 +187,8 @@ export const transformPayloadQuotingRequestPost = (payload: QuoteRequestAccepted
 		amountType: payload.amountType,
 		amount: payload.amount,
 		transactionType: payload.transactionType,
+		converter: payload.converter,
+        currencyConversion: payload.currencyConversion,
 		expiration: payload.expiration,
 	};
 
