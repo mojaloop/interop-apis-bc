@@ -758,7 +758,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransfersBCUnknownErrorEvent({
             transferId: "123", 
             payerFspId: "bluebank",
-            errorDescription: "TransfersBCUnknownErrorEvent"
+            errorCode: "TransfersBCUnknownErrorEvent"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -789,7 +789,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferInvalidMessagePayloadEvt({
             transferId: "123", 
             payerFspId: "bluebank",
-            errorDescription: "TransferInvalidMessagePayloadEvt"
+            errorCode: "TransferInvalidMessagePayloadEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -820,7 +820,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferInvalidMessageTypeEvt({
             transferId: "123", 
             payerFspId: "bluebank",
-            errorDescription: "TransferInvalidMessageTypeEvt"
+            errorCode: "TransferInvalidMessageTypeEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -851,7 +851,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferUnableToAddEvt({
             transferId: "123", 
             payerFspId: "bluebank",
-            errorDescription: "TransferUnableToAddEvt"
+            errorCode: "TransferUnableToAddEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -882,7 +882,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferUnableToUpdateEvt({
             transferId: "123", 
             payerFspId: "bluebank",
-            errorDescription: "TransferUnableToUpdateEvt"
+            errorCode: "TransferUnableToUpdateEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -912,7 +912,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         // Arrange
         const msg = new TransferUnableToDeleteTransferReminderEvt({
             transferId: "123", 
-            errorDescription: "TransferUnableToDeleteTransferReminderEvt"
+            errorCode: "TransferUnableToDeleteTransferReminderEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -942,7 +942,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         // Arrange
         const msg = new TransferHubNotFoundFailedEvt({
             transferId: "123", 
-            errorDescription: "TransferHubNotFoundFailedEvt"
+            errorCode: "TransferHubNotFoundFailedEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -972,7 +972,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         // Arrange
         const msg = new TransferHubAccountNotFoundFailedEvt({
             transferId: "123", 
-            errorDescription: "TransferHubAccountNotFoundFailedEvt"
+            errorCode: "TransferHubAccountNotFoundFailedEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1003,7 +1003,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferPayerNotFoundFailedEvt({
             transferId: "123",
             payerFspId: "bluebank",
-            errorDescription: "TransferPayerNotFoundFailedEvt"
+            errorCode: "TransferPayerNotFoundFailedEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1034,7 +1034,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferPayeePositionAccountNotFoundFailedEvt({
             transferId: "123",
             payeeFspId: "greenbank",
-            errorDescription: "TransferPayeePositionAccountNotFoundFailedEvt"
+            errorCode: "TransferPayeePositionAccountNotFoundFailedEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1065,7 +1065,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferPayeeLiquidityAccountNotFoundFailedEvt({
             transferId: "123",
             payeeFspId: "greenbank",
-            errorDescription: "TransferPayeeLiquidityAccountNotFoundFailedEvt"
+            errorCode: "TransferPayeeLiquidityAccountNotFoundFailedEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1096,7 +1096,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferQueryInvalidPayerCheckFailedEvt({
             transferId: "123", 
             payerFspId: "bluebank",
-            errorDescription: "TransferQueryInvalidPayerCheckFailedEvt"
+            errorCode: "TransferQueryInvalidPayerCheckFailedEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1127,7 +1127,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferQueryPayerNotFoundFailedEvt({
             transferId: "123",
             payerFspId: "bluebank",
-            errorDescription: "TransferQueryPayerNotFoundFailedEvt"
+            errorCode: "TransferQueryPayerNotFoundFailedEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1158,7 +1158,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferPayerPositionAccountNotFoundFailedEvt({
             transferId: "123",
             payerFspId: "bluebank",
-            errorDescription: "TransferPayerPositionAccountNotFoundFailedEvt"
+            errorCode: "TransferPayerPositionAccountNotFoundFailedEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1189,7 +1189,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferPayerLiquidityAccountNotFoundFailedEvt({
             transferId: "123",
             payerFspId: "bluebank",
-            errorDescription: "TransferPayerLiquidityAccountNotFoundFailedEvt"
+            errorCode: "TransferPayerLiquidityAccountNotFoundFailedEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1220,7 +1220,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferPayeeNotFoundFailedEvt({
             transferId: "123",
             payeeFspId: "greenbank",
-            errorDescription: "TransferPayeeNotFoundFailedEvt"
+            errorCode: "TransferPayeeNotFoundFailedEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1251,7 +1251,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferQueryInvalidPayeeCheckFailedEvt({
             transferId: "123",
             payeeFspId: "greenbank",
-            errorDescription: "TransferQueryInvalidPayeeCheckFailedEvt"
+            errorCode: "TransferQueryInvalidPayeeCheckFailedEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1282,7 +1282,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferQueryPayeeNotFoundFailedEvt({
             transferId: "123",
             payeeFspId: "greenbank",
-            errorDescription: "TransferQueryPayeeNotFoundFailedEvt"
+            errorCode: "TransferQueryPayeeNotFoundFailedEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1312,7 +1312,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         // Arrange
         const msg = new TransferNotFoundEvt({
             transferId: "123",
-            errorDescription: "TransferNotFoundEvt"
+            errorCode: "TransferNotFoundEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1342,7 +1342,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         // Arrange
         const msg = new TransferUnableToGetTransferByIdEvt({
             transferId: "123",
-            errorDescription: "TransferUnableToGetTransferByIdEvt"
+            errorCode: "TransferUnableToGetTransferByIdEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1373,7 +1373,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferDuplicateCheckFailedEvt({
             transferId: "123",
             payerFspId: "bluebank",
-            errorDescription: "TransferDuplicateCheckFailedEvt"
+            errorCode: "TransferDuplicateCheckFailedEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1404,7 +1404,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferPrepareRequestTimedoutEvt({
             transferId: "123",
             payerFspId: "bluebank",
-            errorDescription: "TransferPrepareRequestTimedoutEvt"
+            errorCode: "TransferPrepareRequestTimedoutEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1436,7 +1436,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             transferId: "123",
             payerFspId: "bluebank",
             payeeFspId: "greenbankbank",
-            errorDescription: "TransferFulfilCommittedRequestedTimedoutEvt"
+            errorCode: "TransferFulfilCommittedRequestedTimedoutEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1468,7 +1468,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             transferId: "123",
             payerFspId: "bluebank",
             payeeFspId: "greenbankbank",
-            errorDescription: "TransferFulfilPostCommittedRequestedTimedoutEvt"
+            errorCode: "TransferFulfilPostCommittedRequestedTimedoutEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1498,7 +1498,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         // Arrange
         const msg = new TransferCancelReservationFailedEvt({
             transferId: "123",
-            errorDescription: "TransferCancelReservationFailedEvt"
+            errorCode: "TransferCancelReservationFailedEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1528,7 +1528,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         // Arrange
         const msg = new TransferCancelReservationAndCommitFailedEvt({
             transferId: "123",
-            errorDescription: "TransferCancelReservationAndCommitFailedEvt"
+            errorCode: "TransferCancelReservationAndCommitFailedEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1561,7 +1561,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             payerFspId: "bluebank", 
             amount: "10", 
             currency: "USD",
-            errorDescription: "TransferPrepareLiquidityCheckFailedEvt"
+            errorCode: "TransferPrepareLiquidityCheckFailedEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1622,7 +1622,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferPayerNotActiveEvt({
             transferId: "123",
             payerFspId: "bluebank",
-            errorDescription: "TransferPayerNotActiveEvt"
+            errorCode: "TransferPayerNotActiveEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1653,7 +1653,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferPayerNotApprovedEvt({
             transferId: "123",
             payerFspId: "bluebank",
-            errorDescription: "TransferPayerNotApprovedEvt"
+            errorCode: "TransferPayerNotApprovedEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1684,7 +1684,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferPrepareInvalidPayerCheckFailedEvt({
             transferId: "123",
             payerFspId: "bluebank",
-            errorDescription: "TransferPrepareInvalidPayerCheckFailedEvt"
+            errorCode: "TransferPrepareInvalidPayerCheckFailedEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1715,7 +1715,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferQueryInvalidPayerParticipantIdEvt({
             transferId: "123",
             payerFspId: "bluebank",
-            errorDescription: "TransferQueryInvalidPayerParticipantIdEvt"
+            errorCode: "TransferQueryInvalidPayerParticipantIdEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1746,7 +1746,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferPayeeNotActiveEvt({
             transferId: "123",
             payeeFspId: "greenbank",
-            errorDescription: "TransferPayeeNotActiveEvt"
+            errorCode: "TransferPayeeNotActiveEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1777,7 +1777,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferPayeeNotApprovedEvt({
             transferId: "123",
             payeeFspId: "greenbank",
-            errorDescription: "TransferPayeeNotApprovedEvt"
+            errorCode: "TransferPayeeNotApprovedEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1808,7 +1808,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferPrepareInvalidPayeeCheckFailedEvt({
             transferId: "123",
             payeeFspId: "greenbank",
-            errorDescription: "TransferPrepareInvalidPayeeCheckFailedEvt"
+            errorCode: "TransferPrepareInvalidPayeeCheckFailedEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1839,7 +1839,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferQueryInvalidPayeeParticipantIdEvt({
             transferId: "123",
             payeeFspId: "greenbank",
-            errorDescription: "TransferQueryInvalidPayeeParticipantIdEvt"
+            errorCode: "TransferQueryInvalidPayeeParticipantIdEvt"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);

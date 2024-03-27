@@ -195,7 +195,8 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                 },
                 merchantClassificationCode: null,
                 name: null,
-                personalInfo: null
+                personalInfo: null,
+                supportedCurrencies: ["USD"]
             },
             payee: {
                 partyIdInfo: {
@@ -206,7 +207,8 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                 },
                 merchantClassificationCode: null,
                 name: null,
-                personalInfo: null
+                personalInfo: null,
+                supportedCurrencies: ["USD"]
             },
             amountType: "SEND",
             amount: {
@@ -225,7 +227,9 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             geoCode: null,
             note: null,
             expiration: null,
-            extensionList: null
+            extensionList: null,
+            converter: null,
+            currencyConversion: null,
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES, {
@@ -269,7 +273,8 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                 },
                 merchantClassificationCode: null,
                 name: null,
-                personalInfo: null
+                personalInfo: null,
+                supportedCurrencies: ["USD"]
             },
             payee: {
                 partyIdInfo: {
@@ -280,7 +285,8 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                 },
                 merchantClassificationCode: null,
                 name: null,
-                personalInfo: null
+                personalInfo: null,
+                supportedCurrencies: ["USD"]
             },
             amountType: "SEND",
             amount: {
@@ -299,7 +305,9 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             geoCode: null,
             note: null,
             expiration: null,
-            extensionList: null
+            extensionList: null,
+            converter: null,
+            currencyConversion: null,
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTICIPANTS, {
@@ -521,12 +529,13 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                 },
                 merchantClassificationCode: null,
                 name: null,
-                personalInfo: null
+                personalInfo: null,
+                supportedCurrencies: ["USD"]
             },
             geoCode: null,
             expiration: null,
             individualQuotes: [],
-            extensionList: null
+            extensionList: null,
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES, {
@@ -568,7 +577,8 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                 },
                 merchantClassificationCode: null,
                 name: null,
-                personalInfo: null
+                personalInfo: null,
+                supportedCurrencies: ["USD"]
             },
             geoCode: null,
             expiration: null,
@@ -627,9 +637,11 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                             lastName: "P",
                             middleName: "Martin"
                         },
-                        dateOfBirth: "9200-02-29"
+                        dateOfBirth: "9200-02-29",
+                        kycInformation: null
                     },
-                    merchantClassificationCode: "78"
+                    merchantClassificationCode: "78",
+                    supportedCurrencies: ["USD"]
                 },
                 payeeFspCommission: {
                     currency: "USD",
@@ -702,9 +714,11 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                             lastName: "P",
                             middleName: "Martin"
                         },
-                        dateOfBirth: "9200-02-29"
+                        dateOfBirth: "9200-02-29",
+                        kycInformation: null
                     },
-                    merchantClassificationCode: "78"
+                    merchantClassificationCode: "78",
+                    supportedCurrencies: ["USD"]
                 },
                 payeeFspCommission: {
                     currency: "USD",
@@ -778,9 +792,11 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                             lastName: "P",
                             middleName: "Martin"
                         },
-                        dateOfBirth: "9200-02-29"
+                        dateOfBirth: "9200-02-29",
+                        kycInformation: null
                     },
-                    merchantClassificationCode: "78"
+                    merchantClassificationCode: "78",
+                    supportedCurrencies: ["USD"]
                 },
                 payeeFspCommission: {
                     currency: "USD",
@@ -853,9 +869,11 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                             lastName: "P",
                             middleName: "Martin"
                         },
-                        dateOfBirth: "9200-02-29"
+                        dateOfBirth: "9200-02-29",
+                        kycInformation: null
                     },
-                    merchantClassificationCode: "78"
+                    merchantClassificationCode: "78",
+                    supportedCurrencies: ["USD"]
                 },
                 payeeFspCommission: {
                     currency: "USD",
@@ -911,7 +929,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             quoteId: "123", 
             bulkQuoteId: null,
             requesterFspId: "bluebank",
-            errorDescription: "QuoteBCUnknownErrorEvent"
+            errorCode: "QuoteBCUnknownErrorEvent"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -943,7 +961,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             quoteId: "123", 
             bulkQuoteId: null,
             requesterFspId: "bluebank",
-            errorDescription: "QuoteBCInvalidMessagePayloadErrorEvent"
+            errorCode: "QuoteBCInvalidMessagePayloadErrorEvent"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -975,7 +993,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             quoteId: "123", 
             bulkQuoteId: null,
             requesterFspId: "bluebank",
-            errorDescription: "QuoteBCInvalidMessageTypeErrorEvent"
+            errorCode: "QuoteBCInvalidMessageTypeErrorEvent"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1005,7 +1023,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         // Arrange
         const msg = new QuoteBCInvalidBulkQuoteLengthErrorEvent({
             bulkQuoteId: "123", 
-            errorDescription: "QuoteBCInvalidBulkQuoteLengthErrorEvent"
+            errorCode: "QuoteBCInvalidBulkQuoteLengthErrorEvent"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES);
@@ -1035,7 +1053,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         // Arrange
         const msg = new QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent({
             quoteId: "123", 
-            errorDescription: "QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent"
+            errorCode: "QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1065,7 +1083,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         // Arrange
         const msg = new QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent({
             quoteId: "123", 
-            errorDescription: "QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent"
+            errorCode: "QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1095,7 +1113,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         // Arrange
         const msg = new QuoteBCQuoteNotFoundErrorEvent({
             quoteId: "123", 
-            errorDescription: "QuoteBCQuoteNotFoundErrorEvent"
+            errorCode: "QuoteBCQuoteNotFoundErrorEvent"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1125,7 +1143,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         // Arrange
         const msg = new QuoteBCBulkQuoteNotFoundErrorEvent({
             bulkQuoteId: "123", 
-            errorDescription: "QuoteBCBulkQuoteNotFoundErrorEvent"
+            errorCode: "QuoteBCBulkQuoteNotFoundErrorEvent"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES);
@@ -1157,7 +1175,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             quoteId: "123", 
             bulkQuoteId: null,
             destinationFspId: "greenbank",
-            errorDescription: "QuoteBCInvalidDestinationFspIdErrorEvent"
+            errorCode: "QuoteBCInvalidDestinationFspIdErrorEvent"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1187,7 +1205,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         // Arrange
         const msg = new QuoteBCDuplicateQuoteErrorEvent({
             quoteId: "123", 
-            errorDescription: "QuoteBCDuplicateQuoteErrorEvent"
+            errorCode: "QuoteBCDuplicateQuoteErrorEvent"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1217,7 +1235,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         // Arrange
         const msg = new QuoteBCUnableToAddQuoteToDatabaseErrorEvent({
             quoteId: "123", 
-            errorDescription: "QuoteBCUnableToAddQuoteToDatabaseErrorEvent"
+            errorCode: "QuoteBCUnableToAddQuoteToDatabaseErrorEvent"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1247,7 +1265,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         // Arrange
         const msg = new QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent({
             bulkQuoteId: "456",
-            errorDescription: "QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent"
+            errorCode: "QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES);
@@ -1277,7 +1295,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         // Arrange
         const msg = new QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent({
             quoteId: "123", 
-            errorDescription: "QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent"
+            errorCode: "QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1307,7 +1325,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         // Arrange
         const msg = new QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent({
             bulkQuoteId: "456",
-            errorDescription: "QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent"
+            errorCode: "QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES);
@@ -1340,7 +1358,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             quoteId: "123", 
             bulkQuoteId: null,
             requesterFspId: "bluebank",
-            errorDescription: "QuoteBCInvalidRequesterFspIdErrorEvent"
+            errorCode: "QuoteBCInvalidRequesterFspIdErrorEvent"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1372,7 +1390,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             quoteId: "123", 
             bulkQuoteId: null,
             requesterFspId: "bluebank",
-            errorDescription: "QuoteBCRequesterParticipantNotFoundErrorEvent"
+            errorCode: "QuoteBCRequesterParticipantNotFoundErrorEvent"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1404,7 +1422,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             quoteId: "123", 
             bulkQuoteId: null,
             destinationFspId: "greenbank",
-            errorDescription: "QuoteBCDestinationParticipantNotFoundErrorEvent"
+            errorCode: "QuoteBCDestinationParticipantNotFoundErrorEvent"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1435,7 +1453,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         const msg = new QuoteBCQuoteExpiredErrorEvent({
             quoteId: "123",
             expirationDate: "2022-01-22T08:38:08.699-04:00",
-            errorDescription: "QuoteBCQuoteExpiredErrorEvent"
+            errorCode: "QuoteBCQuoteExpiredErrorEvent"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1466,7 +1484,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         const msg = new QuoteBCBulkQuoteExpiredErrorEvent({
             bulkQuoteId: "123",
             expirationDate: "2022-01-22T08:38:08.699-04:00",
-            errorDescription: "QuoteBCBulkQuoteExpiredErrorEvent"
+            errorCode: "QuoteBCBulkQuoteExpiredErrorEvent"
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES);

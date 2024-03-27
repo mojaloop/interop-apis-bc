@@ -135,7 +135,7 @@ export class QuoteRoutes extends BaseRoutes {
                 note: note,
                 expiration: expiration,
                 extensionList: extensionList
-            } as QuoteRequestReceivedEvtPayload;
+            } as unknown as QuoteRequestReceivedEvtPayload;
 
             const msg = new QuoteRequestReceivedEvt(msgPayload);
 

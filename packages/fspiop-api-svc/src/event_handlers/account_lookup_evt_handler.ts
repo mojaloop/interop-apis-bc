@@ -106,6 +106,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                     await this._handleParticipantQueryResponseEvt(new ParticipantQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
                 case GetPartyQueryRejectedResponseEvt.name:
+                    await this._handleGetPartyQueryRejectedResponseEvt(new GetPartyQueryRejectedResponseEvt(message.payload), message.fspiopOpaqueState.headers);
+                    break;
                 case AccountLookUpUnknownErrorEvent.name:
                 case AccountLookupBCInvalidMessagePayloadErrorEvent.name:
                 case AccountLookupBCInvalidMessageTypeErrorEvent.name:
@@ -228,7 +230,6 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 errorResponse.errorDescription = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.name;
                 break;
             }
-            case GetPartyQueryRejectedResponseEvt.name:
             case AccountLookUpUnableToGetParticipantFromOracleErrorEvent.name: {
                 errorResponse.errorCode = Enums.ClientErrors.PARTY_NOT_FOUND.code;
                 errorResponse.errorDescription = Enums.ClientErrors.PARTY_NOT_FOUND.name;
@@ -501,6 +502,54 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         } catch (error: unknown) {
             this._logger.error(error,"_handleParticipantQueryResponseEvt -> error");
             throw Error("_handleParticipantQueryResponseEvt -> error");
+        }
+
+        return;
+    }
+
+    private async _handleGetPartyQueryRejectedResponseEvt(message: GetPartyQueryRejectedResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
+        this._logger.info("_handleGetPartyQueryRejectedResponseEvt -> start");
+
+        try {
+            const { payload } = message;
+
+
+            const partyType = payload.partyType ;
+            const partyId = payload.partyId;
+            const partySubType = payload.partySubType as string;
+            const clonedHeaders = fspiopOpaqueState;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] ;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] ;
+
+            const destinationEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
+
+            if(!destinationEndpoint) {
+                throw Error(`fspId ${destinationFspId} has no valid participant associated`);
+            }
+
+            // Always validate the payload and headers received
+            message.validatePayload();
+
+            const transformedPayload = Transformer.transformPayloadPartyQueryRejectedPut(payload);
+
+            const urlBuilder = new Request.URLBuilder(destinationEndpoint.value);
+            urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
+            urlBuilder.setLocation([partyType, partyId, partySubType]);
+            urlBuilder.hasError(true);
+            
+            await Request.sendRequest({
+                url: urlBuilder.build(),
+                headers: clonedHeaders,
+                source: requesterFspId,
+                destination: destinationFspId,
+                method: Enums.FspiopRequestMethodsEnum.PUT,
+                payload: transformedPayload
+            });
+
+            this._logger.info("_handleGetPartyQueryRejectedResponseEvt -> end");
+        } catch (error: unknown) {
+            this._logger.error(error,"_handleGetPartyQueryRejectedResponseEvt -> error");
+            throw Error("_handleGetPartyQueryRejectedResponseEvt -> error");
         }
 
         return;
