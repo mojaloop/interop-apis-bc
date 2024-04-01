@@ -34,7 +34,7 @@ import {FspiopJwsSignature, FspiopValidator, JwsConfig} from "@mojaloop/interop-
 import {ConsoleLogger, ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
 
 
-type UnknownProperties = { [k: string]: string | null };
+type UnknownProperties = { [k: string]: string };
 
 /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
 const removeEmpty = (obj: any) => {
