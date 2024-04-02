@@ -195,7 +195,8 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                 },
                 merchantClassificationCode: null,
                 name: null,
-                personalInfo: null
+                personalInfo: null,
+                supportedCurrencies: null,
             },
             payee: {
                 partyIdInfo: {
@@ -206,7 +207,8 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                 },
                 merchantClassificationCode: null,
                 name: null,
-                personalInfo: null
+                personalInfo: null,
+                supportedCurrencies: null,
             },
             amountType: "SEND",
             amount: {
@@ -221,6 +223,8 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                 refundInfo: null,
                 balanceOfPayments: null
             },
+            converter: null,
+            currencyConversion: null,
             fees: null,
             geoCode: null,
             note: null,
@@ -269,7 +273,8 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                 },
                 merchantClassificationCode: null,
                 name: null,
-                personalInfo: null
+                personalInfo: null,
+                supportedCurrencies: null,
             },
             payee: {
                 partyIdInfo: {
@@ -280,7 +285,8 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                 },
                 merchantClassificationCode: null,
                 name: null,
-                personalInfo: null
+                personalInfo: null,
+                supportedCurrencies: null,
             },
             amountType: "SEND",
             amount: {
@@ -295,6 +301,8 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                 refundInfo: null,
                 balanceOfPayments: null
             },
+            converter: null,
+            currencyConversion: null,
             fees: null,
             geoCode: null,
             note: null,
@@ -521,7 +529,8 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                 },
                 merchantClassificationCode: null,
                 name: null,
-                personalInfo: null
+                personalInfo: null,
+                supportedCurrencies: null,
             },
             geoCode: null,
             expiration: null,
@@ -568,7 +577,8 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                 },
                 merchantClassificationCode: null,
                 name: null,
-                personalInfo: null
+                personalInfo: null,
+                supportedCurrencies: null,
             },
             geoCode: null,
             expiration: null,
@@ -627,9 +637,11 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                             lastName: "P",
                             middleName: "Martin"
                         },
-                        dateOfBirth: "9200-02-29"
+                        dateOfBirth: "9200-02-29",
+                        kycInformation: null,
                     },
-                    merchantClassificationCode: "78"
+                    merchantClassificationCode: "78",
+                    supportedCurrencies: null,
                 },
                 payeeFspCommission: {
                     currency: "USD",
@@ -702,9 +714,11 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                             lastName: "P",
                             middleName: "Martin"
                         },
-                        dateOfBirth: "9200-02-29"
+                        dateOfBirth: "9200-02-29",
+                        kycInformation: null,
                     },
-                    merchantClassificationCode: "78"
+                    merchantClassificationCode: "78",
+                    supportedCurrencies: null,
                 },
                 payeeFspCommission: {
                     currency: "USD",
@@ -778,9 +792,11 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                             lastName: "P",
                             middleName: "Martin"
                         },
-                        dateOfBirth: "9200-02-29"
+                        dateOfBirth: "9200-02-29",
+                        kycInformation: null,
                     },
-                    merchantClassificationCode: "78"
+                    merchantClassificationCode: "78",
+                    supportedCurrencies: null,
                 },
                 payeeFspCommission: {
                     currency: "USD",
@@ -853,9 +869,11 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                             lastName: "P",
                             middleName: "Martin"
                         },
-                        dateOfBirth: "9200-02-29"
+                        dateOfBirth: "9200-02-29",
+                        kycInformation: null,
                     },
-                    merchantClassificationCode: "78"
+                    merchantClassificationCode: "78",
+                    supportedCurrencies: null,
                 },
                 payeeFspCommission: {
                     currency: "USD",

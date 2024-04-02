@@ -137,6 +137,17 @@ export interface PostQuote {
 		} | null;
 		balanceOfPayments: string | null;
 	},
+	converter: string | null;
+    currencyConversion: {
+        sourceAmount: {
+            currency: string;
+            amount: string;
+        };
+        targetAmount: {
+            currency: string;
+            amount: string;
+        };
+    } | null;
 	expiration: string | null;
 }
 
