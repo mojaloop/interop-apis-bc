@@ -38,7 +38,6 @@ import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/
 import {
     TransferPreparedEvt,
     TransferFulfiledEvt,
-    TransferPrepareInvalidPayerCheckFailedEvt,
     TransferPrepareInvalidPayeeCheckFailedEvt,
     TransferPrepareLiquidityCheckFailedEvt,
     TransferDuplicateCheckFailedEvt,
@@ -46,11 +45,8 @@ import {
     TransferPrepareRequestTimedoutEvt,
     TransfersBCUnknownErrorEvent,
     TransferQueryResponseEvt,
-    TransferQueryInvalidPayeeCheckFailedEvt,
     TransferQueryPayerNotFoundFailedEvt,
     TransferQueryPayeeNotFoundFailedEvt,
-    TransferQueryInvalidPayerCheckFailedEvt,
-    TransferQueryInvalidPayeeParticipantIdEvt,
     TransferUnableToGetTransferByIdEvt,
     TransferNotFoundEvt,
     TransferUnableToAddEvt,
@@ -64,7 +60,6 @@ import {
     TransferPayerNotFoundFailedEvt,
     TransferPayeeNotFoundFailedEvt,
     TransferHubNotFoundFailedEvt,
-    TransferQueryInvalidPayerParticipantIdEvt,
     TransferHubAccountNotFoundFailedEvt,
     TransferPayerPositionAccountNotFoundFailedEvt,
     TransferPayerLiquidityAccountNotFoundFailedEvt,
@@ -88,7 +83,7 @@ import { BaseEventHandler, HandlerNames } from "./base_event_handler";
 import { IParticipantServiceAdapter } from "../interfaces/infrastructure";
 import { TransferFulfilRequestedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { TransferRejectRequestedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import {  TransferErrorCodeNames, TransferErrorCodes } from "@mojaloop/transfers-bc-public-types-lib";
+import {  TransferErrorCodeNames } from "@mojaloop/transfers-bc-public-types-lib";
 
 
 export class TransferEventHandler extends BaseEventHandler {
@@ -142,17 +137,12 @@ export class TransferEventHandler extends BaseEventHandler {
                 case TransferPayerNotFoundFailedEvt.name:
                 case TransferPayeeNotFoundFailedEvt.name:
                 case TransferHubNotFoundFailedEvt.name:
-                case TransferPrepareInvalidPayerCheckFailedEvt.name:
                 case TransferPrepareInvalidPayeeCheckFailedEvt.name:
                 case TransferPrepareLiquidityCheckFailedEvt.name:
                 case TransferDuplicateCheckFailedEvt.name:
                 case TransferPrepareRequestTimedoutEvt.name:
-                case TransferQueryInvalidPayerCheckFailedEvt.name:
-                case TransferQueryInvalidPayeeCheckFailedEvt.name:
                 case TransferQueryPayerNotFoundFailedEvt.name:
                 case TransferQueryPayeeNotFoundFailedEvt.name:
-                case TransferQueryInvalidPayerParticipantIdEvt.name:
-                case TransferQueryInvalidPayeeParticipantIdEvt.name:
                 case TransferUnableToGetTransferByIdEvt.name:
                 case TransferNotFoundEvt.name:
                 case TransferUnableToAddEvt.name:
@@ -260,6 +250,7 @@ export class TransferEventHandler extends BaseEventHandler {
             //     case TransfersBCUnknownErrorEvent.name: {
             case TransferErrorCodeNames.COMMAND_TYPE_UNKNOWN:
             case TransferErrorCodeNames.HUB_PARTICIPANT_ID_MISMATCH:
+            case TransferErrorCodeNames.UNABLE_TO_CANCEL_TRANSFER_RESERVATION_AND_COMMIT:
             {
                 errorResponse.errorCode = Enums.ServerErrors.GENERIC_SERVER_ERROR.code;
                 errorResponse.errorDescription = Enums.ServerErrors.GENERIC_SERVER_ERROR.name;
@@ -287,7 +278,6 @@ export class TransferEventHandler extends BaseEventHandler {
             }
             case TransferErrorCodeNames.PAYEE_POSITION_ACCOUNT_NOT_FOUND:
             case TransferErrorCodeNames.PAYEE_LIQUIDITY_ACCOUNT_NOT_FOUND:
-            case TransferErrorCodeNames.PAYEE_PARTICIPANT_NOT_ACTIVE:
             case TransferErrorCodeNames.PAYEE_PARTICIPANT_NOT_FOUND: {
                 errorResponse.errorCode = Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.code;
                 errorResponse.errorDescription = Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.name;

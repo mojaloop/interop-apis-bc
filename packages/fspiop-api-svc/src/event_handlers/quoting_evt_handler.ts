@@ -70,9 +70,9 @@ import {
 import { Constants, Enums, FspiopJwsSignature, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import { IParticipantServiceAdapter } from "../interfaces/infrastructure";
+import { QuotingErrorCodeNames } from "@mojaloop/quoting-bc-public-types-lib";
 
 export class QuotingEventHandler extends BaseEventHandler {
     constructor(
@@ -210,76 +210,78 @@ export class QuotingEventHandler extends BaseEventHandler {
             destinationFspId: null
         };
 
-        switch (message.msgName) {
-            case QuoteBCInvalidMessagePayloadErrorEvent.name:
-            case QuoteBCInvalidMessageTypeErrorEvent.name:
-            case QuoteBCInvalidBulkQuoteLengthErrorEvent.name:
-            case QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent.name:
-            case QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent.name:
+        switch (message.payload.errorCode) {
+            case QuotingErrorCodeNames.INVALID_MESSAGE_PAYLOAD:
+            case QuotingErrorCodeNames.INVALID_MESSAGE_TYPE:
+            case QuotingErrorCodeNames.INVALID_BULK_QUOTE_LENGTH:
+            case QuotingErrorCodeNames.RULE_SCHEME_VIOLATED_RESPONSE:
+            case QuotingErrorCodeNames.RULE_SCHEME_VIOLATED_REQUEST:
             {
                 errorResponse.errorCode = Enums.ClientErrors.GENERIC_VALIDATION_ERROR.code;
                 errorResponse.errorDescription = Enums.ClientErrors.GENERIC_VALIDATION_ERROR.name;
                 break;
             }
-            case QuoteBCQuoteNotFoundErrorEvent.name:
+            case QuotingErrorCodeNames.QUOTE_NOT_FOUND:
             {
                 errorResponse.errorCode = Enums.ClientErrors.QUOTE_ID_NOT_FOUND.code;
                 errorResponse.errorDescription = Enums.ClientErrors.QUOTE_ID_NOT_FOUND.name;
                 break;
             }
-            case QuoteBCBulkQuoteNotFoundErrorEvent.name: {
+            case QuotingErrorCodeNames.BULK_QUOTE_NOT_FOUND: 
+            case QuotingErrorCodeNames.INDIVIDUAL_QUOTES_NOT_FOUND: {
                 errorResponse.errorCode = Enums.ClientErrors.BULK_QUOTE_ID_NOT_FOUND.code;
                 errorResponse.errorDescription = Enums.ClientErrors.BULK_QUOTE_ID_NOT_FOUND.name;
                 break;
             }
-            case QuoteBCInvalidDestinationFspIdErrorEvent.name:{
+            case QuotingErrorCodeNames.INVALID_DESTINATION_PARTICIPANT:{
                 errorResponse.errorCode = Enums.ClientErrors.DESTINATION_FSP_ERROR.code;
                 errorResponse.errorDescription = Enums.ClientErrors.DESTINATION_FSP_ERROR.name;
                 break;
             }            
-            case QuoteBCDuplicateQuoteErrorEvent.name:
-            case QuoteBCUnableToAddQuoteToDatabaseErrorEvent.name:
-            case QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent.name:
-            case QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent.name:
-            case QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent.name:
-            case QuoteBCInvalidRequesterFspIdErrorEvent.name: {
-                errorResponse.errorCode = Enums.ClientErrors.GENERIC_CLIENT_ERROR.code;
-                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_CLIENT_ERROR.name;
-                break;
-            }
-            case QuoteBCRequesterParticipantNotFoundErrorEvent.name: {
+            case QuotingErrorCodeNames.SOURCE_PARTICIPANT_NOT_FOUND: {
                 errorResponse.errorCode = Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.code;
                 errorResponse.errorDescription = Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.name;
                 break;
             }
-            case QuoteBCDestinationParticipantNotFoundErrorEvent.name: {
+            case QuotingErrorCodeNames.DESTINATION_PARTICIPANT_NOT_FOUND: {
                 errorResponse.errorCode = Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.code;
                 errorResponse.errorDescription = Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.name;
                 break;
             }
-            case QuoteBCQuoteExpiredErrorEvent.name:
-            case QuoteBCBulkQuoteExpiredErrorEvent.name: {
+            case QuotingErrorCodeNames.QUOTE_EXPIRED:
+            case QuotingErrorCodeNames.BULK_QUOTE_EXPIRED: {
                 errorResponse.errorCode = Enums.ClientErrors.QUOTE_EXPIRED.code;
                 errorResponse.errorDescription = Enums.ClientErrors.QUOTE_EXPIRED.name;
                 break;
             }
-            case QuoteBCRequiredRequesterParticipantIdMismatchErrorEvent.name:
-            case QuoteBCRequiredRequesterParticipantIsNotApprovedErrorEvent.name:
-            case QuoteBCRequiredRequesterParticipantIsNotActiveErrorEvent.name:
+            case QuotingErrorCodeNames.REQUIRED_SOURCE_PARTICIPANT_ID_MISMATCH:
+            case QuotingErrorCodeNames.REQUIRED_SOURCE_PARTICIPANT_NOT_APPROVED:
+            case QuotingErrorCodeNames.REQUIRED_SOURCE_PARTICIPANT_NOT_ACTIVE:
             {
                 errorResponse.errorCode = Enums.PayerErrors.GENERIC_PAYER_ERROR.code;
                 errorResponse.errorDescription = Enums.PayerErrors.GENERIC_PAYER_ERROR.name;
                 break;
             }
-            case QuoteBCRequiredDestinationParticipantIdMismatchErrorEvent.name:
-            case QuoteBCRequiredDestinationParticipantIsNotApprovedErrorEvent.name:
-            case QuoteBCRequiredDestinationParticipantIsNotActiveErrorEvent.name:
+            case QuotingErrorCodeNames.REQUIRED_DESTINATION_PARTICIPANT_ID_MISMATCH:
+            case QuotingErrorCodeNames.REQUIRED_DESTINATION_PARTICIPANT_NOT_APPROVED:
+            case QuotingErrorCodeNames.REQUIRED_DESTINATION_PARTICIPANT_NOT_ACTIVE:
             {
                 errorResponse.errorCode = Enums.PayeeErrors.GENERIC_PAYEE_ERROR.code;
                 errorResponse.errorDescription = Enums.PayeeErrors.GENERIC_PAYEE_ERROR.name;
                 break;
             }
-            case QuoteBCUnknownErrorEvent.name: {
+            case QuotingErrorCodeNames.DUPLICATE_QUOTE:
+            case QuotingErrorCodeNames.UNABLE_TO_ADD_QUOTE:
+            case QuotingErrorCodeNames.UNABLE_TO_ADD_BULK_QUOTE:
+            case QuotingErrorCodeNames.UNABLE_TO_UPDATE_QUOTE:
+            case QuotingErrorCodeNames.UNABLE_TO_UPDATE_BULK_QUOTE: 
+            case QuotingErrorCodeNames.INVALID_SOURCE_PARTICIPANT:
+            {
+                errorResponse.errorCode = Enums.ClientErrors.GENERIC_CLIENT_ERROR.code;
+                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_CLIENT_ERROR.name;
+                break;
+            }
+            case QuotingErrorCodeNames.COMMAND_TYPE_UNKNOWN: {
                 errorResponse.errorCode = Enums.ServerErrors.INTERNAL_SERVER_ERROR.code;
                 errorResponse.errorDescription = Enums.ServerErrors.INTERNAL_SERVER_ERROR.name;
                 break;

@@ -34,16 +34,15 @@
 
 
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import { AccountLookUpUnableToGetParticipantFromOracleErrorEvent, AccountLookUpUnknownErrorEvent, AccountLookupBCDestinationParticipantNotFoundErrorEvent, AccountLookupBCInvalidDestinationParticipantErrorEvent, AccountLookupBCInvalidMessagePayloadErrorEvent, AccountLookupBCInvalidMessageTypeErrorEvent, AccountLookupBCInvalidRequesterParticipantErrorEvent, AccountLookupBCRequesterParticipantNotFoundErrorEvent, AccountLookupBCTopics, AccountLookupBCUnableToAssociateParticipantErrorEvent, AccountLookupBCUnableToDisassociateParticipantErrorEvent, AccountLookupBCUnableToGetOracleAdapterErrorEvent, BulkQuoteAcceptedEvt, BulkQuoteQueryResponseEvt, BulkQuoteReceivedEvt, BulkQuoteReceivedEvtPayload, BulkTransferFulfiledEvt, BulkTransferPreparedEvt, BulkTransferQueryResponseEvt, BulkTransferRejectRequestProcessedEvt, GetPartyQueryRejectedResponseEvt, ParticipantAssociationCreatedEvt, ParticipantAssociationRemovedEvt, ParticipantQueryResponseEvt, PartyInfoRequestedEvt, PartyQueryResponseEvt, QuoteBCBulkQuoteExpiredErrorEvent, QuoteBCBulkQuoteNotFoundErrorEvent, QuoteBCDestinationParticipantNotFoundErrorEvent, QuoteBCDuplicateQuoteErrorEvent, QuoteBCInvalidBulkQuoteLengthErrorEvent, QuoteBCInvalidDestinationFspIdErrorEvent, QuoteBCInvalidMessagePayloadErrorEvent, QuoteBCInvalidMessageTypeErrorEvent, QuoteBCInvalidRequesterFspIdErrorEvent, QuoteBCQuoteExpiredErrorEvent, QuoteBCQuoteNotFoundErrorEvent, QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent, QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent, QuoteBCRequesterParticipantNotFoundErrorEvent, QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent, QuoteBCUnableToAddQuoteToDatabaseErrorEvent, QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent, QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent, QuoteBCUnknownErrorEvent, QuoteQueryResponseEvt, QuoteRequestAcceptedEvt, QuoteResponseAccepted, QuotingBCTopics, TransferCancelReservationAndCommitFailedEvt, TransferCancelReservationFailedEvt, TransferDuplicateCheckFailedEvt, TransferFulfilCommittedRequestedTimedoutEvt, TransferFulfilPostCommittedRequestedTimedoutEvt, TransferFulfiledEvt, TransferFulfiledEvtPayload, TransferHubAccountNotFoundFailedEvt, TransferHubNotFoundFailedEvt, TransferInvalidMessagePayloadEvt, TransferInvalidMessageTypeEvt, TransferNotFoundEvt, TransferPayeeLiquidityAccountNotFoundFailedEvt, TransferPayeeNotActiveEvt, TransferPayeeNotApprovedEvt, TransferPayeeNotFoundFailedEvt, TransferPayeePositionAccountNotFoundFailedEvt, TransferPayerLiquidityAccountNotFoundFailedEvt, TransferPayerNotActiveEvt, TransferPayerNotApprovedEvt, TransferPayerNotFoundFailedEvt, TransferPayerPositionAccountNotFoundFailedEvt, TransferPrepareInvalidPayeeCheckFailedEvt, TransferPrepareInvalidPayerCheckFailedEvt, TransferPrepareLiquidityCheckFailedEvt, TransferPrepareRequestTimedoutEvt, TransferPreparedEvt, TransferPreparedEvtPayload, TransferQueryInvalidPayeeCheckFailedEvt, TransferQueryInvalidPayeeParticipantIdEvt, TransferQueryInvalidPayerCheckFailedEvt, TransferQueryInvalidPayerParticipantIdEvt, TransferQueryPayeeNotFoundFailedEvt, TransferQueryPayerNotFoundFailedEvt, TransferQueryResponseEvt, TransferRejectRequestProcessedEvt, TransferRejectRequestProcessedEvtPayload, TransferUnableToAddEvt, TransferUnableToDeleteTransferReminderEvt, TransferUnableToGetTransferByIdEvt, TransferUnableToUpdateEvt, TransfersBCTopics, TransfersBCUnknownErrorEvent } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { BulkTransferFulfiledEvt, BulkTransferPreparedEvt, BulkTransferQueryResponseEvt, BulkTransferRejectRequestProcessedEvt, TransferCancelReservationAndCommitFailedEvt, TransferCancelReservationFailedEvt, TransferFulfilCommittedRequestedTimedoutEvt, TransferFulfilPostCommittedRequestedTimedoutEvt, TransferFulfiledEvt, TransferHubAccountNotFoundFailedEvt, TransferHubNotFoundFailedEvt, TransferInvalidMessagePayloadEvt, TransferInvalidMessageTypeEvt, TransferNotFoundEvt, TransferPayeeLiquidityAccountNotFoundFailedEvt, TransferPayeeNotActiveEvt, TransferPayeeNotApprovedEvt, TransferPayeeNotFoundFailedEvt, TransferPayeePositionAccountNotFoundFailedEvt, TransferPayerLiquidityAccountNotFoundFailedEvt, TransferPayerNotActiveEvt, TransferPayerNotApprovedEvt, TransferPayerNotFoundFailedEvt, TransferPayerPositionAccountNotFoundFailedEvt, TransferPrepareLiquidityCheckFailedEvt, TransferPrepareRequestTimedoutEvt, TransferPreparedEvt, TransferQueryPayeeNotFoundFailedEvt, TransferQueryPayerNotFoundFailedEvt, TransferQueryResponseEvt, TransferRejectRequestProcessedEvt, TransferUnableToAddEvt, TransferUnableToDeleteTransferReminderEvt, TransferUnableToGetTransferByIdEvt, TransferUnableToUpdateEvt, TransfersBCTopics, TransfersBCUnknownErrorEvent } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import { MemoryParticipantService, createMessage, getJwsConfig } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { Constants, Enums, FspiopJwsSignature, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { TransferEventHandler } from "../../../src/event_handlers/transfers_evt_handler";
 import { IParticipantServiceAdapter } from "../../../src/interfaces/infrastructure";
-import { FSPIOP_PARTY_ACCOUNT_TYPES } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants";
 import { IParticipant, IParticipantEndpoint, ParticipantEndpointProtocols, ParticipantEndpointTypes, ParticipantTypes } from "@mojaloop/participant-bc-public-types-lib";
 import waitForExpect from "../../../../../test/integration/fspiop-api-svc/helpers/utils";
-import { ClientErrors } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/enums";
+import { TransferErrorCodeNames } from "@mojaloop/transfers-bc-public-types-lib";
 const BC_NAME = "interop-apis-bc";
 const APP_NAME = "fspiop-api-svc";
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
@@ -758,7 +757,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransfersBCUnknownErrorEvent({
             transferId: "123", 
             payerFspId: "bluebank",
-            errorCode: "TransfersBCUnknownErrorEvent"
+            errorCode: TransferErrorCodeNames.COMMAND_TYPE_UNKNOWN
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -789,7 +788,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferInvalidMessagePayloadEvt({
             transferId: "123", 
             payerFspId: "bluebank",
-            errorCode: "TransferInvalidMessagePayloadEvt"
+            errorCode: TransferErrorCodeNames.COMMAND_TYPE_UNKNOWN
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -820,7 +819,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferInvalidMessageTypeEvt({
             transferId: "123", 
             payerFspId: "bluebank",
-            errorCode: "TransferInvalidMessageTypeEvt"
+            errorCode: TransferErrorCodeNames.COMMAND_TYPE_UNKNOWN
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -851,7 +850,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferUnableToAddEvt({
             transferId: "123", 
             payerFspId: "bluebank",
-            errorCode: "TransferUnableToAddEvt"
+            errorCode: TransferErrorCodeNames.UNABLE_TO_ADD_TRANSFER
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -882,7 +881,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferUnableToUpdateEvt({
             transferId: "123", 
             payerFspId: "bluebank",
-            errorCode: "TransferUnableToUpdateEvt"
+            errorCode: TransferErrorCodeNames.UNABLE_TO_UPDATE_TRANSFER
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -912,7 +911,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         // Arrange
         const msg = new TransferUnableToDeleteTransferReminderEvt({
             transferId: "123", 
-            errorCode: "TransferUnableToDeleteTransferReminderEvt"
+            errorCode: TransferErrorCodeNames.UNABLE_TO_DELETE_TRANSFER_REMINDER
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -942,7 +941,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         // Arrange
         const msg = new TransferHubNotFoundFailedEvt({
             transferId: "123", 
-            errorCode: "TransferHubNotFoundFailedEvt"
+            errorCode: TransferErrorCodeNames.HUB_NOT_FOUND
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -972,7 +971,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         // Arrange
         const msg = new TransferHubAccountNotFoundFailedEvt({
             transferId: "123", 
-            errorCode: "TransferHubAccountNotFoundFailedEvt"
+            errorCode: TransferErrorCodeNames.HUB_ACCOUNT_NOT_FOUND
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1003,7 +1002,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferPayerNotFoundFailedEvt({
             transferId: "123",
             payerFspId: "bluebank",
-            errorCode: "TransferPayerNotFoundFailedEvt"
+            errorCode: TransferErrorCodeNames.PAYER_PARTICIPANT_NOT_FOUND
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1028,13 +1027,13 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             }));
         });
     });
-            
+             
     it("should return TransferPayeePositionAccountNotFoundFailedEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferPayeePositionAccountNotFoundFailedEvt({
             transferId: "123",
             payeeFspId: "greenbank",
-            errorCode: "TransferPayeePositionAccountNotFoundFailedEvt"
+            errorCode: TransferErrorCodeNames.PAYEE_POSITION_ACCOUNT_NOT_FOUND
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1051,8 +1050,8 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
                     "errorInformation": { 
-                        "errorCode": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.code,
-                        "errorDescription": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.name
+                        "errorCode": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.code,
+                        "errorDescription": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.name
                     }
                 },
                 "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
@@ -1065,7 +1064,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferPayeeLiquidityAccountNotFoundFailedEvt({
             transferId: "123",
             payeeFspId: "greenbank",
-            errorCode: "TransferPayeeLiquidityAccountNotFoundFailedEvt"
+            errorCode: TransferErrorCodeNames.PAYEE_LIQUIDITY_ACCOUNT_NOT_FOUND
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1082,8 +1081,8 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
                     "errorInformation": { 
-                        "errorCode": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.code,
-                        "errorDescription": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.name
+                        "errorCode": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.code,
+                        "errorDescription": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.name
                     }
                 },
                 "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
@@ -1091,43 +1090,13 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         });
     });
             
-    it("should return TransferQueryInvalidPayerCheckFailedEvt http call for participant type", async () => {
-        // Arrange
-        const msg = new TransferQueryInvalidPayerCheckFailedEvt({
-            transferId: "123", 
-            payerFspId: "bluebank",
-            errorCode: "TransferQueryInvalidPayerCheckFailedEvt"
-        })
-        
-        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
-
-        jest.spyOn(mockedParticipantService, "getParticipantInfo").mockResolvedValue(mockedParticipant);
-
-        const sendRequestSpy = jest.spyOn(Request, "sendRequest");
-        
-        // Act
-        await transfersEvtHandler.processMessage(message);
-
-        // Assert
-        await waitForExpect(async () => {
-            expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
-                "payload": {
-                    "errorInformation": { 
-                        "errorCode": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.code,
-                        "errorDescription": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.name
-                    }
-                },
-                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
-            }));
-        });
-    });
             
     it("should return TransferQueryPayerNotFoundFailedEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferQueryPayerNotFoundFailedEvt({
             transferId: "123",
             payerFspId: "bluebank",
-            errorCode: "TransferQueryPayerNotFoundFailedEvt"
+            errorCode: TransferErrorCodeNames.PAYER_PARTICIPANT_NOT_FOUND
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1158,7 +1127,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferPayerPositionAccountNotFoundFailedEvt({
             transferId: "123",
             payerFspId: "bluebank",
-            errorCode: "TransferPayerPositionAccountNotFoundFailedEvt"
+            errorCode: TransferErrorCodeNames.PAYER_POSITION_ACCOUNT_NOT_FOUND
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1175,8 +1144,8 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
                     "errorInformation": { 
-                        "errorCode": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.code,
-                        "errorDescription": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.name
+                        "errorCode": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.code,
+                        "errorDescription": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.name
                     }
                 },
                 "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
@@ -1189,7 +1158,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferPayerLiquidityAccountNotFoundFailedEvt({
             transferId: "123",
             payerFspId: "bluebank",
-            errorCode: "TransferPayerLiquidityAccountNotFoundFailedEvt"
+            errorCode: TransferErrorCodeNames.PAYER_LIQUIDITY_ACCOUNT_NOT_FOUND
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1206,8 +1175,8 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
                     "errorInformation": { 
-                        "errorCode": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.code,
-                        "errorDescription": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.name
+                        "errorCode": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.code,
+                        "errorDescription": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.name
                     }
                 },
                 "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
@@ -1220,7 +1189,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferPayeeNotFoundFailedEvt({
             transferId: "123",
             payeeFspId: "greenbank",
-            errorCode: "TransferPayeeNotFoundFailedEvt"
+            errorCode: TransferErrorCodeNames.PAYEE_PARTICIPANT_NOT_FOUND
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1246,43 +1215,13 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         });
     });
                     
-    it("should return TransferQueryInvalidPayeeCheckFailedEvt http call for participant type", async () => {
-        // Arrange
-        const msg = new TransferQueryInvalidPayeeCheckFailedEvt({
-            transferId: "123",
-            payeeFspId: "greenbank",
-            errorCode: "TransferQueryInvalidPayeeCheckFailedEvt"
-        })
-        
-        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
-
-        jest.spyOn(mockedParticipantService, "getParticipantInfo").mockResolvedValue(mockedParticipant);
-
-        const sendRequestSpy = jest.spyOn(Request, "sendRequest");
-        
-        // Act
-        await transfersEvtHandler.processMessage(message);
-
-        // Assert
-        await waitForExpect(async () => {
-            expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
-                "payload": {
-                    "errorInformation": { 
-                        "errorCode": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.code,
-                        "errorDescription": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.name
-                    }
-                },
-                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
-            }));
-        });
-    });
                     
     it("should return TransferQueryPayeeNotFoundFailedEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferQueryPayeeNotFoundFailedEvt({
             transferId: "123",
             payeeFspId: "greenbank",
-            errorCode: "TransferQueryPayeeNotFoundFailedEvt"
+            errorCode: TransferErrorCodeNames.PAYEE_PARTICIPANT_NOT_FOUND
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1312,7 +1251,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         // Arrange
         const msg = new TransferNotFoundEvt({
             transferId: "123",
-            errorCode: "TransferNotFoundEvt"
+            errorCode: TransferErrorCodeNames.TRANSFER_NOT_FOUND
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1342,7 +1281,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         // Arrange
         const msg = new TransferUnableToGetTransferByIdEvt({
             transferId: "123",
-            errorCode: "TransferUnableToGetTransferByIdEvt"
+            errorCode: TransferErrorCodeNames.UNABLE_TO_GET_TRANSFER
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1367,44 +1306,45 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             }));
         });
     });
-                            
-    it("should return TransferDuplicateCheckFailedEvt http call for participant type", async () => {
-        // Arrange
-        const msg = new TransferDuplicateCheckFailedEvt({
-            transferId: "123",
-            payerFspId: "bluebank",
-            errorCode: "TransferDuplicateCheckFailedEvt"
-        })
+
+    // TODO: Uncomment once we have hash repository on transfers-bc
+    // it("should return TransferDuplicateCheckFailedEvt http call for participant type", async () => {
+    //     // Arrange
+    //     const msg = new TransferDuplicateCheckFailedEvt({
+    //         transferId: "123",
+    //         payerFspId: "bluebank",
+    //         errorCode: TransferErrorCodeNames
+    //     })
         
-        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
+    //     const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
-        jest.spyOn(mockedParticipantService, "getParticipantInfo").mockResolvedValue(mockedParticipant);
+    //     jest.spyOn(mockedParticipantService, "getParticipantInfo").mockResolvedValue(mockedParticipant);
 
-        const sendRequestSpy = jest.spyOn(Request, "sendRequest");
+    //     const sendRequestSpy = jest.spyOn(Request, "sendRequest");
         
-        // Act
-        await transfersEvtHandler.processMessage(message);
+    //     // Act
+    //     await transfersEvtHandler.processMessage(message);
 
-        // Assert
-        await waitForExpect(async () => {
-            expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
-                "payload": {
-                    "errorInformation": { 
-                        "errorCode": Enums.ClientErrors.INVALID_SIGNATURE.code,
-                        "errorDescription": Enums.ClientErrors.INVALID_SIGNATURE.name
-                    }
-                },
-                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
-            }));
-        });
-    });
+    //     // Assert
+    //     await waitForExpect(async () => {
+    //         expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
+    //             "payload": {
+    //                 "errorInformation": { 
+    //                     "errorCode": Enums.ClientErrors.INVALID_SIGNATURE.code,
+    //                     "errorDescription": Enums.ClientErrors.INVALID_SIGNATURE.name
+    //                 }
+    //             },
+    //             "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
+    //         }));
+    //     });
+    // });
                                 
     it("should return TransferPrepareRequestTimedoutEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferPrepareRequestTimedoutEvt({
             transferId: "123",
             payerFspId: "bluebank",
-            errorCode: "TransferPrepareRequestTimedoutEvt"
+            errorCode: TransferErrorCodeNames.TRANSFER_EXPIRED
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1436,7 +1376,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             transferId: "123",
             payerFspId: "bluebank",
             payeeFspId: "greenbankbank",
-            errorCode: "TransferFulfilCommittedRequestedTimedoutEvt"
+            errorCode: TransferErrorCodeNames.TRANSFER_EXPIRED
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1468,7 +1408,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             transferId: "123",
             payerFspId: "bluebank",
             payeeFspId: "greenbankbank",
-            errorCode: "TransferFulfilPostCommittedRequestedTimedoutEvt"
+            errorCode: TransferErrorCodeNames.TRANSFER_EXPIRED
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1498,7 +1438,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         // Arrange
         const msg = new TransferCancelReservationFailedEvt({
             transferId: "123",
-            errorCode: "TransferCancelReservationFailedEvt"
+            errorCode: TransferErrorCodeNames.UNABLE_TO_CANCEL_TRANSFER_RESERVATION
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1528,7 +1468,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         // Arrange
         const msg = new TransferCancelReservationAndCommitFailedEvt({
             transferId: "123",
-            errorCode: "TransferCancelReservationAndCommitFailedEvt"
+            errorCode: TransferErrorCodeNames.UNABLE_TO_CANCEL_TRANSFER_RESERVATION_AND_COMMIT
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1561,7 +1501,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             payerFspId: "bluebank", 
             amount: "10", 
             currency: "USD",
-            errorCode: "TransferPrepareLiquidityCheckFailedEvt"
+            errorCode: TransferErrorCodeNames.TRANSFER_LIQUIDITY_CHECK_FAILED
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1622,7 +1562,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferPayerNotActiveEvt({
             transferId: "123",
             payerFspId: "bluebank",
-            errorCode: "TransferPayerNotActiveEvt"
+            errorCode: TransferErrorCodeNames.PAYER_PARTICIPANT_NOT_ACTIVE
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1653,7 +1593,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferPayerNotApprovedEvt({
             transferId: "123",
             payerFspId: "bluebank",
-            errorCode: "TransferPayerNotApprovedEvt"
+            errorCode: TransferErrorCodeNames.PAYER_PARTICIPANT_NOT_APPROVED
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1678,75 +1618,15 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             }));
         });
     });
-                                                    
-    it("should return TransferPrepareInvalidPayerCheckFailedEvt http call for participant type", async () => {
-        // Arrange
-        const msg = new TransferPrepareInvalidPayerCheckFailedEvt({
-            transferId: "123",
-            payerFspId: "bluebank",
-            errorCode: "TransferPrepareInvalidPayerCheckFailedEvt"
-        })
-        
-        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
-
-        jest.spyOn(mockedParticipantService, "getParticipantInfo").mockResolvedValue(mockedParticipant);
-
-        const sendRequestSpy = jest.spyOn(Request, "sendRequest");
-        
-        // Act
-        await transfersEvtHandler.processMessage(message);
-
-        // Assert
-        await waitForExpect(async () => {
-            expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
-                "payload": {
-                    "errorInformation": { 
-                        "errorCode": Enums.PayerErrors.GENERIC_PAYER_ERROR.code,
-                        "errorDescription": Enums.PayerErrors.GENERIC_PAYER_ERROR.name
-                    }
-                },
-                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
-            }));
-        });
-    });
-                                                    
-    it("should return TransferQueryInvalidPayerParticipantIdEvt http call for participant type", async () => {
-        // Arrange
-        const msg = new TransferQueryInvalidPayerParticipantIdEvt({
-            transferId: "123",
-            payerFspId: "bluebank",
-            errorCode: "TransferQueryInvalidPayerParticipantIdEvt"
-        })
-        
-        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
-
-        jest.spyOn(mockedParticipantService, "getParticipantInfo").mockResolvedValue(mockedParticipant);
-
-        const sendRequestSpy = jest.spyOn(Request, "sendRequest");
-        
-        // Act
-        await transfersEvtHandler.processMessage(message);
-
-        // Assert
-        await waitForExpect(async () => {
-            expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
-                "payload": {
-                    "errorInformation": { 
-                        "errorCode": Enums.PayerErrors.GENERIC_PAYER_ERROR.code,
-                        "errorDescription": Enums.PayerErrors.GENERIC_PAYER_ERROR.name
-                    }
-                },
-                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
-            }));
-        });
-    });
+                                                
+                        
                                                         
     it("should return TransferPayeeNotActiveEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferPayeeNotActiveEvt({
             transferId: "123",
             payeeFspId: "greenbank",
-            errorCode: "TransferPayeeNotActiveEvt"
+            errorCode: TransferErrorCodeNames.PAYEE_PARTICIPANT_NOT_ACTIVE
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1777,7 +1657,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferPayeeNotApprovedEvt({
             transferId: "123",
             payeeFspId: "greenbank",
-            errorCode: "TransferPayeeNotApprovedEvt"
+            errorCode: TransferErrorCodeNames.PAYEE_PARTICIPANT_NOT_APPROVED
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
@@ -1801,69 +1681,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
                 "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
             }));
         });
-    });
-                                                        
-    it("should return TransferPrepareInvalidPayeeCheckFailedEvt http call for participant type", async () => {
-        // Arrange
-        const msg = new TransferPrepareInvalidPayeeCheckFailedEvt({
-            transferId: "123",
-            payeeFspId: "greenbank",
-            errorCode: "TransferPrepareInvalidPayeeCheckFailedEvt"
-        })
-        
-        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
-
-        jest.spyOn(mockedParticipantService, "getParticipantInfo").mockResolvedValue(mockedParticipant);
-
-        const sendRequestSpy = jest.spyOn(Request, "sendRequest");
-        
-        // Act
-        await transfersEvtHandler.processMessage(message);
-
-        // Assert
-        await waitForExpect(async () => {
-            expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
-                "payload": {
-                    "errorInformation": { 
-                        "errorCode": Enums.PayeeErrors.GENERIC_PAYEE_ERROR.code,
-                        "errorDescription": Enums.PayeeErrors.GENERIC_PAYEE_ERROR.name
-                    }
-                },
-                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
-            }));
-        });
-    });
-                                                        
-    it("should return TransferQueryInvalidPayeeParticipantIdEvt http call for participant type", async () => {
-        // Arrange
-        const msg = new TransferQueryInvalidPayeeParticipantIdEvt({
-            transferId: "123",
-            payeeFspId: "greenbank",
-            errorCode: "TransferQueryInvalidPayeeParticipantIdEvt"
-        })
-        
-        const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
-
-        jest.spyOn(mockedParticipantService, "getParticipantInfo").mockResolvedValue(mockedParticipant);
-
-        const sendRequestSpy = jest.spyOn(Request, "sendRequest");
-        
-        // Act
-        await transfersEvtHandler.processMessage(message);
-
-        // Assert
-        await waitForExpect(async () => {
-            expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
-                "payload": {
-                    "errorInformation": { 
-                        "errorCode": Enums.PayeeErrors.GENERIC_PAYEE_ERROR.code,
-                        "errorDescription": Enums.PayeeErrors.GENERIC_PAYEE_ERROR.name
-                    }
-                },
-                "url": expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`)
-            }));
-        });
-    });
+    });                                              
     // #region
 
 });

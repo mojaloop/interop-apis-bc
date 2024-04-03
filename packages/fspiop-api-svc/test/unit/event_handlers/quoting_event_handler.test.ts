@@ -34,7 +34,7 @@
 
 
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import { AccountLookUpUnableToGetParticipantFromOracleErrorEvent, AccountLookUpUnknownErrorEvent, AccountLookupBCDestinationParticipantNotFoundErrorEvent, AccountLookupBCInvalidDestinationParticipantErrorEvent, AccountLookupBCInvalidMessagePayloadErrorEvent, AccountLookupBCInvalidMessageTypeErrorEvent, AccountLookupBCInvalidRequesterParticipantErrorEvent, AccountLookupBCRequesterParticipantNotFoundErrorEvent, AccountLookupBCTopics, AccountLookupBCUnableToAssociateParticipantErrorEvent, AccountLookupBCUnableToDisassociateParticipantErrorEvent, AccountLookupBCUnableToGetOracleAdapterErrorEvent, BulkQuoteAcceptedEvt, BulkQuoteQueryResponseEvt, BulkQuoteReceivedEvt, BulkQuoteReceivedEvtPayload, GetPartyQueryRejectedResponseEvt, ParticipantAssociationCreatedEvt, ParticipantAssociationRemovedEvt, ParticipantQueryResponseEvt, PartyInfoRequestedEvt, PartyQueryResponseEvt, QuoteBCBulkQuoteExpiredErrorEvent, QuoteBCBulkQuoteNotFoundErrorEvent, QuoteBCDestinationParticipantNotFoundErrorEvent, QuoteBCDuplicateQuoteErrorEvent, QuoteBCInvalidBulkQuoteLengthErrorEvent, QuoteBCInvalidDestinationFspIdErrorEvent, QuoteBCInvalidMessagePayloadErrorEvent, QuoteBCInvalidMessageTypeErrorEvent, QuoteBCInvalidRequesterFspIdErrorEvent, QuoteBCQuoteExpiredErrorEvent, QuoteBCQuoteNotFoundErrorEvent, QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent, QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent, QuoteBCRequesterParticipantNotFoundErrorEvent, QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent, QuoteBCUnableToAddQuoteToDatabaseErrorEvent, QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent, QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent, QuoteBCUnknownErrorEvent, QuoteQueryResponseEvt, QuoteRequestAcceptedEvt, QuoteResponseAccepted, QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { BulkQuoteAcceptedEvt, BulkQuoteQueryResponseEvt, BulkQuoteReceivedEvt, QuoteBCBulkQuoteExpiredErrorEvent, QuoteBCBulkQuoteNotFoundErrorEvent, QuoteBCDestinationParticipantNotFoundErrorEvent, QuoteBCDuplicateQuoteErrorEvent, QuoteBCInvalidBulkQuoteLengthErrorEvent, QuoteBCInvalidDestinationFspIdErrorEvent, QuoteBCInvalidMessagePayloadErrorEvent, QuoteBCInvalidMessageTypeErrorEvent, QuoteBCInvalidRequesterFspIdErrorEvent, QuoteBCQuoteExpiredErrorEvent, QuoteBCQuoteNotFoundErrorEvent, QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent, QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent, QuoteBCRequesterParticipantNotFoundErrorEvent, QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent, QuoteBCUnableToAddQuoteToDatabaseErrorEvent, QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent, QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent, QuoteBCUnknownErrorEvent, QuoteQueryResponseEvt, QuoteRequestAcceptedEvt, QuoteResponseAccepted, QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import { MemoryParticipantService, createMessage, getJwsConfig } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { Constants, Enums, FspiopJwsSignature, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
@@ -43,7 +43,7 @@ import { IParticipantServiceAdapter } from "../../../src/interfaces/infrastructu
 import { FSPIOP_PARTY_ACCOUNT_TYPES } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants";
 import { IParticipant, IParticipantEndpoint, ParticipantEndpointProtocols, ParticipantEndpointTypes, ParticipantTypes } from "@mojaloop/participant-bc-public-types-lib";
 import waitForExpect from "../../../../../test/integration/fspiop-api-svc/helpers/utils";
-import { ClientErrors } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/enums";
+import { QuotingErrorCodeNames } from "@mojaloop/quoting-bc-public-types-lib";
 const BC_NAME = "interop-apis-bc";
 const APP_NAME = "fspiop-api-svc";
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
@@ -929,7 +929,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             quoteId: "123", 
             bulkQuoteId: null,
             requesterFspId: "bluebank",
-            errorCode: "QuoteBCUnknownErrorEvent"
+            errorCode: QuotingErrorCodeNames.COMMAND_TYPE_UNKNOWN
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -961,7 +961,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             quoteId: "123", 
             bulkQuoteId: null,
             requesterFspId: "bluebank",
-            errorCode: "QuoteBCInvalidMessagePayloadErrorEvent"
+            errorCode: QuotingErrorCodeNames.INVALID_MESSAGE_PAYLOAD
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -993,7 +993,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             quoteId: "123", 
             bulkQuoteId: null,
             requesterFspId: "bluebank",
-            errorCode: "QuoteBCInvalidMessageTypeErrorEvent"
+            errorCode: QuotingErrorCodeNames.INVALID_MESSAGE_TYPE
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1023,7 +1023,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         // Arrange
         const msg = new QuoteBCInvalidBulkQuoteLengthErrorEvent({
             bulkQuoteId: "123", 
-            errorCode: "QuoteBCInvalidBulkQuoteLengthErrorEvent"
+            errorCode: QuotingErrorCodeNames.INVALID_BULK_QUOTE_LENGTH
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES);
@@ -1053,7 +1053,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         // Arrange
         const msg = new QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent({
             quoteId: "123", 
-            errorCode: "QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent"
+            errorCode: QuotingErrorCodeNames.RULE_SCHEME_VIOLATED_RESPONSE
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1083,7 +1083,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         // Arrange
         const msg = new QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent({
             quoteId: "123", 
-            errorCode: "QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent"
+            errorCode: QuotingErrorCodeNames.RULE_SCHEME_VIOLATED_REQUEST
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1113,7 +1113,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         // Arrange
         const msg = new QuoteBCQuoteNotFoundErrorEvent({
             quoteId: "123", 
-            errorCode: "QuoteBCQuoteNotFoundErrorEvent"
+            errorCode: QuotingErrorCodeNames.QUOTE_NOT_FOUND
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1143,7 +1143,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         // Arrange
         const msg = new QuoteBCBulkQuoteNotFoundErrorEvent({
             bulkQuoteId: "123", 
-            errorCode: "QuoteBCBulkQuoteNotFoundErrorEvent"
+            errorCode: QuotingErrorCodeNames.BULK_QUOTE_NOT_FOUND
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES);
@@ -1175,7 +1175,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             quoteId: "123", 
             bulkQuoteId: null,
             destinationFspId: "greenbank",
-            errorCode: "QuoteBCInvalidDestinationFspIdErrorEvent"
+            errorCode: QuotingErrorCodeNames.INVALID_DESTINATION_PARTICIPANT
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1205,7 +1205,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         // Arrange
         const msg = new QuoteBCDuplicateQuoteErrorEvent({
             quoteId: "123", 
-            errorCode: "QuoteBCDuplicateQuoteErrorEvent"
+            errorCode: QuotingErrorCodeNames.DUPLICATE_QUOTE
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1235,7 +1235,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         // Arrange
         const msg = new QuoteBCUnableToAddQuoteToDatabaseErrorEvent({
             quoteId: "123", 
-            errorCode: "QuoteBCUnableToAddQuoteToDatabaseErrorEvent"
+            errorCode: QuotingErrorCodeNames.UNABLE_TO_ADD_QUOTE
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1260,12 +1260,12 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             }));
         });
     });
-                
+                 
     it("should return QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent http call for participant type", async () => {
         // Arrange
         const msg = new QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent({
             bulkQuoteId: "456",
-            errorCode: "QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent"
+            errorCode: QuotingErrorCodeNames.UNABLE_TO_ADD_BULK_QUOTE
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES);
@@ -1295,7 +1295,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         // Arrange
         const msg = new QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent({
             quoteId: "123", 
-            errorCode: "QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent"
+            errorCode: QuotingErrorCodeNames.UNABLE_TO_UPDATE_QUOTE
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1325,7 +1325,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         // Arrange
         const msg = new QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent({
             bulkQuoteId: "456",
-            errorCode: "QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent"
+            errorCode: QuotingErrorCodeNames.UNABLE_TO_UPDATE_BULK_QUOTE
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES);
@@ -1358,7 +1358,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             quoteId: "123", 
             bulkQuoteId: null,
             requesterFspId: "bluebank",
-            errorCode: "QuoteBCInvalidRequesterFspIdErrorEvent"
+            errorCode: QuotingErrorCodeNames.INVALID_SOURCE_PARTICIPANT
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1390,7 +1390,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             quoteId: "123", 
             bulkQuoteId: null,
             requesterFspId: "bluebank",
-            errorCode: "QuoteBCRequesterParticipantNotFoundErrorEvent"
+            errorCode: QuotingErrorCodeNames.SOURCE_PARTICIPANT_NOT_FOUND
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1422,7 +1422,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             quoteId: "123", 
             bulkQuoteId: null,
             destinationFspId: "greenbank",
-            errorCode: "QuoteBCDestinationParticipantNotFoundErrorEvent"
+            errorCode: QuotingErrorCodeNames.DESTINATION_PARTICIPANT_NOT_FOUND
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1453,7 +1453,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         const msg = new QuoteBCQuoteExpiredErrorEvent({
             quoteId: "123",
             expirationDate: "2022-01-22T08:38:08.699-04:00",
-            errorCode: "QuoteBCQuoteExpiredErrorEvent"
+            errorCode: QuotingErrorCodeNames.QUOTE_EXPIRED
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1484,7 +1484,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         const msg = new QuoteBCBulkQuoteExpiredErrorEvent({
             bulkQuoteId: "123",
             expirationDate: "2022-01-22T08:38:08.699-04:00",
-            errorCode: "QuoteBCBulkQuoteExpiredErrorEvent"
+            errorCode: QuotingErrorCodeNames.BULK_QUOTE_EXPIRED
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES);
