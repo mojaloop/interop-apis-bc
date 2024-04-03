@@ -217,7 +217,7 @@ export abstract class BaseEventHandler  {
                     partyId: message?.payload.partyId,
                     partyType: message?.payload.partyType,
                     currency: message?.payload.currency,
-                    errorDescription: error
+                    errorCode: error
                 };
 
                 messageToSend = new AccountLookUpBCOperatorErrorEvent(payload);
@@ -228,7 +228,7 @@ export abstract class BaseEventHandler  {
                     quoteId: message?.payload.quoteId,
                     bulkQuoteId: message?.payload.bulkQuoteId,
                     fspId: message?.payload.quoteId,
-                    errorDescription: error
+                    errorCode: error
                 };
 
                 messageToSend = new QuoteBCOperatorErrorEvent(payload);
@@ -238,7 +238,7 @@ export abstract class BaseEventHandler  {
                 const payload: TransfersBCOperatorErrorPayload = {
                     transferId: message?.payload.transferId,
                     payerFspId: message?.payload.payerFspId,
-                    errorDescription: error
+                    errorCode: error
                 };
 
                 messageToSend = new TransfersBCOperatorErrorEvent(payload);

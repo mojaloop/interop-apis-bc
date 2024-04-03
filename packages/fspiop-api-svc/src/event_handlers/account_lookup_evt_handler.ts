@@ -63,9 +63,9 @@ import { BaseEventHandler, HandlerNames } from "./base_event_handler";
 import { Constants, Enums, FspiopJwsSignature, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import { IParticipantServiceAdapter } from "../interfaces/infrastructure";
+import { getAccountLookupBCErrorMapping } from "../error_mappings/account-lookup";
 
 export class AccountLookupEventHandler extends BaseEventHandler {
 
@@ -106,6 +106,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                     await this._handleParticipantQueryResponseEvt(new ParticipantQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
                 case GetPartyQueryRejectedResponseEvt.name:
+                    await this._handleGetPartyQueryRejectedResponseEvt(new GetPartyQueryRejectedResponseEvt(message.payload), message.fspiopOpaqueState.headers);
+                    break;
                 case AccountLookUpUnknownErrorEvent.name:
                 case AccountLookupBCInvalidMessagePayloadErrorEvent.name:
                 case AccountLookupBCInvalidMessageTypeErrorEvent.name:
@@ -189,76 +191,17 @@ export class AccountLookupEventHandler extends BaseEventHandler {
     private buildErrorResponseBasedOnErrorEvent(message: IDomainMessage, sourceFspId:string, destinationFspId:string): { errorCode: string, errorDescription: string, sourceFspId: string, destinationFspId: string | null } {
         const errorResponse: { errorCode: string, errorDescription: string, sourceFspId: string, destinationFspId: string | null } =
         {
-            errorCode : Enums.CommunicationErrors.COMMUNCATION_ERROR.code,
-            errorDescription : Enums.CommunicationErrors.COMMUNCATION_ERROR.name,
+            errorCode : Enums.CommunicationErrors.COMMUNICATION_ERROR.code,
+            errorDescription : Enums.CommunicationErrors.COMMUNICATION_ERROR.name,
             sourceFspId : sourceFspId,
             destinationFspId: null
         };
 
-        switch (message.msgName) {
-            case AccountLookupBCUnableToAssociateParticipantErrorEvent.name:
-            case AccountLookupBCUnableToDisassociateParticipantErrorEvent.name: {
-                errorResponse.errorCode = Enums.ServerErrors.GENERIC_SERVER_ERROR.code;
-                errorResponse.errorDescription = Enums.ServerErrors.GENERIC_SERVER_ERROR.name;
-                break;
-            }
-            case AccountLookupBCDestinationParticipantNotFoundErrorEvent.name:
-            case AccountLookupBCRequesterParticipantNotFoundErrorEvent.name: {
-                // According to TTK Use cases, this is a generic not found error
-                errorResponse.errorCode = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code;
-                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.name;
-                break;
-            }
-            case AccountLookupBCInvalidDestinationParticipantErrorEvent.name: {
-                errorResponse.errorCode = Enums.ClientErrors.GENERIC_CLIENT_ERROR.code;
-                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_CLIENT_ERROR.name;
-                break;
-            }
-            case AccountLookupBCInvalidRequesterParticipantErrorEvent.name: {
-                errorResponse.errorCode = Enums.ClientErrors.DESTINATION_FSP_ERROR.code;
-                errorResponse.errorDescription = Enums.ClientErrors.DESTINATION_FSP_ERROR.name;
-                break;
-            }
-            case AccountLookupBCInvalidMessagePayloadErrorEvent.name:
-            case AccountLookupBCInvalidMessageTypeErrorEvent.name:
-            case AccountLookupBCUnableToGetOracleAdapterErrorEvent.name: {
-                // According to TTK Use cases, this is a generic not found error
-                // check "Party info of unprovisioned party" for reference
-                errorResponse.errorCode = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code;
-                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.name;
-                break;
-            }
-            case GetPartyQueryRejectedResponseEvt.name:
-            case AccountLookUpUnableToGetParticipantFromOracleErrorEvent.name: {
-                errorResponse.errorCode = Enums.ClientErrors.PARTY_NOT_FOUND.code;
-                errorResponse.errorDescription = Enums.ClientErrors.PARTY_NOT_FOUND.name;
-                break;
-            }
-            case AccountLookUpUnknownErrorEvent.name: {
-                errorResponse.errorCode = Enums.ServerErrors.INTERNAL_SERVER_ERROR.code;
-                errorResponse.errorDescription = Enums.ServerErrors.INTERNAL_SERVER_ERROR.name;
-                break;
-            }
-            case AccountLookupBCRequiredRequesterParticipantIdMismatchErrorEvent.name:
-            case AccountLookupBCRequiredRequesterParticipantIsNotApprovedErrorEvent.name:
-            case AccountLookupBCRequiredRequesterParticipantIsNotActiveErrorEvent.name:
-            {
-                errorResponse.errorCode = Enums.PayerErrors.GENERIC_PAYER_ERROR.code;
-                errorResponse.errorDescription = Enums.PayerErrors.GENERIC_PAYER_ERROR.name;
-                break;
-            }
-            case AccountLookupBCRequiredDestinationParticipantIdMismatchErrorEvent.name:
-            case AccountLookupBCRequiredDestinationParticipantIsNotApprovedErrorEvent.name:
-            case AccountLookupBCRequiredDestinationParticipantIsNotActiveErrorEvent.name:
-            {
-                errorResponse.errorCode = Enums.PayeeErrors.GENERIC_PAYEE_ERROR.code;
-                errorResponse.errorDescription = Enums.PayeeErrors.GENERIC_PAYEE_ERROR.name;
-                break;
-            }
-            default: {
-                this._logger.warn(`Cannot handle error message of type: ${message.msgName}, ignoring`);
-                break;
-            }
+        const errorMapping = getAccountLookupBCErrorMapping(message.payload.errorCode);
+
+        if(errorMapping) {
+            errorResponse.errorCode = errorMapping.errorCode;
+            errorResponse.errorDescription = errorMapping.errorDescription;
         }
 
         return errorResponse;
@@ -501,6 +444,54 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         } catch (error: unknown) {
             this._logger.error(error,"_handleParticipantQueryResponseEvt -> error");
             throw Error("_handleParticipantQueryResponseEvt -> error");
+        }
+
+        return;
+    }
+
+    private async _handleGetPartyQueryRejectedResponseEvt(message: GetPartyQueryRejectedResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
+        this._logger.info("_handleGetPartyQueryRejectedResponseEvt -> start");
+
+        try {
+            const { payload } = message;
+
+
+            const partyType = payload.partyType ;
+            const partyId = payload.partyId;
+            const partySubType = payload.partySubType as string;
+            const clonedHeaders = fspiopOpaqueState;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] ;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] ;
+
+            const destinationEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
+
+            if(!destinationEndpoint) {
+                throw Error(`fspId ${destinationFspId} has no valid participant associated`);
+            }
+
+            // Always validate the payload and headers received
+            message.validatePayload();
+
+            const transformedPayload = Transformer.transformPayloadPartyQueryRejectedPut(payload);
+
+            const urlBuilder = new Request.URLBuilder(destinationEndpoint.value);
+            urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
+            urlBuilder.setLocation([partyType, partyId, partySubType]);
+            urlBuilder.hasError(true);
+            
+            await Request.sendRequest({
+                url: urlBuilder.build(),
+                headers: clonedHeaders,
+                source: requesterFspId,
+                destination: destinationFspId,
+                method: Enums.FspiopRequestMethodsEnum.PUT,
+                payload: transformedPayload
+            });
+
+            this._logger.info("_handleGetPartyQueryRejectedResponseEvt -> end");
+        } catch (error: unknown) {
+            this._logger.error(error,"_handleGetPartyQueryRejectedResponseEvt -> error");
+            throw Error("_handleGetPartyQueryRejectedResponseEvt -> error");
         }
 
         return;

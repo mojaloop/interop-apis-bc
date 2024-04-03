@@ -44,6 +44,7 @@ import { FSPIOP_PARTY_ACCOUNT_TYPES } from "@mojaloop/interop-apis-bc-fspiop-uti
 import { IParticipant, IParticipantEndpoint, ParticipantEndpointProtocols, ParticipantEndpointTypes, ParticipantTypes } from "@mojaloop/participant-bc-public-types-lib";
 import waitForExpect from "../../../../../test/integration/fspiop-api-svc/helpers/utils";
 import { ClientErrors } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/enums";
+import { AccountLookupErrorCodeNames } from "@mojaloop/account-lookup-bc-public-types-lib";
 const BC_NAME = "interop-apis-bc";
 const APP_NAME = "fspiop-api-svc";
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
@@ -573,7 +574,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             requesterFspId: "bluebank",
             currency: "USD",
-            errorDescription: "AccountLookUpUnknownErrorEvent"
+            errorCode: AccountLookupErrorCodeNames.COMMAND_TYPE_UNKNOWN
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTICIPANTS);
@@ -606,7 +607,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             requesterFspId: "bluebank",
             currency: "USD",
-            errorDescription: "AccountLookUpUnknownErrorEvent"
+            errorCode: AccountLookupErrorCodeNames.COMMAND_TYPE_UNKNOWN
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
@@ -639,7 +640,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             partySubType: "456",
             requesterFspId: "bluebank",
-            errorDescription: "AccountLookupBCInvalidMessagePayloadErrorEvent"
+            errorCode: AccountLookupErrorCodeNames.INVALID_MESSAGE_PAYLOAD
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
@@ -672,7 +673,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             partySubType: "456",
             requesterFspId: "bluebank",
-            errorDescription: "AccountLookupBCInvalidMessageTypeErrorEvent"
+            errorCode: AccountLookupErrorCodeNames.INVALID_MESSAGE_TYPE
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
@@ -704,7 +705,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             partyId: "123",
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             currency: "USD",
-            errorDescription: "AccountLookupBCUnableToGetOracleAdapterErrorEvent"
+            errorCode: AccountLookupErrorCodeNames.UNABLE_TO_GET_ORACLE_ADAPTER
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
@@ -773,7 +774,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             partySubType: "456",
             currency: "USD",
-            errorDescription: "AccountLookUpUnableToGetParticipantFromOracleErrorEvent"
+            errorCode: AccountLookupErrorCodeNames.UNABLE_TO_GET_PARTICIPANT_FROM_ORACLE
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
@@ -806,7 +807,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             currency: "USD",
             fspIdToAssociate: "randomFspId",
-            errorDescription: "AccountLookupBCUnableToAssociateParticipantErrorEvent"
+            errorCode: AccountLookupErrorCodeNames.UNABLE_TO_ASSOCIATE_PARTICIPANT
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
@@ -839,7 +840,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             currency: "USD",
             fspIdToDisassociate: "randomFspId",
-            errorDescription: "AccountLookupBCUnableToDisassociateParticipantErrorEvent"
+            errorCode: AccountLookupErrorCodeNames.UNABLE_TO_DISASSOCIATE_PARTICIPANT
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
@@ -872,7 +873,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             partySubType: "456",
             destinationFspId: "randomFspId",
-            errorDescription: "AccountLookupBCDestinationParticipantNotFoundErrorEvent"
+            errorCode: AccountLookupErrorCodeNames.DESTINATION_PARTICIPANT_NOT_FOUND
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
@@ -905,7 +906,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             partySubType: "456",
             requesterFspId: "randomFspId",
-            errorDescription: "AccountLookupBCRequesterParticipantNotFoundErrorEvent"
+            errorCode: AccountLookupErrorCodeNames.SOURCE_PARTICIPANT_NOT_FOUND
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
@@ -938,7 +939,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             partySubType: "456",
             destinationFspId: "randomFspId",
-            errorDescription: "AccountLookupBCInvalidDestinationParticipantErrorEvent"
+            errorCode: AccountLookupErrorCodeNames.INVALID_DESTINATION_PARTICIPANT
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
@@ -971,7 +972,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             partySubType: "456",
             requesterFspId: "randomFspId",
-            errorDescription: "AccountLookupBCInvalidRequesterParticipantErrorEvent"
+            errorCode: AccountLookupErrorCodeNames.INVALID_SOURCE_PARTICIPANT
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
@@ -1004,7 +1005,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             requesterFspId: "bluebank",
             currency: "USD",
-            errorDescription: "AccountLookUpUnknownErrorEvent"
+            errorCode: AccountLookupErrorCodeNames.COMMAND_TYPE_UNKNOWN
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTICIPANTS);
