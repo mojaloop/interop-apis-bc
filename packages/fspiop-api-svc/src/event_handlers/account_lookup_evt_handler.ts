@@ -65,7 +65,7 @@ import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import { IParticipantServiceAdapter } from "../interfaces/infrastructure";
-import { AccountLookupErrorCodeNames } from "@mojaloop/account-lookup-bc-public-types-lib";
+import { getAccountLookupBCErrorMapping } from "../error_mappings/account-lookup";
 
 export class AccountLookupEventHandler extends BaseEventHandler {
 
@@ -191,75 +191,17 @@ export class AccountLookupEventHandler extends BaseEventHandler {
     private buildErrorResponseBasedOnErrorEvent(message: IDomainMessage, sourceFspId:string, destinationFspId:string): { errorCode: string, errorDescription: string, sourceFspId: string, destinationFspId: string | null } {
         const errorResponse: { errorCode: string, errorDescription: string, sourceFspId: string, destinationFspId: string | null } =
         {
-            errorCode : Enums.CommunicationErrors.COMMUNCATION_ERROR.code,
-            errorDescription : Enums.CommunicationErrors.COMMUNCATION_ERROR.name,
+            errorCode : Enums.CommunicationErrors.COMMUNICATION_ERROR.code,
+            errorDescription : Enums.CommunicationErrors.COMMUNICATION_ERROR.name,
             sourceFspId : sourceFspId,
             destinationFspId: null
         };
 
-        switch (message.payload.errorCode) {
-            case AccountLookupErrorCodeNames.UNABLE_TO_ASSOCIATE_PARTICIPANT:
-            case AccountLookupErrorCodeNames.UNABLE_TO_DISASSOCIATE_PARTICIPANT: {
-                errorResponse.errorCode = Enums.ServerErrors.GENERIC_SERVER_ERROR.code;
-                errorResponse.errorDescription = Enums.ServerErrors.GENERIC_SERVER_ERROR.name;
-                break;
-            }
-            case AccountLookupErrorCodeNames.DESTINATION_PARTICIPANT_NOT_FOUND:
-            case AccountLookupErrorCodeNames.SOURCE_PARTICIPANT_NOT_FOUND: {
-                // According to TTK Use cases, this is a generic not found error
-                errorResponse.errorCode = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code;
-                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.name;
-                break;
-            }
-            case AccountLookupErrorCodeNames.INVALID_DESTINATION_PARTICIPANT: {
-                errorResponse.errorCode = Enums.ClientErrors.GENERIC_CLIENT_ERROR.code;
-                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_CLIENT_ERROR.name;
-                break;
-            }
-            case AccountLookupErrorCodeNames.INVALID_SOURCE_PARTICIPANT: {
-                errorResponse.errorCode = Enums.ClientErrors.DESTINATION_FSP_ERROR.code;
-                errorResponse.errorDescription = Enums.ClientErrors.DESTINATION_FSP_ERROR.name;
-                break;
-            }
-            case AccountLookupErrorCodeNames.INVALID_MESSAGE_PAYLOAD:
-            case AccountLookupErrorCodeNames.INVALID_MESSAGE_TYPE:
-            case AccountLookupErrorCodeNames.UNABLE_TO_GET_ORACLE_ADAPTER: {
-                // According to TTK Use cases, this is a generic not found error
-                // check "Party info of unprovisioned party" for reference
-                errorResponse.errorCode = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code;
-                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.name;
-                break;
-            }
-            case AccountLookupErrorCodeNames.UNABLE_TO_GET_PARTICIPANT_FROM_ORACLE: {
-                errorResponse.errorCode = Enums.ClientErrors.PARTY_NOT_FOUND.code;
-                errorResponse.errorDescription = Enums.ClientErrors.PARTY_NOT_FOUND.name;
-                break;
-            }
-            case AccountLookupErrorCodeNames.COMMAND_TYPE_UNKNOWN: {
-                errorResponse.errorCode = Enums.ServerErrors.INTERNAL_SERVER_ERROR.code;
-                errorResponse.errorDescription = Enums.ServerErrors.INTERNAL_SERVER_ERROR.name;
-                break;
-            }
-            case AccountLookupErrorCodeNames.REQUIRED_SOURCE_PARTICIPANT_ID_MISMATCH:
-            case AccountLookupErrorCodeNames.REQUIRED_SOURCE_PARTICIPANT_NOT_APPROVED:
-            case AccountLookupErrorCodeNames.REQUIRED_SOURCE_PARTICIPANT_NOT_ACTIVE:
-            {
-                errorResponse.errorCode = Enums.PayerErrors.GENERIC_PAYER_ERROR.code;
-                errorResponse.errorDescription = Enums.PayerErrors.GENERIC_PAYER_ERROR.name;
-                break;
-            }
-            case AccountLookupErrorCodeNames.REQUIRED_DESTINATION_PARTICIPANT_ID_MISMATCH:
-            case AccountLookupErrorCodeNames.REQUIRED_DESTINATION_PARTICIPANT_NOT_APPROVED:
-            case AccountLookupErrorCodeNames.REQUIRED_DESTINATION_PARTICIPANT_NOT_ACTIVE:
-            {
-                errorResponse.errorCode = Enums.PayeeErrors.GENERIC_PAYEE_ERROR.code;
-                errorResponse.errorDescription = Enums.PayeeErrors.GENERIC_PAYEE_ERROR.name;
-                break;
-            }
-            default: {
-                this._logger.warn(`Cannot handle error message of type: ${message.msgName}, ignoring`);
-                break;
-            }
+        const errorMapping = getAccountLookupBCErrorMapping(message.payload.errorCode);
+
+        if(errorMapping) {
+            errorResponse.errorCode = errorMapping.errorCode;
+            errorResponse.errorDescription = errorMapping.errorDescription;
         }
 
         return errorResponse;

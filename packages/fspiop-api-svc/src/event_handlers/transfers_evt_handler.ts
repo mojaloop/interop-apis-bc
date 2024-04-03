@@ -83,7 +83,7 @@ import { BaseEventHandler, HandlerNames } from "./base_event_handler";
 import { IParticipantServiceAdapter } from "../interfaces/infrastructure";
 import { TransferFulfilRequestedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { TransferRejectRequestedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import {  TransferErrorCodeNames } from "@mojaloop/transfers-bc-public-types-lib";
+import { getTransferBCErrorMapping } from "../error_mappings/transfers";
 
 
 export class TransferEventHandler extends BaseEventHandler {
@@ -227,8 +227,8 @@ export class TransferEventHandler extends BaseEventHandler {
     private buildErrorResponseBasedOnErrorEvent (message: DomainErrorEventMsg, sourceFspId:string, destinationFspId:string) : { errorCode: string, errorDescription: string, sourceFspId: string, destinationFspId: string | null } {
         const errorResponse: { errorCode: string, errorDescription: string, sourceFspId: string, destinationFspId: string | null } =
         {
-            errorCode : Enums.CommunicationErrors.COMMUNCATION_ERROR.code,
-            errorDescription : Enums.CommunicationErrors.COMMUNCATION_ERROR.name,
+            errorCode : Enums.CommunicationErrors.COMMUNICATION_ERROR.code,
+            errorDescription : Enums.CommunicationErrors.COMMUNICATION_ERROR.name,
             sourceFspId : sourceFspId,
             destinationFspId: null
         };
@@ -243,92 +243,11 @@ export class TransferEventHandler extends BaseEventHandler {
             }
         }
 
-        switch (message.payload.errorCode) {
-            // case TransferInvalidMessagePayloadEvt.name:
-            //     case TransferInvalidMessageTypeEvt.name:
-            //     case TransferHubIdMismatchEvt.name:
-            //     case TransfersBCUnknownErrorEvent.name: {
-            case TransferErrorCodeNames.COMMAND_TYPE_UNKNOWN:
-            case TransferErrorCodeNames.HUB_PARTICIPANT_ID_MISMATCH:
-            case TransferErrorCodeNames.UNABLE_TO_CANCEL_TRANSFER_RESERVATION_AND_COMMIT:
-            {
-                errorResponse.errorCode = Enums.ServerErrors.GENERIC_SERVER_ERROR.code;
-                errorResponse.errorDescription = Enums.ServerErrors.GENERIC_SERVER_ERROR.name;
-                break;
-            }
-            case TransferErrorCodeNames.UNABLE_TO_ADD_TRANSFER:
-            case TransferErrorCodeNames.UNABLE_TO_UPDATE_TRANSFER: 
-            case TransferErrorCodeNames.UNABLE_TO_DELETE_TRANSFER_REMINDER: {
-                errorResponse.errorCode = Enums.ServerErrors.INTERNAL_SERVER_ERROR.code;
-                errorResponse.errorDescription = Enums.ServerErrors.INTERNAL_SERVER_ERROR.name;
-                break;
-            }
-            case TransferErrorCodeNames.HUB_NOT_FOUND:
-            case TransferErrorCodeNames.HUB_ACCOUNT_NOT_FOUND: {
-                errorResponse.errorCode = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code;
-                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.name;
-                break;
-            }
-            case TransferErrorCodeNames.PAYER_POSITION_ACCOUNT_NOT_FOUND:
-            case TransferErrorCodeNames.PAYER_LIQUIDITY_ACCOUNT_NOT_FOUND:
-            case TransferErrorCodeNames.PAYER_PARTICIPANT_NOT_FOUND: {
-                errorResponse.errorCode = Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.code;
-                errorResponse.errorDescription = Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.name;
-                break;
-            }
-            case TransferErrorCodeNames.PAYEE_POSITION_ACCOUNT_NOT_FOUND:
-            case TransferErrorCodeNames.PAYEE_LIQUIDITY_ACCOUNT_NOT_FOUND:
-            case TransferErrorCodeNames.PAYEE_PARTICIPANT_NOT_FOUND: {
-                errorResponse.errorCode = Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.code;
-                errorResponse.errorDescription = Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.name;
-                break;
-            }
-            case TransferErrorCodeNames.TRANSFER_NOT_FOUND:
-            case TransferErrorCodeNames.UNABLE_TO_GET_TRANSFER: {
-                errorResponse.errorCode = Enums.ClientErrors.TRANSFER_ID_NOT_FOUND.code;
-                errorResponse.errorDescription = Enums.ClientErrors.TRANSFER_ID_NOT_FOUND.name;
-                break;
-            }
-            // TODO: Change once we have hash repository on transfers bc
-            // case TransferDuplicateCheckFailedEvt.name: {
-            //     errorResponse.errorCode = Enums.ClientErrors.INVALID_SIGNATURE.code;
-            //     errorResponse.errorDescription = Enums.ClientErrors.INVALID_SIGNATURE.name;
-            //     break;
-            // }
-            case TransferErrorCodeNames.TRANSFER_EXPIRED: {
-                errorResponse.errorCode = Enums.ClientErrors.TRANSFER_EXPIRED.code;
-                errorResponse.errorDescription = Enums.ClientErrors.TRANSFER_EXPIRED.name;
-                break;
-            }
-            case TransferErrorCodeNames.UNABLE_TO_CANCEL_TRANSFER_RESERVATION: {
-                errorResponse.errorCode = Enums.ServerErrors.GENERIC_SERVER_ERROR.code;
-                errorResponse.errorDescription = Enums.ServerErrors.GENERIC_SERVER_ERROR.name;
-                errorResponse.destinationFspId = destinationFspId;
-                break;
-            }
-            case TransferErrorCodeNames.TRANSFER_LIQUIDITY_CHECK_FAILED: {
-                errorResponse.errorCode = Enums.PayerErrors.PAYER_FSP_INSUFFICIENT_LIQUIDITY.code;
-                errorResponse.errorDescription = Enums.PayerErrors.PAYER_FSP_INSUFFICIENT_LIQUIDITY.name;
-                break;
-            }
-            case TransferErrorCodeNames.PAYER_PARTICIPANT_ID_MISMATCH:
-            case TransferErrorCodeNames.PAYER_PARTICIPANT_NOT_ACTIVE:
-            case TransferErrorCodeNames.PAYER_PARTICIPANT_NOT_APPROVED: {
-                errorResponse.errorCode = Enums.PayerErrors.GENERIC_PAYER_BLOCKED_ERROR.code;
-                errorResponse.errorDescription = Enums.PayerErrors.GENERIC_PAYER_BLOCKED_ERROR.name;
-                break;
-            }
-            case TransferErrorCodeNames.PAYEE_PARTICIPANT_ID_MISMATCH:
-            case TransferErrorCodeNames.PAYEE_PARTICIPANT_NOT_ACTIVE:
-            case TransferErrorCodeNames.PAYEE_PARTICIPANT_NOT_APPROVED: {
-                errorResponse.errorCode = Enums.ClientErrors.DESTINATION_FSP_ERROR.code;
-                errorResponse.errorDescription = Enums.ClientErrors.DESTINATION_FSP_ERROR.name;
-                break;
-            }
-            default: {
-                const errorMessage = `Cannot handle error message of type: ${message.msgName}, ignoring`;
-                this._logger.warn(errorMessage);
-            }
+        const errorMapping = getTransferBCErrorMapping(message.payload.errorCode);
+
+        if(errorMapping) {
+            errorResponse.errorCode = errorMapping.errorCode;
+            errorResponse.errorDescription = errorMapping.errorDescription;
         }
 
         return errorResponse;

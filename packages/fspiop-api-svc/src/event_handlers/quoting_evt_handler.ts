@@ -72,7 +72,7 @@ import {IDomainMessage, IMessage} from "@mojaloop/platform-shared-lib-messaging-
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import { IParticipantServiceAdapter } from "../interfaces/infrastructure";
-import { QuotingErrorCodeNames } from "@mojaloop/quoting-bc-public-types-lib";
+import { getQuotingBCErrorMapping } from "../error_mappings/quoting";
 
 export class QuotingEventHandler extends BaseEventHandler {
     constructor(
@@ -204,93 +204,19 @@ export class QuotingEventHandler extends BaseEventHandler {
     private buildErrorResponseBasedOnErrorEvent(message: IDomainMessage, sourceFspId:string): { errorCode: string; errorDescription: string, sourceFspId: string, destinationFspId: string | null } {
         const errorResponse: { errorCode: string, errorDescription: string, sourceFspId: string, destinationFspId: string | null } =
         {
-            errorCode : Enums.CommunicationErrors.COMMUNCATION_ERROR.code,
-            errorDescription : Enums.CommunicationErrors.COMMUNCATION_ERROR.description,
+            errorCode : Enums.CommunicationErrors.COMMUNICATION_ERROR.code,
+            errorDescription : Enums.CommunicationErrors.COMMUNICATION_ERROR.description,
             sourceFspId : sourceFspId,
             destinationFspId: null
         };
 
-        switch (message.payload.errorCode) {
-            case QuotingErrorCodeNames.INVALID_MESSAGE_PAYLOAD:
-            case QuotingErrorCodeNames.INVALID_MESSAGE_TYPE:
-            case QuotingErrorCodeNames.INVALID_BULK_QUOTE_LENGTH:
-            case QuotingErrorCodeNames.RULE_SCHEME_VIOLATED_RESPONSE:
-            case QuotingErrorCodeNames.RULE_SCHEME_VIOLATED_REQUEST:
-            {
-                errorResponse.errorCode = Enums.ClientErrors.GENERIC_VALIDATION_ERROR.code;
-                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_VALIDATION_ERROR.name;
-                break;
-            }
-            case QuotingErrorCodeNames.QUOTE_NOT_FOUND:
-            {
-                errorResponse.errorCode = Enums.ClientErrors.QUOTE_ID_NOT_FOUND.code;
-                errorResponse.errorDescription = Enums.ClientErrors.QUOTE_ID_NOT_FOUND.name;
-                break;
-            }
-            case QuotingErrorCodeNames.BULK_QUOTE_NOT_FOUND: 
-            case QuotingErrorCodeNames.INDIVIDUAL_QUOTES_NOT_FOUND: {
-                errorResponse.errorCode = Enums.ClientErrors.BULK_QUOTE_ID_NOT_FOUND.code;
-                errorResponse.errorDescription = Enums.ClientErrors.BULK_QUOTE_ID_NOT_FOUND.name;
-                break;
-            }
-            case QuotingErrorCodeNames.INVALID_DESTINATION_PARTICIPANT:{
-                errorResponse.errorCode = Enums.ClientErrors.DESTINATION_FSP_ERROR.code;
-                errorResponse.errorDescription = Enums.ClientErrors.DESTINATION_FSP_ERROR.name;
-                break;
-            }            
-            case QuotingErrorCodeNames.SOURCE_PARTICIPANT_NOT_FOUND: {
-                errorResponse.errorCode = Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.code;
-                errorResponse.errorDescription = Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.name;
-                break;
-            }
-            case QuotingErrorCodeNames.DESTINATION_PARTICIPANT_NOT_FOUND: {
-                errorResponse.errorCode = Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.code;
-                errorResponse.errorDescription = Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.name;
-                break;
-            }
-            case QuotingErrorCodeNames.QUOTE_EXPIRED:
-            case QuotingErrorCodeNames.BULK_QUOTE_EXPIRED: {
-                errorResponse.errorCode = Enums.ClientErrors.QUOTE_EXPIRED.code;
-                errorResponse.errorDescription = Enums.ClientErrors.QUOTE_EXPIRED.name;
-                break;
-            }
-            case QuotingErrorCodeNames.REQUIRED_SOURCE_PARTICIPANT_ID_MISMATCH:
-            case QuotingErrorCodeNames.REQUIRED_SOURCE_PARTICIPANT_NOT_APPROVED:
-            case QuotingErrorCodeNames.REQUIRED_SOURCE_PARTICIPANT_NOT_ACTIVE:
-            {
-                errorResponse.errorCode = Enums.PayerErrors.GENERIC_PAYER_ERROR.code;
-                errorResponse.errorDescription = Enums.PayerErrors.GENERIC_PAYER_ERROR.name;
-                break;
-            }
-            case QuotingErrorCodeNames.REQUIRED_DESTINATION_PARTICIPANT_ID_MISMATCH:
-            case QuotingErrorCodeNames.REQUIRED_DESTINATION_PARTICIPANT_NOT_APPROVED:
-            case QuotingErrorCodeNames.REQUIRED_DESTINATION_PARTICIPANT_NOT_ACTIVE:
-            {
-                errorResponse.errorCode = Enums.PayeeErrors.GENERIC_PAYEE_ERROR.code;
-                errorResponse.errorDescription = Enums.PayeeErrors.GENERIC_PAYEE_ERROR.name;
-                break;
-            }
-            case QuotingErrorCodeNames.DUPLICATE_QUOTE:
-            case QuotingErrorCodeNames.UNABLE_TO_ADD_QUOTE:
-            case QuotingErrorCodeNames.UNABLE_TO_ADD_BULK_QUOTE:
-            case QuotingErrorCodeNames.UNABLE_TO_UPDATE_QUOTE:
-            case QuotingErrorCodeNames.UNABLE_TO_UPDATE_BULK_QUOTE: 
-            case QuotingErrorCodeNames.INVALID_SOURCE_PARTICIPANT:
-            {
-                errorResponse.errorCode = Enums.ClientErrors.GENERIC_CLIENT_ERROR.code;
-                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_CLIENT_ERROR.name;
-                break;
-            }
-            case QuotingErrorCodeNames.COMMAND_TYPE_UNKNOWN: {
-                errorResponse.errorCode = Enums.ServerErrors.INTERNAL_SERVER_ERROR.code;
-                errorResponse.errorDescription = Enums.ServerErrors.INTERNAL_SERVER_ERROR.name;
-                break;
-            }
-            default: {
-                this._logger.warn(`Cannot handle error message of type: ${message.msgName}, ignoring`);
-                break;
-            }
+        const errorMapping = getQuotingBCErrorMapping(message.payload.errorCode);
+
+        if(errorMapping) {
+            errorResponse.errorCode = errorMapping.errorCode;
+            errorResponse.errorDescription = errorMapping.errorDescription;
         }
+
         return errorResponse;
     }
 
