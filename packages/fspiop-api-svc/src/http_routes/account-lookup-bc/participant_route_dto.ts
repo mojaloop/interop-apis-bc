@@ -30,7 +30,19 @@
 
 export type GetParticipantByTypeAndIdDTO = { 
     Params: { 
-        type: string; id: string 
+        type: string; 
+        id: string;
+    }, 
+    Querystring: { 
+        currency: string 
+    } 
+}
+
+export type GetParticipantByTypeAndIdAndSubIdDTO = { 
+    Params: { 
+        type: string; 
+        id: string;
+        subid: string;
     }, 
     Querystring: { 
         currency: string 

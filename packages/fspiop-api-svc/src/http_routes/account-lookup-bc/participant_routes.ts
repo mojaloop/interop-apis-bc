@@ -33,9 +33,11 @@
  ******/
 
 "use strict";
+
+import { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { Constants, FspiopJwsSignature, FspiopValidator, Transformer, ValidationdError } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { 
+import {
     ParticipantQueryReceivedEvtPayload,
     ParticipantQueryReceivedEvt,
     ParticipantDisassociateRequestReceivedEvt,
@@ -44,10 +46,9 @@ import {
     ParticipantAssociationRequestReceivedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { FSPIOPErrorCodes } from "../../validation";
-import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { BaseRoutesFastify } from "../_base_routerfastify";
-import { FastifyInstance, FastifyPluginOptions, FastifyReply, FastifyRequest } from "fastify";
-import { GetParticipantByTypeAndIdDTO } from "./participant_route_dto";
+import { GetParticipantByTypeAndIdAndSubIdDTO, GetParticipantByTypeAndIdDTO } from "./participant_route_dto";
 
 export class ParticipantRoutes extends BaseRoutesFastify {
 
@@ -60,32 +61,27 @@ export class ParticipantRoutes extends BaseRoutesFastify {
         super(producer, validator, jwsHelper, logger);
     }
 
-    bindRoutes(): (instance: FastifyInstance, opts: FastifyPluginOptions, done: (err?: Error) => void) => void {
-        // Create a function to register routes
-        return (fastifyInstance, opts, done) => {
+    public bindRoutes: FastifyPluginAsync = async (fastify, opts) => {
+        // POST Associate Party Party by Type & ID
+        fastify.post("/:type/:id", this.associatePartyByTypeAndId.bind(this));
 
-            // GET Participant by Type & ID
-            fastifyInstance.get('/:type/:id', this.getParticipantsByTypeAndIDAndSubId.bind(this)); 
-            // GET Participants by Type, ID & SubId
-            fastifyInstance.get("/:type/:id/:subid", this.getParticipantsByTypeAndIDAndSubId.bind(this));
-            // POST Associate Party Party by Type & ID
-            fastifyInstance.post("/:type/:id/", this.associatePartyByTypeAndId.bind(this));
-            // POST Associate Party Party by Type, ID & SubId
-            fastifyInstance.post("/:type/:id/:subid", this.associatePartyByTypeAndIdAndSubId.bind(this));
-            // DELETE Disassociate Party Party by Type & ID
-            fastifyInstance.delete("/:type/:id/", this.disassociatePartyByTypeAndId.bind(this));
-            // DELETE Disassociate Party Party by Type, ID & SubId
-            fastifyInstance.delete("/:type/:id/:subid", this.disassociatePartyByTypeAndIdAndSubId.bind(this));
+        // POST Associate Party Party by Type, ID & SubId
+        fastify.post("/:type/:id/:subid", this.associatePartyByTypeAndIdAndSubId.bind(this));
 
-            done();
-        };
-    }
+        // GET Participant by Type & ID
+        fastify.get("/:type/:id", this.getParticipantsByTypeAndID.bind(this)); 
 
-    get Router(): FastifyInstance {
-        return this.router;
-    }
-    
-    private async getParticipantsByTypeAndIDAndSubId(req: FastifyRequest<GetParticipantByTypeAndIdDTO>, reply: FastifyReply): Promise<void> {
+        // GET Participants by Type, ID & SubId
+        fastify.get("/:type/:id/:subid", this.getParticipantsByTypeAndIDAndSubId.bind(this));
+
+        // DELETE Disassociate Party Party by Type & ID
+        fastify.delete("/:type/:id", this.disassociatePartyByTypeAndId.bind(this));
+        
+        // DELETE Disassociate Party Party by Type, ID & SubId
+        fastify.delete("/:type/:id/:subid", this.disassociatePartyByTypeAndIdAndSubId.bind(this));
+    };
+
+    private async getParticipantsByTypeAndID(req: FastifyRequest<GetParticipantByTypeAndIdDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got getParticipantsByTypeAndID request");
         try {
             const clonedHeaders = { ...req.headers };
@@ -152,7 +148,73 @@ export class ParticipantRoutes extends BaseRoutesFastify {
         }
     }
 
-   
+    private async getParticipantsByTypeAndIDAndSubId(req: FastifyRequest<GetParticipantByTypeAndIdAndSubIdDTO>, reply: FastifyReply): Promise<void> {
+        this.logger.debug("Got getParticipantsByTypeAndID request");
+        try {
+            const clonedHeaders = { ...req.headers };
+            const type = req.params["type"] as string;
+            const id = req.params["id"] as string;
+            const partySubIdOrType = req.params["subid"] as string || null;
+            const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string;
+
+            const currency = req.query["currency"] as string || null;
+
+            if (!type || !id || !requesterFspId || !partySubIdOrType) {
+                const transformError = Transformer.transformPayloadError({
+                    errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
+                    errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
+                    extensionList: null
+                });
+
+                reply.code(400).send(transformError);
+            }
+
+            if(currency) {
+                this._validator.currencyAndAmount({
+                    currency: currency,
+                    amount: null
+                });
+            }
+
+            const msgPayload: ParticipantQueryReceivedEvtPayload = {
+                requesterFspId: requesterFspId,
+                partyType: type,
+                partyId: id,
+                partySubType: partySubIdOrType,
+                currency: currency
+            };
+
+            const msg = new ParticipantQueryReceivedEvt(msgPayload);
+
+            // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState for the next event from the request
+            msg.fspiopOpaqueState = {
+                requesterFspId: requesterFspId,
+                destinationFspId: null,
+                headers: clonedHeaders
+            };
+
+            await this.kafkaProducer.send(msg);
+
+            this.logger.debug("getParticipantsByTypeAndID sent message");
+
+            reply.code(202).send(null);
+
+            this.logger.debug("getParticipantsByTypeAndID responded");
+
+        } catch (error: unknown) {
+            if(error instanceof ValidationdError) {
+                reply.code(400).send((error as ValidationdError).errorInformation);
+            } else {
+                const transformError = Transformer.transformPayloadError({
+                    errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
+                    errorDescription: (error as Error).message,
+                    extensionList: null
+                });
+                reply.code(500).send(transformError);
+            }
+            return;
+        }
+    }
 
     private async associatePartyByTypeAndId(req: FastifyRequest<{ Params: { type: string; id: string }, Querystring: { currency: string }, Body: { fspId: string, currency: string } }>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got associatePartyByTypeAndId request");

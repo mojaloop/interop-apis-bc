@@ -52,7 +52,7 @@ import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { FastifyInstance, FastifyPluginOptions, FastifyReply, FastifyRequest } from "fastify";
+import { FastifyInstance, FastifyPluginAsync, FastifyPluginOptions, FastifyReply, FastifyRequest } from "fastify";
 import { QuoteQueryReceivedDTO, QuoteRejectRequestDTO, QuoteRequestReceivedDTO, QuoteResponseReceivedDTO } from "./quotes_routes_dto";
 
 export class QuoteRoutes extends BaseRoutes {
@@ -66,26 +66,19 @@ export class QuoteRoutes extends BaseRoutes {
         super(producer, validator, jwsHelper, logger);
     }
 
-    bindRoutes(): (instance: FastifyInstance, opts: FastifyPluginOptions, done: (err?: Error) => void) => void {
-        // bind routes
+    public bindRoutes: FastifyPluginAsync = async (fastify, opts) => {
+        // GET Quote by ID
+        fastify.get("/:id", this.quoteQueryReceived.bind(this));
 
-        return (fastifyInstance, opts, done) => {
+        // POST Quote Calculation
+        fastify.post("/", this.quoteRequestReceived.bind(this));
 
-            // GET Quote by ID
-            fastifyInstance.get("/:id/", this.quoteQueryReceived.bind(this));
+        // PUT Quote Created
+        fastify.put("/:id", this.quoteResponseReceived.bind(this));
 
-            // POST Quote Calculation
-            fastifyInstance.post("/", this.quoteRequestReceived.bind(this));
-
-            // PUT Quote Created
-            fastifyInstance.put("/:id", this.quoteResponseReceived.bind(this));
-
-            // Errors
-            fastifyInstance.put("/:id/error", this.quoteRejectRequest.bind(this));
-
-            done();
-        };
-    }
+        // Errors
+        fastify.put("/:id/error", this.quoteRejectRequest.bind(this));
+    };
 
     private async quoteRequestReceived(req: FastifyRequest<QuoteRequestReceivedDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got quoteRequestReceived request");

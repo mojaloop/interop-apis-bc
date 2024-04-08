@@ -53,8 +53,14 @@ import {
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { FastifyInstance, FastifyPluginOptions, FastifyReply, FastifyRequest } from "fastify";
-import { GetPartyByTypeAndIdAndSubIdQueryRejectDTO, GetPartyByTypeAndIdQueryRejectDTO, GetPartyInfoAvailableByTypeAndIdAndSubIdDTO, GetPartyInfoAvailableByTypeAndIdDTO, GetPartyQueryReceivedByTypeAndIdDTO, GetPartyQueryReceivedByTypeAndIdSubIdDTO } from "./party_route_dto";
+import { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
+import { GetPartyByTypeAndIdAndSubIdQueryRejectDTO,
+    GetPartyByTypeAndIdQueryRejectDTO,
+    GetPartyInfoAvailableByTypeAndIdAndSubIdDTO,
+    GetPartyInfoAvailableByTypeAndIdDTO,
+    GetPartyQueryReceivedByTypeAndIdDTO,
+    GetPartyQueryReceivedByTypeAndIdSubIdDTO
+} from "./party_route_dto";
 
 export class PartyRoutes extends BaseRoutes {
 
@@ -67,25 +73,25 @@ export class PartyRoutes extends BaseRoutes {
         super(producer, validator, jwsHelper, logger);
     }
 
-    bindRoutes(): (instance: FastifyInstance, opts: FastifyPluginOptions, done: (err?: Error) => void) => void {
-        // Create a function to register routes
-        return (fastifyInstance, opts, done) => {
+    public bindRoutes: FastifyPluginAsync = async (fastify, opts) => {
             // GET Party by Type & ID
-            fastifyInstance.get("/:type/:id/", this.getPartyQueryReceivedByTypeAndId.bind(this));
+            fastify.get("/:type/:id", this.getPartyQueryReceivedByTypeAndId.bind(this));
+
             // GET Parties by Type, ID & SubId
-            fastifyInstance.get("/:type/:id/:subid", this.getPartyQueryReceivedByTypeAndIdSubId.bind(this));
+            fastify.get("/:type/:id/:subid", this.getPartyQueryReceivedByTypeAndIdSubId.bind(this));
+
             // PUT ERROR Party by Type & ID
-            fastifyInstance.put("/:type/:id/error", this.getPartyByTypeAndIdQueryReject.bind(this));
+            fastify.put("/:type/:id/error", this.getPartyByTypeAndIdQueryReject.bind(this));
+
             // PUT ERROR Parties by Type, ID & SubId
-            fastifyInstance.put("/:type/:id/:subid/error", this.getPartyByTypeAndIdAndSubIdQueryReject.bind(this));
+            fastify.put("/:type/:id/:subid/error", this.getPartyByTypeAndIdAndSubIdQueryReject.bind(this));
+
             // PUT Party by Type & ID
-            fastifyInstance.put("/:type/:id/", this.getPartyInfoAvailableByTypeAndId.bind(this));
-            // PUT Parties by Type, ID & SubId
-            fastifyInstance.put("/:type/:id/:subid", this.getPartyInfoAvailableByTypeAndIdAndSubId.bind(this));
+            fastify.put("/:type/:id", this.getPartyInfoAvailableByTypeAndId.bind(this));
             
-            done();
-        };
-    }
+            // PUT Parties by Type, ID & SubId
+            fastify.put("/:type/:id/:subid", this.getPartyInfoAvailableByTypeAndIdAndSubId.bind(this));
+    };
 
     private async getPartyQueryReceivedByTypeAndId(req: FastifyRequest<GetPartyQueryReceivedByTypeAndIdDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got getPartyQueryReceivedByTypeAndId request");

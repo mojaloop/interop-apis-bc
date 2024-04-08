@@ -53,9 +53,14 @@ import {
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { FastifyInstance, FastifyPluginOptions, FastifyReply, FastifyRequest } from "fastify";
-import { BulkTransferFulfilRequestedDTO, BulkTransferPrepareRequestDTO, BulkTransferQueryReceivedDTO, BulkTransfersRejectRequestDTO } from "./bulk_transfers_routes_dto";
+import { IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
+import { 
+    BulkTransferFulfilRequestedDTO,
+    BulkTransferPrepareRequestDTO,
+    BulkTransferQueryReceivedDTO,
+    BulkTransfersRejectRequestDTO 
+} from "./bulk_transfers_routes_dto";
 
 export class TransfersBulkRoutes extends BaseRoutes {
 
@@ -68,26 +73,19 @@ export class TransfersBulkRoutes extends BaseRoutes {
         super(producer, validator, jwsHelper, logger);
     }
 
-    bindRoutes(): (instance: FastifyInstance, opts: FastifyPluginOptions, done: (err?: Error) => void) => void {
-        // bind routes
+    public bindRoutes: FastifyPluginAsync = async (fastify, opts) => {
+        // GET Bulk Transfers by ID
+        fastify.get("/:id", this.bulkTransferQueryReceived.bind(this));
 
-        return (fastifyInstance, opts, done) => {
+        // POST Bulk Transfers Calculation
+        fastify.post("/", this.bulkTransferPrepareRequest.bind(this));
 
-            // GET Bulk Transfers by ID
-            fastifyInstance.get("/:id/", this.bulkTransferQueryReceived.bind(this));
+        // PUT Bulk Transfers Created
+        fastify.put("/:id", this.bulkTransferFulfilRequested.bind(this));
 
-            // POST Bulk Transfers Calculation
-            fastifyInstance.post("/", this.bulkTransferPrepareRequest.bind(this));
-
-            // PUT Bulk Transfers Created
-            fastifyInstance.put("/:id", this.bulkTransferFulfilRequested.bind(this));
-
-            // Errors
-            fastifyInstance.put("/:id/error", this.bulkTransfersRejectRequest.bind(this));
-
-            done();
-        };
-    }
+        // Errors
+        fastify.put("/:id/error", this.bulkTransfersRejectRequest.bind(this));
+    };
     
     private async bulkTransferQueryReceived(req: FastifyRequest<BulkTransferQueryReceivedDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got bulkTransferQueryReceived request");

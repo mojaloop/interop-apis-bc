@@ -34,7 +34,7 @@ import {FspiopJwsSignature, FspiopValidator, JwsConfig} from "@mojaloop/interop-
 import {ConsoleLogger, ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
 
 
-type UnknownProperties = { [k: string]: string | null };
+type UnknownProperties = { [k: string]: string | undefined };
 
 /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
 const removeEmpty = (obj: any) => {
@@ -46,7 +46,7 @@ const removeEmpty = (obj: any) => {
 };
 
 export const getHeaders = (entity: string, method: string, signature: string | null = null, remove?: string[], override?: UnknownProperties): UnknownProperties => {
-    const minimalWorkingHeaders = {
+    const minimalWorkingHeaders: { [key: string]: string | undefined | null } = {
         "accept": `application/vnd.interoperability.${entity}+json;version=1.1`,
         "content-type": `application/vnd.interoperability.${entity}+json;version=1.1`,
         "date": "Mon, 10 Apr 2023 04:04:04 GMT",
@@ -58,7 +58,7 @@ export const getHeaders = (entity: string, method: string, signature: string | n
         "traceparent": "00-aabb8e170bb7474d09e73aebcdf0b293-0123456789abcdef0-00"
     };
 
-    const result: UnknownProperties  = {
+    const result: UnknownProperties = {
         ...removeEmpty(minimalWorkingHeaders),
         ...override
     };
@@ -68,6 +68,13 @@ export const getHeaders = (entity: string, method: string, signature: string | n
             delete result[key];
         }
     }
+
+    for (const key in result) {
+        if (result[key] === null) {
+            result[key] = undefined; // Explicitly convert nulls to undefined
+        }
+    }
+
     return result;
 };
 

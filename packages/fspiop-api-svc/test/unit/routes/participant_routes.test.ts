@@ -43,9 +43,9 @@ import { Enums, FspiopJwsSignature, FspiopValidator } from "@mojaloop/interop-ap
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import fastify, { FastifyInstance } from "fastify";
-import fastifyUrlData from "@fastify/url-data";
+import fastifyCors from "@fastify/cors";
+import fastifyFormbody from "@fastify/formbody";
 const packageJSON = require("../../../package.json");
-
 const BC_NAME = "interop-apis-bc";
 const APP_NAME = "fspiop-api-svc";
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
@@ -84,32 +84,32 @@ describe("FSPIOP Routes - Participant", () => {
 
     beforeAll(async () => {
         app = fastify();
-        app.addContentTypeParser('application/json', { parseAs: 'string' }, (req, body, done) => {
-            // Custom logic to handle the request body
+        app.addContentTypeParser('*', { parseAs: 'buffer' }, function (req:any, body:any, done) {
+            try {
+                
             const contentLength = req.headers['content-length'];
             if (contentLength) {
-                // Convert content-length to a number
-                req.headers['content-length'] = parseInt(contentLength) as unknown as string;
+                req.headers['content-length'] = parseInt(contentLength, 10).toString();
             }
         
-            // Check for valid content-type
-            if (
-                req.headers['content-type'] &&
-                (req.headers['content-type'].toUpperCase() === 'APPLICATION/JSON' ||
-                    req.headers['content-type'].toUpperCase().startsWith('APPLICATION/VND.INTEROPERABILITY.'))
-            ) {
-                // Parse the JSON body
-                try {
-                    const parsedBody = JSON.parse(body as unknown as string);
-                    done(null, parsedBody);
-                } catch (err) {
-                    done(new Error('Invalid JSON'), undefined);
-                }
+            const contentType = req.headers['content-type']?.toLowerCase();
+        
+            if (contentType === 'application/json' ||
+                contentType?.startsWith('application/vnd.interoperability.')) {
+                const json = JSON.parse(body.toString());
+                done(null, json);
             } else {
-                done(new Error('Invalid Content-Type'), undefined);
+                // If not a supported content type, do not parse the body
+                done(null, undefined);
             }
-        }); // for parsing application/json
-        app.register(fastifyUrlData) // for parsing application/x-www-form-urlencoded
+            } catch (err:any) {
+            done(err, undefined);
+            }
+        });
+        app.register(fastifyCors, { origin: true });
+        app.register(fastifyFormbody, {
+            bodyLimit: 100 * 1024 * 1024 // 100MB
+        });
 
         logger = new KafkaLogger(
             BC_NAME,
@@ -129,7 +129,7 @@ describe("FSPIOP Routes - Participant", () => {
         jwsHelperMock = getJwsConfig();
 
         participantRoutes = new ParticipantRoutes(producer, routeValidatorMock, jwsHelperMock, logger);
-        app.register(participantRoutes.bindRoutes(), { prefix: `/${PARTICIPANTS_URL_RESOURCE_NAME}` }); 
+        app.register(participantRoutes.bindRoutes, { prefix: `/${PARTICIPANTS_URL_RESOURCE_NAME}` }); 
 
         let portNum = SVC_DEFAULT_HTTP_PORT;
         app.listen(portNum, () => {
@@ -138,7 +138,7 @@ describe("FSPIOP Routes - Participant", () => {
         });
 
         fastifyServer = app;
-        
+
         jest.spyOn(participantRoutes, "init").mockImplementation(jest.fn());
         jest.spyOn(logger, "debug").mockImplementation(jest.fn());
 
@@ -156,13 +156,11 @@ describe("FSPIOP Routes - Participant", () => {
 
 
     it("should give a bad request calling getParticipantsByTypeAndID endpoint", async () => {
-        
         // Act
-        await participantRoutes.init();
-
+        await new Promise(resolve => setTimeout(resolve, 5000));
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.GET, null, ["fspiop-source"]));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.GET, null, ["fspiop-source"]));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -183,7 +181,7 @@ describe("FSPIOP Routes - Participant", () => {
 
         const res = await request(server)
         .get(`${pathWithoutSubType}?currency=${currency}`)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.GET));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.GET));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -218,7 +216,7 @@ describe("FSPIOP Routes - Participant", () => {
         // Act
         const res = await request(server)
         .get(pathWithoutSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.GET));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.GET));
 
         // Assert
         expect(res.statusCode).toEqual(500);
@@ -237,7 +235,7 @@ describe("FSPIOP Routes - Participant", () => {
 
         const res = await request(server)
         .get(pathWithSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.GET, null, ["fspiop-source"]));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.GET, null, ["fspiop-source"]));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -258,7 +256,7 @@ describe("FSPIOP Routes - Participant", () => {
 
         const res = await request(server)
         .get(`${pathWithSubType}?currency=${currency}`)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.GET));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.GET));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -293,7 +291,7 @@ describe("FSPIOP Routes - Participant", () => {
         // Act
         const res = await request(server)
         .get(pathWithSubType)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.GET));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.GET));
 
         // Assert
         expect(res.statusCode).toEqual(500);
@@ -343,7 +341,7 @@ describe("FSPIOP Routes - Participant", () => {
         const res = await request(server)
         .get(`${pathWithoutSubType}?currency=${currency}`)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.GET));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.GET));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -433,7 +431,7 @@ describe("FSPIOP Routes - Participant", () => {
         const res = await request(server)
         .get(`${pathWithSubType}?currency=${currency}`)
         .send(payload)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.GET));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.GET));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -546,7 +544,7 @@ describe("FSPIOP Routes - Participant", () => {
 
         const res = await request(server)
         .del(`${pathWithSubType}?currency=${currency}`)
-        .set(getHeaders(Enums.EntityTypeEnum.PARTIES, Enums.FspiopRequestMethodsEnum.DELETE));
+        .set(getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.DELETE));
 
         // Assert
         expect(res.statusCode).toEqual(400);

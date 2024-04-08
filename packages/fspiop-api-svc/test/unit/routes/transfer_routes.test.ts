@@ -42,7 +42,9 @@ import { Enums, FspiopJwsSignature, FspiopValidator } from "@mojaloop/interop-ap
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import fastify, { FastifyInstance } from "fastify";
-import fastifyUrlData from "@fastify/url-data";
+import { fastifyCors } from "@fastify/cors";
+import { fastifyFormbody } from "@fastify/formbody";
+
 const packageJSON = require("../../../package.json");
 
 const BC_NAME = "interop-apis-bc";
@@ -83,32 +85,32 @@ describe("FSPIOP Routes - Unit Tests Transfer", () => {
 
     beforeAll(async () => {
         app = fastify();
-        app.addContentTypeParser('application/json', { parseAs: 'string' }, (req, body, done) => {
-            // Custom logic to handle the request body
+        app.addContentTypeParser('*', { parseAs: 'buffer' }, function (req:any, body:any, done) {
+            try {
+                
             const contentLength = req.headers['content-length'];
             if (contentLength) {
-                // Convert content-length to a number
-                req.headers['content-length'] = parseInt(contentLength) as unknown as string;
+                req.headers['content-length'] = parseInt(contentLength, 10).toString();
             }
         
-            // Check for valid content-type
-            if (
-                req.headers['content-type'] &&
-                (req.headers['content-type'].toUpperCase() === 'APPLICATION/JSON' ||
-                    req.headers['content-type'].toUpperCase().startsWith('APPLICATION/VND.INTEROPERABILITY.'))
-            ) {
-                // Parse the JSON body
-                try {
-                    const parsedBody = JSON.parse(body as unknown as string);
-                    done(null, parsedBody);
-                } catch (err) {
-                    done(new Error('Invalid JSON'), undefined);
-                }
+            const contentType = req.headers['content-type']?.toLowerCase();
+        
+            if (contentType === 'application/json' ||
+                contentType?.startsWith('application/vnd.interoperability.')) {
+                const json = JSON.parse(body.toString());
+                done(null, json);
             } else {
-                done(new Error('Invalid Content-Type'), undefined);
+                // If not a supported content type, do not parse the body
+                done(null, undefined);
             }
-        }); // for parsing application/json
-        app.register(fastifyUrlData) // for parsing application/x-www-form-urlencoded
+            } catch (err:any) {
+            done(err, undefined);
+            }
+        });
+        app.register(fastifyCors, { origin: true });
+        app.register(fastifyFormbody, {
+            bodyLimit: 100 * 1024 * 1024 // 100MB
+        });
 
         logger = new KafkaLogger(
             BC_NAME,
@@ -118,11 +120,9 @@ describe("FSPIOP Routes - Unit Tests Transfer", () => {
             KAFKA_LOGS_TOPIC,
             LOGLEVEL
         );
-
         authTokenUrl = "mocked_auth_url";
-
         configClientMock = new MemoryConfigClientMock(logger, authTokenUrl);
-        
+
         producer = new MLKafkaJsonProducer(kafkaJsonProducerOptions);
         
         routeValidatorMock = getRouteValidator();
@@ -130,7 +130,8 @@ describe("FSPIOP Routes - Unit Tests Transfer", () => {
         jwsHelperMock = getJwsConfig();
 
         transferRoutes = new TransfersRoutes(producer, routeValidatorMock, jwsHelperMock, logger);
-        app.register(transferRoutes.bindRoutes(), { prefix: `/${TRANSFERS_URL_RESOURCE_NAME}` }); 
+
+        app.register(transferRoutes.bindRoutes, { prefix: `/${TRANSFERS_URL_RESOURCE_NAME}` }); 
 
         let portNum = SVC_DEFAULT_HTTP_PORT;
         app.listen(portNum, () => {
@@ -158,6 +159,7 @@ describe("FSPIOP Routes - Unit Tests Transfer", () => {
 
     it("should give a bad request calling transferQueryReceived endpoint", async () => {
         // Arrange & Act
+        await new Promise(resolve => setTimeout(resolve, 5000));
         const res = await request(server)
         .get(pathWithId)
         .set(getHeaders(Enums.EntityTypeEnum.TRANSFERS, Enums.FspiopRequestMethodsEnum.GET, null,  ["fspiop-source"]));

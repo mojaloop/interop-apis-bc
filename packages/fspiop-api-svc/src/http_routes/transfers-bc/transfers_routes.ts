@@ -55,8 +55,13 @@ import {
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { FastifyInstance, FastifyPluginOptions, FastifyReply, FastifyRequest } from "fastify";
-import { TransferFulfilRequestedDTO, TransferPrepareRequestedDTO, TransferQueryReceivedDTO, TransferRejectRequestedDTO } from "./transfers_routes_dto";
+import { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
+import {
+    TransferFulfilRequestedDTO,
+    TransferPrepareRequestedDTO,
+    TransferQueryReceivedDTO,
+    TransferRejectRequestedDTO
+} from "./transfers_routes_dto";
 
 export class TransfersRoutes extends BaseRoutes {
 
@@ -69,26 +74,19 @@ export class TransfersRoutes extends BaseRoutes {
         super(producer, validator, jwsHelper, logger);
     }
 
-    bindRoutes(): (instance: FastifyInstance, opts: FastifyPluginOptions, done: (err?: Error) => void) => void {
-        // bind routes
+    public bindRoutes: FastifyPluginAsync = async (fastify, opts) => {
+        // GET Transfer by ID
+        fastify.get("/:id", this.transferQueryReceived.bind(this));
 
-        return (fastifyInstance, opts, done) => {
+        // POST Transfers
+        fastify.post("/", this.transferPrepareRequested.bind(this));
 
-            // GET Transfer by ID
-            fastifyInstance.get("/:id/", this.transferQueryReceived.bind(this));
+        // PUT Transfers
+        fastify.put("/:id", this.transferFulfilRequested.bind(this));
 
-            // POST Transfers
-            fastifyInstance.post("/", this.transferPrepareRequested.bind(this));
-
-            // PUT Transfers
-            fastifyInstance.put("/:id", this.transferFulfilRequested.bind(this));
-
-            // Errors
-            fastifyInstance.put("/:id/error", this.transferRejectRequested.bind(this));
-
-            done();
-        };
-    }
+        // Errors
+        fastify.put("/:id/error", this.transferRejectRequested.bind(this));
+    };
     
     private async transferPrepareRequested(req: FastifyRequest<TransferPrepareRequestedDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got transferPrepareRequested request");

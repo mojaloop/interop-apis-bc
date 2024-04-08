@@ -51,8 +51,13 @@ import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { FastifyInstance, FastifyPluginOptions, FastifyReply, FastifyRequest } from "fastify";
-import { BulkQuotePendingDTO, BulkQuoteQueryReceivedDTO, BulkQuoteRejectRequestDTO, BulkQuoteRequestDTO } from "./bulk_quote_routes_dto";
+import { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
+import { 
+    BulkQuotePendingDTO,
+    BulkQuoteQueryReceivedDTO,
+    BulkQuoteRejectRequestDTO,
+    BulkQuoteRequestDTO 
+} from "./bulk_quote_routes_dto";
 
 export class QuoteBulkRoutes extends BaseRoutes {
 
@@ -65,26 +70,19 @@ export class QuoteBulkRoutes extends BaseRoutes {
         super(producer, validator, jwsHelper, logger);
     }
 
-    bindRoutes(): (instance: FastifyInstance, opts: FastifyPluginOptions, done: (err?: Error) => void) => void {
-        // bind routes
+    public bindRoutes: FastifyPluginAsync = async (fastify, opts) => {
+        // GET Bulk Quote by ID
+        fastify.get("/:id", this.bulkQuoteQueryReceived.bind(this));
 
-        return (fastifyInstance, opts, done) => {
+        // POST Bulk Quote Calculation
+        fastify.post("/", this.bulkQuoteRequest.bind(this));
 
-            // GET Bulk Quote by ID
-            fastifyInstance.get("/:id", this.bulkQuoteQueryReceived.bind(this));
+        // PUT Bulk Quote Created
+        fastify.put("/:id", this.bulkQuotePending.bind(this));
 
-            // POST Bulk Quote Calculation
-            fastifyInstance.post("/", this.bulkQuoteRequest.bind(this));
-
-            // PUT Bulk Quote Created
-            fastifyInstance.put("/:id", this.bulkQuotePending.bind(this));
-
-            // Errors
-            fastifyInstance.put("/:id/error", this.bulkQuoteRejectRequest.bind(this));
-
-            done();
-        };
-    }
+        // Errors
+        fastify.put("/:id/error", this.bulkQuoteRejectRequest.bind(this));
+    };
 
     private async bulkQuoteQueryReceived(req: FastifyRequest<BulkQuoteQueryReceivedDTO>, reply: FastifyReply): Promise<void> {
         try {
@@ -183,7 +181,7 @@ export class QuoteBulkRoutes extends BaseRoutes {
                 expiration: expiration,
                 individualQuotes: individualQuotes,
                 extensionList: extensionList,
-            };
+            } as BulkQuoteRequestedEvtPayload;
 
             const msg = new BulkQuoteRequestedEvt(msgPayload);
 
@@ -268,7 +266,7 @@ export class QuoteBulkRoutes extends BaseRoutes {
                 expiration: expiration,
                 individualQuoteResults: individualQuoteResults,
                 extensionList: extensionList,
-            };
+            } as BulkQuotePendingReceivedEvtPayload;
 
             const msg = new BulkQuotePendingReceivedEvt(msgPayload);
 
