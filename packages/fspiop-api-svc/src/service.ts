@@ -75,7 +75,7 @@ import {
 import { GetParticipantsConfigs } from "./configset";
 import { IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { FspiopValidator, FspiopJwsSignature } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import Fastify, { FastifyInstance } from "fastify";
+import Fastify, { FastifyInstance, FastifyRequest } from "fastify";
 import fastifyCors from "@fastify/cors";
 import fastifyFormbody from "@fastify/formbody";
 import fastifyStatic from "@fastify/static";
@@ -373,7 +373,7 @@ export class Service {
             });
 
             // Custom content type for handling specific versioned JSON types
-            this.app.addContentTypeParser('*', { parseAs: 'buffer' }, function (req:any, body:any, done) {
+            this.app.addContentTypeParser('*', { parseAs: 'buffer' }, function (req:FastifyRequest, body: Buffer, done) {
                 try {
                   const contentLength = req.headers['content-length'];
                   if (contentLength) {
@@ -390,8 +390,8 @@ export class Service {
                     // If not a supported content type, do not parse the body
                     done(null, undefined);
                   }
-                } catch (err:any) {
-                  done(err, undefined);
+                } catch (err:unknown) {
+                      done((err as Error), undefined);
                 }
             });
 
@@ -486,7 +486,7 @@ export class Service {
                 portNum = parseInt(process.env["SVC_HTTP_PORT"]);
             }
 
-            this.app.listen(portNum, () => {
+            this.app.listen({ port: portNum }, () => {
                 this.logger.info(`🚀 Server ready at: http://localhost:${portNum}`);
                 this.logger.info(`FSPIOP-API-SVC Service started, version: ${APP_VERSION}`);
                 resolve();

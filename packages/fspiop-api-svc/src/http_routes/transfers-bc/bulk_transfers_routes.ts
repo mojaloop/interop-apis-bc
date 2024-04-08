@@ -73,7 +73,7 @@ export class TransfersBulkRoutes extends BaseRoutes {
         super(producer, validator, jwsHelper, logger);
     }
 
-    public bindRoutes: FastifyPluginAsync = async (fastify, opts) => {
+    public bindRoutes: FastifyPluginAsync = async (fastify) => {
         // GET Bulk Transfers by ID
         fastify.get("/:id", this.bulkTransferQueryReceived.bind(this));
 

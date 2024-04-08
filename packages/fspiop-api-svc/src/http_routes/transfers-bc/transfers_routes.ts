@@ -74,7 +74,7 @@ export class TransfersRoutes extends BaseRoutes {
         super(producer, validator, jwsHelper, logger);
     }
 
-    public bindRoutes: FastifyPluginAsync = async (fastify, opts) => {
+    public bindRoutes: FastifyPluginAsync = async (fastify) => {
         // GET Transfer by ID
         fastify.get("/:id", this.transferQueryReceived.bind(this));
 

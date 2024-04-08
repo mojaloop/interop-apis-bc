@@ -28,7 +28,7 @@ const errorMessages: { [key: string]: string } = {
 };
 
 export const validateHeadersPlugin = async (request: FastifyRequest, reply: FastifyReply) => {
-    const url = request.routerPath || request.raw.url as string;
+    const url = request.routeOptions.url || request.raw.url as string;
     const resource = url.replace(/^\//, "").split("/")[0];
 
     // Only validate requests for the requested resources

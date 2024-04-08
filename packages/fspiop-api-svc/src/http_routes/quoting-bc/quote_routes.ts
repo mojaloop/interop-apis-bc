@@ -52,7 +52,7 @@ import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { FastifyInstance, FastifyPluginAsync, FastifyPluginOptions, FastifyReply, FastifyRequest } from "fastify";
+import { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
 import { QuoteQueryReceivedDTO, QuoteRejectRequestDTO, QuoteRequestReceivedDTO, QuoteResponseReceivedDTO } from "./quotes_routes_dto";
 
 export class QuoteRoutes extends BaseRoutes {
@@ -66,7 +66,7 @@ export class QuoteRoutes extends BaseRoutes {
         super(producer, validator, jwsHelper, logger);
     }
 
-    public bindRoutes: FastifyPluginAsync = async (fastify, opts) => {
+    public bindRoutes: FastifyPluginAsync = async (fastify) => {
         // GET Quote by ID
         fastify.get("/:id", this.quoteQueryReceived.bind(this));
 

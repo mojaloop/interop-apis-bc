@@ -41,7 +41,7 @@ import { MemoryConfigClientMock, getHeaders, getJwsConfig, getRouteValidator } f
 import { Enums, FspiopJwsSignature, FspiopValidator } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import fastify, { FastifyInstance } from "fastify";
+import fastify, { FastifyInstance, FastifyRequest } from "fastify";
 import fastifyCors from "@fastify/cors";
 import fastifyFormbody from "@fastify/formbody";
 const packageJSON = require("../../../package.json");
@@ -84,7 +84,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
 
     beforeAll(async () => {
         app = fastify();
-        app.addContentTypeParser('*', { parseAs: 'buffer' }, function (req:any, body:any, done) {
+        app.addContentTypeParser('*', { parseAs: 'buffer' }, function (req:FastifyRequest, body: Buffer, done) {
             try {
                 
             const contentLength = req.headers['content-length'];
@@ -102,8 +102,8 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
                 // If not a supported content type, do not parse the body
                 done(null, undefined);
             }
-            } catch (err:any) {
-            done(err, undefined);
+            } catch (err:unknown) {
+                done((err as Error), undefined);
             }
         });
         app.register(fastifyCors, { origin: true });
@@ -131,8 +131,8 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
         partyRoutes = new PartyRoutes(producer, routeValidatorMock, jwsHelperMock, logger);
         app.register(partyRoutes.bindRoutes, { prefix: `/${PARTIES_URL_RESOURCE_NAME}` }); 
 
-        let portNum = SVC_DEFAULT_HTTP_PORT;
-        app.listen(portNum, () => {
+        let portNum = SVC_DEFAULT_HTTP_PORT as number;
+        app.listen({ port: portNum }, () => {
             console.log(`🚀 Server ready at: http://localhost:${portNum}`);
             console.log(`FSPIOP-API-SVC Service started, version: ${APP_VERSION}`);
         });

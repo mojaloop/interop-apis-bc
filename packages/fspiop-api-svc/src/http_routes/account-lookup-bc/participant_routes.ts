@@ -61,7 +61,7 @@ export class ParticipantRoutes extends BaseRoutesFastify {
         super(producer, validator, jwsHelper, logger);
     }
 
-    public bindRoutes: FastifyPluginAsync = async (fastify, opts) => {
+    public bindRoutes: FastifyPluginAsync = async (fastify) => {
         // POST Associate Party Party by Type & ID
         fastify.post("/:type/:id", this.associatePartyByTypeAndId.bind(this));
 

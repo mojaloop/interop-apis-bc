@@ -73,7 +73,7 @@ export class PartyRoutes extends BaseRoutes {
         super(producer, validator, jwsHelper, logger);
     }
 
-    public bindRoutes: FastifyPluginAsync = async (fastify, opts) => {
+    public bindRoutes: FastifyPluginAsync = async (fastify) => {
             // GET Party by Type & ID
             fastify.get("/:type/:id", this.getPartyQueryReceivedByTypeAndId.bind(this));
 

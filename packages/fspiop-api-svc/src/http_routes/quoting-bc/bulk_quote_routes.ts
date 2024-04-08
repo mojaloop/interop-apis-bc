@@ -70,7 +70,7 @@ export class QuoteBulkRoutes extends BaseRoutes {
         super(producer, validator, jwsHelper, logger);
     }
 
-    public bindRoutes: FastifyPluginAsync = async (fastify, opts) => {
+    public bindRoutes: FastifyPluginAsync = async (fastify) => {
         // GET Bulk Quote by ID
         fastify.get("/:id", this.bulkQuoteQueryReceived.bind(this));
 
