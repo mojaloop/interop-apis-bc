@@ -43,8 +43,7 @@ import {
 import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 import process from "process";
 import {ParticipantAdapter} from "./implementations/external_adapters/participant_adapter";
-import {ParticipantRoutes} from "./http_routes/account-lookup-bc/participant_routes";
-import {PartyRoutes} from "./http_routes/account-lookup-bc/party_routes";
+
 import {
     MLKafkaJsonConsumer,
     MLKafkaJsonConsumerOptions, MLKafkaJsonProducer,
@@ -58,18 +57,14 @@ import {
     QuotingBCTopics,
     TransfersBCTopics
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { QuoteRoutes } from "./http_routes/quoting-bc/quote_routes";
-import { QuoteBulkRoutes } from "./http_routes/quoting-bc/bulk_quote_routes";
-import { TransfersRoutes } from "./http_routes/transfers-bc/transfers_routes";
+
 import { IParticipantService } from "./interfaces/infrastructure";
 import {AuthenticatedHttpRequester} from "@mojaloop/security-bc-client-lib";
 import {IAuthenticatedHttpRequester} from "@mojaloop/security-bc-public-types-lib";
 import path from "path";
-import { OpenApiDocument, OpenApiValidator } from "express-openapi-validate";
-import jsYaml from "js-yaml";
+
 import fs from "fs";
-import { validateHeaders } from "./header_validation";
-import { TransfersBulkRoutes } from "./http_routes/transfers-bc/bulk_transfers_routes";
+
 import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {
     DefaultConfigProvider,
@@ -77,10 +72,11 @@ import {
 } from "@mojaloop/platform-configuration-bc-client-lib";
 import {GetParticipantsConfigs} from "./configset";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { FspiopValidator, FspiopJwsSignature } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+
 import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 import {PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-client-lib";
 import * as promBundle from "express-prom-bundle";
+import {FspiopJwsSignature} from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 
 const API_SPEC_FILE_PATH = process.env["API_SPEC_FILE_PATH"] || "../dist/api_spec.yaml";
 
@@ -91,10 +87,10 @@ const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
 const LOGLEVEL:LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
 
 const BC_NAME = "interop-apis-bc";
-const APP_NAME = "fspiop-api-svc";
+const APP_NAME = "fspiop-event-handler-svc";
 const APP_VERSION = packageJSON.version;
 
-const SVC_DEFAULT_HTTP_PORT = 4000;
+const SVC_DEFAULT_HTTP_PORT = 4001;
 
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
 
@@ -127,6 +123,10 @@ const PARTICIPANTS_CACHE_TIMEOUT_MS = (process.env["PARTICIPANTS_CACHE_TIMEOUT_M
 const SERVICE_START_TIMEOUT_MS= (process.env["SERVICE_START_TIMEOUT_MS"] && parseInt(process.env["SERVICE_START_TIMEOUT_MS"])) || 120_000;
 
 const JWS_FILES_PATH = process.env["JWS_FILES_PATH"] || "/app/data/keys/";
+
+const CONSUMER_BATCH_SIZE = (process.env["CONSUMER_BATCH_SIZE"] && parseInt(process.env["CONSUMER_BATCH_SIZE"])) || 1;
+const CONSUMER_BATCH_TIMEOUT_MS = (process.env["CONSUMER_BATCH_TIMEOUT_MS"] && parseInt(process.env["CONSUMER_BATCH_TIMEOUT_MS"])) || 10;
+
 
 const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
     kafkaBrokerList: KAFKA_URL,
@@ -168,12 +168,7 @@ export class Service {
     static logger: ILogger;
     static app: Express;
     static expressServer: Server;
-    static participantRoutes: ParticipantRoutes;
-    static partyRoutes: PartyRoutes;
-    static quotesRoutes: QuoteRoutes;
-    static bulkQuotesRoutes: QuoteBulkRoutes;
-    static transfersRoutes: TransfersRoutes;
-    static bulkTransfersRoutes:TransfersBulkRoutes;
+
     static participantService: IParticipantService;
     static auditClient: IAuditClient;
     static configClient: IConfigurationClient;
@@ -189,7 +184,7 @@ export class Service {
         configProvider?: IConfigProvider,
         metrics?: IMetrics,
     ):Promise<void> {
-        console.log(`Fspiop-api-svc - service starting with PID: ${process.pid}`);
+        console.log(`Fspiop-event-handler-svc - service starting with PID: ${process.pid}`);
 
         this.startupTimer = setTimeout(()=>{
             throw new Error("Service start timed-out");
@@ -264,10 +259,6 @@ export class Service {
         }
         this.participantService = participantService;
 
-        // Singleton for Validation and JWS functions
-        const currencyList = this.configClient.globalConfigs.getCurrencies();
-        const routeValidator = FspiopValidator.getInstance();
-        routeValidator.addCurrencyList(currencyList);
 
         if(jwsConfig.enabled) {
             const privateKey = fs.readFileSync(path.join(__dirname, `${JWS_FILES_PATH}/hub/privatekey.pem`));
@@ -288,27 +279,11 @@ export class Service {
             jwsHelper.addPrivateKey(jwsConfig.privateKey);
         }
 
-        //await Service.setupEventHandlers(jwsHelper);
-
         // Create and initialise the http hanlders
         this.producer = new MLKafkaJsonProducer(kafkaJsonProducerOptions);
         await this.producer.connect();
 
-        this.participantRoutes = new ParticipantRoutes(this.producer, routeValidator, jwsHelper, this.metrics, this.logger);
-        this.partyRoutes = new PartyRoutes(this.producer, routeValidator, jwsHelper, this.metrics, this.logger);
-        this.quotesRoutes = new QuoteRoutes(this.producer, routeValidator, jwsHelper, this.metrics, this.logger);
-        this.bulkQuotesRoutes = new QuoteBulkRoutes(this.producer, routeValidator, jwsHelper, this.metrics, this.logger);
-        this.transfersRoutes = new TransfersRoutes(this.producer, routeValidator, jwsHelper, this.metrics, this.logger);
-        this.bulkTransfersRoutes = new TransfersBulkRoutes(this.producer, routeValidator, jwsHelper, this.metrics, this.logger);
-
-        await Promise.all([
-            this.participantRoutes.init(),
-            this.partyRoutes.init(),
-            this.quotesRoutes.init(),
-            this.bulkQuotesRoutes.init(),
-            this.transfersRoutes.init(),
-            this.bulkTransfersRoutes.init()
-        ]);
+        await Service.setupEventHandlers(jwsHelper);
 
         await Service.setupExpress();
 
@@ -319,15 +294,19 @@ export class Service {
     }
 
     static async setupEventHandlers(jwsHelper:FspiopJwsSignature):Promise<void>{
+
+
         const accountEvtHandlerConsumerOptions: MLKafkaJsonConsumerOptions = {
             kafkaBrokerList: KAFKA_URL,
             kafkaGroupId: `${BC_NAME}_${APP_NAME}_AccountLookupEventHandler`,
+            batchSize: CONSUMER_BATCH_SIZE,
+            batchTimeoutMs: CONSUMER_BATCH_TIMEOUT_MS
         };
 
         accountEvtHandler = new AccountLookupEventHandler(
             this.logger,
             accountEvtHandlerConsumerOptions,
-            kafkaJsonProducerOptions,
+            this.producer,
             [AccountLookupBCTopics.DomainEvents],
             this.participantService,
             jwsHelper,
@@ -342,7 +321,7 @@ export class Service {
         quotingEvtHandler = new QuotingEventHandler(
             this.logger,
             quotingEvtHandlerConsumerOptions,
-            kafkaJsonProducerOptions,
+            this.producer,
             [QuotingBCTopics.DomainEvents],
             this.participantService,
             jwsHelper,
@@ -357,7 +336,7 @@ export class Service {
         transferEvtHandler = new TransferEventHandler(
             this.logger,
             transferEvtHandlerConsumerOptions,
-            kafkaJsonProducerOptions,
+            this.producer,
             [TransfersBCTopics.DomainEvents],
             this.participantService,
             jwsHelper,
@@ -393,109 +372,20 @@ export class Service {
                 return res.send(strMetrics);
             });
 
-            this.app.use(express.json({
-                limit: "100mb",
-                type: (req)=>{
-                    const contentLength = req.headers["content-length"];
-                    if(contentLength) {
-                        // We need to send this as a number
-                        req.headers["content-length"]= parseInt(contentLength) as unknown as string;
-                    }
-
-                    return req.headers["content-type"]?.toUpperCase()==="application/json".toUpperCase()
-                        || req.headers["content-type"]?.startsWith("application/vnd.interoperability.")
-                        || false;
-                }
-            })); // for parsing application/json
             this.app.use(express.urlencoded({limit: "100mb", extended: true})); // for parsing application/x-www-form-urlencoded
 
-            // // Call header validation
-            this.app.use(validateHeaders);
-
-            // Call the request validator in every request
+/*            // Call the request validator in every request
             const openApiDocument = jsYaml.load(
                 fs.readFileSync(path.join(__dirname, API_SPEC_FILE_PATH), "utf-8"),
             ) as OpenApiDocument;
             const validator = new OpenApiValidator(openApiDocument); // TODO: find a way to limit currencies on this point
-            this.app.use(validator.match());
-
-            // hook http handler's routes
-            this.app.use(`/${PARTICIPANTS_URL_RESOURCE_NAME}`, this.participantRoutes.router);
-            this.app.use(`/${PARTIES_URL_RESOURCE_NAME}`, this.partyRoutes.router);
-            this.app.use(`/${QUOTES_URL_RESOURCE_NAME}`, this.quotesRoutes.router);
-            this.app.use(`/${BULK_QUOTES_URL_RESOURCE_NAME}`, this.bulkQuotesRoutes.router);
-            this.app.use(`/${TRANSFERS_URL_RESOURCE_NAME}`, this.transfersRoutes.router);
-            this.app.use(`/${BULK_TRANSFERS_URL_RESOURCE_NAME}`, this.bulkTransfersRoutes.router);
-
-            /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
-            this.app.use((err: FspiopHttpRequestError, req: express.Request, res: express.Response, next: express.NextFunction) => {
-                if(!err.data) {
-                    next();
-                    return;
-                }
-
-                const errorResponseBuilder = (errorCode: string, errorDescription: string, additionalProperties = {}) => {
-                    return {
-                        errorInformation: {
-                            errorCode,
-                            errorDescription,
-                            ...additionalProperties
-                        }
-                    };
-                };
-
-                const statusCode = err.statusCode || 500;
-
-                const extensionList = [{
-                    key: "keyword",
-                    value: err.data[0].keyword
-                },
-                {
-                    key: "instancePath",
-                    value: err.data[0].instancePath
-                }];
-                for (const [key, value] of Object.entries(err.data[0].params)) {
-                    extensionList.push({ key, value });
-                }
-                const customFSPIOPHeaders = ["content-type"];
-
-                const customHeaders:{[key: string]: string} = {};
-                for (const value of customFSPIOPHeaders) {
-                    const headerValue = req.headers[value] as string;
-
-                    if(req.headers[value]) {
-                        customHeaders[value] = headerValue;
-                    }
-                }
-
-                res.set(customHeaders);
-
-                let errorCode:string;
-                const errorType = err.data[0].instancePath;
-
-                if(errorType.includes("body")){
-                    errorCode = "3100";
-                }else if(!errorType.includes("body")) {
-                    errorCode = "3102";
-                }else{
-                    errorCode = "3100";
-                }
-
-                res.status(statusCode).json(errorResponseBuilder(errorCode, `${err.data[0].message} - path: ${err.data[0].instancePath}`, { extensionList: { extension: extensionList} }));
-            });
+            this.app.use(validator.match());*/
 
             /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
             this.app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
                 // catch all
-                this.logger.warn(`Received unhandled request to url: ${req.url}`);
-                res.status(404).json({
-                    errorInformation: {
-                        errorCode: "3002",
-                        errorDescription: "Unknown URI"
-                    }
-                });
-
-                next();
+                this.logger.debug(`Received unhandled request to url: ${req.url}`);
+                res.status(404).send();
             });
 
             let portNum = SVC_DEFAULT_HTTP_PORT;
@@ -505,37 +395,19 @@ export class Service {
 
             this.expressServer = this.app.listen(portNum, () => {
                 this.logger.info(`🚀 Server ready at: http://localhost:${portNum}`);
-                this.logger.info(`FSPIOP-API-SVC Service started, version: ${APP_VERSION}`);
+                this.logger.info(`FSPIOP-EVENT-HANDLER-SVC Service started, version: ${APP_VERSION}`);
                 resolve();
             });
         });
     }
 
     static async stop() {
-        // if (this.handler) await this.handler.stop();
-        // if (this.messageConsumer) await this.messageConsumer.destroy(true);
-
-        // if (this.auditClient) await this.auditClient.destroy();
-        // if (this.logger && this.logger instanceof KafkaLogger) await this.logger.destroy();
-        if (this.expressServer){
-            await this.participantRoutes.destroy();
-            await this.partyRoutes.destroy();
-            await this.quotesRoutes.destroy();
-            await this.bulkQuotesRoutes.destroy();
-            await this.bulkQuotesRoutes.destroy();
-            await this.transfersRoutes.destroy();
-
-            await this.expressServer.close();
-            // const closeExpress = util.promisify(this.expressServer.close);
-            // await closeExpress();
-        }
-        if(this.producer){
-            await this.producer.destroy();
-        }
 
         await accountEvtHandler.destroy();
         await quotingEvtHandler.destroy();
         await transferEvtHandler.destroy();
+
+        await this.producer.destroy();
 
         await this.auditClient.destroy();
         setTimeout(async () => {
@@ -570,7 +442,7 @@ process.on("SIGTERM", _handle_int_and_term_signals);
 
 //do something when app is closing
 process.on("exit", async () => {
-    globalLogger.info("Microservice - exiting...");
+    globalLogger.info(`Microservice pid: ${process.pid}- exiting...`);
 });
 process.on("uncaughtException", (err: Error) => {
     globalLogger.error(err);

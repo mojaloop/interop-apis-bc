@@ -18,6 +18,7 @@
         "pre_commit_check": "npm run build && npm run lint && npm run test:unit",
         "start": "npm -ws -v run start",
         "start:fspiop-api-svc": "npm -w @mojaloop/interop-apis-bc-fspiop-api-svc run start",
+        "start:fspiop-event-handler-svc": "npm -w @mojaloop/interop-apis-bc-fspiop-event-handler-svc run start",
         "build": "npm -ws run build",
         "watch": "npm -ws  run watch",
         "clean": "(npm run clean:dist || true) && npm run clean:npm",
@@ -60,6 +61,7 @@
     "workspaces": [
         "packages/fspiop-utils-lib",
         "packages/fspiop-api-svc",
+        "packages/fspiop-event-handler-svc",
         "packages/shared-mocks-lib",
         "packages/*"
     ],

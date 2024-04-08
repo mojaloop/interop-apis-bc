@@ -33,7 +33,7 @@
 
 import express from "express";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import { 
+import {
     Constants,
     Transformer,
     Enums,
@@ -56,6 +56,7 @@ import {
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 
 export class TransfersRoutes extends BaseRoutes {
 
@@ -63,9 +64,10 @@ export class TransfersRoutes extends BaseRoutes {
         producer: IMessageProducer,
         validator: FspiopValidator,
         jwsHelper: FspiopJwsSignature,
+        metrics: IMetrics,
         logger: ILogger
     ) {
-        super(producer, validator, jwsHelper, logger);
+        super(producer, validator, jwsHelper, metrics, logger);
 
         // bind routes
 
@@ -124,7 +126,7 @@ export class TransfersRoutes extends BaseRoutes {
             if(this._jwsHelper.isEnabled()) {
                 this._jwsHelper.validate(req.headers, req.body);
             }
-            
+
             const msgPayload: TransferPrepareRequestedEvtPayload = {
                 transferId: transferId,
                 payeeFsp: payeeFsp,

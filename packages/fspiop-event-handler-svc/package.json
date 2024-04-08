@@ -1,9 +1,9 @@
 {
-    "name": "@mojaloop/interop-apis-bc-fspiop-api-svc",
+    "name": "@mojaloop/interop-apis-bc-fspiop-event-handler-svc",
     "version": "0.5.2",
-    "description": "Mojaloop vNext FSPIOP API Service",
+    "description": "Mojaloop vNext FSPIOP Event Handler Service",
     "license": "Apache-2.0",
-    "homepage": "https://github.com/mojaloop/interop-apis-bc/tree/main/packages/fspiop-api-svc",
+    "homepage": "https://github.com/mojaloop/interop-apis-bc/tree/main/packages/fspiop-event-handler-svc",
     "private": true,
     "mojaloop": {
         "publish_to_dockerhub": true
@@ -26,7 +26,7 @@
         "start:dev": "npm run build && npm run environment:dev && npm start",
         "environment:dev": "(AUDIT_KEY_FILE_PATH = ./dist/tmp_key_file) || (set AUDIT_KEY_FILE_PATH = ./dist/tmp_key_file)",
         "service": "node dist/index.js",
-        "build": "tsc && cp api-specs/api_spec.yaml dist",
+        "build": "tsc",
         "watch": "tsc -w",
         "clean": "(npm run clean:npm || true) && npm run clean:dist",
         "clean:dist": "rm -rf dist",
@@ -61,16 +61,15 @@
         "ajv": "^8.12.0",
         "axios": "^1.4.0",
         "base64url": "^3.0.1",
-        "express": "~4.18.2",
-        "express-openapi-validate": "^0.6.1",
+
         "js-yaml": "^4.1.0",
         "express-prom-bundle": "~7.0.0"
     },
     "devDependencies": {
-        "@types/express": "~4.17.21",
+
         "@types/js-yaml": "^4.0.9",
-        "@types/supertest": "^2.0.16",
-        "jest-openapi": "^0.14.2"
+        "@types/supertest": "^2.0.16"
+
     },
     "engines": {
         "node": ">=20.10.0"

@@ -31,7 +31,7 @@
 
 "use strict";
 
-import { 
+import {
     BulkQuotePendingReceivedEvt,
     BulkQuotePendingReceivedEvtPayload,
     BulkQuoteQueryReceivedEvt,
@@ -40,9 +40,9 @@ import {
     BulkQuoteRequestedEvtPayload,
     GetBulkQuoteQueryRejectedEvt,
     GetBulkQuoteQueryRejectedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { 
+import {
     Constants,
-    FspiopJwsSignature, 
+    FspiopJwsSignature,
     FspiopValidator,
     Transformer,
     ValidationdError
@@ -52,6 +52,7 @@ import { FSPIOPErrorCodes } from "../../validation";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import express from "express";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 
 export class QuoteBulkRoutes extends BaseRoutes {
 
@@ -59,9 +60,10 @@ export class QuoteBulkRoutes extends BaseRoutes {
         producer: IMessageProducer,
         validator: FspiopValidator,
         jwsHelper: FspiopJwsSignature,
+        metrics: IMetrics,
         logger: ILogger
     ) {
-        super(producer, validator, jwsHelper, logger);
+        super(producer, validator, jwsHelper, metrics, logger);
 
         // bind routes
 

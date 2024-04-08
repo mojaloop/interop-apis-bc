@@ -47,6 +47,7 @@ import {
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 
 export class ParticipantRoutes extends BaseRoutes {
 
@@ -54,9 +55,10 @@ export class ParticipantRoutes extends BaseRoutes {
         producer: IMessageProducer,
         validator: FspiopValidator,
         jwsHelper: FspiopJwsSignature,
+        metrics: IMetrics,
         logger: ILogger
     ) {
-        super(producer, validator, jwsHelper, logger);
+        super(producer, validator, jwsHelper, metrics,  logger);
 
         // bind routes
 

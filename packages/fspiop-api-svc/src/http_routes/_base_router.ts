@@ -43,16 +43,23 @@ export abstract class BaseRoutes {
     protected _validator: FspiopValidator;
     protected _jwsHelper: FspiopJwsSignature;
 
+    protected readonly _metrics: IMetrics;
+    protected readonly _histogram: IHistogram;
+
     constructor(
         producer: IMessageProducer,
         validator: FspiopValidator,
         jwsHelper: FspiopJwsSignature,
+        metrics: IMetrics,
         logger: ILogger
     ) {
         this._kafkaProducer = producer;
         this._logger = logger.createChild(this.constructor.name);
         this._validator = validator;
         this._jwsHelper = jwsHelper;
+        this._metrics = metrics;
+
+        this._histogram = metrics.getHistogram(this.constructor.name, `${this.constructor.name} metrics`, ["callName", "success"]);
     }
 
     get logger(): ILogger {

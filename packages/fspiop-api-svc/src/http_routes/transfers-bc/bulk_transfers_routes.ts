@@ -41,7 +41,7 @@ import {
     BulkTransferRejectRequestedEvt,
     BulkTransferRejectRequestedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { 
+import {
     Constants,
     FspiopJwsSignature,
     FspiopValidator,
@@ -55,6 +55,7 @@ import { FSPIOPErrorCodes } from "../../validation";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import express from "express";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 
 export class TransfersBulkRoutes extends BaseRoutes {
 
@@ -62,9 +63,10 @@ export class TransfersBulkRoutes extends BaseRoutes {
         producer: IMessageProducer,
         validator: FspiopValidator,
         jwsHelper: FspiopJwsSignature,
+        metrics: IMetrics,
         logger: ILogger
     ) {
-        super(producer, validator, jwsHelper, logger);
+        super(producer, validator, jwsHelper, metrics, logger);
 
         // bind routes
 
@@ -179,7 +181,7 @@ export class TransfersBulkRoutes extends BaseRoutes {
             if(this._jwsHelper.isEnabled()) {
                 this._jwsHelper.validate(req.headers, req.body);
             }
-            
+
             const msgPayload: BulkTransferPrepareRequestedEvtPayload = {
                 bulkTransferId: bulkTransferId,
                 bulkQuoteId: bulkQuoteId,

@@ -31,14 +31,14 @@
 
 "use strict";
 
-import { 
+import {
     Constants,
     FspiopJwsSignature,
     FspiopValidator,
     Transformer,
     ValidationdError
 } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { 
+import {
     GetQuoteQueryRejectedEvt,
     GetQuoteQueryRejectedEvtPayload,
     QuoteQueryReceivedEvt,
@@ -53,6 +53,7 @@ import { FSPIOPErrorCodes } from "../../validation";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import express from "express";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 
 export class QuoteRoutes extends BaseRoutes {
 
@@ -60,9 +61,10 @@ export class QuoteRoutes extends BaseRoutes {
         producer: IMessageProducer,
         validator: FspiopValidator,
         jwsHelper: FspiopJwsSignature,
+        metrics: IMetrics,
         logger: ILogger
     ) {
-        super(producer, validator, jwsHelper, logger);
+        super(producer, validator, jwsHelper, metrics, logger);
 
         // bind routes
 

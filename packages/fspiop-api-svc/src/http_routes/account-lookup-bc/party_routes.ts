@@ -36,7 +36,7 @@
 
 import express from "express";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import { 
+import {
     Constants,
     FspiopJwsSignature,
     FspiopValidator,
@@ -54,6 +54,7 @@ import {
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 
 export class PartyRoutes extends BaseRoutes {
 
@@ -61,9 +62,10 @@ export class PartyRoutes extends BaseRoutes {
         producer: IMessageProducer,
         validator: FspiopValidator,
         jwsHelper: FspiopJwsSignature,
+        metrics: IMetrics,
         logger: ILogger
     ) {
-        super(producer, validator, jwsHelper, logger);
+        super(producer, validator, jwsHelper, metrics, logger);
 
         // bind routes
 
@@ -85,7 +87,9 @@ export class PartyRoutes extends BaseRoutes {
     }
 
     private async getPartyQueryReceivedByTypeAndId(req: express.Request, res: express.Response): Promise<void> {
+        const mainTimer = this._histogram.startTimer({ callName: "getPartyQueryReceivedByTypeAndId"});
         this.logger.debug("Got getPartyQueryReceivedByTypeAndId request");
+
         try {
             const clonedHeaders = { ...req.headers };
             const type = req.params["type"] as string || null;
@@ -102,14 +106,17 @@ export class PartyRoutes extends BaseRoutes {
                 });
 
                 res.status(400).json(transformError);
+                mainTimer({success:"false"});
                 return;
             }
 
             if(currency) {
+                const currencyTimer = this._histogram.startTimer({ callName: "getPartyInfoAvailableByTypeAndId - currency"});
                 this._validator.currencyAndAmount({
                     currency: currency,
                     amount: null
                 });
+                currencyTimer({success:"true"});
             }
 
             const msgPayload: PartyQueryReceivedEvtPayload = {
@@ -139,8 +146,8 @@ export class PartyRoutes extends BaseRoutes {
 
             res.status(202).json(null);
 
-            this.logger.debug("getPartyQueryReceivedByTypeAndId responded");
-
+            const took = mainTimer({success:"true"});
+            this.logger.debug(`getPartyQueryReceivedByTypeAndId responded - took: ${took}`);
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
                 res.status(400).json((error as ValidationdError).errorInformation);
@@ -150,13 +157,16 @@ export class PartyRoutes extends BaseRoutes {
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
+
                 res.status(500).json(transformError);
             }
+            mainTimer({success:"false"});
             return;
         }
     }
 
     private async getPartyQueryReceivedByTypeAndIdSubId(req: express.Request, res: express.Response): Promise<void> {
+        const mainTimer = this._histogram.startTimer({ callName: "getPartyQueryReceivedByTypeAndIdSubId"});
         this.logger.debug("Got getPartyQueryReceivedByTypeAndIdSubId request");
 
         try {
@@ -176,6 +186,7 @@ export class PartyRoutes extends BaseRoutes {
                 });
 
                 res.status(400).json(transformError);
+                mainTimer({success:"false"});
                 return;
             }
 
@@ -210,8 +221,8 @@ export class PartyRoutes extends BaseRoutes {
 
             res.status(202).json(null);
 
-            this.logger.debug("getPartyQueryReceivedByTypeAndIdSubId responded");
-
+            const took = mainTimer({success:"true"});
+            this.logger.debug(`getPartyQueryReceivedByTypeAndIdSubId responded - took: ${took}`);
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
                 res.status(400).json((error as ValidationdError).errorInformation);
@@ -223,14 +234,17 @@ export class PartyRoutes extends BaseRoutes {
                 });
                 res.status(500).json(transformError);
             }
+            mainTimer({success:"false"});
             return;
         }
     }
 
     private async getPartyInfoAvailableByTypeAndId(req: express.Request, res: express.Response): Promise<void> {
+        const mainTimer = this._histogram.startTimer({ callName: "getPartyInfoAvailableByTypeAndId"});
         this.logger.debug("Got getPartyInfoAvailableByTypeAndId request");
 
         try {
+            const headersTimer = this._histogram.startTimer({ callName: "getPartyInfoAvailableByTypeAndId - headers"});
             const clonedHeaders = { ...req.headers };
             const type = req.params["type"] as string || null;
             const id = req.params["id"] as string || null;
@@ -246,6 +260,8 @@ export class PartyRoutes extends BaseRoutes {
             const partyDoB = req.body.party.personalInfo["dateOfBirth"] || null;
             const extensionList = req.body.party.partyIdInfo["extensionList"] || null;
 
+            headersTimer({success:"true"});
+
             if (!type || !id || !requesterFspId || !ownerFspId) {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
@@ -254,14 +270,17 @@ export class PartyRoutes extends BaseRoutes {
                 });
 
                 res.status(400).json(transformError);
+                mainTimer({success:"false"});
                 return;
             }
 
             if(currency) {
+                const currencyTimer = this._histogram.startTimer({ callName: "getPartyInfoAvailableByTypeAndId - currency"});
                 this._validator.currencyAndAmount({
                     currency: currency,
                     amount: null
                 });
+                currencyTimer({success:"true"});
             }
 
             if(this._jwsHelper.isEnabled()) {
@@ -301,8 +320,8 @@ export class PartyRoutes extends BaseRoutes {
 
             res.status(202).json(null);
 
-            this.logger.debug("getPartyInfoAvailableByTypeAndId responded");
-
+            const took = mainTimer({success:"true"});
+            this.logger.debug(`getPartyInfoAvailableByTypeAndId responded - took ${took}`);
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
                 res.status(400).json((error as ValidationdError).errorInformation);
@@ -314,11 +333,13 @@ export class PartyRoutes extends BaseRoutes {
                 });
                 res.status(500).json(transformError);
             }
+            mainTimer({success:"false"});
             return;
         }
     }
 
     private async getPartyInfoAvailableByTypeAndIdAndSubId(req: express.Request, res: express.Response): Promise<void> {
+        const mainTimer = this._histogram.startTimer({ callName: "getPartyInfoAvailableByTypeAndIdAndSubId"});
         this.logger.debug("Got getPartyInfoAvailableByTypeAndIdAndSubId request");
 
         try {
@@ -346,6 +367,7 @@ export class PartyRoutes extends BaseRoutes {
                 });
 
                 res.status(400).json(transformError);
+                mainTimer({success:"false"});
                 return;
             }
 
@@ -392,8 +414,8 @@ export class PartyRoutes extends BaseRoutes {
 
             res.status(202).json(null);
 
-            this.logger.debug("getPartyInfoAvailableByTypeAndIdAndSubId responded");
-
+            const took = mainTimer({success:"true"});
+            this.logger.debug(`getPartyInfoAvailableByTypeAndIdAndSubId responded - took ${took}`);
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
                 res.status(400).json((error as ValidationdError).errorInformation);
@@ -405,11 +427,13 @@ export class PartyRoutes extends BaseRoutes {
                 });
                 res.status(500).json(transformError);
             }
+            mainTimer({success:"false"});
             return;
         }
     }
 
     private async getPartyByTypeAndIdQueryReject(req: express.Request, res: express.Response): Promise<void> {
+        const mainTimer = this._histogram.startTimer({ callName: "getPartyByTypeAndIdQueryReject"});
         this.logger.debug("Got getPartyByTypeAndIdQueryReject request");
 
         try {
@@ -432,6 +456,7 @@ export class PartyRoutes extends BaseRoutes {
                 });
 
                 res.status(400).json(transformError);
+                mainTimer({success:"false"});
                 return;
             }
 
@@ -445,7 +470,7 @@ export class PartyRoutes extends BaseRoutes {
             if(this._jwsHelper.isEnabled()) {
                 this._jwsHelper.validate(req.headers, req.body);
             }
-            
+
             const msgPayload: GetPartyQueryRejectedEvtPayload = {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId,
@@ -472,8 +497,8 @@ export class PartyRoutes extends BaseRoutes {
 
             res.status(202).json(null);
 
-            this.logger.debug("getPartyByTypeAndIdQueryReject responded");
-
+            const took = mainTimer({success:"true"});
+            this.logger.debug(`getPartyByTypeAndIdQueryReject responded - took: ${took}`);
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
                 res.status(400).json((error as ValidationdError).errorInformation);
@@ -485,11 +510,13 @@ export class PartyRoutes extends BaseRoutes {
                 });
                 res.status(500).json(transformError);
             }
+            mainTimer({success:"false"});
             return;
         }
     }
 
     private async getPartyByTypeAndIdAndSubIdQueryReject(req: express.Request, res: express.Response): Promise<void> {
+        const mainTimer = this._histogram.startTimer({ callName: "getPartyByTypeAndIdAndSubIdQueryReject"});
         this.logger.debug("Got getPartyByTypeAndIdAndSubIdQueryReject request");
 
         try {
@@ -513,6 +540,7 @@ export class PartyRoutes extends BaseRoutes {
                 });
 
                 res.status(400).json(transformError);
+                mainTimer({success:"false"});
                 return;
             }
 
@@ -553,8 +581,8 @@ export class PartyRoutes extends BaseRoutes {
 
             res.status(202).json(null);
 
-            this.logger.debug("getPartyByTypeAndIdAndSubIdQueryReject responded");
-
+            const took = mainTimer({success:"true"});
+            this.logger.debug(`getPartyByTypeAndIdAndSubIdQueryReject responded - took: ${took}`);
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
                 res.status(400).json((error as ValidationdError).errorInformation);
@@ -566,6 +594,7 @@ export class PartyRoutes extends BaseRoutes {
                 });
                 res.status(500).json(transformError);
             }
+            mainTimer({success:"false"});
             return;
         }
     }
