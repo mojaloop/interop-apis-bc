@@ -75,6 +75,7 @@ import KafkaConsumer from "../helpers/kafkaproducer";
 import { MongoClient } from "mongodb";
 import { removeEmpty } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/transformer";
 import waitForExpect from "../helpers/utils";
+import { QuotingErrorCodeNames } from "@mojaloop/quoting-bc-public-types-lib";
 
 const server = process.env["SVC_DEFAULT_URL"] || "http://localhost:4000/";
 
@@ -1050,7 +1051,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
             quoteId: "123", 
             bulkQuoteId: null,
             requesterFspId: "bluebank",
-            errorDescription: "QuoteBCUnknownErrorEvent"
+            errorCode: QuotingErrorCodeNames.COMMAND_TYPE_UNKNOWN
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1079,7 +1080,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
             quoteId: "123", 
             bulkQuoteId: null,
             requesterFspId: "bluebank",
-            errorDescription: "QuoteBCInvalidMessagePayloadErrorEvent"
+            errorCode: QuotingErrorCodeNames.INVALID_MESSAGE_PAYLOAD
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1108,7 +1109,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
             quoteId: "123", 
             bulkQuoteId: null,
             requesterFspId: "bluebank",
-            errorDescription: "QuoteBCInvalidMessageTypeErrorEvent"
+            errorCode: QuotingErrorCodeNames.INVALID_MESSAGE_TYPE
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1135,7 +1136,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Arrange
         const msg = new QuoteBCInvalidBulkQuoteLengthErrorEvent({
             bulkQuoteId: "123", 
-            errorDescription: "QuoteBCInvalidBulkQuoteLengthErrorEvent"
+            errorCode: QuotingErrorCodeNames.INVALID_BULK_QUOTE_LENGTH
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES);
@@ -1162,7 +1163,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Arrange
         const msg = new QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent({
             quoteId: "123", 
-            errorDescription: "QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent"
+            errorCode: QuotingErrorCodeNames.RULE_SCHEME_VIOLATED_RESPONSE
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1189,7 +1190,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Arrange
         const msg = new QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent({
             quoteId: "123", 
-            errorDescription: "QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent"
+            errorCode: QuotingErrorCodeNames.RULE_SCHEME_VIOLATED_REQUEST
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1216,7 +1217,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Arrange
         const msg = new QuoteBCQuoteNotFoundErrorEvent({
             quoteId: "123", 
-            errorDescription: "QuoteBCQuoteNotFoundErrorEvent"
+            errorCode: QuotingErrorCodeNames.QUOTE_NOT_FOUND
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1243,7 +1244,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Arrange
         const msg = new QuoteBCBulkQuoteNotFoundErrorEvent({
             bulkQuoteId: "123", 
-            errorDescription: "QuoteBCBulkQuoteNotFoundErrorEvent"
+            errorCode: QuotingErrorCodeNames.BULK_QUOTE_NOT_FOUND
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES);
@@ -1272,7 +1273,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
             quoteId: "123", 
             bulkQuoteId: null,
             destinationFspId: "greenbank",
-            errorDescription: "QuoteBCInvalidDestinationFspIdErrorEvent"
+            errorCode: QuotingErrorCodeNames.INVALID_DESTINATION_PARTICIPANT
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1299,7 +1300,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Arrange
         const msg = new QuoteBCDuplicateQuoteErrorEvent({
             quoteId: "123", 
-            errorDescription: "QuoteBCDuplicateQuoteErrorEvent"
+            errorCode: QuotingErrorCodeNames.DUPLICATE_QUOTE
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1326,7 +1327,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Arrange
         const msg = new QuoteBCUnableToAddQuoteToDatabaseErrorEvent({
             quoteId: "123", 
-            errorDescription: "QuoteBCUnableToAddQuoteToDatabaseErrorEvent"
+            errorCode: QuotingErrorCodeNames.UNABLE_TO_ADD_QUOTE
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1353,7 +1354,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Arrange
         const msg = new QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent({
             bulkQuoteId: "456",
-            errorDescription: "QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent"
+            errorCode: QuotingErrorCodeNames.UNABLE_TO_ADD_BULK_QUOTE
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES);
@@ -1380,7 +1381,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Arrange
         const msg = new QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent({
             quoteId: "123", 
-            errorDescription: "QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent"
+            errorCode: QuotingErrorCodeNames.UNABLE_TO_UPDATE_QUOTE
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1407,7 +1408,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Arrange
         const msg = new QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent({
             bulkQuoteId: "456",
-            errorDescription: "QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent"
+            errorCode: QuotingErrorCodeNames.UNABLE_TO_UPDATE_BULK_QUOTE
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES);
@@ -1437,7 +1438,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
             quoteId: "123", 
             bulkQuoteId: null,
             requesterFspId: "bluebank",
-            errorDescription: "QuoteBCInvalidRequesterFspIdErrorEvent"
+            errorCode: QuotingErrorCodeNames.INVALID_SOURCE_PARTICIPANT
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1466,7 +1467,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
             quoteId: "123", 
             bulkQuoteId: null,
             requesterFspId: "bluebank",
-            errorDescription: "QuoteBCRequesterParticipantNotFoundErrorEvent"
+            errorCode: QuotingErrorCodeNames.SOURCE_PARTICIPANT_NOT_FOUND
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1495,7 +1496,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
             quoteId: "123", 
             bulkQuoteId: null,
             destinationFspId: "greenbank",
-            errorDescription: "QuoteBCDestinationParticipantNotFoundErrorEvent"
+            errorCode: QuotingErrorCodeNames.DESTINATION_PARTICIPANT_NOT_FOUND
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1523,7 +1524,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         const msg = new QuoteBCQuoteExpiredErrorEvent({
             quoteId: "123",
             expirationDate: "2022-01-22T08:38:08.699-04:00",
-            errorDescription: "QuoteBCQuoteExpiredErrorEvent"
+            errorCode: QuotingErrorCodeNames.QUOTE_EXPIRED
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
@@ -1551,7 +1552,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         const msg = new QuoteBCBulkQuoteExpiredErrorEvent({
             bulkQuoteId: "123",
             expirationDate: "2022-01-22T08:38:08.699-04:00",
-            errorDescription: "QuoteBCBulkQuoteExpiredErrorEvent"
+            errorCode: QuotingErrorCodeNames.BULK_QUOTE_EXPIRED
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES);

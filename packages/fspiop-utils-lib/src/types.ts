@@ -74,8 +74,10 @@ export interface PutParty {
 			middleName: string,
 			lastName: string
 		},
-		dateOfBirth: Date | null
+		dateOfBirth: Date | null,
+		kycInformation: string | null,
 	}
+	supportedCurrencies: string[] | null,
 }
 
 

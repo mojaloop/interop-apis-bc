@@ -47,14 +47,20 @@ import {
     Transformer,
     ValidationdError
 } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { BaseRoutes } from "../_base_router";
-import { FSPIOPErrorCodes } from "../../validation";
+import { FSPIOPErrorCodes } from "../validation";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import express from "express";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
+import {
+    BulkQuotePendingDTO,
+    BulkQuoteQueryReceivedDTO,
+    BulkQuoteRejectRequestDTO,
+    BulkQuoteRequestDTO
+} from "./bulk_quote_routes_dto";
+import {BaseRoutesFastify} from "../_base_routerfastify";
 
-export class QuoteBulkRoutes extends BaseRoutes {
+export class QuoteBulkRoutes extends BaseRoutesFastify {
 
     constructor(
         producer: IMessageProducer,
@@ -64,28 +70,26 @@ export class QuoteBulkRoutes extends BaseRoutes {
         logger: ILogger
     ) {
         super(producer, validator, jwsHelper, metrics, logger);
+    }
 
-        // bind routes
+    public bindRoutes: FastifyPluginAsync = async (fastify) => {
+        // hook header validation from base class - MANDATORY for FSPIOP Routes
+        fastify.addHook("preHandler", this._preHandler.bind(this));
 
         // GET Bulk Quote by ID
-        this.router.get("/:id/", this.bulkQuoteQueryReceived.bind(this));
+        fastify.get("/:id", this.bulkQuoteQueryReceived.bind(this));
 
         // POST Bulk Quote Calculation
-        this.router.post("/", this.bulkQuoteRequest.bind(this));
+        fastify.post("/", this.bulkQuoteRequest.bind(this));
 
         // PUT Bulk Quote Created
-        this.router.put("/:id", this.bulkQuotePending.bind(this));
+        fastify.put("/:id", this.bulkQuotePending.bind(this));
 
         // Errors
-        this.router.put("/:id/error", this.bulkQuoteRejectRequest.bind(this));
+        fastify.put("/:id/error", this.bulkQuoteRejectRequest.bind(this));
+    };
 
-    }
-
-    get Router(): express.Router {
-        return this.router;
-    }
-
-    private async bulkQuoteQueryReceived(req: express.Request, res: express.Response): Promise<void> {
+    private async bulkQuoteQueryReceived(req: FastifyRequest<BulkQuoteQueryReceivedDTO>, reply: FastifyReply): Promise<void> {
         try {
             this.logger.debug("Got bulkQuoteQueryReceived request");
 
@@ -102,7 +106,7 @@ export class QuoteBulkRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -124,7 +128,7 @@ export class QuoteBulkRoutes extends BaseRoutes {
 
             this.logger.debug("bulkQuoteQueryReceived sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
             this.logger.debug("bulkQuoteQueryReceived responded");
 
@@ -134,11 +138,11 @@ export class QuoteBulkRoutes extends BaseRoutes {
                 errorDescription: (error as Error).message,
                 extensionList: null
             });
-            res.status(500).json(transformError);
+            reply.code(500).send(transformError);
         }
     }
 
-    private async bulkQuoteRequest(req: express.Request, res: express.Response): Promise<void> {
+    private async bulkQuoteRequest(req: FastifyRequest<BulkQuoteRequestDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got bulkQuoteRequest request");
         try {
             // Headers
@@ -163,16 +167,12 @@ export class QuoteBulkRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
             for(let i=0 ; i<individualQuotes.length ; i+=1) {
                 this._validator.currencyAndAmount(individualQuotes[i].amount);
-
-                if(individualQuotes[i].fees) {
-                    this._validator.currencyAndAmount(individualQuotes[i].fees);
-                }
             }
 
             if(this._jwsHelper.isEnabled()) {
@@ -206,26 +206,26 @@ export class QuoteBulkRoutes extends BaseRoutes {
 
             this.logger.debug("bulkQuoteRequest sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
             this.logger.debug("bulkQuoteRequest responded");
 
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
-                res.status(400).json((error as ValidationdError).errorInformation);
+                reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-                res.status(500).json(transformError);
+                reply.code(500).send(transformError);
             }
             return;
         }
     }
 
-    private async bulkQuotePending(req: express.Request, res: express.Response): Promise<void> {
+    private async bulkQuotePending(req: FastifyRequest<BulkQuotePendingDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got bulkQuotePending request");
         try {
             // Headers
@@ -246,7 +246,7 @@ export class QuoteBulkRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -256,9 +256,6 @@ export class QuoteBulkRoutes extends BaseRoutes {
                 }
                 if(individualQuoteResults[i].payeeReceiveAmount) {
                     this._validator.currencyAndAmount(individualQuoteResults[i].payeeReceiveAmount);
-                }
-                if(individualQuoteResults[i].payeeFspFee) {
-                    this._validator.currencyAndAmount(individualQuoteResults[i].payeeFspFee);
                 }
                 if(individualQuoteResults[i].payeeFspCommission) {
                     this._validator.currencyAndAmount(individualQuoteResults[i].payeeFspCommission);
@@ -274,7 +271,7 @@ export class QuoteBulkRoutes extends BaseRoutes {
                 expiration: expiration,
                 individualQuoteResults: individualQuoteResults,
                 extensionList: extensionList,
-            };
+            } as BulkQuotePendingReceivedEvtPayload;
 
             const msg = new BulkQuotePendingReceivedEvt(msgPayload);
 
@@ -294,26 +291,26 @@ export class QuoteBulkRoutes extends BaseRoutes {
 
             this.logger.debug("bulkQuotePending sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
             this.logger.debug("bulkQuotePending responded");
 
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
-                res.status(400).json((error as ValidationdError).errorInformation);
+                reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-                res.status(500).json(transformError);
+                reply.code(500).send(transformError);
             }
             return;
         }
     }
 
-    private async bulkQuoteRejectRequest(req: express.Request, res: express.Response): Promise<void> {
+    private async bulkQuoteRejectRequest(req: FastifyRequest<BulkQuoteRejectRequestDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got bulk quote rejected request");
 
         try{
@@ -331,7 +328,7 @@ export class QuoteBulkRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -358,7 +355,7 @@ export class QuoteBulkRoutes extends BaseRoutes {
 
             this.logger.debug("bulk quote rejected sent message");
 
-            res.status(202).json({
+            reply.code(202).send({
                 status: "ok"
             });
 
@@ -371,7 +368,7 @@ export class QuoteBulkRoutes extends BaseRoutes {
                 extensionList: null
             });
 
-            res.status(500).json(transformError);
+            reply.code(500).send(transformError);
         }
     }
 }

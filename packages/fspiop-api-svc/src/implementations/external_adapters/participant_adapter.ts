@@ -37,9 +37,9 @@ import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import { ParticipantsHttpClient} from "@mojaloop/participants-bc-client-lib";
 import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
 import { IAuthenticatedHttpRequester } from "@mojaloop/security-bc-public-types-lib";
-import { IParticipantService } from "../../interfaces/infrastructure";
+import { IParticipantServiceAdapter } from "../../interfaces/infrastructure";
 
-export class ParticipantAdapter implements IParticipantService {
+export class ParticipantAdapter implements IParticipantServiceAdapter {
 	private readonly _logger: ILogger;
 	private readonly _clientBaseUrl: string;
 	private readonly _externalParticipantClient :ParticipantsHttpClient;

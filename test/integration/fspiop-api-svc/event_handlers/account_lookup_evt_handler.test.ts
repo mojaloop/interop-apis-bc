@@ -68,6 +68,7 @@ import { removeEmpty } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/tra
 import { FSPIOP_PARTY_ACCOUNT_TYPES } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants";
 import { ClientErrors } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/enums";
 import waitForExpect from "../helpers/utils";
+import { AccountLookupErrorCodeNames } from "@mojaloop/account-lookup-bc-public-types-lib";
 
 const server = process.env["SVC_DEFAULT_URL"] || "http://localhost:4000/";
 
@@ -497,7 +498,9 @@ it("should return error from trying to create an already existing association", 
             firstName: "Paul",
             lastName: "Lopez",
             partyDoB: null,
-            extensionList: null
+            extensionList: null,
+            kycInfo: null,
+            supportedCurrencies: null
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
@@ -659,7 +662,6 @@ it("should return error from trying to create an already existing association", 
     // #region
 
     // #region Error events
-    // Act
     it("should return AccountLookUpUnknownErrorEvent http call for participant type", async () => {
         // Arrange
         const msg = new AccountLookUpUnknownErrorEvent({
@@ -667,7 +669,7 @@ it("should return error from trying to create an already existing association", 
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             requesterFspId: "bluebank",
             currency: "USD",
-            errorDescription: "AccountLookUpUnknownErrorEvent"
+            errorCode: AccountLookupErrorCodeNames.COMMAND_TYPE_UNKNOWN
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTICIPANTS);
@@ -697,7 +699,7 @@ it("should return error from trying to create an already existing association", 
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             requesterFspId: "bluebank",
             currency: "USD",
-            errorDescription: "AccountLookUpUnknownErrorEvent"
+            errorCode: AccountLookupErrorCodeNames.COMMAND_TYPE_UNKNOWN
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
@@ -727,7 +729,7 @@ it("should return error from trying to create an already existing association", 
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             partySubType: "456",
             requesterFspId: "bluebank",
-            errorDescription: "AccountLookupBCInvalidMessagePayloadErrorEvent"
+            errorCode: AccountLookupErrorCodeNames.INVALID_MESSAGE_PAYLOAD
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
@@ -757,7 +759,7 @@ it("should return error from trying to create an already existing association", 
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             partySubType: "456",
             requesterFspId: "bluebank",
-            errorDescription: "AccountLookupBCInvalidMessageTypeErrorEvent"
+            errorCode: AccountLookupErrorCodeNames.INVALID_MESSAGE_TYPE
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
@@ -786,7 +788,7 @@ it("should return error from trying to create an already existing association", 
             partyId: "123",
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             currency: "USD",
-            errorDescription: "AccountLookupBCUnableToGetOracleAdapterErrorEvent"
+            errorCode: AccountLookupErrorCodeNames.UNABLE_TO_GET_ORACLE_ADAPTER
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
@@ -849,7 +851,7 @@ it("should return error from trying to create an already existing association", 
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             partySubType: "456",
             currency: "USD",
-            errorDescription: "AccountLookUpUnableToGetParticipantFromOracleErrorEvent"
+            errorCode: AccountLookupErrorCodeNames.UNABLE_TO_GET_PARTICIPANT_FROM_ORACLE
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
@@ -879,7 +881,7 @@ it("should return error from trying to create an already existing association", 
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             currency: "USD",
             fspIdToAssociate: "randomFspId",
-            errorDescription: "AccountLookupBCUnableToAssociateParticipantErrorEvent"
+            errorCode: AccountLookupErrorCodeNames.UNABLE_TO_ASSOCIATE_PARTICIPANT
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
@@ -909,7 +911,7 @@ it("should return error from trying to create an already existing association", 
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             currency: "USD",
             fspIdToDisassociate: "randomFspId",
-            errorDescription: "AccountLookupBCUnableToDisassociateParticipantErrorEvent"
+            errorCode: AccountLookupErrorCodeNames.UNABLE_TO_DISASSOCIATE_PARTICIPANT
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
@@ -939,7 +941,7 @@ it("should return error from trying to create an already existing association", 
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             partySubType: "456",
             destinationFspId: "randomFspId",
-            errorDescription: "AccountLookupBCDestinationParticipantNotFoundErrorEvent"
+            errorCode: AccountLookupErrorCodeNames.DESTINATION_PARTICIPANT_NOT_FOUND
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
@@ -969,7 +971,7 @@ it("should return error from trying to create an already existing association", 
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             partySubType: "456",
             requesterFspId: "randomFspId",
-            errorDescription: "AccountLookupBCRequesterParticipantNotFoundErrorEvent"
+            errorCode: AccountLookupErrorCodeNames.SOURCE_PARTICIPANT_NOT_FOUND
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
@@ -999,7 +1001,7 @@ it("should return error from trying to create an already existing association", 
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             partySubType: "456",
             destinationFspId: "randomFspId",
-            errorDescription: "AccountLookupBCInvalidDestinationParticipantErrorEvent"
+            errorCode: AccountLookupErrorCodeNames.INVALID_DESTINATION_PARTICIPANT
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
@@ -1029,7 +1031,7 @@ it("should return error from trying to create an already existing association", 
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             partySubType: "456",
             requesterFspId: "randomFspId",
-            errorDescription: "AccountLookupBCInvalidRequesterParticipantErrorEvent"
+            errorCode: AccountLookupErrorCodeNames.INVALID_SOURCE_PARTICIPANT
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
@@ -1059,7 +1061,7 @@ it("should return error from trying to create an already existing association", 
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             requesterFspId: "bluebank",
             currency: "USD",
-            errorDescription: "AccountLookUpUnknownErrorEvent"
+            errorCode: AccountLookupErrorCodeNames.COMMAND_TYPE_UNKNOWN
         })
         
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTICIPANTS);

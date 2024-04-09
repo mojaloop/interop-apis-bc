@@ -48,14 +48,15 @@ import {
     QuoteResponseReceivedEvt,
     QuoteResponseReceivedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { BaseRoutes } from "../_base_router";
-import { FSPIOPErrorCodes } from "../../validation";
+import { FSPIOPErrorCodes } from "../validation";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import express from "express";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
+import { QuoteQueryReceivedDTO, QuoteRejectRequestDTO, QuoteRequestReceivedDTO, QuoteResponseReceivedDTO } from "./quotes_routes_dto";
+import {BaseRoutesFastify} from "../_base_routerfastify";
 
-export class QuoteRoutes extends BaseRoutes {
+export class QuoteRoutes extends BaseRoutesFastify {
 
     constructor(
         producer: IMessageProducer,
@@ -65,23 +66,26 @@ export class QuoteRoutes extends BaseRoutes {
         logger: ILogger
     ) {
         super(producer, validator, jwsHelper, metrics, logger);
-
-        // bind routes
-
-        // GET Quote by ID
-        this.router.get("/:id/", this.quoteQueryReceived.bind(this));
-
-        // POST Quote Calculation
-        this.router.post("/", this.quoteRequestReceived.bind(this));
-
-        // PUT Quote Created
-        this.router.put("/:id", this.quoteResponseReceived.bind(this));
-
-        // Errors
-        this.router.put("/:id/error", this.quoteRejectRequest.bind(this));
     }
 
-    private async quoteRequestReceived(req: express.Request, res: express.Response): Promise<void> {
+    public bindRoutes: FastifyPluginAsync = async (fastify) => {
+        // hook header validation from base class - MANDATORY for FSPIOP Routes
+        fastify.addHook("preHandler", this._preHandler.bind(this));
+
+        // GET Quote by ID
+        fastify.get("/:id", this.quoteQueryReceived.bind(this));
+
+        // POST Quote Calculation
+        fastify.post("/", this.quoteRequestReceived.bind(this));
+
+        // PUT Quote Created
+        fastify.put("/:id", this.quoteResponseReceived.bind(this));
+
+        // Errors
+        fastify.put("/:id/error", this.quoteRejectRequest.bind(this));
+    };
+
+    private async quoteRequestReceived(req: FastifyRequest<QuoteRequestReceivedDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got quoteRequestReceived request");
         try {
             // Headers
@@ -111,7 +115,7 @@ export class QuoteRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -141,7 +145,7 @@ export class QuoteRoutes extends BaseRoutes {
                 note: note,
                 expiration: expiration,
                 extensionList: extensionList
-            } as QuoteRequestReceivedEvtPayload;
+            } as unknown as QuoteRequestReceivedEvtPayload;
 
             const msg = new QuoteRequestReceivedEvt(msgPayload);
 
@@ -161,26 +165,26 @@ export class QuoteRoutes extends BaseRoutes {
 
             this.logger.debug("quoteRequestReceived sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
             this.logger.debug("quoteRequestReceived responded");
 
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
-                res.status(400).json((error as ValidationdError).errorInformation);
+                reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-                res.status(500).json(transformError);
+                reply.code(500).send(transformError);
             }
             return;
         }
     }
 
-    private async quoteResponseReceived(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
+    private async quoteResponseReceived(req: FastifyRequest<QuoteResponseReceivedDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got quoteResponseReceived request");
         try {
             // Headers
@@ -209,20 +213,13 @@ export class QuoteRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
-                return next();
+                reply.code(400).send(transformError);
             }
 
             this._validator.currencyAndAmount(transferAmount);
 
             if(payeeReceiveAmount) {
                 this._validator.currencyAndAmount(payeeReceiveAmount);
-            }
-            if(payeeFspFee) {
-                this._validator.currencyAndAmount(payeeFspFee);
-            }
-            if(payeeFspFee) {
-                this._validator.currencyAndAmount(payeeFspFee);
             }
 
             if(this._jwsHelper.isEnabled()) {
@@ -262,26 +259,26 @@ export class QuoteRoutes extends BaseRoutes {
 
             this.logger.debug("quoteResponseReceived sent message");
 
-            res.status(200).json(null);
+            reply.code(200).send(null);
 
             this.logger.debug("quoteResponseReceived responded");
 
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
-                res.status(400).json((error as ValidationdError).errorInformation);
+                reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-                res.status(500).json(transformError);
+                reply.code(500).send(transformError);
             }
             return;
         }
     }
 
-    private async quoteQueryReceived(req: express.Request, res: express.Response): Promise<void> {
+    private async quoteQueryReceived(req: FastifyRequest<QuoteQueryReceivedDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got quoteQueryReceived request");
         try {
             const clonedHeaders = { ...req.headers };
@@ -296,7 +293,7 @@ export class QuoteRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -319,7 +316,7 @@ export class QuoteRoutes extends BaseRoutes {
 
             this.logger.debug("quoteQueryReceived sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
             this.logger.debug("quoteQueryReceived responded");
 
@@ -330,11 +327,11 @@ export class QuoteRoutes extends BaseRoutes {
                 extensionList: null
             });
 
-            res.status(500).json(transformError);
+            reply.code(500).send(transformError);
         }
     }
 
-    private async quoteRejectRequest(req: express.Request, res: express.Response): Promise<void> {
+    private async quoteRejectRequest(req: FastifyRequest<QuoteRejectRequestDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got quote rejected request");
 
         try{
@@ -352,7 +349,7 @@ export class QuoteRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -379,7 +376,7 @@ export class QuoteRoutes extends BaseRoutes {
 
             this.logger.debug("quote rejected sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
             this.logger.debug("quote rejected responded");
 
@@ -390,7 +387,7 @@ export class QuoteRoutes extends BaseRoutes {
                 extensionList: null
             });
 
-            res.status(500).json(transformError);
+            reply.code(500).send(transformError);
         }
     }
 }

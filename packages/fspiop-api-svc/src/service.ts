@@ -30,57 +30,50 @@ optionally within square brackets <email>.
 
 
 "use strict";
-import {existsSync} from "fs";
-import {Server} from "http";
-import express, {Express} from "express";
-import {ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
-import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
+import { existsSync } from "fs";
+import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
+import { KafkaLogger } from "@mojaloop/logging-bc-client-lib";
 import {
     AuditClient,
     KafkaAuditClientDispatcher,
     LocalAuditClientCryptoProvider
 } from "@mojaloop/auditing-bc-client-lib";
-import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
+import { IAuditClient } from "@mojaloop/auditing-bc-public-types-lib";
 import process from "process";
-import {ParticipantAdapter} from "./implementations/external_adapters/participant_adapter";
-import {ParticipantRoutes} from "./http_routes/account-lookup-bc/participant_routes";
-import {PartyRoutes} from "./http_routes/account-lookup-bc/party_routes";
+import { ParticipantAdapter } from "./implementations/external_adapters/participant_adapter";
+import { ParticipantRoutes } from "./http_routes/account-lookup-bc/participant_routes";
+import { PartyRoutes } from "./http_routes/account-lookup-bc/party_routes";
 import {
-    MLKafkaJsonConsumer,
-    MLKafkaJsonConsumerOptions, MLKafkaJsonProducer,
-    MLKafkaJsonProducerOptions
+    MLKafkaJsonConsumer, MLKafkaJsonProducer, MLKafkaJsonProducerOptions
 } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import { AccountLookupEventHandler } from "./event_handlers/account_lookup_evt_handler";
-import { QuotingEventHandler } from "./event_handlers/quoting_evt_handler";
-import { TransferEventHandler } from "./event_handlers/transfers_evt_handler";
-import {
-    AccountLookupBCTopics,
-    QuotingBCTopics,
-    TransfersBCTopics
-} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { QuoteRoutes } from "./http_routes/quoting-bc/quote_routes";
 import { QuoteBulkRoutes } from "./http_routes/quoting-bc/bulk_quote_routes";
 import { TransfersRoutes } from "./http_routes/transfers-bc/transfers_routes";
-import { IParticipantService } from "./interfaces/infrastructure";
-import {AuthenticatedHttpRequester} from "@mojaloop/security-bc-client-lib";
-import {IAuthenticatedHttpRequester} from "@mojaloop/security-bc-public-types-lib";
+import { IParticipantServiceAdapter } from "./interfaces/infrastructure";
+import { AuthenticatedHttpRequester } from "@mojaloop/security-bc-client-lib";
+import { IAuthenticatedHttpRequester } from "@mojaloop/security-bc-public-types-lib";
 import path from "path";
-import { OpenApiDocument, OpenApiValidator } from "express-openapi-validate";
 import jsYaml from "js-yaml";
 import fs from "fs";
-import { validateHeaders } from "./header_validation";
+
 import { TransfersBulkRoutes } from "./http_routes/transfers-bc/bulk_transfers_routes";
-import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
+import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {
     DefaultConfigProvider,
     IConfigProvider
 } from "@mojaloop/platform-configuration-bc-client-lib";
-import {GetParticipantsConfigs} from "./configset";
-import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { GetParticipantsConfigs } from "./configset";
+import { IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { FspiopValidator, FspiopJwsSignature } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 import {PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-client-lib";
-import * as promBundle from "express-prom-bundle";
+import {GetParticipantByTypeAndIdDTO} from "./http_routes/account-lookup-bc/participant_route_dto";
+
+import Fastify, {FastifyInstance, FastifyReply, FastifyRequest} from "fastify";
+import fastifyCors from "@fastify/cors";
+import fastifyFormbody from "@fastify/formbody";
+import fastifyStatic from "@fastify/static";
+import fastifyOAS from "fastify-oas";
 
 const API_SPEC_FILE_PATH = process.env["API_SPEC_FILE_PATH"] || "../dist/api_spec.yaml";
 
@@ -88,7 +81,7 @@ const API_SPEC_FILE_PATH = process.env["API_SPEC_FILE_PATH"] || "../dist/api_spe
 const packageJSON = require("../package.json");
 
 const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
-const LOGLEVEL:LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
+const LOGLEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
 
 const BC_NAME = "interop-apis-bc";
 const APP_NAME = "fspiop-api-svc";
@@ -121,10 +114,10 @@ const AUTH_N_SVC_TOKEN_URL = AUTH_N_SVC_BASEURL + "/token"; // TODO this should 
 
 
 const PARTICIPANTS_SVC_URL = process.env["PARTICIPANTS_SVC_URL"] || "http://localhost:3010";
-const PARTICIPANTS_CACHE_TIMEOUT_MS = (process.env["PARTICIPANTS_CACHE_TIMEOUT_MS"] && parseInt(process.env["PARTICIPANTS_CACHE_TIMEOUT_MS"])) || 5*60*1000;
+const PARTICIPANTS_CACHE_TIMEOUT_MS = (process.env["PARTICIPANTS_CACHE_TIMEOUT_MS"] && parseInt(process.env["PARTICIPANTS_CACHE_TIMEOUT_MS"])) || 5 * 60 * 1000;
 
 // this service has more handlers, might take longer than the usual 30 sec
-const SERVICE_START_TIMEOUT_MS= (process.env["SERVICE_START_TIMEOUT_MS"] && parseInt(process.env["SERVICE_START_TIMEOUT_MS"])) || 120_000;
+const SERVICE_START_TIMEOUT_MS = (process.env["SERVICE_START_TIMEOUT_MS"] && parseInt(process.env["SERVICE_START_TIMEOUT_MS"])) || 120_000;
 
 const JWS_FILES_PATH = process.env["JWS_FILES_PATH"] || "/app/data/keys/";
 
@@ -150,10 +143,6 @@ const jwsConfig: {
 let globalLogger: ILogger;
 
 
-let accountEvtHandler:AccountLookupEventHandler;
-let quotingEvtHandler:QuotingEventHandler;
-let transferEvtHandler:TransferEventHandler;
-
 type FspiopHttpRequestError = {
     name: string;
     statusCode: number;
@@ -166,37 +155,36 @@ type FspiopHttpRequestError = {
 }
 export class Service {
     static logger: ILogger;
-    static app: Express;
-    static expressServer: Server;
+    static app: FastifyInstance;
     static participantRoutes: ParticipantRoutes;
     static partyRoutes: PartyRoutes;
     static quotesRoutes: QuoteRoutes;
     static bulkQuotesRoutes: QuoteBulkRoutes;
     static transfersRoutes: TransfersRoutes;
-    static bulkTransfersRoutes:TransfersBulkRoutes;
-    static participantService: IParticipantService;
+    static bulkTransfersRoutes: TransfersBulkRoutes;
+    static participantService: IParticipantServiceAdapter;
     static auditClient: IAuditClient;
     static configClient: IConfigurationClient;
-    static producer:IMessageProducer;
+    static producer: IMessageProducer;
     static metrics: IMetrics;
 
     static startupTimer: NodeJS.Timeout;
 
     static async start(
-        logger?:ILogger,
-        participantService?: IParticipantService,
+        logger?: ILogger,
+        participantService?: IParticipantServiceAdapter,
         auditClient?: IAuditClient,
         configProvider?: IConfigProvider,
         metrics?: IMetrics,
-    ):Promise<void> {
+    ): Promise<void> {
         console.log(`Fspiop-api-svc - service starting with PID: ${process.pid}`);
 
-        this.startupTimer = setTimeout(()=>{
+        this.startupTimer = setTimeout(() => {
             throw new Error("Service start timed-out");
         }, SERVICE_START_TIMEOUT_MS);
 
 
-        if(!logger) {
+        if (!logger) {
             logger = new KafkaLogger(
                 BC_NAME,
                 APP_NAME,
@@ -209,7 +197,7 @@ export class Service {
         }
         globalLogger = this.logger = logger;
 
-        if(!configProvider) {
+        if (!configProvider) {
             // create the instance of IAuthenticatedHttpRequester
             const authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
             authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
@@ -227,7 +215,7 @@ export class Service {
         await this.configClient.fetch();
 
 
-        if(!auditClient) {
+        if (!auditClient) {
             if (!existsSync(AUDIT_KEY_FILE_PATH)) {
                 if (PRODUCTION_MODE) process.exit(9);
 
@@ -254,11 +242,11 @@ export class Service {
         }
         this.metrics = metrics;
 
-        if(!participantService){
+        if (!participantService) {
             const participantLogger = logger.createChild("participantLogger");
             participantLogger.setLogLevel(LogLevel.INFO);
 
-            const authRequester:IAuthenticatedHttpRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
+            const authRequester: IAuthenticatedHttpRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
             authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
             participantService = new ParticipantAdapter(participantLogger, PARTICIPANTS_SVC_URL, authRequester, PARTICIPANTS_CACHE_TIMEOUT_MS);
         }
@@ -269,7 +257,7 @@ export class Service {
         const routeValidator = FspiopValidator.getInstance();
         routeValidator.addCurrencyList(currencyList);
 
-        if(jwsConfig.enabled) {
+        if (jwsConfig.enabled) {
             const privateKey = fs.readFileSync(path.join(__dirname, `${JWS_FILES_PATH}/hub/privatekey.pem`));
             jwsConfig.privateKey = privateKey;
 
@@ -284,7 +272,7 @@ export class Service {
         jwsHelper.addLogger(this.logger);
         jwsHelper.enableJws(jwsConfig.enabled);
         jwsHelper.addPublicKeys(jwsConfig.publicKeys);
-        if(jwsConfig.privateKey) {
+        if (jwsConfig.privateKey) {
             jwsHelper.addPrivateKey(jwsConfig.privateKey);
         }
 
@@ -310,7 +298,7 @@ export class Service {
             this.bulkTransfersRoutes.init()
         ]);
 
-        await Service.setupExpress();
+        await Service.setupFastify();
 
         this.logger.info(`Fspiop-api service v: ${APP_VERSION} started`);
 
@@ -318,193 +306,149 @@ export class Service {
         clearTimeout(this.startupTimer);
     }
 
-    static async setupEventHandlers(jwsHelper:FspiopJwsSignature):Promise<void>{
-        const accountEvtHandlerConsumerOptions: MLKafkaJsonConsumerOptions = {
-            kafkaBrokerList: KAFKA_URL,
-            kafkaGroupId: `${BC_NAME}_${APP_NAME}_AccountLookupEventHandler`,
-        };
-
-        accountEvtHandler = new AccountLookupEventHandler(
-            this.logger,
-            accountEvtHandlerConsumerOptions,
-            kafkaJsonProducerOptions,
-            [AccountLookupBCTopics.DomainEvents],
-            this.participantService,
-            jwsHelper,
-            this.metrics
-        );
-
-        const quotingEvtHandlerConsumerOptions: MLKafkaJsonConsumerOptions = {
-            kafkaBrokerList: KAFKA_URL,
-            kafkaGroupId: `${BC_NAME}_${APP_NAME}_QuotingEventHandler`,
-        };
-
-        quotingEvtHandler = new QuotingEventHandler(
-            this.logger,
-            quotingEvtHandlerConsumerOptions,
-            kafkaJsonProducerOptions,
-            [QuotingBCTopics.DomainEvents],
-            this.participantService,
-            jwsHelper,
-            this.metrics
-        );
-
-        const transferEvtHandlerConsumerOptions: MLKafkaJsonConsumerOptions = {
-            kafkaBrokerList: KAFKA_URL,
-            kafkaGroupId: `${BC_NAME}_${APP_NAME}_TransferEventHandler`,
-        };
-
-        transferEvtHandler = new TransferEventHandler(
-            this.logger,
-            transferEvtHandlerConsumerOptions,
-            kafkaJsonProducerOptions,
-            [TransfersBCTopics.DomainEvents],
-            this.participantService,
-            jwsHelper,
-            this.metrics
-        );
-
-        await Promise.all([
-            accountEvtHandler.init(),
-            quotingEvtHandler.init(),
-            transferEvtHandler.init()
-        ]);
-    }
-
-    static async setupExpress(): Promise<void> {
+    static async setupFastify(): Promise<void> {
         return new Promise<void>(resolve => {
-            this.app = express();
+            this.app = Fastify({
+                logger: false
+            });
 
             // setup prom-bundle to automatically collect express metrics
-            const metricsMiddleware = promBundle.default({
-                includeMethod: true,
-                includePath: true,
-                autoregister: false,
-                promRegistry: (this.metrics as any)._register // hack - fix
+            const metricsPlugin = require("fastify-metrics");
+            this.app.register(metricsPlugin, {
+                defaultMetrics: true,
+                enableRouteMetrics: true,
+                groupStatusCodes: true,
+                endpoint: "/metrics",
+                register: require("prom-client").register
             });
-            this.app.use(metricsMiddleware);
 
             // Add health and metrics http routes
-            this.app.get("/health", (req: express.Request, res: express.Response) => {
-                return res.send({ status: "OK" });
-            });
-            this.app.get("/metrics", async (req: express.Request, res: express.Response) => {
-                const strMetrics = await (this.metrics as PrometheusMetrics).getMetricsForPrometheusScrapper();
-                return res.send(strMetrics);
+            this.app.get("/health", (req: FastifyRequest<GetParticipantByTypeAndIdDTO>, reply: FastifyReply) => {
+                return reply.send({ status: "OK" });
             });
 
-            this.app.use(express.json({
-                limit: "100mb",
-                type: (req)=>{
-                    const contentLength = req.headers["content-length"];
-                    if(contentLength) {
-                        // We need to send this as a number
-                        req.headers["content-length"]= parseInt(contentLength) as unknown as string;
-                    }
+            this.app.register(fastifyCors, { origin: true });
+            this.app.register(fastifyFormbody, {
+                bodyLimit: 100 * 1024 * 1024 // 100MB
+            });
 
-                    return req.headers["content-type"]?.toUpperCase()==="application/json".toUpperCase()
-                        || req.headers["content-type"]?.startsWith("application/vnd.interoperability.")
-                        || false;
+            // Custom content type for handling specific versioned JSON types
+            this.app.addContentTypeParser('*', { parseAs: "buffer" }, function (req:FastifyRequest, body: Buffer, done) {
+                try {
+                  const contentLength = req.headers["content-length"];
+                  if (contentLength) {
+                    req.headers["content-length"] = parseInt(contentLength, 10).toString();
+                  }
+
+                  const contentType = req.headers["content-type"]?.toLowerCase();
+
+                  if (contentType === "application/json" ||
+                      contentType?.startsWith("application/vnd.interoperability.")) {
+                    const json = JSON.parse(body.toString());
+                    done(null, json);
+                  } else {
+                    // If not a supported content type, do not parse the body
+                    done(null, undefined);
+                  }
+                } catch (err:unknown) {
+                      done((err as Error), undefined);
                 }
-            })); // for parsing application/json
-            this.app.use(express.urlencoded({limit: "100mb", extended: true})); // for parsing application/x-www-form-urlencoded
+            });
 
-            // // Call header validation
-            this.app.use(validateHeaders);
-
-            // Call the request validator in every request
             const openApiDocument = jsYaml.load(
-                fs.readFileSync(path.join(__dirname, API_SPEC_FILE_PATH), "utf-8"),
-            ) as OpenApiDocument;
-            const validator = new OpenApiValidator(openApiDocument); // TODO: find a way to limit currencies on this point
-            this.app.use(validator.match());
+                fs.readFileSync(path.join(__dirname, API_SPEC_FILE_PATH), "utf-8")
+            );
 
-            // hook http handler's routes
-            this.app.use(`/${PARTICIPANTS_URL_RESOURCE_NAME}`, this.participantRoutes.router);
-            this.app.use(`/${PARTIES_URL_RESOURCE_NAME}`, this.partyRoutes.router);
-            this.app.use(`/${QUOTES_URL_RESOURCE_NAME}`, this.quotesRoutes.router);
-            this.app.use(`/${BULK_QUOTES_URL_RESOURCE_NAME}`, this.bulkQuotesRoutes.router);
-            this.app.use(`/${TRANSFERS_URL_RESOURCE_NAME}`, this.transfersRoutes.router);
-            this.app.use(`/${BULK_TRANSFERS_URL_RESOURCE_NAME}`, this.bulkTransfersRoutes.router);
+            this.app.register(fastifyOAS, {
+                specification: openApiDocument,
+            });
 
-            /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
-            this.app.use((err: FspiopHttpRequestError, req: express.Request, res: express.Response, next: express.NextFunction) => {
-                if(!err.data) {
-                    next();
-                    return;
+            //this.app.addHook("preHandler", validateHeadersPlugin);
+           // this.app.use(validateHeadersPlugin);
+
+            this.app.register(this.participantRoutes.bindRoutes, { prefix: `/${PARTICIPANTS_URL_RESOURCE_NAME}` });
+            this.app.register(this.partyRoutes.bindRoutes, { prefix: `/${PARTIES_URL_RESOURCE_NAME}` });
+            this.app.register(this.quotesRoutes.bindRoutes, { prefix: `/${QUOTES_URL_RESOURCE_NAME}` });
+            this.app.register(this.bulkQuotesRoutes.bindRoutes, { prefix: `/${BULK_QUOTES_URL_RESOURCE_NAME}` });
+            this.app.register(this.transfersRoutes.bindRoutes, { prefix: `/${TRANSFERS_URL_RESOURCE_NAME}` });
+            this.app.register(this.bulkTransfersRoutes.bindRoutes, { prefix: `/${BULK_TRANSFERS_URL_RESOURCE_NAME}` });
+
+            // Error handling middleware
+            this.app.setErrorHandler((error, request, reply) => {
+                const err = error as unknown as FspiopHttpRequestError;
+
+                if (!err.data) {
+                  reply.callNotFound();
+                  return;
                 }
 
                 const errorResponseBuilder = (errorCode: string, errorDescription: string, additionalProperties = {}) => {
-                    return {
-                        errorInformation: {
-                            errorCode,
-                            errorDescription,
-                            ...additionalProperties
-                        }
-                    };
+                  return {
+                    errorInformation: {
+                      errorCode,
+                      errorDescription,
+                      ...additionalProperties
+                    }
+                  };
                 };
 
                 const statusCode = err.statusCode || 500;
-
                 const extensionList = [{
-                    key: "keyword",
-                    value: err.data[0].keyword
-                },
-                {
-                    key: "instancePath",
-                    value: err.data[0].instancePath
+                  key: "keyword",
+                  value: err.data[0].keyword
+                }, {
+                  key: "instancePath",
+                  value: err.data[0].instancePath
                 }];
+
                 for (const [key, value] of Object.entries(err.data[0].params)) {
-                    extensionList.push({ key, value });
+                  extensionList.push({ key, value });
                 }
+
                 const customFSPIOPHeaders = ["content-type"];
-
-                const customHeaders:{[key: string]: string} = {};
-                for (const value of customFSPIOPHeaders) {
-                    const headerValue = req.headers[value] as string;
-
-                    if(req.headers[value]) {
-                        customHeaders[value] = headerValue;
-                    }
-                }
-
-                res.set(customHeaders);
-
-                let errorCode:string;
-                const errorType = err.data[0].instancePath;
-
-                if(errorType.includes("body")){
-                    errorCode = "3100";
-                }else if(!errorType.includes("body")) {
-                    errorCode = "3102";
-                }else{
-                    errorCode = "3100";
-                }
-
-                res.status(statusCode).json(errorResponseBuilder(errorCode, `${err.data[0].message} - path: ${err.data[0].instancePath}`, { extensionList: { extension: extensionList} }));
-            });
-
-            /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
-            this.app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
-                // catch all
-                this.logger.warn(`Received unhandled request to url: ${req.url}`);
-                res.status(404).json({
-                    errorInformation: {
-                        errorCode: "3002",
-                        errorDescription: "Unknown URI"
-                    }
+                const customHeaders: {[key: string]: string} = {};
+                customFSPIOPHeaders.forEach(headerKey => {
+                  const headerValue = request.headers[headerKey];
+                  if (headerValue) {
+                    customHeaders[headerKey] = headerValue as string;
+                  }
                 });
 
-                next();
+                // Setting custom headers
+                Object.entries(customHeaders).forEach(([key, value]) => {
+                  reply.header(key, value);
+                });
+
+                let errorCode: string;
+                const errorType = err.data[0].instancePath;
+
+                if (errorType.includes("body")) {
+                  errorCode = "3100";
+                } else {
+                  errorCode = "3102";
+                }
+
+                reply.code(statusCode).send(errorResponseBuilder(errorCode, `${err.data[0].message} - path: ${err.data[0].instancePath}`, { extensionList: { extension: extensionList } }));
+            });
+
+            // Catch-all for unhandled requests
+            this.app.setNotFoundHandler((request, reply) => {
+                request.log.warn(`Received unhandled request to url: ${request.url}`);
+                reply.code(404).send({
+                errorInformation: {
+                    errorCode: "3002",
+                    errorDescription: "Unknown URI"
+                }
+                });
             });
 
             let portNum = SVC_DEFAULT_HTTP_PORT;
-            if(process.env["SVC_HTTP_PORT"] && !isNaN(parseInt(process.env["SVC_HTTP_PORT"]))) {
+            if (process.env["SVC_HTTP_PORT"] && !isNaN(parseInt(process.env["SVC_HTTP_PORT"]))) {
                 portNum = parseInt(process.env["SVC_HTTP_PORT"]);
             }
 
-            this.expressServer = this.app.listen(portNum, () => {
-                this.logger.info(`🚀 Server ready at: http://localhost:${portNum}`);
+            this.app.listen({host:"0.0.0.0", port: portNum }, () => {
+                this.logger.info(`🚀 Server ready at: http://0.0.0.0:${portNum}`);
                 this.logger.info(`FSPIOP-API-SVC Service started, version: ${APP_VERSION}`);
                 resolve();
             });
@@ -512,12 +456,7 @@ export class Service {
     }
 
     static async stop() {
-        // if (this.handler) await this.handler.stop();
-        // if (this.messageConsumer) await this.messageConsumer.destroy(true);
-
-        // if (this.auditClient) await this.auditClient.destroy();
-        // if (this.logger && this.logger instanceof KafkaLogger) await this.logger.destroy();
-        if (this.expressServer){
+        if (this.app) {
             await this.participantRoutes.destroy();
             await this.partyRoutes.destroy();
             await this.quotesRoutes.destroy();
@@ -525,17 +464,11 @@ export class Service {
             await this.bulkQuotesRoutes.destroy();
             await this.transfersRoutes.destroy();
 
-            await this.expressServer.close();
-            // const closeExpress = util.promisify(this.expressServer.close);
-            // await closeExpress();
+            await this.app.close();
         }
-        if(this.producer){
+        if (this.producer) {
             await this.producer.destroy();
         }
-
-        await accountEvtHandler.destroy();
-        await quotingEvtHandler.destroy();
-        await transferEvtHandler.destroy();
 
         await this.auditClient.destroy();
         setTimeout(async () => {
@@ -577,3 +510,4 @@ process.on("uncaughtException", (err: Error) => {
     console.log("UncaughtException - EXITING...");
     process.exit(999);
 });
+

@@ -48,7 +48,8 @@ import {
 	BulkTransferPreparedEvtPayload,
 	BulkTransferFulfiledEvtPayload,
 	BulkTransferQueryResponseEvtPayload,
-	BulkTransferRejectRequestProcessedEvtPayload
+	BulkTransferRejectRequestProcessedEvtPayload,
+	GetPartyQueryRejectedResponseEvtPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { 
 	ExtensionList,
@@ -144,8 +145,10 @@ export const transformPayloadPartyInfoReceivedPut = (payload: PartyQueryResponse
 					middleName: payload.middleName,
 					lastName: payload.lastName
 				},
-				dateOfBirth: payload.partyDoB
-			}
+				dateOfBirth: payload.partyDoB,
+				kycInformation: payload.kycInfo,
+			},
+			supportedCurrencies: payload.supportedCurrencies,
 		}
 	};
 
@@ -345,6 +348,14 @@ export const transformPayloadBulkTransferRequestGet = (payload: BulkTransferQuer
 };
 
 export const transformPayloadBulkTransferRequestPutError = (payload: BulkTransferRejectRequestProcessedEvtPayload): FspiopError => {
+	const info: FspiopError = {
+		errorInformation: payload.errorInformation
+	};
+
+	return removeEmpty(info);
+};
+
+export const transformPayloadPartyQueryRejectedPut = (payload: GetPartyQueryRejectedResponseEvtPayload): FspiopError => {
 	const info: FspiopError = {
 		errorInformation: payload.errorInformation
 	};

@@ -50,14 +50,20 @@ import {
     decodeIlpPacket,
     PostQuote
 } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { BaseRoutes } from "../_base_router";
-import { FSPIOPErrorCodes } from "../../validation";
+import { FSPIOPErrorCodes } from "../validation";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import express from "express";
-import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
+import {
+    BulkTransferFulfilRequestedDTO,
+    BulkTransferPrepareRequestDTO,
+    BulkTransferQueryReceivedDTO,
+    BulkTransfersRejectRequestDTO
+} from "./bulk_transfers_routes_dto";
+import {BaseRoutesFastify} from "../_base_routerfastify";
 
-export class TransfersBulkRoutes extends BaseRoutes {
+export class TransfersBulkRoutes extends BaseRoutesFastify {
 
     constructor(
         producer: IMessageProducer,
@@ -67,28 +73,26 @@ export class TransfersBulkRoutes extends BaseRoutes {
         logger: ILogger
     ) {
         super(producer, validator, jwsHelper, metrics, logger);
+    }
 
-        // bind routes
+    public bindRoutes: FastifyPluginAsync = async (fastify) => {
+        // hook header validation from base class - MANDATORY for FSPIOP Routes
+        fastify.addHook("preHandler", this._preHandler.bind(this));
 
         // GET Bulk Transfers by ID
-        this.router.get("/:id/", this.bulkTransferQueryReceived.bind(this));
+        fastify.get("/:id", this.bulkTransferQueryReceived.bind(this));
 
         // POST Bulk Transfers Calculation
-        this.router.post("/", this.bulkTransferPrepareRequest.bind(this));
+        fastify.post("/", this.bulkTransferPrepareRequest.bind(this));
 
         // PUT Bulk Transfers Created
-        this.router.put("/:id", this.bulkTransferFulfilRequested.bind(this));
+        fastify.put("/:id", this.bulkTransferFulfilRequested.bind(this));
 
         // Errors
-        this.router.put("/:id/error", this.bulkTransfersRejectRequest.bind(this));
+        fastify.put("/:id/error", this.bulkTransfersRejectRequest.bind(this));
+    };
 
-    }
-
-    get Router(): express.Router {
-        return this.router;
-    }
-
-    private async bulkTransferQueryReceived(req: express.Request, res: express.Response): Promise<void> {
+    private async bulkTransferQueryReceived(req: FastifyRequest<BulkTransferQueryReceivedDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got bulkTransferQueryReceived request");
         try {
             // Headers
@@ -104,7 +108,7 @@ export class TransfersBulkRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -130,7 +134,7 @@ export class TransfersBulkRoutes extends BaseRoutes {
 
             this.logger.debug("bulkTransferQueryReceived sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
             this.logger.debug("bulkTransferQueryReceived responded");
 
@@ -140,11 +144,11 @@ export class TransfersBulkRoutes extends BaseRoutes {
                 errorDescription: (error as Error).message,
                 extensionList: null
             });
-            res.status(500).json(transformError);
+            reply.code(500).send(transformError);
         }
     }
 
-    private async bulkTransferPrepareRequest(req: express.Request, res: express.Response): Promise<void> {
+    private async bulkTransferPrepareRequest(req: FastifyRequest<BulkTransferPrepareRequestDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got bulkTransfersRequest request");
         try {
             // Headers
@@ -157,7 +161,7 @@ export class TransfersBulkRoutes extends BaseRoutes {
             const bulkQuoteId = req.body["bulkQuoteId"] || null;
             const payerFsp = req.body["payerFsp"] || null;
             const payeeFsp = req.body["payeeFsp"] || null;
-            const expiration = req.body["expiration"] || null;
+            const expiration = req.body["expiration"];
             const individualTransfers = req.body["individualTransfers"] || null;
             const extensionList = req.body["extensionList"] || null;
 
@@ -170,7 +174,7 @@ export class TransfersBulkRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -218,26 +222,26 @@ export class TransfersBulkRoutes extends BaseRoutes {
 
             this.logger.debug("bulkTransfersRequest sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
             this.logger.debug("bulkTransfersRequest responded");
 
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
-                res.status(400).json((error as ValidationdError).errorInformation);
+                reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-                res.status(500).json(transformError);
+                reply.code(500).send(transformError);
             }
             return;
         }
     }
 
-    private async bulkTransferFulfilRequested(req: express.Request, res: express.Response): Promise<void> {
+    private async bulkTransferFulfilRequested(req: FastifyRequest<BulkTransferFulfilRequestedDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got bulkTransferFulfilRequested request");
         try {
             // Headers
@@ -247,7 +251,7 @@ export class TransfersBulkRoutes extends BaseRoutes {
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
 
             // Date Model
-            const completedTimestamp = req.body["completedTimestamp"] || null;
+            const completedTimestamp = req.body["completedTimestamp"];
             const bulkTransferState = req.body["bulkTransferState"] || null;
             const individualTransferResults = req.body["individualTransferResults"] || null;
             const extensionList = req.body["extensionList"] || null;
@@ -259,7 +263,7 @@ export class TransfersBulkRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -290,7 +294,7 @@ export class TransfersBulkRoutes extends BaseRoutes {
 
             this.logger.debug("bulkTransferFulfilRequested sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
             this.logger.debug("bulkTransferFulfilRequested responded");
         }
@@ -301,11 +305,11 @@ export class TransfersBulkRoutes extends BaseRoutes {
                 extensionList: null
             });
 
-            res.status(500).json(transformError);
+            reply.code(500).send(transformError);
         }
     }
 
-    private async bulkTransfersRejectRequest(req: express.Request, res: express.Response): Promise<void> {
+    private async bulkTransfersRejectRequest(req: FastifyRequest<BulkTransfersRejectRequestDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got bulk transfer rejected request");
 
         try{
@@ -323,7 +327,7 @@ export class TransfersBulkRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -350,7 +354,7 @@ export class TransfersBulkRoutes extends BaseRoutes {
 
             this.logger.debug("bulk transfer rejected sent message");
 
-            res.status(202).json({
+            reply.code(202).send({
                 status: "ok"
             });
 
@@ -363,7 +367,7 @@ export class TransfersBulkRoutes extends BaseRoutes {
                 extensionList: null
             });
 
-            res.status(500).json(transformError);
+            reply.code(500).send(transformError);
         }
     }
 }

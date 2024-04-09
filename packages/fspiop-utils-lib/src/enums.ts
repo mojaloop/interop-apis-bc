@@ -65,7 +65,7 @@ export enum ErrorCode {
 }
 
 export const CommunicationErrors = {
-    COMMUNCATION_ERROR: {
+    COMMUNICATION_ERROR: {
         code: "1000",
         name: "Communication error",
         description: "Generic communication error."

@@ -33,21 +33,19 @@
 "use strict";
 
 
-import express, {Express} from "express";
-import { QuoteBulkRoutes } from "../../src/http_routes/quoting-bc/bulk_quote_routes";
+import { QuoteBulkRoutes } from "../../../src/http_routes/quoting-bc/bulk_quote_routes";
 import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import { AccountLookupBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
 import request from "supertest";
 import { MemoryConfigClientMock, getHeaders, getJwsConfig, getRouteValidator } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
-import { Enums, FspiopJwsSignature, FspiopValidator, JwsConfig } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { Server } from "http";
+import { Enums, FspiopJwsSignature, FspiopValidator } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import path from "path";
-import { readFileSync } from "fs";
-const packageJSON = require("../../package.json");
+import fastify, { FastifyInstance, FastifyRequest } from "fastify";
+import fastifyCors from "@fastify/cors";
+import fastifyFormbody from "@fastify/formbody";
+const packageJSON = require("../../../package.json");
 
 const BC_NAME = "interop-apis-bc";
 const APP_NAME = "fspiop-api-svc";
@@ -78,30 +76,40 @@ let routeValidatorMock: FspiopValidator;
 jest.setTimeout(10000);
 
 describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
-    let app: Express;
-    let expressServer: Server;
+    let app: FastifyInstance;
     let bulkQuoteRoutes: QuoteBulkRoutes;
     let logger: ILogger;
     let authTokenUrl: string;
     let producer:IMessageProducer;
 
     beforeAll(async () => {
-        app = express();
-        app.use(express.json({
-            limit: "100mb",
-            type: (req)=>{
-                const contentLength = req.headers["content-length"];
-                if(contentLength) {
-                    // We need to send this as a number
-                    req.headers["content-length"]= parseInt(contentLength) as unknown as string;
-                }
-
-                return req.headers["content-type"]?.toUpperCase()==="application/json".toUpperCase()
-                    || req.headers["content-type"]?.startsWith("application/vnd.interoperability.")
-                    || false;
+        app = fastify();
+        app.addContentTypeParser('*', { parseAs: 'buffer' }, function (req:FastifyRequest, body: Buffer, done) {
+            try {
+                
+            const contentLength = req.headers['content-length'];
+            if (contentLength) {
+                req.headers['content-length'] = parseInt(contentLength, 10).toString();
             }
-        })); // for parsing application/json
-        app.use(express.urlencoded({limit: "100mb", extended: true})); // for parsing application/x-www-form-urlencoded
+        
+            const contentType = req.headers['content-type']?.toLowerCase();
+        
+            if (contentType === 'application/json' ||
+                contentType?.startsWith('application/vnd.interoperability.')) {
+                const json = JSON.parse(body.toString());
+                done(null, json);
+            } else {
+                // If not a supported content type, do not parse the body
+                done(null, undefined);
+            }
+            } catch (err:unknown) {
+                done((err as Error), undefined);
+            }
+        });
+        app.register(fastifyCors, { origin: true });
+        app.register(fastifyFormbody, {
+            bodyLimit: 100 * 1024 * 1024 // 100MB
+        });
 
         logger = new KafkaLogger(
             BC_NAME,
@@ -115,16 +123,16 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         configClientMock = new MemoryConfigClientMock(logger, authTokenUrl);
 
         producer = new MLKafkaJsonProducer(kafkaJsonProducerOptions);
-           
+        
         routeValidatorMock = getRouteValidator();
 
         jwsHelperMock = getJwsConfig();
 
         bulkQuoteRoutes = new QuoteBulkRoutes(producer, routeValidatorMock, jwsHelperMock, logger);
-        app.use(`/${BULK_QUOTES_URL_RESOURCE_NAME}`, bulkQuoteRoutes.router);
+        app.register(bulkQuoteRoutes.bindRoutes, { prefix: `/${BULK_QUOTES_URL_RESOURCE_NAME}` }); 
 
-        let portNum = SVC_DEFAULT_HTTP_PORT;
-        expressServer = app.listen(portNum, () => {
+        let portNum = SVC_DEFAULT_HTTP_PORT as number;
+        app.listen({ port: portNum }, () => {
             console.log(`🚀 Server ready at: http://localhost:${portNum}`);
             console.log(`FSPIOP-API-SVC Service started, version: ${APP_VERSION}`);
         });
@@ -141,15 +149,16 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
 
         await producer.destroy();
         await bulkQuoteRoutes.destroy();
-        await expressServer.close()
+        await app.close()
     });
 
 
     it("should give a bad request calling bulkQuoteQueryReceived endpoint", async () => {
         // Arrange & Act
+        await new Promise(resolve => setTimeout(resolve, 5000));
         const res = await request(server)
         .get(pathWithId)
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.GET, null, ["fspiop-source"]));
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_TRANSFERS, Enums.FspiopRequestMethodsEnum.GET, null, ["fspiop-source"]));
 
         // Assert
         expect(res.statusCode).toEqual(400);
@@ -179,7 +188,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
 
     it("should give a bad request calling bulkQuoteRequest endpoint", async () => {
         // Arrange
-        const payload = {
+        const bulkQuoteRequest = {
             "bulkQuoteId": "2244fdbe-5dea-3abd-a210-3780e7f2f1f4",
             "payer": {
                 "partyIdInfo": {
@@ -220,14 +229,14 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         };
 
         // Act
-        const res = await request(server)
+        const bulkQuoteRes = await request(server)
         .post(pathWithoutId)
-        .send(payload)
+        .send(bulkQuoteRequest)
         .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.POST, null,["fspiop-source"]));
 
         // Assert
-        expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual({
+        expect(bulkQuoteRes.statusCode).toEqual(400);
+        expect(bulkQuoteRes.body).toStrictEqual({
             "errorInformation": {
                 "errorCode": "3101",
                 "errorDescription": "Malformed syntax"
@@ -237,7 +246,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
 
     it("should give a bad request due to currency code not allowed calling bulkQuoteRequest endpoint", async () => {
         // Arrange
-        const payload = {
+        const bulkQuoteRequsetCurrency = {
             "bulkQuoteId": "2244fdbe-5dea-3abd-a210-3780e7f2f1f4",
             "payer": {
                 "partyIdInfo": {
@@ -278,14 +287,14 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         };
 
         // Act
-        const res = await request(server)
+        const bulkQuoteCurrencyRes = await request(server)
             .post(pathWithoutId)
-            .send(payload)
+            .send(bulkQuoteRequsetCurrency)
             .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.POST, null, ));
 
         // Assert
-        expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual({
+        expect(bulkQuoteCurrencyRes.statusCode).toEqual(400);
+        expect(bulkQuoteCurrencyRes.body).toStrictEqual({
             "errorInformation": {
                 "errorCode": "3100",
                 "errorDescription": "must be equal to one of the allowed values - path: /body/amount/currency",
@@ -313,7 +322,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
 
     it("should give a bad request due to currency code not allowing decimals points length calling bulkQuoteRequest endpoint", async () => {
         // Arrange
-        const payload = {
+        const bulkQuoteRequestDecimal = {
             "bulkQuoteId": "2244fdbe-5dea-3abd-a210-3780e7f2f1f4",
             "payer": {
                 "partyIdInfo": {
@@ -354,14 +363,14 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         };
 
         // Act
-        const res = await request(server)
+        const bulkQuoteDecimalRes = await request(server)
             .post(pathWithoutId)
-            .send(payload)
+            .send(bulkQuoteRequestDecimal)
             .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.POST));
 
         // Assert
-        expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual({
+        expect(bulkQuoteDecimalRes.statusCode).toEqual(400);
+        expect(bulkQuoteDecimalRes.body).toStrictEqual({
             "errorInformation": {
                 "errorCode": "3100",
                 "errorDescription": "Amount exceeds allowed decimal points for participant account of USD currency",
@@ -372,7 +381,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
 
     it("should throw an error on kafka producer calling bulkQuoteRequest endpoint", async () => {
         // Arrange
-        const payload = {
+        const bulkQuoteRequestKafka = {
             "bulkQuoteId": "2244fdbe-5dea-3abd-a210-3780e7f2f1f4",
             "payer": {
                 "partyIdInfo": {
@@ -413,14 +422,14 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         };
 
         // Act
-        const res = await request(server)
+        const bulkQuoteKafkaRes = await request(server)
         .post(pathWithoutId)
-        .send(payload)
+        .send(bulkQuoteRequestKafka)
         .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.POST));
 
         // Assert
-        expect(res.statusCode).toEqual(500);
-        expect(res.body).toStrictEqual({
+        expect(bulkQuoteKafkaRes.statusCode).toEqual(500);
+        expect(bulkQuoteKafkaRes.body).toStrictEqual({
             "errorInformation": {
                 "errorCode": "2001",
                 "errorDescription": "Producer not connected"
@@ -430,7 +439,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
 
     it("should give a bad request calling bulkQuotePending endpoint", async () => {
         // Arrange
-        const payload = {
+        const bulkQuotePending = {
             "expiration": "6908-02-29T07:27:32.463Z",
             "individualQuoteResults": [
                 {
@@ -475,14 +484,14 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         };
 
         // Act
-        const res = await request(server)
+        const bulkQuotePendingRes = await request(server)
         .put(pathWithId)
-        .send(payload)
+        .send(bulkQuotePending)
         .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.PUT, null, ["fspiop-source"]));
 
         // Assert
-        expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual({
+        expect(bulkQuotePendingRes.statusCode).toEqual(400);
+        expect(bulkQuotePendingRes.body).toStrictEqual({
             "errorInformation": {
                 "errorCode": "3101",
                 "errorDescription": "Malformed syntax"
@@ -492,7 +501,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
 
     it("should give a bad request due to currency code not allowed calling bulkQuotePending endpoint", async () => {
         // Arrange
-        const payload = {
+        const bulkQuotePendingCurrency = {
             "expiration": "6908-02-29T07:27:32.463Z",
             "individualQuoteResults": [
                 {
@@ -525,7 +534,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
                         "amount": "11"
                     },
                     "transferAmount": {
-                        "currency": "USD",
+                        "currency": "SGD",
                         "amount": "22"
                     },
                     "payeeReceiveAmount": {
@@ -537,14 +546,14 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         };
 
         // Act
-        const res = await request(server)
+        const bulkQuotePendingCurrencyRes = await request(server)
         .put(pathWithId)
-        .send(payload)
+        .send(bulkQuotePendingCurrency)
         .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.PUT));
 
         // Assert
-        expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual({
+        expect(bulkQuotePendingCurrencyRes.statusCode).toEqual(400);
+        expect(bulkQuotePendingCurrencyRes.body).toStrictEqual({
             "errorInformation": {
                 "errorCode": "3100",
                 "errorDescription": "must be equal to one of the allowed values - path: /body/amount/currency",
@@ -572,7 +581,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
 
     it("should give a bad request due to currency code not allowing decimals points length calling bulkQuotePending endpoint", async () => {
         // Arrange
-        const payload = {
+        const bulkQuotePendingDecimal = {
             "expiration": "6908-02-29T07:27:32.463Z",
             "individualQuoteResults": [
                 {
@@ -606,25 +615,25 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
                     },
                     "transferAmount": {
                         "currency": "USD",
-                        "amount": "22"
+                        "amount": "22.999"
                     },
                     "payeeReceiveAmount": {
                         "currency": "USD",
-                        "amount": "33"
+                        "amount": "33.9"
                     }
                 }
             ]
         };
 
         // Act
-        const res = await request(server)
+        const bulkQuotePendingDecimalRes = await request(server)
         .put(pathWithId)
-        .send(payload)
+        .send(bulkQuotePendingDecimal)
         .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.PUT));
 
         // Assert
-        expect(res.statusCode).toEqual(400);
-        expect(res.body).toStrictEqual({
+        expect(bulkQuotePendingDecimalRes.statusCode).toEqual(400);
+        expect(bulkQuotePendingDecimalRes.body).toStrictEqual({
             "errorInformation": {
                 "errorCode": "3100",
                 "errorDescription": "Amount exceeds allowed decimal points for participant account of USD currency",
@@ -635,7 +644,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
 
     it("should throw an error on kafka producer calling bulkQuotePending endpoint", async () => {
         // Arrange
-        const payload = {
+        const bulkQuotePendingKafka = {
             "expiration": "6908-02-29T07:27:32.463Z",
             "individualQuoteResults": [
                 {
@@ -680,14 +689,14 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         };
 
         // Act
-        const res = await request(server)
+        const bulkQuotePendingKafkaRes = await request(server)
         .put(pathWithId)
-        .send(payload)
+        .send(bulkQuotePendingKafka)
         .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.PUT));
 
         // Assert
-        expect(res.statusCode).toEqual(500);
-        expect(res.body).toStrictEqual({
+        expect(bulkQuotePendingKafkaRes.statusCode).toEqual(500);
+        expect(bulkQuotePendingKafkaRes.body).toStrictEqual({
             "errorInformation": {
                 "errorCode": "2001",
                 "errorDescription": "Producer not connected"
@@ -697,7 +706,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
 
     it("should give a bad request calling bulkQuoteRejectRequest endpoint", async () => {
         // Arrange
-        const payload = {
+        const bulkQuoteRejectRequest = {
             "errorInformation": {
                 "errorCode": "1234",
                 "errorDescription": "quote error description"
@@ -707,7 +716,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         // Act
         const res = await request(server)
         .put(pathWithId + "/error")
-        .send(payload)
+        .send(bulkQuoteRejectRequest)
         .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.PUT, null, ["fspiop-source"]));
 
         // Assert
@@ -722,7 +731,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
 
     it("should throw an error on kafka producer calling bulkQuoteRejectRequest endpoint", async () => {
         // Arrange
-        const payload = {
+        const bulkQuoteRejectRequestKafka = {
             "errorInformation": {
                 "errorCode": "1234",
                 "errorDescription": "quote error description"
@@ -732,7 +741,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         // Act
         const res = await request(server)
         .put(pathWithId + "/error")
-        .send(payload)
+        .send(bulkQuoteRejectRequestKafka)
         .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.PUT));
 
         // Assert
