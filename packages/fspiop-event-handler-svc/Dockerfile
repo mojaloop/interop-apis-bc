@@ -52,4 +52,5 @@ COPY --from=builder /app .
 # kafka handler, no http server yet
 EXPOSE 4001
 
+ENV NODE_ENV=production
 CMD [ "node", "packages/fspiop-event-handler-svc/dist/index.js" ]

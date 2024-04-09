@@ -40,7 +40,6 @@ import {
 } from "@mojaloop/auditing-bc-client-lib";
 import { IAuditClient } from "@mojaloop/auditing-bc-public-types-lib";
 import process from "process";
-import { ParticipantAdapter } from "./implementations/external_adapters/participant_adapter";
 import { ParticipantRoutes } from "./http_routes/account-lookup-bc/participant_routes";
 import { PartyRoutes } from "./http_routes/account-lookup-bc/party_routes";
 import {
@@ -51,7 +50,6 @@ import { QuoteBulkRoutes } from "./http_routes/quoting-bc/bulk_quote_routes";
 import { TransfersRoutes } from "./http_routes/transfers-bc/transfers_routes";
 import { IParticipantServiceAdapter } from "./interfaces/infrastructure";
 import { AuthenticatedHttpRequester } from "@mojaloop/security-bc-client-lib";
-import { IAuthenticatedHttpRequester } from "@mojaloop/security-bc-public-types-lib";
 import path from "path";
 import jsYaml from "js-yaml";
 import fs from "fs";
@@ -65,15 +63,17 @@ import {
 import { GetParticipantsConfigs } from "./configset";
 import { IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { FspiopValidator, FspiopJwsSignature } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+
 import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 import {PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-client-lib";
-import {GetParticipantByTypeAndIdDTO} from "./http_routes/account-lookup-bc/participant_route_dto";
 
-import Fastify, {FastifyInstance, FastifyReply, FastifyRequest} from "fastify";
+import Fastify, {FastifyError, FastifyInstance, FastifyReply, FastifyRequest} from "fastify";
 import fastifyCors from "@fastify/cors";
 import fastifyFormbody from "@fastify/formbody";
-import fastifyStatic from "@fastify/static";
-import fastifyOAS from "fastify-oas";
+import fastifyUnderPressure from "@fastify/under-pressure";
+import fastifySwagger from "@fastify/swagger";
+
+import crypto from "crypto";
 
 const API_SPEC_FILE_PATH = process.env["API_SPEC_FILE_PATH"] || "../dist/api_spec.yaml";
 
@@ -113,22 +113,28 @@ const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhos
 const AUTH_N_SVC_TOKEN_URL = AUTH_N_SVC_BASEURL + "/token"; // TODO this should not be known here, libs that use the base should add the suffix
 
 
-const PARTICIPANTS_SVC_URL = process.env["PARTICIPANTS_SVC_URL"] || "http://localhost:3010";
-const PARTICIPANTS_CACHE_TIMEOUT_MS = (process.env["PARTICIPANTS_CACHE_TIMEOUT_MS"] && parseInt(process.env["PARTICIPANTS_CACHE_TIMEOUT_MS"])) || 5 * 60 * 1000;
+// const PARTICIPANTS_SVC_URL = process.env["PARTICIPANTS_SVC_URL"] || "http://localhost:3010";
+// const PARTICIPANTS_CACHE_TIMEOUT_MS = (process.env["PARTICIPANTS_CACHE_TIMEOUT_MS"] && parseInt(process.env["PARTICIPANTS_CACHE_TIMEOUT_MS"])) || 5 * 60 * 1000;
 
 // this service has more handlers, might take longer than the usual 30 sec
 const SERVICE_START_TIMEOUT_MS = (process.env["SERVICE_START_TIMEOUT_MS"] && parseInt(process.env["SERVICE_START_TIMEOUT_MS"])) || 120_000;
+
+const INSTANCE_NAME = `${BC_NAME}_${APP_NAME}`;
+const INSTANCE_ID = `${INSTANCE_NAME}__${crypto.randomUUID()}`;
+
 
 const JWS_FILES_PATH = process.env["JWS_FILES_PATH"] || "/app/data/keys/";
 
 const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
     kafkaBrokerList: KAFKA_URL,
-    producerClientId: `${BC_NAME}_${APP_NAME}`,
+    producerClientId: `${INSTANCE_NAME}`,
     skipAcknowledgements: false // never change this to true without understanding what it does
 };
 
 // JWS Signature
 const JWS_DISABLED = process.env["JWS_DISABLED"] || "false";
+
+const MAX_RAM_MB = (process.env["MAX_RAM_MB"] && parseInt(process.env["MAX_RAM_MB"])) || 128;
 
 const jwsConfig: {
     enabled: boolean;
@@ -204,7 +210,7 @@ export class Service {
 
             const messageConsumer = new MLKafkaJsonConsumer({
                 kafkaBrokerList: KAFKA_URL,
-                kafkaGroupId: `${APP_NAME}_${Date.now()}` // unique consumer group - use instance id when possible
+                kafkaGroupId: `${INSTANCE_ID}` // unique consumer group - use instance id when possible
             }, this.logger.createChild("configClient.consumer"));
             configProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer);
         }
@@ -237,20 +243,22 @@ export class Service {
             labels.set("bc", BC_NAME);
             labels.set("app", APP_NAME);
             labels.set("version", APP_VERSION);
+            labels.set("instance_id", INSTANCE_ID);
             PrometheusMetrics.Setup({prefix: "", defaultLabels: labels}, this.logger);
             metrics = PrometheusMetrics.getInstance();
         }
         this.metrics = metrics;
 
-        if (!participantService) {
-            const participantLogger = logger.createChild("participantLogger");
-            participantLogger.setLogLevel(LogLevel.INFO);
-
-            const authRequester: IAuthenticatedHttpRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
-            authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
-            participantService = new ParticipantAdapter(participantLogger, PARTICIPANTS_SVC_URL, authRequester, PARTICIPANTS_CACHE_TIMEOUT_MS);
-        }
-        this.participantService = participantService;
+        // Not needed right now
+        // if (!participantService) {
+        //     const participantLogger = logger.createChild("participantLogger");
+        //     participantLogger.setLogLevel(LogLevel.INFO);
+        //
+        //     const authRequester: IAuthenticatedHttpRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
+        //     authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
+        //     participantService = new ParticipantAdapter(participantLogger, PARTICIPANTS_SVC_URL, authRequester, PARTICIPANTS_CACHE_TIMEOUT_MS);
+        // }
+        // this.participantService = participantService;
 
         // Singleton for Validation and JWS functions
         const currencyList = this.configClient.globalConfigs.getCurrencies();
@@ -300,7 +308,7 @@ export class Service {
 
         await Service.setupFastify();
 
-        this.logger.info(`Fspiop-api service v: ${APP_VERSION} started`);
+        this.logger.info(`${APP_NAME} service v: ${APP_VERSION} started`);
 
         // remove startup timeout
         clearTimeout(this.startupTimer);
@@ -309,23 +317,42 @@ export class Service {
     static async setupFastify(): Promise<void> {
         return new Promise<void>(resolve => {
             this.app = Fastify({
-                logger: false
+                logger: false,
+            });
+
+            // automatically return 503's when the system is under pressure
+            this.app.register(fastifyUnderPressure, {
+                maxEventLoopDelay: 200,
+                maxHeapUsedBytes: MAX_RAM_MB*1024**2,
+                maxRssBytes: MAX_RAM_MB*1024**2,
+                maxEventLoopUtilization: 0.80,
+                exposeStatusRoute: "/health"
             });
 
             // setup prom-bundle to automatically collect express metrics
             const metricsPlugin = require("fastify-metrics");
             this.app.register(metricsPlugin, {
-                defaultMetrics: true,
-                enableRouteMetrics: true,
-                groupStatusCodes: true,
+                routeMetrics: true,
+                defaultMetrics: {enabled: false}, // already collected by our own metrics lib
                 endpoint: "/metrics",
-                register: require("prom-client").register
+                promClient: (this.metrics as PrometheusMetrics).getPromClient(),
             });
 
-            // Add health and metrics http routes
-            this.app.get("/health", (req: FastifyRequest<GetParticipantByTypeAndIdDTO>, reply: FastifyReply) => {
-                return reply.send({ status: "OK" });
-            });
+
+            // // remove, loat tests only
+            // // @ts-ignore
+            // import {setTimeout as sleep} from "timers/promises";
+            // // @ts-ignore
+            // import atomicSleep from "atomic-sleep";
+            // this.app.get("/test", async (req: FastifyRequest, reply: FastifyReply) => {
+            //     // simulate async wait
+            //     await setTimeout(10);
+            //
+            //     // simulate sync work
+            //     atomicSleep(20);
+            //     return reply.send("ok");
+            // });
+
 
             this.app.register(fastifyCors, { origin: true });
             this.app.register(fastifyFormbody, {
@@ -333,7 +360,7 @@ export class Service {
             });
 
             // Custom content type for handling specific versioned JSON types
-            this.app.addContentTypeParser('*', { parseAs: "buffer" }, function (req:FastifyRequest, body: Buffer, done) {
+            this.app.addContentTypeParser("*", { parseAs: "buffer" }, function (req:FastifyRequest, body: Buffer, done) {
                 try {
                   const contentLength = req.headers["content-length"];
                   if (contentLength) {
@@ -355,16 +382,20 @@ export class Service {
                 }
             });
 
-            const openApiDocument = jsYaml.load(
-                fs.readFileSync(path.join(__dirname, API_SPEC_FILE_PATH), "utf-8")
-            );
 
-            this.app.register(fastifyOAS, {
-                specification: openApiDocument,
-            });
+            // TODO: use the newer @fastify/swagger
+            // const openApiDocument = jsYaml.load(
+            //     fs.readFileSync(path.join(__dirname, API_SPEC_FILE_PATH), "utf-8")
+            // );
+            // this.app.register(fastifySwagger, {
+            //     swagger: openApiDocument,
+            //     mode: "static"
+            // });
+            //
+            // this.app.register(fastifyOAS, {
+            //     specification: openApiDocument,
+            // });
 
-            //this.app.addHook("preHandler", validateHeadersPlugin);
-           // this.app.use(validateHeadersPlugin);
 
             this.app.register(this.participantRoutes.bindRoutes, { prefix: `/${PARTICIPANTS_URL_RESOURCE_NAME}` });
             this.app.register(this.partyRoutes.bindRoutes, { prefix: `/${PARTIES_URL_RESOURCE_NAME}` });
@@ -374,7 +405,14 @@ export class Service {
             this.app.register(this.bulkTransfersRoutes.bindRoutes, { prefix: `/${BULK_TRANSFERS_URL_RESOURCE_NAME}` });
 
             // Error handling middleware
-            this.app.setErrorHandler((error, request, reply) => {
+            this.app.setErrorHandler((error:FastifyError, request: FastifyRequest, reply: FastifyReply) => {
+                // ignore 503 returned by fastifyUnderPressure
+                if (error.statusCode == 503){
+                    reply.send(error);
+                    return;
+                }
+
+                // maybe this error handler should handle only 400 and 500's?
                 const err = error as unknown as FspiopHttpRequestError;
 
                 if (!err.data) {
@@ -428,11 +466,16 @@ export class Service {
                   errorCode = "3102";
                 }
 
-                reply.code(statusCode).send(errorResponseBuilder(errorCode, `${err.data[0].message} - path: ${err.data[0].instancePath}`, { extensionList: { extension: extensionList } }));
+                reply.code(statusCode).send(
+                    errorResponseBuilder(
+                        errorCode,
+                        `${err.data[0].message} - path: ${err.data[0].instancePath}`, { extensionList: { extension: extensionList } }
+                    )
+                );
             });
 
             // Catch-all for unhandled requests
-            this.app.setNotFoundHandler((request, reply) => {
+            this.app.setNotFoundHandler((request:FastifyRequest, reply:FastifyReply) => {
                 request.log.warn(`Received unhandled request to url: ${request.url}`);
                 reply.code(404).send({
                 errorInformation: {
@@ -449,7 +492,7 @@ export class Service {
 
             this.app.listen({host:"0.0.0.0", port: portNum }, () => {
                 this.logger.info(`🚀 Server ready at: http://0.0.0.0:${portNum}`);
-                this.logger.info(`FSPIOP-API-SVC Service started, version: ${APP_VERSION}`);
+                this.logger.info(`${INSTANCE_ID} Service started, version: ${APP_VERSION}`);
                 resolve();
             });
         });
@@ -503,7 +546,7 @@ process.on("SIGTERM", _handle_int_and_term_signals);
 
 //do something when app is closing
 process.on("exit", async () => {
-    globalLogger.info("Microservice - exiting...");
+    globalLogger.info(`Microservice pid: ${process.pid} - exiting...`);
 });
 process.on("uncaughtException", (err: Error) => {
     globalLogger.error(err);

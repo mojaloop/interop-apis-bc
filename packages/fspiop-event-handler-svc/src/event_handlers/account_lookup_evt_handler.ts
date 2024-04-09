@@ -90,24 +90,25 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
     async processMessagesBatch (sourceMessages: IMessage[]): Promise<void>{
         // eslint-disable-next-line no-async-promise-executor
-        return await new Promise<void>(async (resolve) => {
-            const startTime = Date.now();
-            const timerEndFn = this._histogram.startTimer({ callName: "batchMsgHandler"});
+        return new Promise<void>(async (resolve) => {
+            const timerEndFn = this._histogram.startTimer({ callName: `${this.constructor.name}_batchMsgHandler`});
 
             for (const sourceMessage of sourceMessages) {
                 await this.processMessage(sourceMessage);
             }
 
-            timerEndFn({ success: "true" });
-            this._logger.debug(`  Completed batch in AccountLookupEventHandler batch size: ${sourceMessages.length}`);
-            this._logger.debug(`  Took: ${Date.now()-startTime}`);
-            this._logger.debug("\n\n");
+            const took = timerEndFn({ success: "true" })*1000;
+            if (this._logger.isDebugEnabled()) {
+                this._logger.debug(`  Completed batch in ${this.constructor.name} batch size: ${sourceMessages.length}`);
+                this._logger.debug(`  Took: ${took.toFixed(0)}`);
+                this._logger.debug("\n\n");
+            }
             resolve();
         });
     }
 
     async processMessage (sourceMessage: IMessage) : Promise<void> {
-        return await new Promise<void>(async (resolve) => {
+        return new Promise<void>(async (resolve) => {
         // return new Promise<void>(async (resolve) => {
             const processMessageTimer = this._histogram.startTimer({callName: "processMessage"});
 

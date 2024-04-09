@@ -32,7 +32,6 @@ optionally within square brackets <email>.
 "use strict";
 import {existsSync} from "fs";
 import {Server} from "http";
-import express, {Express} from "express";
 import {ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
 import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
 import {
@@ -73,10 +72,18 @@ import {
 import {GetParticipantsConfigs} from "./configset";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
+import PromClient from "prom-client";
 import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 import {PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-client-lib";
-import * as promBundle from "express-prom-bundle";
 import {FspiopJwsSignature} from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+
+import Fastify, {FastifyError, FastifyInstance, FastifyReply, FastifyRequest} from "fastify";
+import fastifyCors from "@fastify/cors";
+import fastifyFormbody from "@fastify/formbody";
+import fastifyUnderPressure from "@fastify/under-pressure";
+import crypto from "crypto";
+import metricsPlugin from "fastify-metrics";
+
 
 const API_SPEC_FILE_PATH = process.env["API_SPEC_FILE_PATH"] || "../dist/api_spec.yaml";
 
@@ -122,6 +129,9 @@ const PARTICIPANTS_CACHE_TIMEOUT_MS = (process.env["PARTICIPANTS_CACHE_TIMEOUT_M
 // this service has more handlers, might take longer than the usual 30 sec
 const SERVICE_START_TIMEOUT_MS= (process.env["SERVICE_START_TIMEOUT_MS"] && parseInt(process.env["SERVICE_START_TIMEOUT_MS"])) || 120_000;
 
+const INSTANCE_NAME = `${BC_NAME}_${APP_NAME}`;
+const INSTANCE_ID = `${INSTANCE_NAME}__${crypto.randomUUID()}`;
+
 const JWS_FILES_PATH = process.env["JWS_FILES_PATH"] || "/app/data/keys/";
 
 const CONSUMER_BATCH_SIZE = (process.env["CONSUMER_BATCH_SIZE"] && parseInt(process.env["CONSUMER_BATCH_SIZE"])) || 1;
@@ -136,6 +146,7 @@ const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
 
 // JWS Signature
 const JWS_DISABLED = process.env["JWS_DISABLED"] || "false";
+const MAX_RAM_MB = (process.env["MAX_RAM_MB"] && parseInt(process.env["MAX_RAM_MB"])) || 128;
 
 const jwsConfig: {
     enabled: boolean;
@@ -166,8 +177,7 @@ type FspiopHttpRequestError = {
 }
 export class Service {
     static logger: ILogger;
-    static app: Express;
-    static expressServer: Server;
+    static app: FastifyInstance;
 
     static participantService: IParticipantService;
     static auditClient: IAuditClient;
@@ -244,7 +254,8 @@ export class Service {
             labels.set("bc", BC_NAME);
             labels.set("app", APP_NAME);
             labels.set("version", APP_VERSION);
-            PrometheusMetrics.Setup({prefix: "", defaultLabels: labels}, this.logger);
+            labels.set("instance_id", INSTANCE_ID);
+            PrometheusMetrics.Setup({prefix: "", defaultLabels: labels}, this.logger, PromClient);
             metrics = PrometheusMetrics.getInstance();
         }
         this.metrics = metrics;
@@ -285,7 +296,7 @@ export class Service {
 
         await Service.setupEventHandlers(jwsHelper);
 
-        await Service.setupExpress();
+        await Service.setupFastify();
 
         this.logger.info(`Fspiop-api service v: ${APP_VERSION} started`);
 
@@ -294,8 +305,6 @@ export class Service {
     }
 
     static async setupEventHandlers(jwsHelper:FspiopJwsSignature):Promise<void>{
-
-
         const accountEvtHandlerConsumerOptions: MLKafkaJsonConsumerOptions = {
             kafkaBrokerList: KAFKA_URL,
             kafkaGroupId: `${BC_NAME}_${APP_NAME}_AccountLookupEventHandler`,
@@ -350,42 +359,28 @@ export class Service {
         ]);
     }
 
-    static async setupExpress(): Promise<void> {
+    static async setupFastify(): Promise<void> {
         return new Promise<void>(resolve => {
-            this.app = express();
+            this.app = Fastify({
+                logger: false
+            });
+
+            // automatically return 503's when the system is under pressure
+            this.app.register(fastifyUnderPressure, {
+                maxEventLoopDelay: 200,
+                maxHeapUsedBytes: MAX_RAM_MB*1024**2,
+                maxRssBytes: MAX_RAM_MB*1024**2,
+                maxEventLoopUtilization: 0.80,
+                exposeStatusRoute: "/health"
+            });
 
             // setup prom-bundle to automatically collect express metrics
-            const metricsMiddleware = promBundle.default({
-                includeMethod: true,
-                includePath: true,
-                autoregister: false,
-                promRegistry: (this.metrics as any)._register // hack - fix
-            });
-            this.app.use(metricsMiddleware);
-
-            // Add health and metrics http routes
-            this.app.get("/health", (req: express.Request, res: express.Response) => {
-                return res.send({ status: "OK" });
-            });
-            this.app.get("/metrics", async (req: express.Request, res: express.Response) => {
-                const strMetrics = await (this.metrics as PrometheusMetrics).getMetricsForPrometheusScrapper();
-                return res.send(strMetrics);
-            });
-
-            this.app.use(express.urlencoded({limit: "100mb", extended: true})); // for parsing application/x-www-form-urlencoded
-
-/*            // Call the request validator in every request
-            const openApiDocument = jsYaml.load(
-                fs.readFileSync(path.join(__dirname, API_SPEC_FILE_PATH), "utf-8"),
-            ) as OpenApiDocument;
-            const validator = new OpenApiValidator(openApiDocument); // TODO: find a way to limit currencies on this point
-            this.app.use(validator.match());*/
-
-            /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
-            this.app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
-                // catch all
-                this.logger.debug(`Received unhandled request to url: ${req.url}`);
-                res.status(404).send();
+            const metricsPlugin = require("fastify-metrics");
+            this.app.register(metricsPlugin, {
+                routeMetrics: true,
+                defaultMetrics: {enabled: false}, // already collected by our own metrics lib
+                endpoint: "/metrics",
+                promClient: PromClient,
             });
 
             let portNum = SVC_DEFAULT_HTTP_PORT;
@@ -393,8 +388,8 @@ export class Service {
                 portNum = parseInt(process.env["SVC_HTTP_PORT"]);
             }
 
-            this.expressServer = this.app.listen(portNum, () => {
-                this.logger.info(`🚀 Server ready at: http://localhost:${portNum}`);
+            this.app.listen({host:"0.0.0.0", port: portNum }, () => {
+                this.logger.info(`🚀 Server ready at: http://0.0.0.0:${portNum}`);
                 this.logger.info(`FSPIOP-EVENT-HANDLER-SVC Service started, version: ${APP_VERSION}`);
                 resolve();
             });
@@ -402,7 +397,9 @@ export class Service {
     }
 
     static async stop() {
-
+        if (this.app) {
+            await this.app.close();
+        }
         await accountEvtHandler.destroy();
         await quotingEvtHandler.destroy();
         await transferEvtHandler.destroy();
@@ -442,7 +439,7 @@ process.on("SIGTERM", _handle_int_and_term_signals);
 
 //do something when app is closing
 process.on("exit", async () => {
-    globalLogger.info(`Microservice pid: ${process.pid}- exiting...`);
+    globalLogger.info(`Microservice pid: ${process.pid} - exiting...`);
 });
 process.on("uncaughtException", (err: Error) => {
     globalLogger.error(err);

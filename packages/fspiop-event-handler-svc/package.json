@@ -1,6 +1,6 @@
 {
     "name": "@mojaloop/interop-apis-bc-fspiop-event-handler-svc",
-    "version": "0.5.2",
+    "version": "0.6.2",
     "description": "Mojaloop vNext FSPIOP Event Handler Service",
     "license": "Apache-2.0",
     "homepage": "https://github.com/mojaloop/interop-apis-bc/tree/main/packages/fspiop-event-handler-svc",
@@ -43,9 +43,12 @@
         "dep:update": "ncu -e 2 -u"
     },
     "dependencies": {
-        "@mojaloop/interop-apis-bc-fspiop-utils-lib": "*",
+        "@mojaloop/account-lookup-bc-public-types-lib": "~0.5.2",
+        "@mojaloop/quoting-bc-public-types-lib": "~0.5.1",
+        "@mojaloop/transfers-bc-public-types-lib": "~0.5.3",
         "@mojaloop/auditing-bc-client-lib": "~0.5.2",
         "@mojaloop/auditing-bc-public-types-lib": "~0.5.2",
+        "@mojaloop/interop-apis-bc-fspiop-utils-lib": "*",
         "@mojaloop/logging-bc-client-lib": "~0.5.7",
         "@mojaloop/logging-bc-public-types-lib": "~0.5.4",
         "@mojaloop/participant-bc-public-types-lib": "~0.5.4",
@@ -54,21 +57,27 @@
         "@mojaloop/platform-configuration-bc-public-types-lib": "~0.5.2",
         "@mojaloop/platform-shared-lib-messaging-types-lib": "~0.5.7",
         "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "~0.5.11",
+        "@mojaloop/platform-shared-lib-observability-client-lib": "~0.5.2",
+        "@mojaloop/platform-shared-lib-observability-types-lib": "~0.5.3",
         "@mojaloop/platform-shared-lib-public-messages-lib": "~0.5.15",
         "@mojaloop/security-bc-client-lib": "~0.5.10",
         "@mojaloop/security-bc-public-types-lib": "~0.5.6",
-        "@mojaloop/platform-shared-lib-observability-client-lib": "~0.5.1",
-        "@mojaloop/platform-shared-lib-observability-types-lib": "~0.5.2",
         "ajv": "^8.12.0",
         "axios": "^1.4.0",
         "base64url": "^3.0.1",
-        "js-yaml": "^4.1.0"
+        "fastify": "^4.26.2",
+        "fastify-metrics": "^11.0.0",
+        "js-yaml": "^4.1.0",
+        "@fastify/cors": "^9.0.1",
+        "@fastify/formbody": "^7.4.0",
+        "@fastify/static": "^7.0.3",
+        "@fastify/swagger": "^8.14.0",
+        "@fastify/under-pressure": "^8.3.0",
+        "@fastify/url-data": "^5.4.0"
     },
     "devDependencies": {
-
         "@types/js-yaml": "^4.0.9",
         "@types/supertest": "^2.0.16"
-
     },
     "engines": {
         "node": ">=20.10.0"

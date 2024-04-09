@@ -111,7 +111,22 @@ export class TransferEventHandler extends BaseEventHandler {
     }
 
     async processMessagesBatch (sourceMessages: IMessage[]): Promise<void>{
-        throw new Error("Not implemented");
+        // eslint-disable-next-line no-async-promise-executor
+        return new Promise<void>(async (resolve) => {
+            const timerEndFn = this._histogram.startTimer({ callName: `${this.constructor.name}_batchMsgHandler`});
+
+            for (const sourceMessage of sourceMessages) {
+                await this.processMessage(sourceMessage);
+            }
+
+            const took = timerEndFn({ success: "true" })*1000;
+            if (this._logger.isDebugEnabled()) {
+                this._logger.debug(`  Completed batch in ${this.constructor.name} batch size: ${sourceMessages.length}`);
+                this._logger.debug(`  Took: ${took.toFixed(0)}`);
+                this._logger.debug("\n\n");
+            }
+            resolve();
+        });
     }
 
     async processMessage (sourceMessage: IMessage) : Promise<void> {
