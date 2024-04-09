@@ -71,6 +71,7 @@ import {
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import { IParticipantService } from "../interfaces/infrastructure";
 import {IHistogram, IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import { getAccountLookupBCErrorMapping } from "../error_mappings/account-lookup";
 
 export class AccountLookupEventHandler extends BaseEventHandler {
 
@@ -236,70 +237,11 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             destinationFspId: null
         };
 
-        switch (message.msgName) {
-            case AccountLookupBCUnableToAssociateParticipantErrorEvent.name:
-            case AccountLookupBCUnableToDisassociateParticipantErrorEvent.name: {
-                errorResponse.errorCode = Enums.ServerErrors.GENERIC_SERVER_ERROR.code;
-                errorResponse.errorDescription = Enums.ServerErrors.GENERIC_SERVER_ERROR.name;
-                break;
-            }
-            case AccountLookupBCDestinationParticipantNotFoundErrorEvent.name:
-            case AccountLookupBCRequesterParticipantNotFoundErrorEvent.name: {
-                // According to TTK Use cases, this is a generic not found error
-                errorResponse.errorCode = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code;
-                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.name;
-                break;
-            }
-            case AccountLookupBCInvalidDestinationParticipantErrorEvent.name: {
-                errorResponse.errorCode = Enums.ClientErrors.GENERIC_CLIENT_ERROR.code;
-                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_CLIENT_ERROR.name;
-                break;
-            }
-            case AccountLookupBCInvalidRequesterParticipantErrorEvent.name: {
-                errorResponse.errorCode = Enums.ClientErrors.DESTINATION_FSP_ERROR.code;
-                errorResponse.errorDescription = Enums.ClientErrors.DESTINATION_FSP_ERROR.name;
-                break;
-            }
-            case AccountLookupBCInvalidMessagePayloadErrorEvent.name:
-            case AccountLookupBCInvalidMessageTypeErrorEvent.name:
-            case AccountLookupBCUnableToGetOracleAdapterErrorEvent.name: {
-                // According to TTK Use cases, this is a generic not found error
-                // check "Party info of unprovisioned party" for reference
-                errorResponse.errorCode = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code;
-                errorResponse.errorDescription = Enums.ClientErrors.GENERIC_ID_NOT_FOUND.name;
-                break;
-            }
-            case GetPartyQueryRejectedResponseEvt.name:
-            case AccountLookUpUnableToGetParticipantFromOracleErrorEvent.name: {
-                errorResponse.errorCode = Enums.ClientErrors.PARTY_NOT_FOUND.code;
-                errorResponse.errorDescription = Enums.ClientErrors.PARTY_NOT_FOUND.name;
-                break;
-            }
-            case AccountLookUpUnknownErrorEvent.name: {
-                errorResponse.errorCode = Enums.ServerErrors.INTERNAL_SERVER_ERROR.code;
-                errorResponse.errorDescription = Enums.ServerErrors.INTERNAL_SERVER_ERROR.name;
-                break;
-            }
-            case AccountLookupBCRequiredRequesterParticipantIdMismatchErrorEvent.name:
-            case AccountLookupBCRequiredRequesterParticipantIsNotApprovedErrorEvent.name:
-            case AccountLookupBCRequiredRequesterParticipantIsNotActiveErrorEvent.name:
-            {
-                errorResponse.errorCode = Enums.PayerErrors.GENERIC_PAYER_ERROR.code;
-                errorResponse.errorDescription = Enums.PayerErrors.GENERIC_PAYER_ERROR.name;
-                break;
-            }
-            case AccountLookupBCRequiredDestinationParticipantIdMismatchErrorEvent.name:
-            case AccountLookupBCRequiredDestinationParticipantIsNotApprovedErrorEvent.name:
-            case AccountLookupBCRequiredDestinationParticipantIsNotActiveErrorEvent.name:
-            {
-                errorResponse.errorCode = Enums.PayeeErrors.GENERIC_PAYEE_ERROR.code;
-                errorResponse.errorDescription = Enums.PayeeErrors.GENERIC_PAYEE_ERROR.name;
-                break;
-            }
-            default: {
-                this._logger.warn(`Cannot handle error message of type: ${message.msgName}, ignoring`);
-                break;
-            }
+        const errorMapping = getAccountLookupBCErrorMapping(message.payload.errorCode);
+
+        if(errorMapping) {
+            errorResponse.errorCode = errorMapping.errorCode;
+            errorResponse.errorDescription = errorMapping.errorDescription;
         }
 
         return errorResponse;
