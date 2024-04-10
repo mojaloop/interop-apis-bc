@@ -36,8 +36,8 @@ import {
     BulkQuoteAcceptedEvt,
     BulkQuoteQueryResponseEvt,
     BulkQuoteReceivedEvt,
-    GetBulkQuoteQueryRejectedEvt,
-    GetPartyQueryRejectedEvt,
+    BulkQuoteRejectedResponseEvt,
+    QuoteRejectedResponseEvt,
     QuoteBCBulkQuoteExpiredErrorEvent,
     QuoteBCBulkQuoteNotFoundErrorEvent,
     QuoteBCDestinationParticipantNotFoundErrorEvent,
@@ -105,6 +105,9 @@ export class QuotingEventHandler extends BaseEventHandler {
                 case QuoteQueryResponseEvt.name:
                     await this._handleQuotingQueryResponseEvt(new QuoteQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
+                case QuoteRejectedResponseEvt.name:
+                    await this._handleQuoteRejectRequestEvt(new QuoteRejectedResponseEvt(message.payload), message.fspiopOpaqueState.headers);
+                    break;
                 case BulkQuoteReceivedEvt.name:
                     await this._handleBulkQuotingRequestReceivedEvt(new BulkQuoteReceivedEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
@@ -114,8 +117,9 @@ export class QuotingEventHandler extends BaseEventHandler {
                 case BulkQuoteQueryResponseEvt.name:
                     await this._handleBulkQuotingQueryResponseEvt(new BulkQuoteQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
-                case GetPartyQueryRejectedEvt.name:
-                case GetBulkQuoteQueryRejectedEvt.name:
+                case BulkQuoteRejectedResponseEvt.name:
+                    await this._handleBulkQuoteRejectRequestEvt(new BulkQuoteRejectedResponseEvt(message.payload), message.fspiopOpaqueState.headers);
+                    break;
                 case QuoteBCDuplicateQuoteErrorEvent.name:
                 case QuoteBCQuoteNotFoundErrorEvent.name:
                 case QuoteBCBulkQuoteNotFoundErrorEvent.name:
@@ -465,6 +469,92 @@ export class QuotingEventHandler extends BaseEventHandler {
             throw Error("_handleBulkQuoteQueryResponseEvt -> error");
         }
 
+    }
+
+    private async _handleQuoteRejectRequestEvt(message: QuoteRejectedResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
+        this._logger.info("_handleQuoteRejectRequestEvt -> start");
+        
+        try {
+            const { payload } = message;
+
+            const clonedHeaders = fspiopOpaqueState;
+
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+            // TODO validate vars above
+
+            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
+
+            // Always validate the payload and headers received
+            message.validatePayload();
+
+            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
+            urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
+            urlBuilder.setId(payload.quoteId);
+            urlBuilder.hasError(true);
+
+            await Request.sendRequest({
+                url: urlBuilder.build(),
+                headers: clonedHeaders,
+                source: requesterFspId,
+                destination: destinationFspId,
+                method: Enums.FspiopRequestMethodsEnum.PUT,
+                payload: Transformer.transformPayloadQuotingRequestPutError(payload),
+            });
+
+            this._logger.info("_handleQuoteRejectRequestEvt -> end");
+
+        } catch (error: unknown) {
+            this._logger.error("_handleQuoteRejectRequestEvt -> error");
+            throw Error("_handleQuoteRejectRequestEvt -> error");
+        }
+
+        return;
+    }
+
+    private async _handleBulkQuoteRejectRequestEvt(message: BulkQuoteRejectedResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
+        this._logger.info("_handleBulkQuoteRejectRequestEvt -> start");
+        
+        try {
+            const { payload } = message;
+
+            const clonedHeaders = fspiopOpaqueState;
+
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+            // TODO validate vars above
+
+            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
+
+            // Always validate the payload and headers received
+            message.validatePayload();
+          
+            const transformedPayload = Transformer.transformPayloadBulkQuotingRequestPutError(payload);
+
+            const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
+            urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);
+            urlBuilder.setId(payload.bulkQuoteId);
+            urlBuilder.hasError(true);
+
+            await Request.sendRequest({
+                url: urlBuilder.build(),
+                headers: clonedHeaders,
+                source: requesterFspId,
+                destination: destinationFspId,
+                method: Enums.FspiopRequestMethodsEnum.PUT,
+                payload: transformedPayload
+            });
+
+            this._logger.info("_handleBulkQuoteRejectRequestEvt -> end");
+
+        } catch (error: unknown) {
+            this._logger.error("_handleBulkQuoteRejectRequestEvt -> error");
+            throw Error("_handleBulkQuoteRejectRequestEvt -> error");
+        }
+
+        return;
     }
 }
 

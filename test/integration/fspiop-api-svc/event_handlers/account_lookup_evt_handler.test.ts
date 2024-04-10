@@ -46,7 +46,8 @@ import {
     ParticipantAssociationCreatedEvt,
     ParticipantDisassociateRequestReceivedEvt,
     ParticipantAssociationRemovedEvt,
-    GetPartyQueryRejectedResponseEvt,
+    PartyRejectedResponseEvt,
+    ParticipantRejectedResponseEvt,
     AccountLookUpUnknownErrorEvent,
     AccountLookupBCInvalidMessagePayloadErrorEvent,
     AccountLookupBCInvalidMessageTypeErrorEvent,
@@ -811,9 +812,42 @@ it("should return error from trying to create an already existing association", 
         });
     });
 
-    it("should return GetPartyQueryRejectedResponseEvt http call for party type", async () => {
+    it("should return PartyRejectedResponseEvt http call for party type", async () => {
         // Arrange
-        const msg = new GetPartyQueryRejectedResponseEvt({
+        const msg = new PartyRejectedResponseEvt({
+            partyId: "123",
+            partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
+            partySubType: "456",
+            currency: "USD",
+            errorInformation: { 
+                "errorCode": ClientErrors.PARTY_NOT_FOUND.code,
+                "errorDescription": ClientErrors.PARTY_NOT_FOUND.name
+            }
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
+
+        // Act
+        await consumer.sendMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": ClientErrors.PARTY_NOT_FOUND.code,
+                        "errorDescription": ClientErrors.PARTY_NOT_FOUND.name
+                    }
+                },
+                "url": expect.stringContaining(`/${partiesEntity}/${msg.payload.partyType}/${msg.payload.partyId}/${msg.payload.partySubType}/error`)
+            }));
+            expect(await res()).toSatisfyApiSpec();
+        });
+    });
+
+    it("should return PartyRejectedResponseEvt http call for party type", async () => {
+        // Arrange
+        const msg = new PartyRejectedResponseEvt({
             partyId: "123",
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             partySubType: "456",

@@ -34,7 +34,26 @@
 
 
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import { AccountLookUpUnableToGetParticipantFromOracleErrorEvent, AccountLookUpUnknownErrorEvent, AccountLookupBCDestinationParticipantNotFoundErrorEvent, AccountLookupBCInvalidDestinationParticipantErrorEvent, AccountLookupBCInvalidMessagePayloadErrorEvent, AccountLookupBCInvalidMessageTypeErrorEvent, AccountLookupBCInvalidRequesterParticipantErrorEvent, AccountLookupBCRequesterParticipantNotFoundErrorEvent, AccountLookupBCTopics, AccountLookupBCUnableToAssociateParticipantErrorEvent, AccountLookupBCUnableToDisassociateParticipantErrorEvent, AccountLookupBCUnableToGetOracleAdapterErrorEvent, GetPartyQueryRejectedResponseEvt, ParticipantAssociationCreatedEvt, ParticipantAssociationRemovedEvt, ParticipantQueryResponseEvt, PartyInfoRequestedEvt, PartyQueryResponseEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { AccountLookUpUnableToGetParticipantFromOracleErrorEvent,
+    AccountLookUpUnknownErrorEvent,
+    AccountLookupBCDestinationParticipantNotFoundErrorEvent,
+    AccountLookupBCInvalidDestinationParticipantErrorEvent,
+    AccountLookupBCInvalidMessagePayloadErrorEvent,
+    AccountLookupBCInvalidMessageTypeErrorEvent,
+    AccountLookupBCInvalidRequesterParticipantErrorEvent,
+    AccountLookupBCRequesterParticipantNotFoundErrorEvent,
+    AccountLookupBCTopics,
+    AccountLookupBCUnableToAssociateParticipantErrorEvent,
+    AccountLookupBCUnableToDisassociateParticipantErrorEvent,
+    AccountLookupBCUnableToGetOracleAdapterErrorEvent,
+    PartyRejectedResponseEvt,
+    ParticipantRejectedResponseEvt,
+    ParticipantAssociationCreatedEvt,
+    ParticipantAssociationRemovedEvt,
+    ParticipantQueryResponseEvt,
+    PartyInfoRequestedEvt,
+    PartyQueryResponseEvt
+} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import { MemoryParticipantService, createMessage, getJwsConfig } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { Constants, Enums, FspiopJwsSignature, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
@@ -731,9 +750,9 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
         });
     });
 
-    it("should return GetPartyQueryRejectedResponseEvt http call for party type", async () => {
+    it("should return PartyRejectedResponseEvt http call for party type", async () => {
         // Arrange
-        const msg = new GetPartyQueryRejectedResponseEvt({
+        const msg = new PartyRejectedResponseEvt({
             partyId: "123",
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             partySubType: "456",
@@ -763,6 +782,42 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
                     }
                 },
                 "url": expect.stringContaining(`/${partiesEntity}/${msg.payload.partyType}/${msg.payload.partyId}/${msg.payload.partySubType}/error`)
+            }));
+        });
+    });
+
+    it("should return ParticipantRejectedResponseEvt http call for party type", async () => {
+        // Arrange
+        const msg = new ParticipantRejectedResponseEvt({
+            partyId: "123",
+            partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
+            partySubType: "456",
+            currency: "USD",
+            errorInformation: { 
+                "errorCode": ClientErrors.PAYER_FSP_ID_NOT_FOUND.code,
+                "errorDescription": ClientErrors.PAYER_FSP_ID_NOT_FOUND.name
+            }
+        })
+        
+        const message = createMessage(msg, Enums.EntityTypeEnum.PARTICIPANTS);
+
+        jest.spyOn(mockedParticipantService, "getParticipantInfo").mockResolvedValue(mockedParticipant);
+
+        // Act
+        const sendRequestSpy = jest.spyOn(Request, "sendRequest");
+
+        await accountEvtHandler.processMessage(message);
+
+        // Assert
+        await waitForExpect(async () => {
+            expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
+                "payload": {
+                    "errorInformation": { 
+                        "errorCode": ClientErrors.PAYER_FSP_ID_NOT_FOUND.code,
+                        "errorDescription": ClientErrors.PAYER_FSP_ID_NOT_FOUND.name
+                    }
+                },
+                "url": expect.stringContaining(`/${participantsEntity}/${msg.payload.partyType}/${msg.payload.partyId}/${msg.payload.partySubType}/error`)
             }));
         });
     });

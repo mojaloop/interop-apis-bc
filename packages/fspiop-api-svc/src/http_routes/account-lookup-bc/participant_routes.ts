@@ -42,7 +42,9 @@ import {
     ParticipantDisassociateRequestReceivedEvt,
     ParticipantDisassociateRequestReceivedEvtPayload,
     ParticipantAssociationRequestReceivedEvt,
-    ParticipantAssociationRequestReceivedEvtPayload
+    ParticipantAssociationRequestReceivedEvtPayload,
+    ParticipantRejectedEvt,
+    ParticipantRejectedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
@@ -60,6 +62,7 @@ export class ParticipantRoutes extends BaseRoutes {
 
         // bind routes
 
+        // Requests
         // GET Participant by Type & ID
         this.router.get("/:type/:id/", this.getParticipantsByTypeAndID.bind(this));
         // GET Participants by Type, ID & SubId
@@ -68,10 +71,18 @@ export class ParticipantRoutes extends BaseRoutes {
         this.router.post("/:type/:id/", this.associatePartyByTypeAndId.bind(this));
         // POST Associate Party Party by Type, ID & SubId
         this.router.post("/:type/:id/:subid", this.associatePartyByTypeAndIdAndSubId.bind(this));
+
+        // Callbacks
         // DELETE Disassociate Party Party by Type & ID
         this.router.delete("/:type/:id/", this.disassociatePartyByTypeAndId.bind(this));
         // DELETE Disassociate Party Party by Type, ID & SubId
         this.router.delete("/:type/:id/:subid", this.disassociatePartyByTypeAndIdAndSubId.bind(this));
+
+        // Error Callbacks
+        // PUT ERROR Participant by Type & ID
+        this.router.put("/:type/:id/error", this.participantRequestByTypeAndIdReject.bind(this));
+        // PUT ERROR Participants by Type, ID & SubId
+        this.router.put("/:type/:id/:subid/error", this.participantRequestByTypeAndIdAndSubIdReject.bind(this));
     }
 
     get Router(): express.Router {
@@ -483,6 +494,167 @@ export class ParticipantRoutes extends BaseRoutes {
             res.status(202).json(null);
 
             this.logger.debug("disassociatePartyByTypeAndIdAndSubId responded");
+        } catch (error: unknown) {
+            if(error instanceof ValidationdError) {
+                res.status(400).json((error as ValidationdError).errorInformation);
+            } else {
+                const transformError = Transformer.transformPayloadError({
+                    errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
+                    errorDescription: (error as Error).message,
+                    extensionList: null
+                });
+                res.status(500).json(transformError);
+            }
+            return;
+        }
+    }
+
+    private async participantRequestByTypeAndIdReject(req: express.Request, res: express.Response): Promise<void> {
+        this.logger.debug("Got participantRequestByTypeAndIdReject request");
+
+        try {
+            // Headers
+            const clonedHeaders = { ...req.headers };
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+
+            // Date Model
+            const type = req.params["type"] as string;
+            const id = req.params["id"] as string;
+            const currency = req.query["currency"] as string || null;
+            const errorInformation = req.body["errorInformation"] || null;
+
+            if (!type || !id || !requesterFspId || !errorInformation) {
+                const transformError = Transformer.transformPayloadError({
+                    errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
+                    errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
+                    extensionList: null
+                });
+
+                res.status(400).json(transformError);
+                return;
+            }
+
+            if(currency) {
+                this._validator.currencyAndAmount({
+                    currency: currency,
+                    amount: null
+                });
+            }
+
+            if(this._jwsHelper.isEnabled()) {
+                this._jwsHelper.validate(req.headers, req.body);
+            }
+            
+            const msgPayload: ParticipantRejectedEvtPayload = {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
+                partyType: type,
+                partyId: id,
+                partySubType: null,
+                currency: currency,
+                errorInformation: errorInformation
+            };
+
+            const msg = new ParticipantRejectedEvt(msgPayload);
+
+            msg.validatePayload();
+
+            msg.fspiopOpaqueState = {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
+                headers: clonedHeaders
+            };
+
+            await this.kafkaProducer.send(msg);
+
+            this.logger.debug("participantRequestByTypeAndIdReject sent message");
+
+            res.status(202).json(null);
+
+            this.logger.debug("participantRequestByTypeAndIdReject responded");
+
+        } catch (error: unknown) {
+            if(error instanceof ValidationdError) {
+                res.status(400).json((error as ValidationdError).errorInformation);
+            } else {
+                const transformError = Transformer.transformPayloadError({
+                    errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
+                    errorDescription: (error as Error).message,
+                    extensionList: null
+                });
+                res.status(500).json(transformError);
+            }
+            return;
+        }
+    }
+
+    private async participantRequestByTypeAndIdAndSubIdReject(req: express.Request, res: express.Response): Promise<void> {
+        this.logger.debug("Got participantRequestByTypeAndIdAndSubIdReject request");
+
+        try {
+            // Headers
+            const clonedHeaders = { ...req.headers };
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+
+            // Date Model
+            const type = req.params["type"] as string || null;
+            const id = req.params["id"] as string || null;
+            const currency = req.query["currency"] as string || null;
+            const partySubIdOrType = req.params["subid"] as string || null;
+            const errorInformation = req.body["errorInformation"] || null;
+
+            if (!type || !id || !requesterFspId || !errorInformation) {
+                const transformError = Transformer.transformPayloadError({
+                    errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
+                    errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
+                    extensionList: null
+                });
+
+                res.status(400).json(transformError);
+                return;
+            }
+
+            if(currency) {
+                this._validator.currencyAndAmount({
+                    currency: currency,
+                    amount: null
+                });
+            }
+
+            if(this._jwsHelper.isEnabled()) {
+                this._jwsHelper.validate(req.headers, req.body);
+            }
+
+            const msgPayload: ParticipantRejectedEvtPayload = {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
+                partyType: type,
+                partyId: id,
+                partySubType: partySubIdOrType,
+                currency: currency,
+                errorInformation: errorInformation
+            };
+
+            const msg = new ParticipantRejectedEvt(msgPayload);
+
+            msg.validatePayload();
+
+            msg.fspiopOpaqueState = {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
+                headers: clonedHeaders
+            };
+
+            await this.kafkaProducer.send(msg);
+
+            this.logger.debug("getPartyByTypeAndIdAndSubIdQueryReject sent message");
+
+            res.status(202).json(null);
+
+            this.logger.debug("getPartyByTypeAndIdAndSubIdQueryReject responded");
+
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
                 res.status(400).json((error as ValidationdError).errorInformation);

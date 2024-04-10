@@ -34,7 +34,45 @@
 
 
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import { BulkTransferFulfiledEvt, BulkTransferPreparedEvt, BulkTransferQueryResponseEvt, BulkTransferRejectRequestProcessedEvt, TransferCancelReservationAndCommitFailedEvt, TransferCancelReservationFailedEvt, TransferFulfilCommittedRequestedTimedoutEvt, TransferFulfilPostCommittedRequestedTimedoutEvt, TransferFulfiledEvt, TransferHubAccountNotFoundFailedEvt, TransferHubNotFoundFailedEvt, TransferInvalidMessagePayloadEvt, TransferInvalidMessageTypeEvt, TransferNotFoundEvt, TransferPayeeLiquidityAccountNotFoundFailedEvt, TransferPayeeNotActiveEvt, TransferPayeeNotApprovedEvt, TransferPayeeNotFoundFailedEvt, TransferPayeePositionAccountNotFoundFailedEvt, TransferPayerLiquidityAccountNotFoundFailedEvt, TransferPayerNotActiveEvt, TransferPayerNotApprovedEvt, TransferPayerNotFoundFailedEvt, TransferPayerPositionAccountNotFoundFailedEvt, TransferPrepareLiquidityCheckFailedEvt, TransferPrepareRequestTimedoutEvt, TransferPreparedEvt, TransferQueryPayeeNotFoundFailedEvt, TransferQueryPayerNotFoundFailedEvt, TransferQueryResponseEvt, TransferRejectRequestProcessedEvt, TransferUnableToAddEvt, TransferUnableToDeleteTransferReminderEvt, TransferUnableToGetTransferByIdEvt, TransferUnableToUpdateEvt, TransfersBCTopics, TransfersBCUnknownErrorEvent } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import {
+    BulkTransferFulfiledEvt,
+    BulkTransferPreparedEvt,
+    BulkTransferQueryResponseEvt,
+    BulkTransferRejectRequestProcessedEvt,
+    TransferCancelReservationAndCommitFailedEvt,
+    TransferCancelReservationFailedEvt,
+    TransferFulfilCommittedRequestedTimedoutEvt,
+    TransferFulfilPostCommittedRequestedTimedoutEvt,
+    TransferFulfiledEvt,
+    TransferHubAccountNotFoundFailedEvt,
+    TransferHubNotFoundFailedEvt,
+    TransferInvalidMessagePayloadEvt,
+    TransferInvalidMessageTypeEvt,
+    TransferNotFoundEvt,
+    TransferPayeeLiquidityAccountNotFoundFailedEvt,
+    TransferPayeeNotActiveEvt,
+    TransferPayeeNotApprovedEvt,
+    TransferPayeeNotFoundFailedEvt,
+    TransferPayeePositionAccountNotFoundFailedEvt,
+    TransferPayerLiquidityAccountNotFoundFailedEvt,
+    TransferPayerNotActiveEvt,
+    TransferPayerNotApprovedEvt,
+    TransferPayerNotFoundFailedEvt,
+    TransferPayerPositionAccountNotFoundFailedEvt,
+    TransferPrepareLiquidityCheckFailedEvt,
+    TransferPrepareRequestTimedoutEvt,
+    TransferPreparedEvt,
+    TransferQueryPayeeNotFoundFailedEvt,
+    TransferQueryPayerNotFoundFailedEvt,
+    TransferQueryResponseEvt,
+    TransferRejectRequestProcessedEvt,
+    TransferUnableToAddEvt,
+    TransferUnableToDeleteTransferReminderEvt,
+    TransferUnableToGetTransferByIdEvt,
+    TransferUnableToUpdateEvt,
+    TransfersBCTopics,
+    TransfersBCUnknownErrorEvent 
+} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import { MemoryParticipantService, createMessage, getJwsConfig } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { Constants, Enums, FspiopJwsSignature, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
