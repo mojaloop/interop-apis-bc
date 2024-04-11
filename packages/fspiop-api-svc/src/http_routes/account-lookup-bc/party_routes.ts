@@ -48,8 +48,8 @@ import {
     PartyQueryReceivedEvtPayload,
     PartyInfoAvailableEvt,
     PartyInfoAvailableEvtPayload,
-    GetPartyQueryRejectedEvt,
-    GetPartyQueryRejectedEvtPayload
+    PartyRejectedEvt,
+    PartyRejectedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseRoutes } from "../_base_router";
 import { FSPIOPErrorCodes } from "../../validation";
@@ -67,6 +67,12 @@ export class PartyRoutes extends BaseRoutes {
 
         // bind routes
 
+        // Error Callbacks
+        // PUT ERROR Party by Type & ID
+        this.router.put("/:type/:id/error", this.partyByTypeAndIdReject.bind(this));
+        // PUT ERROR Parties by Type, ID & SubId
+        this.router.put("/:type/:id/:subid/error", this.partyByTypeAndIdAndSubIdReject.bind(this));
+
         // Requests
         // GET Party by Type & ID
         this.router.get("/:type/:id/", this.getPartyQueryReceivedByTypeAndId.bind(this));
@@ -74,10 +80,6 @@ export class PartyRoutes extends BaseRoutes {
         this.router.get("/:type/:id/:subid", this.getPartyQueryReceivedByTypeAndIdSubId.bind(this));
 
         // Callbacks
-        // PUT ERROR Party by Type & ID
-        this.router.put("/:type/:id/error", this.getPartyByTypeAndIdQueryReject.bind(this));
-        // PUT ERROR Parties by Type, ID & SubId
-        this.router.put("/:type/:id/:subid/error", this.getPartyByTypeAndIdAndSubIdQueryReject.bind(this));
         // PUT Party by Type & ID
         this.router.put("/:type/:id/", this.getPartyInfoAvailableByTypeAndId.bind(this));
         // PUT Parties by Type, ID & SubId
@@ -417,8 +419,8 @@ export class PartyRoutes extends BaseRoutes {
         }
     }
 
-    private async getPartyByTypeAndIdQueryReject(req: express.Request, res: express.Response): Promise<void> {
-        this.logger.debug("Got getPartyByTypeAndIdQueryReject request");
+    private async partyByTypeAndIdReject(req: express.Request, res: express.Response): Promise<void> {
+        this.logger.debug("Got partyByTypeAndIdReject request");
 
         try {
             // Headers
@@ -454,7 +456,7 @@ export class PartyRoutes extends BaseRoutes {
                 this._jwsHelper.validate(req.headers, req.body);
             }
             
-            const msgPayload: GetPartyQueryRejectedEvtPayload = {
+            const msgPayload: PartyRejectedEvtPayload = {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId,
                 partyType: type,
@@ -464,7 +466,7 @@ export class PartyRoutes extends BaseRoutes {
                 errorInformation: errorInformation
             };
 
-            const msg = new GetPartyQueryRejectedEvt(msgPayload);
+            const msg = new PartyRejectedEvt(msgPayload);
 
             msg.validatePayload();
 
@@ -476,11 +478,11 @@ export class PartyRoutes extends BaseRoutes {
 
             await this.kafkaProducer.send(msg);
 
-            this.logger.debug("getPartyByTypeAndIdQueryReject sent message");
+            this.logger.debug("partyByTypeAndIdReject sent message");
 
             res.status(202).json(null);
 
-            this.logger.debug("getPartyByTypeAndIdQueryReject responded");
+            this.logger.debug("partyByTypeAndIdReject responded");
 
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
@@ -497,8 +499,8 @@ export class PartyRoutes extends BaseRoutes {
         }
     }
 
-    private async getPartyByTypeAndIdAndSubIdQueryReject(req: express.Request, res: express.Response): Promise<void> {
-        this.logger.debug("Got getPartyByTypeAndIdAndSubIdQueryReject request");
+    private async partyByTypeAndIdAndSubIdReject(req: express.Request, res: express.Response): Promise<void> {
+        this.logger.debug("Got partyByTypeAndIdAndSubIdReject request");
 
         try {
             // Headers
@@ -535,7 +537,7 @@ export class PartyRoutes extends BaseRoutes {
                 this._jwsHelper.validate(req.headers, req.body);
             }
 
-            const msgPayload: GetPartyQueryRejectedEvtPayload = {
+            const msgPayload: PartyRejectedEvtPayload = {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId,
                 partyType: type,
@@ -545,7 +547,7 @@ export class PartyRoutes extends BaseRoutes {
                 errorInformation: errorInformation
             };
 
-            const msg = new GetPartyQueryRejectedEvt(msgPayload);
+            const msg = new PartyRejectedEvt(msgPayload);
 
             msg.validatePayload();
 
@@ -557,11 +559,11 @@ export class PartyRoutes extends BaseRoutes {
 
             await this.kafkaProducer.send(msg);
 
-            this.logger.debug("getPartyByTypeAndIdAndSubIdQueryReject sent message");
+            this.logger.debug("partyByTypeAndIdAndSubIdReject sent message");
 
             res.status(202).json(null);
 
-            this.logger.debug("getPartyByTypeAndIdAndSubIdQueryReject responded");
+            this.logger.debug("partyByTypeAndIdAndSubIdReject responded");
 
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
