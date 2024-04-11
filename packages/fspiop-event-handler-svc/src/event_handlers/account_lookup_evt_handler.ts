@@ -270,10 +270,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
             urlBuilder.setLocation([partyType, partyId, partySubType]);
 
-            // provide original headers for tracing and test header passthrough
-            (clonedHeaders as any).original_headers = {
-                ...clonedHeaders
-            };
+             // provide original headers for tracing and test header pass-through
+            (clonedHeaders as any).original_headers = { ...clonedHeaders };
 
             await Request.sendRequest({
                 url: urlBuilder.build(),
@@ -319,10 +317,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
             urlBuilder.setLocation([partyType, partyId, partySubType]);
 
-            // provide original headers for tracing and test header passthrough
-            (clonedHeaders as any).original_headers = {
-                ...clonedHeaders
-            };
+             // provide original headers for tracing and test header pass-through
+            (clonedHeaders as any).original_headers = { ...clonedHeaders };
 
             await Request.sendRequest({
                 url: urlBuilder.build(),
@@ -379,10 +375,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
             urlBuilder.setLocation([partyType, partyId, partySubType]);
 
-            // provide original headers for tracing and test header passthrough
-            (clonedHeaders as any).original_headers = {
-                ...clonedHeaders
-            };
+             // provide original headers for tracing and test header pass-through
+            (clonedHeaders as any).original_headers = { ...clonedHeaders };
 
             const requestTimer = this._histogram.startTimer({ callName: "handlePartyInfoRequestedEvt_sendRequest"});
             try {
@@ -448,10 +442,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
             urlBuilder.setLocation([partyType, partyId, partySubType]);
 
-            // provide original headers for tracing and test header passthrough
-            (clonedHeaders as any).original_headers = {
-                ...clonedHeaders
-            };
+             // provide original headers for tracing and test header pass-through
+            (clonedHeaders as any).original_headers = { ...clonedHeaders };
 
             const requestTimer = this._histogram.startTimer({ callName: "handlePartyQueryResponseEvt_sendRequest"});
             try {
@@ -518,10 +510,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
             urlBuilder.setLocation([partyType, partyId, partySubType]);
 
-            // provide original headers for tracing and test header passthrough
-            (clonedHeaders as any).original_headers = {
-                ...clonedHeaders
-            };
+             // provide original headers for tracing and test header pass-through
+            (clonedHeaders as any).original_headers = { ...clonedHeaders };
 
             await Request.sendRequest({
                 url: urlBuilder.build(),

@@ -308,6 +308,9 @@ export class TransferEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadTransferRequestPost(payload);
 
+            // provide original headers for tracing and test header pass-through
+            (clonedHeaders as any).original_headers = { ...clonedHeaders };
+
             await Request.sendRequest({
                 url: urlBuilder.build(),
                 headers: clonedHeaders,
@@ -352,6 +355,9 @@ export class TransferEventHandler extends BaseEventHandler {
             urlBuilderPayer.setEntity(Enums.EntityTypeEnum.TRANSFERS);
             urlBuilderPayer.setLocation([payload.transferId]);
 
+            // provide original headers for tracing and test header pass-through
+            (clonedHeaders as any).original_headers = { ...clonedHeaders };
+
             await Request.sendRequest({
                 url: urlBuilderPayer.build(),
                 headers: clonedHeaders,
@@ -370,6 +376,9 @@ export class TransferEventHandler extends BaseEventHandler {
                 const urlBuilderPayee = new Request.URLBuilder(requestedEndpointPayee.value);
                 urlBuilderPayee.setEntity(Enums.EntityTypeEnum.TRANSFERS);
                 urlBuilderPayee.setLocation([payload.transferId]);
+
+                // provide original headers for tracing and test header pass-through
+                (clonedHeaders as any).original_headers = { ...clonedHeaders };
 
                 await Request.sendRequest({
                     url: urlBuilderPayee.build(),
@@ -419,6 +428,9 @@ export class TransferEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.TRANSFERS);
             urlBuilder.setId(payload.transferId);
 
+            // provide original headers for tracing and test header pass-through
+            (clonedHeaders as any).original_headers = { ...clonedHeaders };
+
             await Request.sendRequest({
                 url: urlBuilder.build(),
                 headers: clonedHeaders,
@@ -461,6 +473,9 @@ export class TransferEventHandler extends BaseEventHandler {
             urlBuilder.setId(payload.transferId);
             urlBuilder.hasError(true);
 
+            // provide original headers for tracing and test header pass-through
+            (clonedHeaders as any).original_headers = { ...clonedHeaders };
+
             await Request.sendRequest({
                 url: urlBuilder.build(),
                 headers: clonedHeaders,
@@ -501,6 +516,9 @@ export class TransferEventHandler extends BaseEventHandler {
 
             const urlBuilderPayer = new Request.URLBuilder(requestedEndpointPayer.value);
             urlBuilderPayer.setEntity(Enums.EntityTypeEnum.BULK_TRANSFERS);
+
+            // provide original headers for tracing and test header pass-through
+            (clonedHeaders as any).original_headers = { ...clonedHeaders };
 
             await Request.sendRequest({
                 url: urlBuilderPayer.build(),
@@ -545,6 +563,9 @@ export class TransferEventHandler extends BaseEventHandler {
             const urlBuilderPayer = new Request.URLBuilder(requestedEndpointPayer.value);
             urlBuilderPayer.setEntity(Enums.EntityTypeEnum.BULK_TRANSFERS);
             urlBuilderPayer.setLocation([payload.bulkTransferId]);
+
+            // provide original headers for tracing and test header pass-through
+            (clonedHeaders as any).original_headers = { ...clonedHeaders };
 
             await Request.sendRequest({
                 url: urlBuilderPayer.build(),
@@ -592,6 +613,9 @@ export class TransferEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_TRANSFERS);
             urlBuilder.setId(payload.bulkTransferId);
 
+            // provide original headers for tracing and test header pass-through
+            (clonedHeaders as any).original_headers = { ...clonedHeaders };
+
             await Request.sendRequest({
                 url: urlBuilder.build(),
                 headers: clonedHeaders,
@@ -635,6 +659,9 @@ export class TransferEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_TRANSFERS);
             urlBuilder.setId(payload.bulkTransferId);
             urlBuilder.hasError(true);
+
+            // provide original headers for tracing and test header pass-through
+            (clonedHeaders as any).original_headers = { ...clonedHeaders };
 
             await Request.sendRequest({
                 url: urlBuilder.build(),

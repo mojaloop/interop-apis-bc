@@ -269,6 +269,9 @@ export class QuotingEventHandler extends BaseEventHandler {
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
 
+             // provide original headers for tracing and test header pass-through
+            (clonedHeaders as any).original_headers = { ...clonedHeaders };
+
             await Request.sendRequest({
                 url: urlBuilder.build(),
                 headers: clonedHeaders,
@@ -308,6 +311,9 @@ export class QuotingEventHandler extends BaseEventHandler {
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
             urlBuilder.setLocation([payload.quoteId]);
+
+             // provide original headers for tracing and test header pass-through
+            (clonedHeaders as any).original_headers = { ...clonedHeaders };
 
             await Request.sendRequest({
                 url: urlBuilder.build(),
@@ -355,6 +361,9 @@ export class QuotingEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
             urlBuilder.setId(payload.quoteId);
 
+             // provide original headers for tracing and test header pass-through
+            (clonedHeaders as any).original_headers = { ...clonedHeaders };
+
             await Request.sendRequest({
                 url: urlBuilder.build(),
                 headers: clonedHeaders,
@@ -394,6 +403,9 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);
+
+             // provide original headers for tracing and test header pass-through
+            (clonedHeaders as any).original_headers = { ...clonedHeaders };
 
             await Request.sendRequest({
                 url: urlBuilder.build(),
@@ -437,6 +449,9 @@ export class QuotingEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);
             urlBuilder.setId(payload.bulkQuoteId);
 
+             // provide original headers for tracing and test header pass-through
+            (clonedHeaders as any).original_headers = { ...clonedHeaders };
+
             await Request.sendRequest({
                 url: urlBuilder.build(),
                 headers: clonedHeaders,
@@ -474,6 +489,9 @@ export class QuotingEventHandler extends BaseEventHandler {
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);
             urlBuilder.setId(payload.bulkQuoteId);
+
+            // provide original headers for tracing and test header pass-through
+            (clonedHeaders as any).original_headers = { ...clonedHeaders };
 
             await Request.sendRequest({
                 url: urlBuilder.build(),

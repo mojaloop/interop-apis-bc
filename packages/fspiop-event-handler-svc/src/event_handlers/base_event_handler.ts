@@ -196,6 +196,9 @@ export abstract class BaseEventHandler  {
                     clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
                 }
 
+                // provide original headers for tracing and test header pass-through
+                (clonedHeaders as any).original_headers = { ...clonedHeaders };
+
                 await Request.sendRequest({
                     url: url,
                     headers: clonedHeaders,
