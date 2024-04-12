@@ -37,13 +37,14 @@ import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platfor
 import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
 import request from "supertest";
-import { getHeaders, getJwsConfig, getRouteValidator, MemoryConfigClientMock } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { getHeaders, getJwsConfig, getRouteValidator, MemoryConfigClientMock, MemoryMetric } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { Enums, FspiopJwsSignature, FspiopValidator } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import fastify, { FastifyInstance, FastifyRequest } from "fastify";
 import { fastifyCors } from "@fastify/cors";
 import { fastifyFormbody } from "@fastify/formbody";
+import { IMetrics } from "@mojaloop/platform-shared-lib-observability-types-lib";
 
 const packageJSON = require("../../../package.json");
 
@@ -72,6 +73,7 @@ const pathWithoutId = `/${Enums.EntityTypeEnum.TRANSFERS}`;
 let configClientMock: IConfigurationClient;
 let jwsHelperMock: FspiopJwsSignature;
 let routeValidatorMock: FspiopValidator;
+let metricsMock:IMetrics;
 
 jest.setTimeout(10000);
 
@@ -129,7 +131,9 @@ describe("FSPIOP Routes - Unit Tests Transfer", () => {
 
         jwsHelperMock = getJwsConfig();
 
-        transferRoutes = new TransfersRoutes(producer, routeValidatorMock, jwsHelperMock, logger);
+        metricsMock = new MemoryMetric(logger);
+
+        transferRoutes = new TransfersRoutes(producer, routeValidatorMock, jwsHelperMock, metricsMock, logger);
 
         app.register(transferRoutes.bindRoutes, { prefix: `/${TRANSFERS_URL_RESOURCE_NAME}` }); 
 

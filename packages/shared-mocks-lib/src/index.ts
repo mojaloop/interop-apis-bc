@@ -36,4 +36,5 @@ export * from "./memory_audit_service";
 export * from "./memory_config_client";
 export * from "./memory_config_provider";
 export * from "./memory_participant_service";
+export * from "./memory_metrics_service";
 export * from "./mocked_data";

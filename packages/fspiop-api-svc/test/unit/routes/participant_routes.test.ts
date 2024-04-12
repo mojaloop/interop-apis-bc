@@ -38,13 +38,14 @@ import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platfor
 import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
 import request from "supertest";
-import { MemoryConfigClientMock, getHeaders, getJwsConfig, getRouteValidator } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { MemoryConfigClientMock, MemoryMetric, getHeaders, getJwsConfig, getRouteValidator } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { Enums, FspiopJwsSignature, FspiopValidator } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import fastify, { FastifyInstance, FastifyRequest } from "fastify";
 import fastifyCors from "@fastify/cors";
 import fastifyFormbody from "@fastify/formbody";
+import { IMetrics } from "@mojaloop/platform-shared-lib-observability-types-lib";
 const packageJSON = require("../../../package.json");
 const BC_NAME = "interop-apis-bc";
 const APP_NAME = "fspiop-api-svc";
@@ -71,6 +72,7 @@ const pathWithSubType = `/${Enums.EntityTypeEnum.PARTICIPANTS}/MSISDN/123456789/
 let configClientMock: IConfigurationClient;
 let jwsHelperMock: FspiopJwsSignature;
 let routeValidatorMock: FspiopValidator;
+let metricsMock:IMetrics;
 
 jest.setTimeout(10000);
 
@@ -128,7 +130,9 @@ describe("FSPIOP Routes - Participant", () => {
 
         jwsHelperMock = getJwsConfig();
 
-        participantRoutes = new ParticipantRoutes(producer, routeValidatorMock, jwsHelperMock, logger);
+        metricsMock = new MemoryMetric(logger);
+
+        participantRoutes = new ParticipantRoutes(producer, routeValidatorMock, jwsHelperMock, metricsMock, logger);
         app.register(participantRoutes.bindRoutes, { prefix: `/${PARTICIPANTS_URL_RESOURCE_NAME}` }); 
 
         let portNum = SVC_DEFAULT_HTTP_PORT as number;

@@ -86,7 +86,8 @@ jest.mock("@mojaloop/platform-shared-lib-nodejs-kafka-client-lib", () => {
         MLKafkaJsonConsumer: jest.fn().mockImplementation(() => {
             return {
                 setTopics: jest.fn(),
-                setCallbackFn : jest.fn(),
+                setCallbackFn: jest.fn(),
+                setBatchCallbackFn : jest.fn(),
                 connect: jest.fn(),
                 startAndWaitForRebalance: messageConsumerStartRebalanceSpy,
                 destroy: messageConsumerDestroySpy
