@@ -42,3 +42,25 @@ npm run start
 ```bash
 npm run test:unit
 ```
+
+## Configuration 
+
+### Environment variables
+
+| Environment Variable | Description    | Example Values         |
+|---------------------|-----------------|-----------------------------------------|
+| PRODUCTION_MODE      | Flag indicating production mode   | FALSE                  |
+| LOG_LEVEL            | Logging level for the application                  | LogLevel.DEBUG        |
+| SVC_DEFAULT_HTTP_PORT                 | Default HTTP port for the service                  | 4000  |
+| KAFKA_URL       | Kafka broker URL     | localhost:9092          |
+| KAFKA_AUDITS_TOPIC        | Kafka topic for audits              | audits                 |
+| KAFKA_LOGS_TOPIC      | Kafka topic for logs          | logs    |
+| AUDIT_KEY_FILE_PATH  | File path for audit key           | /app/data/audit_private_key.pem         |
+| SVC_CLIENT_ID        | Service client ID                 | interop-api-bc-fspiop-api-svc               |
+| SVC_CLIENT_SECRET    | Service client secret             | superServiceSecret     |
+| AUTH_N_SVC_BASEURL | Authentication service base URL  |http://localhost:3201|
+| PARTICIPANTS_SVC_URL  | Participants service base URL | http://localhost:3010 |
+| PARTICIPANTS_CACHE_TIMEOUT_MS        | Timeout for participants cache in milliseconds   |    30000    |
+| SERVICE_START_TIMEOUT_MS               | Timeout for service startup in milliseconds        | 60_000                 |
+| JWS_FILES_PATH    | Files Path for JWS | /app/data/keys/ |
+| JWS_DISABLED | Flag indicating the JWS disabled | true  |
