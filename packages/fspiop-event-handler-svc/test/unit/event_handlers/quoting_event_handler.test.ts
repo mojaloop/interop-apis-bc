@@ -33,17 +33,19 @@
 "use strict";
 
 
-import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { BulkQuoteAcceptedEvt, BulkQuoteQueryResponseEvt, BulkQuoteReceivedEvt, QuoteBCBulkQuoteExpiredErrorEvent, QuoteBCBulkQuoteNotFoundErrorEvent, QuoteBCDestinationParticipantNotFoundErrorEvent, QuoteBCDuplicateQuoteErrorEvent, QuoteBCInvalidBulkQuoteLengthErrorEvent, QuoteBCInvalidDestinationFspIdErrorEvent, QuoteBCInvalidMessagePayloadErrorEvent, QuoteBCInvalidMessageTypeErrorEvent, QuoteBCInvalidRequesterFspIdErrorEvent, QuoteBCQuoteExpiredErrorEvent, QuoteBCQuoteNotFoundErrorEvent, QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent, QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent, QuoteBCRequesterParticipantNotFoundErrorEvent, QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent, QuoteBCUnableToAddQuoteToDatabaseErrorEvent, QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent, QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent, QuoteBCUnknownErrorEvent, QuoteQueryResponseEvt, QuoteRequestAcceptedEvt, QuoteResponseAccepted, QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
-import { MemoryParticipantService, createMessage, getJwsConfig } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { MemoryMetric, MemoryParticipantService, createMessage, getJwsConfig } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { Constants, Enums, FspiopJwsSignature, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { QuotingEventHandler } from "../../../src/event_handlers/quoting_evt_handler";
-import { IParticipantServiceAdapter } from "../../../src/interfaces/infrastructure";
 import { FSPIOP_PARTY_ACCOUNT_TYPES } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants";
 import { IParticipant, IParticipantEndpoint, ParticipantEndpointProtocols, ParticipantEndpointTypes, ParticipantTypes } from "@mojaloop/participant-bc-public-types-lib";
 import waitForExpect from "../../../../../test/integration/fspiop-api-svc/helpers/utils";
 import { QuotingErrorCodeNames } from "@mojaloop/quoting-bc-public-types-lib";
+import { IMetrics } from "@mojaloop/platform-shared-lib-observability-types-lib";
+import { IParticipantServiceAdapter } from "../../../../fspiop-api-svc/src/interfaces/infrastructure";
+import { IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 const BC_NAME = "interop-apis-bc";
 const APP_NAME = "fspiop-api-svc";
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
@@ -71,7 +73,8 @@ jest.mock("@mojaloop/platform-shared-lib-nodejs-kafka-client-lib", () => {
         MLKafkaJsonConsumer: jest.fn().mockImplementation(() => {
             return {
                 setTopics: jest.fn(),
-                setCallbackFn : jest.fn(),
+                setCallbackFn: jest.fn(),
+                setBatchCallbackFn: jest.fn(),
                 connect: jest.fn(),
                 startAndWaitForRebalance: jest.fn(),
                 destroy: jest.fn()
@@ -105,6 +108,8 @@ const mockedParticipantService: IParticipantServiceAdapter = new MemoryParticipa
 
 let jwsHelperMock: FspiopJwsSignature;
 let quotingEvtHandler:QuotingEventHandler;
+let metricsMock:IMetrics = new MemoryMetric(logger);
+const producerMock: IMessageProducer = new MLKafkaJsonProducer(kafkaJsonProducerOptions);
 
 jwsHelperMock = getJwsConfig();
 
@@ -160,10 +165,11 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         quotingEvtHandler = new QuotingEventHandler(
             logger,
             quotingEvtHandlerConsumerOptions,
-            kafkaJsonProducerOptions,
+            producerMock,
             [QuotingBCTopics.DomainEvents],
             mockedParticipantService,
-            jwsHelperMock
+            jwsHelperMock,
+            metricsMock
         );
 
         await quotingEvtHandler.init();

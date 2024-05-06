@@ -33,18 +33,20 @@
 "use strict";
 
 
-import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { AccountLookUpUnableToGetParticipantFromOracleErrorEvent, AccountLookUpUnknownErrorEvent, AccountLookupBCDestinationParticipantNotFoundErrorEvent, AccountLookupBCInvalidDestinationParticipantErrorEvent, AccountLookupBCInvalidMessagePayloadErrorEvent, AccountLookupBCInvalidMessageTypeErrorEvent, AccountLookupBCInvalidRequesterParticipantErrorEvent, AccountLookupBCRequesterParticipantNotFoundErrorEvent, AccountLookupBCTopics, AccountLookupBCUnableToAssociateParticipantErrorEvent, AccountLookupBCUnableToDisassociateParticipantErrorEvent, AccountLookupBCUnableToGetOracleAdapterErrorEvent, GetPartyQueryRejectedResponseEvt, ParticipantAssociationCreatedEvt, ParticipantAssociationRemovedEvt, ParticipantQueryResponseEvt, PartyInfoRequestedEvt, PartyQueryResponseEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
-import { MemoryParticipantService, createMessage, getJwsConfig } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { MemoryMetric, MemoryParticipantService, createMessage, getJwsConfig } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { Constants, Enums, FspiopJwsSignature, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { AccountLookupEventHandler } from "../../../src/event_handlers/account_lookup_evt_handler";
-import { IParticipantServiceAdapter } from "../../../src/interfaces/infrastructure";
 import { FSPIOP_PARTY_ACCOUNT_TYPES } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants";
 import { IParticipant, IParticipantEndpoint, ParticipantEndpointProtocols, ParticipantEndpointTypes, ParticipantTypes } from "@mojaloop/participant-bc-public-types-lib";
 import waitForExpect from "../../../../../test/integration/fspiop-api-svc/helpers/utils";
 import { ClientErrors } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/enums";
 import { AccountLookupErrorCodeNames } from "@mojaloop/account-lookup-bc-public-types-lib";
+import { IParticipantServiceAdapter } from "../../../../fspiop-api-svc/src/interfaces/infrastructure";
+import { IMetrics } from "@mojaloop/platform-shared-lib-observability-types-lib";
+import { IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 const BC_NAME = "interop-apis-bc";
 const APP_NAME = "fspiop-api-svc";
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
@@ -72,7 +74,8 @@ jest.mock("@mojaloop/platform-shared-lib-nodejs-kafka-client-lib", () => {
         MLKafkaJsonConsumer: jest.fn().mockImplementation(() => {
             return {
                 setTopics: jest.fn(),
-                setCallbackFn : jest.fn(),
+                setCallbackFn: jest.fn(),
+                setBatchCallbackFn: jest.fn(),
                 connect: jest.fn(),
                 startAndWaitForRebalance: jest.fn(),
                 destroy: jest.fn()
@@ -106,6 +109,8 @@ const mockedParticipantService: IParticipantServiceAdapter = new MemoryParticipa
 
 let jwsHelperMock: FspiopJwsSignature;
 let accountEvtHandler:AccountLookupEventHandler;
+let metricsMock:IMetrics = new MemoryMetric(logger);
+const producerMock: IMessageProducer = new MLKafkaJsonProducer(kafkaJsonProducerOptions);
 
 jwsHelperMock = getJwsConfig();
 
@@ -161,10 +166,11 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
         accountEvtHandler = new AccountLookupEventHandler(
             logger,
             accountEvtHandlerConsumerOptions,
-            kafkaJsonProducerOptions,
+            producerMock,
             [AccountLookupBCTopics.DomainEvents],
             mockedParticipantService,
-            jwsHelperMock
+            jwsHelperMock,
+            metricsMock
         );
 
         await accountEvtHandler.init();

@@ -102,7 +102,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         producer = new platform_shared_lib_nodejs_kafka_client_lib_1.MLKafkaJsonProducer(kafkaJsonProducerOptions);
         routeValidatorMock = (0, interop_apis_bc_shared_mocks_lib_1.getRouteValidator)();
         jwsHelperMock = (0, interop_apis_bc_shared_mocks_lib_1.getJwsConfig)();
-        bulkQuoteRoutes = new bulk_quote_routes_1.QuoteBulkRoutes(producer, routeValidatorMock, jwsHelperMock, logger);
+        bulkQuoteRoutes = new bulk_quote_routes_1.QuoteBulkRoutes(producer, routeValidatorMock, jwsHelperMock, metricsMock, logger);
         app.register(bulkQuoteRoutes.bindRoutes, { prefix: `/${BULK_QUOTES_URL_RESOURCE_NAME}` });
         let portNum = SVC_DEFAULT_HTTP_PORT;
         app.listen({ port: portNum }, () => {
