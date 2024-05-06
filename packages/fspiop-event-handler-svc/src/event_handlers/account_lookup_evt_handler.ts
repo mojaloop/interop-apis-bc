@@ -50,7 +50,7 @@ import {
     AccountLookupBCRequiredRequesterParticipantIsNotActiveErrorEvent,
     AccountLookupBCRequiredDestinationParticipantIsNotApprovedErrorEvent,
     AccountLookupBCRequiredDestinationParticipantIsNotActiveErrorEvent,
-    GetPartyQueryRejectedResponseEvt,
+    PartyRejectedResponseEvt,
     ParticipantAssociationCreatedEvt,
     ParticipantAssociationRemovedEvt,
     ParticipantQueryResponseEvt,
@@ -143,7 +143,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                     case ParticipantQueryResponseEvt.name:
                         await this._handleParticipantQueryResponseEvt(new ParticipantQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
                         break;
-                    case GetPartyQueryRejectedResponseEvt.name:
+                    case PartyRejectedResponseEvt.name:
                     case AccountLookUpUnknownErrorEvent.name:
                     case AccountLookupBCInvalidMessagePayloadErrorEvent.name:
                     case AccountLookupBCInvalidMessageTypeErrorEvent.name:

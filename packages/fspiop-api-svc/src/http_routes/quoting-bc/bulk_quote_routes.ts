@@ -38,8 +38,9 @@ import {
     BulkQuoteQueryReceivedEvtPayload,
     BulkQuoteRequestedEvt,
     BulkQuoteRequestedEvtPayload,
-    GetBulkQuoteQueryRejectedEvt,
-    GetBulkQuoteQueryRejectedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+    BulkQuoteRejectedEvt,
+    BulkQuoteRejectedEvtPayload 
+} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import {
     Constants,
     FspiopJwsSignature,
@@ -336,12 +337,12 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
                 this._jwsHelper.validate(req.headers, req.body);
             }
 
-            const msgPayload: GetBulkQuoteQueryRejectedEvtPayload = {
+            const msgPayload: BulkQuoteRejectedEvtPayload = {
                 bulkQuoteId: bulkQuoteId,
                 errorInformation: errorInformation
             };
 
-            const msg =  new GetBulkQuoteQueryRejectedEvt(msgPayload);
+            const msg =  new BulkQuoteRejectedEvt(msgPayload);
 
             msg.validatePayload();
 

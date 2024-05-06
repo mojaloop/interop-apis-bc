@@ -39,8 +39,8 @@ import {
     ValidationdError
 } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {
-    GetQuoteQueryRejectedEvt,
-    GetQuoteQueryRejectedEvtPayload,
+    QuoteRejectedEvt,
+    QuoteRejectedEvtPayload,
     QuoteQueryReceivedEvt,
     QuoteQueryReceivedEvtPayload,
     QuoteRequestReceivedEvt,
@@ -357,12 +357,12 @@ export class QuoteRoutes extends BaseRoutesFastify {
                 this._jwsHelper.validate(req.headers, req.body);
             }
 
-            const msgPayload: GetQuoteQueryRejectedEvtPayload = {
+            const msgPayload: QuoteRejectedEvtPayload = {
                 quoteId: quoteId,
                 errorInformation: errorInformation
             };
 
-            const msg =  new GetQuoteQueryRejectedEvt(msgPayload);
+            const msg =  new QuoteRejectedEvt(msgPayload);
 
             msg.validatePayload();
 

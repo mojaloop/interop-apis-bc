@@ -148,8 +148,6 @@ export class TransfersRoutes extends BaseRoutesFastify {
             }
 
             const msgPayload: TransferPrepareRequestedEvtPayload = {
-                requesterFspId: requesterFspId,
-                destinationFspId: destinationFspId,
                 transferId: transferId,
                 payeeFsp: payeeFsp,
                 payerFsp: payerFsp,

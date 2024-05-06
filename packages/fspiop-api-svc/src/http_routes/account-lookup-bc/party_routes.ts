@@ -47,8 +47,8 @@ import {
     PartyQueryReceivedEvtPayload,
     PartyInfoAvailableEvt,
     PartyInfoAvailableEvtPayload,
-    GetPartyQueryRejectedEvt,
-    GetPartyQueryRejectedEvtPayload
+    PartyRejectedEvt,
+    PartyRejectedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { FSPIOPErrorCodes } from "../validation";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
@@ -493,7 +493,7 @@ export class PartyRoutes extends BaseRoutesFastify {
                 this._jwsHelper.validate(req.headers, req.body);
             }
 
-            const msgPayload: GetPartyQueryRejectedEvtPayload = {
+            const msgPayload: PartyRejectedEvtPayload = {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId,
                 partyType: type,
@@ -503,7 +503,7 @@ export class PartyRoutes extends BaseRoutesFastify {
                 errorInformation: errorInformation
             };
 
-            const msg = new GetPartyQueryRejectedEvt(msgPayload);
+            const msg = new PartyRejectedEvt(msgPayload);
 
             msg.validatePayload();
 
@@ -577,7 +577,7 @@ export class PartyRoutes extends BaseRoutesFastify {
                 this._jwsHelper.validate(req.headers, req.body);
             }
 
-            const msgPayload: GetPartyQueryRejectedEvtPayload = {
+            const msgPayload: PartyRejectedEvtPayload = {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId,
                 partyType: type,
@@ -587,7 +587,7 @@ export class PartyRoutes extends BaseRoutesFastify {
                 errorInformation: errorInformation
             };
 
-            const msg = new GetPartyQueryRejectedEvt(msgPayload);
+            const msg = new PartyRejectedEvt(msgPayload);
 
             msg.validatePayload();
 

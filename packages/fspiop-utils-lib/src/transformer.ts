@@ -49,7 +49,6 @@ import {
 	BulkTransferFulfiledEvtPayload,
 	BulkTransferQueryResponseEvtPayload,
 	BulkTransferRejectRequestProcessedEvtPayload,
-	GetPartyQueryRejectedResponseEvtPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { 
 	ExtensionList,
@@ -348,14 +347,6 @@ export const transformPayloadBulkTransferRequestGet = (payload: BulkTransferQuer
 };
 
 export const transformPayloadBulkTransferRequestPutError = (payload: BulkTransferRejectRequestProcessedEvtPayload): FspiopError => {
-	const info: FspiopError = {
-		errorInformation: payload.errorInformation
-	};
-
-	return removeEmpty(info);
-};
-
-export const transformPayloadPartyQueryRejectedPut = (payload: GetPartyQueryRejectedResponseEvtPayload): FspiopError => {
 	const info: FspiopError = {
 		errorInformation: payload.errorInformation
 	};

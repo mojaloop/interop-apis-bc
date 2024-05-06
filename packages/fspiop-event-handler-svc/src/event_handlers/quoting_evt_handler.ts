@@ -36,8 +36,8 @@ import {
     BulkQuoteAcceptedEvt,
     BulkQuoteQueryResponseEvt,
     BulkQuoteReceivedEvt,
-    GetBulkQuoteQueryRejectedEvt,
-    GetPartyQueryRejectedEvt,
+    BulkQuoteRejectedEvt,
+    PartyRejectedEvt,
     QuoteBCBulkQuoteExpiredErrorEvent,
     QuoteBCBulkQuoteNotFoundErrorEvent,
     QuoteBCDestinationParticipantNotFoundErrorEvent,
@@ -141,8 +141,8 @@ export class QuotingEventHandler extends BaseEventHandler {
                 case BulkQuoteQueryResponseEvt.name:
                     await this._handleBulkQuotingQueryResponseEvt(new BulkQuoteQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
-                case GetPartyQueryRejectedEvt.name:
-                case GetBulkQuoteQueryRejectedEvt.name:
+                case PartyRejectedEvt.name:
+                case BulkQuoteRejectedEvt.name:
                 case QuoteBCDuplicateQuoteErrorEvent.name:
                 case QuoteBCQuoteNotFoundErrorEvent.name:
                 case QuoteBCBulkQuoteNotFoundErrorEvent.name:
