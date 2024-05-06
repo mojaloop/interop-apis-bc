@@ -56,7 +56,9 @@ import {
     Transformer,
     FspiopJwsSignature
 } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import {IHistogram, IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import {IHistogram, IMetrics, Tracer} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import { OpenTelemetryClient } from "@mojaloop/platform-shared-lib-observability-client-lib";
+
 
 export const HandlerNames = {
     AccountLookUp: 'AccountLookUpEventHandler',
@@ -76,6 +78,7 @@ export abstract class BaseEventHandler  {
     protected readonly _jwsHelper: FspiopJwsSignature;
     protected readonly _metrics: IMetrics;
     protected readonly _histogram: IHistogram;
+    protected readonly _tracer: Tracer;
 
     constructor(
             logger: ILogger,
@@ -99,6 +102,7 @@ export abstract class BaseEventHandler  {
 
         this._metrics = metrics;
         this._histogram = metrics.getHistogram("AccountLookupEventHandler", "AccountLookupEventHandler metrics", ["callName", "success"]);
+        this._tracer = OpenTelemetryClient.getInstance().getTracer(this.constructor.name);
     }
 
     async init () : Promise<void> {

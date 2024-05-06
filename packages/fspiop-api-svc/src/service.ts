@@ -31,51 +31,15 @@ optionally within square brackets <email>.
 
 "use strict";
 import { existsSync } from "fs";
-import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
-import { KafkaLogger } from "@mojaloop/logging-bc-client-lib";
-import {
-    AuditClient,
-    KafkaAuditClientDispatcher,
-    LocalAuditClientCryptoProvider
-} from "@mojaloop/auditing-bc-client-lib";
-import { IAuditClient } from "@mojaloop/auditing-bc-public-types-lib";
 import process from "process";
-import { ParticipantRoutes } from "./http_routes/account-lookup-bc/participant_routes";
-import { PartyRoutes } from "./http_routes/account-lookup-bc/party_routes";
-import {
-    MLKafkaJsonConsumer, MLKafkaJsonProducer, MLKafkaJsonProducerOptions
-} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import { QuoteRoutes } from "./http_routes/quoting-bc/quote_routes";
-import { QuoteBulkRoutes } from "./http_routes/quoting-bc/bulk_quote_routes";
-import { TransfersRoutes } from "./http_routes/transfers-bc/transfers_routes";
-import { IParticipantServiceAdapter } from "./interfaces/infrastructure";
-import { AuthenticatedHttpRequester } from "@mojaloop/security-bc-client-lib";
 import path from "path";
 import jsYaml from "js-yaml";
 import fs from "fs";
-
-import { TransfersBulkRoutes } from "./http_routes/transfers-bc/bulk_transfers_routes";
-import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
-import {
-    DefaultConfigProvider,
-    IConfigProvider
-} from "@mojaloop/platform-configuration-bc-client-lib";
-import { GetParticipantsConfigs } from "./configset";
-import { IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { FspiopValidator, FspiopJwsSignature } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-
-import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
-import {PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-client-lib";
-
-import Fastify, {FastifyError, FastifyInstance, FastifyReply, FastifyRequest} from "fastify";
-import fastifyCors from "@fastify/cors";
-import fastifyFormbody from "@fastify/formbody";
-import fastifyUnderPressure from "@fastify/under-pressure";
-import fastifySwagger from "@fastify/swagger";
-
 import crypto from "crypto";
 
-const API_SPEC_FILE_PATH = process.env["API_SPEC_FILE_PATH"] || "../dist/api_spec.yaml";
+// must be before importing fastify and others
+import {OpenTelemetryClient} from "@mojaloop/platform-shared-lib-observability-client-lib";
+import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJSON = require("../package.json");
@@ -86,6 +50,50 @@ const LOGLEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBU
 const BC_NAME = "interop-apis-bc";
 const APP_NAME = "fspiop-api-svc";
 const APP_VERSION = packageJSON.version;
+const INSTANCE_NAME = `${BC_NAME}_${APP_NAME}`;
+const INSTANCE_ID = `${INSTANCE_NAME}__${crypto.randomUUID()}`;
+
+
+
+import Fastify, {FastifyError, FastifyInstance, FastifyReply, FastifyRequest} from "fastify";
+import fastifyCors from "@fastify/cors";
+import fastifyFormbody from "@fastify/formbody";
+import fastifyUnderPressure from "@fastify/under-pressure";
+import fastifySwagger from "@fastify/swagger";
+
+import { KafkaLogger } from "@mojaloop/logging-bc-client-lib";
+import {
+    AuditClient,
+    KafkaAuditClientDispatcher,
+    LocalAuditClientCryptoProvider
+} from "@mojaloop/auditing-bc-client-lib";
+import { IAuditClient } from "@mojaloop/auditing-bc-public-types-lib";
+
+import { ParticipantRoutes } from "./http_routes/account-lookup-bc/participant_routes";
+import { PartyRoutes } from "./http_routes/account-lookup-bc/party_routes";
+import {
+    MLKafkaJsonConsumer, MLKafkaJsonProducer, MLKafkaJsonProducerOptions
+} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import { QuoteRoutes } from "./http_routes/quoting-bc/quote_routes";
+import { QuoteBulkRoutes } from "./http_routes/quoting-bc/bulk_quote_routes";
+import { TransfersRoutes } from "./http_routes/transfers-bc/transfers_routes";
+import { IParticipantServiceAdapter } from "./interfaces/infrastructure";
+import { AuthenticatedHttpRequester } from "@mojaloop/security-bc-client-lib";
+import { TransfersBulkRoutes } from "./http_routes/transfers-bc/bulk_transfers_routes";
+import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
+import {
+    DefaultConfigProvider,
+    IConfigProvider
+} from "@mojaloop/platform-configuration-bc-client-lib";
+import { GetParticipantsConfigs } from "./configset";
+import { IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { FspiopValidator, FspiopJwsSignature } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import {PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-client-lib";
+
+const API_SPEC_FILE_PATH = process.env["API_SPEC_FILE_PATH"] || "../dist/api_spec.yaml";
+
+
 
 const SVC_DEFAULT_HTTP_PORT = 4000;
 
@@ -118,10 +126,6 @@ const AUTH_N_SVC_TOKEN_URL = AUTH_N_SVC_BASEURL + "/token"; // TODO this should 
 
 // this service has more handlers, might take longer than the usual 30 sec
 const SERVICE_START_TIMEOUT_MS = (process.env["SERVICE_START_TIMEOUT_MS"] && parseInt(process.env["SERVICE_START_TIMEOUT_MS"])) || 120_000;
-
-const INSTANCE_NAME = `${BC_NAME}_${APP_NAME}`;
-const INSTANCE_ID = `${INSTANCE_NAME}__${crypto.randomUUID()}`;
-
 
 const JWS_FILES_PATH = process.env["JWS_FILES_PATH"] || "/app/data/keys/";
 
@@ -173,6 +177,8 @@ export class Service {
     static configClient: IConfigurationClient;
     static producer: IMessageProducer;
     static metrics: IMetrics;
+
+    //static tracerApi = OpenTelemetryApi.trace.getTracerProvider();
 
     static startupTimer: NodeJS.Timeout;
 
@@ -249,6 +255,8 @@ export class Service {
         }
         this.metrics = metrics;
 
+        await Service.setupTracing();
+
         // Not needed right now
         // if (!participantService) {
         //     const participantLogger = logger.createChild("participantLogger");
@@ -306,12 +314,19 @@ export class Service {
             this.bulkTransfersRoutes.init()
         ]);
 
+
         await Service.setupFastify();
 
         this.logger.info(`${APP_NAME} service v: ${APP_VERSION} started`);
 
         // remove startup timeout
         clearTimeout(this.startupTimer);
+    }
+
+    static async setupTracing():Promise<void>{
+
+        OpenTelemetryClient.Start(BC_NAME, APP_NAME, APP_VERSION, INSTANCE_ID, this.logger);
+
     }
 
     static async setupFastify(): Promise<void> {
@@ -338,20 +353,6 @@ export class Service {
                 promClient: (this.metrics as PrometheusMetrics).getPromClient(),
             });
 
-
-            // // remove, loat tests only
-            // // @ts-ignore
-            // import {setTimeout as sleep} from "timers/promises";
-            // // @ts-ignore
-            // import atomicSleep from "atomic-sleep";
-            // this.app.get("/test", async (req: FastifyRequest, reply: FastifyReply) => {
-            //     // simulate async wait
-            //     await setTimeout(10);
-            //
-            //     // simulate sync work
-            //     atomicSleep(20);
-            //     return reply.send("ok");
-            // });
 
 
             this.app.register(fastifyCors, { origin: true });
@@ -549,7 +550,7 @@ process.on("exit", async () => {
     globalLogger.info(`Microservice pid: ${process.pid} - exiting...`);
 });
 process.on("uncaughtException", (err: Error) => {
-    globalLogger.error(err);
+    globalLogger ? globalLogger.error(err) : console.error(err);
     console.log("UncaughtException - EXITING...");
     process.exit(999);
 });

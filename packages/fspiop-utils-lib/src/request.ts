@@ -109,6 +109,10 @@ export const sendRequest = async ({
 
     let transformedHeaders = builder.getResult().build();
 
+    // copy trace headers
+    if((headers as any)["traceparent"]) (transformedHeaders as any)["traceparent"] = (headers as any)["traceparent"];
+    if((headers as any)["tracestate"]) (transformedHeaders as any)["tracestate"] = (headers as any)["tracestate"];
+
     // copy test headers
     if (headers.hasOwnProperty("original_headers")) {
         for (const key in (headers as any).original_headers){

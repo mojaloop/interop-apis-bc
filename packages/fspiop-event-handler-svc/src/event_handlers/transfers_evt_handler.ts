@@ -41,8 +41,6 @@ import {
 } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {
     MLKafkaJsonConsumerOptions,
-    MLKafkaJsonProducer,
-    MLKafkaJsonProducerOptions
 } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {
     TransferPreparedEvt,
@@ -93,11 +91,14 @@ import { BaseEventHandler, HandlerNames } from "./base_event_handler";
 import { IParticipantService } from "../interfaces/infrastructure";
 import { TransferFulfilRequestedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { TransferRejectRequestedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 import { getTransferBCErrorMapping } from "../error_mappings/transfers";
+
+import {OpenTelemetryClient} from "@mojaloop/platform-shared-lib-observability-client-lib";
+import {IMetrics, Span, SpanStatusCode} from "@mojaloop/platform-shared-lib-observability-types-lib";
 
 
 export class TransferEventHandler extends BaseEventHandler {
+
     constructor(
             logger: ILogger,
             consumerOptions: MLKafkaJsonConsumerOptions,
@@ -107,7 +108,11 @@ export class TransferEventHandler extends BaseEventHandler {
             jwsHelper: FspiopJwsSignature,
             metrics: IMetrics
     ) {
-        super(logger, consumerOptions, producer, kafkaTopics, participantService, HandlerNames.Transfers, jwsHelper, metrics);
+        super(
+            logger, consumerOptions, producer, kafkaTopics,
+            participantService, HandlerNames.Transfers, jwsHelper,
+            metrics
+        );
     }
 
     async processMessagesBatch (sourceMessages: IMessage[]): Promise<void>{
@@ -130,6 +135,12 @@ export class TransferEventHandler extends BaseEventHandler {
     }
 
     async processMessage (sourceMessage: IMessage) : Promise<void> {
+        const parentSpan = OpenTelemetryClient.getInstance().startSpanWithPropagationInput(this._tracer, "processMessage", sourceMessage.fspiopOpaqueState.tracing);
+        parentSpan.setAttributes({
+            "msgName": sourceMessage.msgName,
+            "transferId": sourceMessage.payload.transferId
+        });
+
         try {
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
@@ -138,12 +149,14 @@ export class TransferEventHandler extends BaseEventHandler {
                 return;
             }
 
+
+
             switch(message.msgName){
                 case TransferPreparedEvt.name:
-                    await this._handleTransferPreparedEvt(new TransferPreparedEvt(message.payload), message.fspiopOpaqueState.headers);
+                    await this._handleTransferPreparedEvt(new TransferPreparedEvt(message.payload), message.fspiopOpaqueState.headers, parentSpan);
                     break;
                 case TransferFulfiledEvt.name:
-                    await this._handleTransferFulfiledEvt(new TransferFulfiledEvt(message.payload), message.fspiopOpaqueState.headers);
+                    await this._handleTransferFulfiledEvt(new TransferFulfiledEvt(message.payload), message.fspiopOpaqueState.headers, parentSpan);
                     break;
                 case TransferQueryResponseEvt.name:
                     await this._handleTransferQueryResponseEvt(new TransferQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
@@ -211,6 +224,8 @@ export class TransferEventHandler extends BaseEventHandler {
             const transferId = message.payload.transferId as string;
             const bulkTransferId = message.payload.bulkTransferId as string;
 
+            parentSpan.setStatus({ code: SpanStatusCode.ERROR }).end();
+
             await this._sendErrorFeedbackToFsp({
                 message: message,
                 headers: message.fspiopOpaqueState.headers,
@@ -226,6 +241,7 @@ export class TransferEventHandler extends BaseEventHandler {
 
         // make sure we only return from the processMessage/handler after completing the request,
         // otherwise this will commit the event and will be lost
+        parentSpan.end();
         return;
     }
 
@@ -285,15 +301,19 @@ export class TransferEventHandler extends BaseEventHandler {
         return errorResponse;
     }
 
-    private async _handleTransferPreparedEvt(message: TransferPreparedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
+    private async _handleTransferPreparedEvt(message: TransferPreparedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders, parentSpan:Span):Promise<void>{
         const { payload } = message;
 
         const clonedHeaders = fspiopOpaqueState;
         const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
         const destinationFspId = payload.payeeFsp;
 
-        // TODO validate vars above
+        const tracing: any = {};
+        //const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "handleTransferPreparedEvt", parentSpan);
+        parentSpan.updateName("handleTransferPreparedEvt");
+        OpenTelemetryClient.getInstance().propagationInject(parentSpan, tracing);
 
+        // TODO validate vars above
 
         try {
             this._logger.info("_handleTransferPreparedEvt -> start");
@@ -311,6 +331,9 @@ export class TransferEventHandler extends BaseEventHandler {
             // provide original headers for tracing and test header pass-through
             (clonedHeaders as any).original_headers = { ...clonedHeaders };
 
+            if(tracing && tracing.traceparent) (clonedHeaders as any).traceparent = tracing.traceparent;
+            if(tracing && tracing.tracestate) (clonedHeaders as any).tracestate = tracing.tracestate;
+
             await Request.sendRequest({
                 url: urlBuilder.build(),
                 headers: clonedHeaders,
@@ -321,21 +344,28 @@ export class TransferEventHandler extends BaseEventHandler {
             });
 
             this._logger.info("_handleTransferPreparedEvt -> end");
-
+            parentSpan.end();
         } catch (error: unknown) {
             this._logger.error(error, "_handleTransferPreparedEvt -> error");
+
+            parentSpan.setStatus({ code: SpanStatusCode.ERROR }).end();
             throw Error("_handleTransferPreparedEvt -> error");
         }
 
         return;
     }
 
-    private async _handleTransferFulfiledEvt(message: TransferFulfiledEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
+    private async _handleTransferFulfiledEvt(message: TransferFulfiledEvt, fspiopOpaqueState: Request.FspiopHttpHeaders, parentSpan:Span):Promise<void>{
         const { payload } = message;
 
         const clonedHeaders = fspiopOpaqueState;
         const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
         const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+
+        const tracing: any = {};
+        // const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "handleTransferFulfiledEvt", parentSpan);
+        parentSpan.updateName("handleTransferFulfiledEvt");
+        OpenTelemetryClient.getInstance().propagationInject(parentSpan, tracing);
 
         // TODO validate vars above
 
@@ -358,6 +388,9 @@ export class TransferEventHandler extends BaseEventHandler {
             // provide original headers for tracing and test header pass-through
             (clonedHeaders as any).original_headers = { ...clonedHeaders };
 
+            if(tracing && tracing.traceparent) (clonedHeaders as any).traceparent = tracing.traceparent;
+            if(tracing && tracing.tracestate) (clonedHeaders as any).tracestate = tracing.tracestate;
+
             await Request.sendRequest({
                 url: urlBuilderPayer.build(),
                 headers: clonedHeaders,
@@ -379,6 +412,8 @@ export class TransferEventHandler extends BaseEventHandler {
 
                 // provide original headers for tracing and test header pass-through
                 (clonedHeaders as any).original_headers = { ...clonedHeaders };
+                if(tracing && tracing.traceparent) (clonedHeaders as any).traceparent = tracing.traceparent;
+                if(tracing && tracing.tracestate) (clonedHeaders as any).tracestate = tracing.tracestate;
 
                 await Request.sendRequest({
                     url: urlBuilderPayee.build(),
@@ -391,9 +426,11 @@ export class TransferEventHandler extends BaseEventHandler {
             }
 
             this._logger.info("_handleTransferReserveFulfiledEvt -> end");
-
+            parentSpan.end();
         } catch (error: unknown) {
             this._logger.error(error, "_handleTransferReserveFulfiledEvt -> error");
+
+            parentSpan.setStatus({ code: SpanStatusCode.ERROR }).end();
             throw Error("_handleTransferReserveFulfiledEvt -> error");
         }
 

@@ -71,13 +71,11 @@ import { Constants, Enums, FspiopJwsSignature, Request, Transformer } from "@moj
 import {IDomainMessage, IMessage, IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {
     MLKafkaJsonConsumerOptions,
-    MLKafkaJsonProducer,
-    MLKafkaJsonProducerOptions
 } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import { IParticipantService } from "../interfaces/infrastructure";
-import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import {IMetrics } from "@mojaloop/platform-shared-lib-observability-types-lib";
 import { getQuotingBCErrorMapping } from "../error_mappings/quoting";
 
 export class QuotingEventHandler extends BaseEventHandler {
@@ -90,7 +88,10 @@ export class QuotingEventHandler extends BaseEventHandler {
             jwsHelper: FspiopJwsSignature,
             metrics: IMetrics
     ) {
-        super(logger, consumerOptions, producer, kafkaTopics, participantService, HandlerNames.Quotes, jwsHelper, metrics);
+        super(logger, consumerOptions, producer, kafkaTopics,
+            participantService, HandlerNames.Quotes, jwsHelper,
+            metrics
+        );
     }
 
     async processMessagesBatch (sourceMessages: IMessage[]): Promise<void>{

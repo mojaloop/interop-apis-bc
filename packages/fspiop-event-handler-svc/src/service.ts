@@ -73,7 +73,7 @@ import {GetParticipantsConfigs} from "./configset";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
 import PromClient from "prom-client";
-import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import {IMetrics, ITracing} from "@mojaloop/platform-shared-lib-observability-types-lib";
 import {PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-client-lib";
 import {FspiopJwsSignature} from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 
@@ -83,6 +83,7 @@ import fastifyFormbody from "@fastify/formbody";
 import fastifyUnderPressure from "@fastify/under-pressure";
 import crypto from "crypto";
 import metricsPlugin from "fastify-metrics";
+import {OpenTelemetryClient} from "@mojaloop/platform-shared-lib-observability-client-lib";
 
 
 const API_SPEC_FILE_PATH = process.env["API_SPEC_FILE_PATH"] || "../dist/api_spec.yaml";
@@ -200,7 +201,6 @@ export class Service {
             throw new Error("Service start timed-out");
         }, SERVICE_START_TIMEOUT_MS);
 
-
         if(!logger) {
             logger = new KafkaLogger(
                 BC_NAME,
@@ -260,6 +260,8 @@ export class Service {
         }
         this.metrics = metrics;
 
+        await Service.setupTracing();
+
         if(!participantService){
             const participantLogger = logger.createChild("participantLogger");
             participantLogger.setLogLevel(LogLevel.INFO);
@@ -302,6 +304,10 @@ export class Service {
 
         // remove startup timeout
         clearTimeout(this.startupTimer);
+    }
+
+    static async setupTracing():Promise<void>{
+        OpenTelemetryClient.Start(BC_NAME, APP_NAME, APP_VERSION, INSTANCE_ID, this.logger);
     }
 
     static async setupEventHandlers(jwsHelper:FspiopJwsSignature):Promise<void>{
