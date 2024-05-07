@@ -49,6 +49,10 @@ import {
 	BulkTransferFulfiledEvtPayload,
 	BulkTransferQueryResponseEvtPayload,
 	BulkTransferRejectRequestProcessedEvtPayload,
+	PartyRejectedResponseEvtPayload,
+	ParticipantRejectedResponseEvtPayload,
+	QuoteRejectedResponseEvtPayload,
+	BulkQuoteRejectedResponseEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { 
 	ExtensionList,
@@ -255,6 +259,22 @@ export const transformPayloadBulkQuotingResponsePut = (payload: BulkQuoteAccepte
 	return removeEmpty(info);
 };
 
+export const transformPayloadQuotingRequestPutError = (payload: QuoteRejectedResponseEvtPayload): FspiopError => {
+	const info: FspiopError = {
+		errorInformation: payload.errorInformation
+	};
+
+	return removeEmpty(info);
+};
+
+export const transformPayloadBulkQuotingRequestPutError = (payload: BulkQuoteRejectedResponseEvtPayload): FspiopError => {
+	const info: FspiopError = {
+		errorInformation: payload.errorInformation
+	};
+
+	return removeEmpty(info);
+};
+
 export const transformPayloadTransferRequestPost = (payload: TransferPreparedEvtPayload): PostTransfer => {
 	const info: PostTransfer = {
 		transferId: payload.transferId,
@@ -347,6 +367,22 @@ export const transformPayloadBulkTransferRequestGet = (payload: BulkTransferQuer
 };
 
 export const transformPayloadBulkTransferRequestPutError = (payload: BulkTransferRejectRequestProcessedEvtPayload): FspiopError => {
+	const info: FspiopError = {
+		errorInformation: payload.errorInformation
+	};
+
+	return removeEmpty(info);
+};
+
+export const transformPayloadPartyRejectedPut = (payload: PartyRejectedResponseEvtPayload): FspiopError => {
+	const info: FspiopError = {
+		errorInformation: payload.errorInformation
+	};
+
+	return removeEmpty(info);
+};
+
+export const transformPayloadParticipantRejectedPut = (payload: ParticipantRejectedResponseEvtPayload): FspiopError => {
 	const info: FspiopError = {
 		errorInformation: payload.errorInformation
 	};

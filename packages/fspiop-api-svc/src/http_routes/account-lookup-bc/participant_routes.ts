@@ -43,13 +43,15 @@ import {
     ParticipantDisassociateRequestReceivedEvt,
     ParticipantDisassociateRequestReceivedEvtPayload,
     ParticipantAssociationRequestReceivedEvt,
-    ParticipantAssociationRequestReceivedEvtPayload
+    ParticipantAssociationRequestReceivedEvtPayload,
+    ParticipantRejectedEvt,
+    ParticipantRejectedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { FSPIOPErrorCodes } from "../validation";
 import { IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 import { BaseRoutesFastify } from "../_base_routerfastify";
-import { GetParticipantByTypeAndIdAndSubIdDTO, GetParticipantByTypeAndIdDTO } from "./participant_route_dto";
+import { GetParticipantByTypeAndIdAndSubIdDTO, GetParticipantByTypeAndIdDTO, ParticipantByTypeAndIdAndSubIdRejectDTO, ParticipantByTypeAndIdRejectDTO } from "./participant_route_dto";
 
 export class ParticipantRoutes extends BaseRoutesFastify {
 
@@ -73,6 +75,7 @@ export class ParticipantRoutes extends BaseRoutesFastify {
         // POST Associate Party Party by Type, ID & SubId
         fastify.post("/:type/:id/:subid", this.associatePartyByTypeAndIdAndSubId.bind(this));
 
+        // Requests
         // GET Participant by Type & ID
         fastify.get("/:type/:id", this.getParticipantsByTypeAndID.bind(this));
 
@@ -84,6 +87,12 @@ export class ParticipantRoutes extends BaseRoutesFastify {
 
         // DELETE Disassociate Party Party by Type, ID & SubId
         fastify.delete("/:type/:id/:subid", this.disassociatePartyByTypeAndIdAndSubId.bind(this));
+
+        // PUT ERROR Participant by Type & ID
+        fastify.put("/:type/:id/error", this.participantRequestByTypeAndIdReject.bind(this));
+
+        // PUT ERROR Participant by Type, ID & SubId
+        fastify.put("/:type/:id/:subid/error", this.participantRequestByTypeAndIdAndSubIdReject.bind(this));
     };
 
     private async getParticipantsByTypeAndID(req: FastifyRequest<GetParticipantByTypeAndIdDTO>, reply: FastifyReply): Promise<void> {
@@ -488,6 +497,167 @@ export class ParticipantRoutes extends BaseRoutesFastify {
             reply.code(202).send(null);
 
             this.logger.debug("disassociatePartyByTypeAndIdAndSubId responded");
+        } catch (error: unknown) {
+            if(error instanceof ValidationdError) {
+                reply.code(400).send((error as ValidationdError).errorInformation);
+            } else {
+                const transformError = Transformer.transformPayloadError({
+                    errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
+                    errorDescription: (error as Error).message,
+                    extensionList: null
+                });
+                reply.code(500).send(transformError);
+            }
+            return;
+        }
+    }
+
+    private async participantRequestByTypeAndIdReject(req: FastifyRequest<ParticipantByTypeAndIdAndSubIdRejectDTO>, reply: FastifyReply): Promise<void> {
+        this.logger.debug("Got participantRequestByTypeAndIdReject request");
+
+        try {
+            // Headers
+            const clonedHeaders = { ...req.headers };
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+
+            // Date Model
+            const type = req.params["type"] as string;
+            const id = req.params["id"] as string;
+            const currency = req.query["currency"] as string || null;
+            const errorInformation = req.body["errorInformation"] || null;
+
+            if (!type || !id || !requesterFspId || !errorInformation) {
+                const transformError = Transformer.transformPayloadError({
+                    errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
+                    errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
+                    extensionList: null
+                });
+
+                reply.code(400).send(transformError);
+                return;
+            }
+
+            if(currency) {
+                this._validator.currencyAndAmount({
+                    currency: currency,
+                    amount: null
+                });
+            }
+
+            if(this._jwsHelper.isEnabled()) {
+                this._jwsHelper.validate(req.headers, req.body);
+            }
+            
+            const msgPayload: ParticipantRejectedEvtPayload = {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
+                partyType: type,
+                partyId: id,
+                partySubType: null,
+                currency: currency,
+                errorInformation: errorInformation
+            };
+
+            const msg = new ParticipantRejectedEvt(msgPayload);
+
+            msg.validatePayload();
+
+            msg.fspiopOpaqueState = {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
+                headers: clonedHeaders
+            };
+
+            await this.kafkaProducer.send(msg);
+
+            this.logger.debug("participantRequestByTypeAndIdReject sent message");
+
+            reply.code(202).send(null);
+
+            this.logger.debug("participantRequestByTypeAndIdReject responded");
+
+        } catch (error: unknown) {
+            if(error instanceof ValidationdError) {
+                reply.code(400).send((error as ValidationdError).errorInformation);
+            } else {
+                const transformError = Transformer.transformPayloadError({
+                    errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
+                    errorDescription: (error as Error).message,
+                    extensionList: null
+                });
+                reply.code(500).send(transformError);
+            }
+            return;
+        }
+    }
+
+    private async participantRequestByTypeAndIdAndSubIdReject(req: FastifyRequest<ParticipantByTypeAndIdAndSubIdRejectDTO>, reply: FastifyReply): Promise<void> {
+        this.logger.debug("Got participantRequestByTypeAndIdAndSubIdReject request");
+
+        try {
+            // Headers
+            const clonedHeaders = { ...req.headers };
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+
+            // Date Model
+            const type = req.params["type"] as string || null;
+            const id = req.params["id"] as string || null;
+            const currency = req.query["currency"] as string || null;
+            const partySubIdOrType = req.params["subid"] as string || null;
+            const errorInformation = req.body["errorInformation"] || null;
+
+            if (!type || !id || !requesterFspId || !errorInformation) {
+                const transformError = Transformer.transformPayloadError({
+                    errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
+                    errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
+                    extensionList: null
+                });
+
+                reply.code(400).send(transformError);
+                return;
+            }
+
+            if(currency) {
+                this._validator.currencyAndAmount({
+                    currency: currency,
+                    amount: null
+                });
+            }
+
+            if(this._jwsHelper.isEnabled()) {
+                this._jwsHelper.validate(req.headers, req.body);
+            }
+
+            const msgPayload: ParticipantRejectedEvtPayload = {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
+                partyType: type,
+                partyId: id,
+                partySubType: partySubIdOrType,
+                currency: currency,
+                errorInformation: errorInformation
+            };
+
+            const msg = new ParticipantRejectedEvt(msgPayload);
+
+            msg.validatePayload();
+
+            msg.fspiopOpaqueState = {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
+                headers: clonedHeaders
+            };
+
+            await this.kafkaProducer.send(msg);
+
+            this.logger.debug("getPartyByTypeAndIdAndSubIdQueryReject sent message");
+
+            reply.code(202).send(null);
+
+            this.logger.debug("getPartyByTypeAndIdAndSubIdQueryReject responded");
+
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
                 reply.code(400).send((error as ValidationdError).errorInformation);

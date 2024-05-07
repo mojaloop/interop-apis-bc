@@ -71,7 +71,7 @@ import {
     TransferUnableToGetTransferByIdEvt,
     TransferUnableToUpdateEvt,
     TransfersBCTopics,
-    TransfersBCUnknownErrorEvent
+    TransfersBCUnknownErrorEvent 
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import { MemoryMetric, MemoryParticipantService, createMessage, getJwsConfig } from "@mojaloop/interop-apis-bc-shared-mocks-lib";

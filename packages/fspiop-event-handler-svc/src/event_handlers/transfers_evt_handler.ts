@@ -84,7 +84,8 @@ import {
     BulkTransferQueryResponseEvt,
     TransferHubIdMismatchEvt,
     TransferPayerIdMismatchEvt,
-    TransferPayeeIdMismatchEvt
+    TransferPayeeIdMismatchEvt,
+    BulkTransferNotFoundEvt
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Request, Enums, Transformer, FspiopJwsSignature } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { BaseEventHandler, HandlerNames } from "./base_event_handler";
@@ -180,6 +181,8 @@ export class TransferEventHandler extends BaseEventHandler {
                 case BulkTransferRejectRequestProcessedEvt.name:
                     await this._handleBulkTransferRejectRequestEvt(new BulkTransferRejectRequestProcessedEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
+                case TransferNotFoundEvt.name:
+                case BulkTransferNotFoundEvt.name:
                 case TransferInvalidMessagePayloadEvt.name:
                 case TransferInvalidMessageTypeEvt.name:
                 case TransferPayerNotFoundFailedEvt.name:
@@ -193,7 +196,6 @@ export class TransferEventHandler extends BaseEventHandler {
                 case TransferQueryPayerNotFoundFailedEvt.name:
                 case TransferQueryPayeeNotFoundFailedEvt.name:
                 case TransferUnableToGetTransferByIdEvt.name:
-                case TransferNotFoundEvt.name:
                 case TransferUnableToAddEvt.name:
                 case TransferUnableToUpdateEvt.name:
                 case TransferFulfilCommittedRequestedTimedoutEvt.name:
@@ -725,4 +727,5 @@ export class TransferEventHandler extends BaseEventHandler {
 
         return;
     }
+
 }

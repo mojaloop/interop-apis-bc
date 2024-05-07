@@ -41,7 +41,7 @@ import {
     BulkQuoteRejectedEvt,
     BulkQuoteRejectedEvtPayload 
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import {
+import { 
     Constants,
     FspiopJwsSignature,
     FspiopValidator,

@@ -492,7 +492,6 @@ export class PartyRoutes extends BaseRoutesFastify {
             if(this._jwsHelper.isEnabled()) {
                 this._jwsHelper.validate(req.headers, req.body);
             }
-
             const msgPayload: PartyRejectedEvtPayload = {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId,
@@ -515,7 +514,7 @@ export class PartyRoutes extends BaseRoutesFastify {
 
             await this.kafkaProducer.send(msg);
 
-            this.logger.debug("getPartyByTypeAndIdQueryReject sent message");
+            this.logger.debug("partyByTypeAndIdReject sent message");
 
             reply.code(202).send(null);
 
@@ -538,7 +537,7 @@ export class PartyRoutes extends BaseRoutesFastify {
     }
 
     private async getPartyByTypeAndIdAndSubIdQueryReject(req: FastifyRequest<GetPartyByTypeAndIdAndSubIdQueryRejectDTO>, reply: FastifyReply): Promise<void> {
-            const mainTimer = this._histogram.startTimer({ callName: "getPartyByTypeAndIdAndSubIdQueryReject"});
+        const mainTimer = this._histogram.startTimer({ callName: "getPartyByTypeAndIdAndSubIdQueryReject"});
         this.logger.debug("Got getPartyByTypeAndIdAndSubIdQueryReject request");
 
         try {
@@ -599,7 +598,7 @@ export class PartyRoutes extends BaseRoutesFastify {
 
             await this.kafkaProducer.send(msg);
 
-            this.logger.debug("getPartyByTypeAndIdAndSubIdQueryReject sent message");
+            this.logger.debug("partyByTypeAndIdAndSubIdReject sent message");
 
             reply.code(202).send(null);
 

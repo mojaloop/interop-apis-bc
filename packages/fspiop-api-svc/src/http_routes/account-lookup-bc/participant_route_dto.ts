@@ -48,3 +48,48 @@ export type GetParticipantByTypeAndIdAndSubIdDTO = {
         currency: string 
     } 
 }
+
+export type ParticipantByTypeAndIdRejectDTO = { 
+    Params: { 
+        type: string; 
+        id: string; 
+    }, 
+    Querystring: { 
+        currency: string;
+    },
+    Body: {
+        errorInformation: {
+            errorCode: string;
+            errorDescription: string;
+            extensionList: {
+                extension: {
+                    key: string;
+                    value: string;
+                }[];
+            } | null;
+        }
+    }
+}
+
+export type ParticipantByTypeAndIdAndSubIdRejectDTO = { 
+    Params: { 
+        type: string; 
+        id: string; 
+        subid: string;
+    }, 
+    Querystring: { 
+        currency: string;
+    },
+    Body: {
+        errorInformation: {
+            errorCode: string;
+            errorDescription: string;
+            extensionList: {
+                extension: {
+                    key: string;
+                    value: string;
+                }[];
+            } | null;
+        }
+    }
+}
