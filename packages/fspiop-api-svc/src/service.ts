@@ -90,6 +90,7 @@ import { IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-
 import { FspiopValidator, FspiopJwsSignature } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 import {PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-client-lib";
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const metricsPlugin = require("fastify-metrics");
 
 const API_SPEC_FILE_PATH = process.env["API_SPEC_FILE_PATH"] || "../dist/api_spec.yaml";
@@ -245,7 +246,6 @@ export class Service {
         }
         this.auditClient = auditClient;
 
-        debugger
         if (!metrics) {
             const labels: Map<string, string> = new Map<string, string>();
             labels.set("bc", BC_NAME);

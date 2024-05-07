@@ -464,6 +464,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 throw Error("_handlePartyQueryResponseEvt -> sendRequest error");
             }
 
+            // eslint-disable-next-line no-prototype-builtins
             if (fspiopOpaqueState && fspiopOpaqueState.hasOwnProperty("test-request-timestamp")) {
                 const reOriginalTimestamp = (fspiopOpaqueState as any)["test-request-timestamp"] || 0;
                 const durationMs = Date.now() - parseInt(reOriginalTimestamp);

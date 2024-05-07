@@ -39,7 +39,7 @@ class Histogram implements IHistogram {
     constructor(private logger: ILogger) {}
 
     observe(labelsOrValue: any, value?: number): void {
-        return
+        return;
     }
 
     startTimer(labels?: any): (labels?: any) => number {
@@ -72,11 +72,11 @@ class MemoryGauge implements IGauge {
         return;
     }
 
-    inc(labelsOrAmount: any, amount: number = 1): void {
+    inc(labelsOrAmount: any, amount = 1): void {
         return;
     }
 
-    dec(labelsOrValue: any, value: number = 1): void {
+    dec(labelsOrValue: any, value = 1): void {
         return;
     }
 }
@@ -84,7 +84,7 @@ class MemoryGauge implements IGauge {
 class MemoryCounter implements ICounter {
     constructor(private logger: ILogger) {}
 
-    inc(labelsOrAmount: any, value: number = 1, amount?: number): void {
+    inc(labelsOrAmount: any, value = 1, amount?: number): void {
 		return;
     }
 }

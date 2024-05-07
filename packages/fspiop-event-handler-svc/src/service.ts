@@ -83,6 +83,7 @@ import fastifyFormbody from "@fastify/formbody";
 import fastifyUnderPressure from "@fastify/under-pressure";
 import crypto from "crypto";
 import {OpenTelemetryClient} from "@mojaloop/platform-shared-lib-observability-client-lib";
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const metricsPlugin = require("fastify-metrics");
 
 

@@ -188,7 +188,7 @@ export abstract class BaseRoutesFastify {
                 return;
             }
         }
-    };
+    }
 
     get logger(): ILogger {
         return this._logger;

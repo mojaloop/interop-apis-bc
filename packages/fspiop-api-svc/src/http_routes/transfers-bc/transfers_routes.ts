@@ -175,7 +175,7 @@ export class TransfersRoutes extends BaseRoutesFastify {
                 destinationFspId: destinationFspId,
                 headers: clonedHeaders,
             };
-            msg.tracingInfo = {}
+            msg.tracingInfo = {};
 
             parentSpan.setAttribute("transferId", transferId);
             const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan);
