@@ -333,7 +333,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 url: urlBuilder.build(),
                 headers: clonedHeaders,
                 source: requesterFspId,
-                destination: requesterFspId,
+                destination: destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: transformedPayload
             });

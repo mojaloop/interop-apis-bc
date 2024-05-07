@@ -82,8 +82,8 @@ import fastifyCors from "@fastify/cors";
 import fastifyFormbody from "@fastify/formbody";
 import fastifyUnderPressure from "@fastify/under-pressure";
 import crypto from "crypto";
-import metricsPlugin from "fastify-metrics";
 import {OpenTelemetryClient} from "@mojaloop/platform-shared-lib-observability-client-lib";
+const metricsPlugin = require("fastify-metrics");
 
 
 const API_SPEC_FILE_PATH = process.env["API_SPEC_FILE_PATH"] || "../dist/api_spec.yaml";
@@ -381,7 +381,6 @@ export class Service {
             });
 
             // setup prom-bundle to automatically collect express metrics
-            const metricsPlugin = require("fastify-metrics");
             this.app.register(metricsPlugin, {
                 routeMetrics: true,
                 defaultMetrics: {enabled: false}, // already collected by our own metrics lib

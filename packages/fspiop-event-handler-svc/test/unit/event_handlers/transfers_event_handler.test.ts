@@ -126,6 +126,53 @@ jest.mock("@mojaloop/platform-shared-lib-nodejs-kafka-client-lib", () => {
     }
 });
 
+jest.mock("@mojaloop/platform-shared-lib-observability-client-lib", () => {
+    const originalModule = jest.requireActual("@mojaloop/platform-shared-lib-observability-client-lib");
+
+    return {
+        ...originalModule,
+        OpenTelemetryClient: {
+            getInstance: jest.fn(() => ({
+                getTracer: jest.fn(() => ({
+
+                })),
+                startSpanWithPropagationInput: jest.fn((tracer, spanName, input) => {
+                    return {
+                        setAttributes: jest.fn((tracer, spanName, input) => {
+                        }),
+                        setStatus: jest.fn(() => {
+                            return {
+                                end: jest.fn()
+                            }
+                        }),
+                        setAttribute: jest.fn(),
+                        updateName: jest.fn(),
+                        end: jest.fn()
+                    }
+                }),
+                startChildSpan: jest.fn(() => {
+                    return {
+                        setAttribute: jest.fn(),
+                        end: jest.fn()
+                    }
+                }),
+                startSpan: jest.fn(() => {
+                    return {
+                        setAttribute: jest.fn(),
+                        end: jest.fn()
+                    }
+                }),
+                propagationInject: jest.fn()
+            })),
+        },
+        PrometheusMetrics: {
+            Setup: jest.fn(() => ({
+             
+            })),
+        },
+    };
+});
+
 const transfersEvtHandlerConsumerOptions: MLKafkaJsonConsumerOptions = {
     kafkaBrokerList: KAFKA_URL,
     kafkaGroupId: `${BC_NAME}_${APP_NAME}_TransferEventHandler`,

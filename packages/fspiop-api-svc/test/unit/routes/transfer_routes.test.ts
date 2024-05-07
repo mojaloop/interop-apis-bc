@@ -75,6 +75,52 @@ let jwsHelperMock: FspiopJwsSignature;
 let routeValidatorMock: FspiopValidator;
 let metricsMock:IMetrics;
 
+jest.mock("@mojaloop/platform-shared-lib-observability-client-lib", () => {
+    const originalModule = jest.requireActual("@mojaloop/platform-shared-lib-observability-client-lib");
+
+    return {
+        ...originalModule,
+        OpenTelemetryClient: {
+            getInstance: jest.fn(() => ({
+                getTracer: jest.fn(() => ({
+
+                })),
+                startSpanWithPropagationInput: jest.fn((tracer, spanName, input) => {
+                    return {
+                        setAttributes: jest.fn((tracer, spanName, input) => {
+                        }),
+                        setStatus: jest.fn(() => {
+                            return {
+                                end: jest.fn()
+                            }
+                        }),
+                        setAttribute: jest.fn(),
+                        end: jest.fn()
+                    }
+                }),
+                startChildSpan: jest.fn(() => {
+                    return {
+                        setAttribute: jest.fn(),
+                        end: jest.fn()
+                    }
+                }),
+                startSpan: jest.fn(() => {
+                    return {
+                        setAttribute: jest.fn(),
+                        end: jest.fn()
+                    }
+                }),
+                propagationInject: jest.fn()
+            })),
+        },
+        PrometheusMetrics: {
+            Setup: jest.fn(() => ({
+             
+            })),
+        },
+    };
+});
+
 jest.setTimeout(10000);
 
 describe("FSPIOP Routes - Unit Tests Transfer", () => {

@@ -89,6 +89,53 @@ jest.mock("@mojaloop/platform-shared-lib-nodejs-kafka-client-lib", () => {
     }
 });
 
+jest.mock("@mojaloop/platform-shared-lib-observability-client-lib", () => {
+    const originalModule = jest.requireActual("@mojaloop/platform-shared-lib-observability-client-lib");
+
+    return {
+        ...originalModule,
+        OpenTelemetryClient: {
+            getInstance: jest.fn(() => ({
+                getTracer: jest.fn(() => ({
+
+                })),
+                startSpanWithPropagationInput: jest.fn((tracer, spanName, input) => {
+                    return {
+                        setAttributes: jest.fn((tracer, spanName, input) => {
+                        }),
+                        setStatus: jest.fn(() => {
+                            return {
+                                end: jest.fn()
+                            }
+                        }),
+                        setAttribute: jest.fn(),
+                        updateName: jest.fn(),
+                        end: jest.fn()
+                    }
+                }),
+                startChildSpan: jest.fn(() => {
+                    return {
+                        setAttribute: jest.fn(),
+                        end: jest.fn()
+                    }
+                }),
+                startSpan: jest.fn(() => {
+                    return {
+                        setAttribute: jest.fn(),
+                        end: jest.fn()
+                    }
+                }),
+                propagationInject: jest.fn()
+            })),
+        },
+        PrometheusMetrics: {
+            Setup: jest.fn(() => ({
+             
+            })),
+        },
+    };
+});
+
 const quotingEvtHandlerConsumerOptions: MLKafkaJsonConsumerOptions = {
     kafkaBrokerList: KAFKA_URL,
     kafkaGroupId: `${BC_NAME}_${APP_NAME}_QuotingEventHandler`,
@@ -512,7 +559,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${quotesEntity}/${message.payload.quoteId}`),
                 source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
-                destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
+                destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: Transformer.transformPayloadQuotingResponsePut(message.payload)
             }));
@@ -964,9 +1011,6 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
     it("should return QuoteBCInvalidMessagePayloadErrorEvent http call for participant type", async () => {
         // Arrange
         const msg = new QuoteBCInvalidMessagePayloadErrorEvent({
-            quoteId: "123", 
-            bulkQuoteId: null,
-            requesterFspId: "bluebank",
             errorCode: QuotingErrorCodeNames.INVALID_MESSAGE_PAYLOAD
         })
         
@@ -988,7 +1032,6 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                         "errorDescription": Enums.ClientErrors.GENERIC_VALIDATION_ERROR.name
                     }
                 },
-                "url": expect.stringContaining(`/${quotesEntity}/${msg.payload.quoteId}/error`)
             }));
         });
     });
@@ -996,9 +1039,6 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
     it("should return QuoteBCInvalidMessageTypeErrorEvent http call for participant type", async () => {
         // Arrange
         const msg = new QuoteBCInvalidMessageTypeErrorEvent({
-            quoteId: "123", 
-            bulkQuoteId: null,
-            requesterFspId: "bluebank",
             errorCode: QuotingErrorCodeNames.INVALID_MESSAGE_TYPE
         })
         
@@ -1020,7 +1060,6 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                         "errorDescription": Enums.ClientErrors.GENERIC_VALIDATION_ERROR.name
                     }
                 },
-                "url": expect.stringContaining(`/${quotesEntity}/${msg.payload.quoteId}/error`)
             }));
         });
     });

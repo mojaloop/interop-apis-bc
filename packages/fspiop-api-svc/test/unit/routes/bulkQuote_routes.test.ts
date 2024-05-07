@@ -162,7 +162,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         await new Promise(resolve => setTimeout(resolve, 5000));
         const res = await request(server)
         .get(pathWithId)
-        .set(getHeaders(Enums.EntityTypeEnum.BULK_TRANSFERS, Enums.FspiopRequestMethodsEnum.GET, null, ["fspiop-source"]));
+        .set(getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.GET, null, ["fspiop-source"]));
 
         // Assert
         expect(res.statusCode).toEqual(400);
