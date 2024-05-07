@@ -114,32 +114,37 @@ export class QuotingEventHandler extends BaseEventHandler {
     }
 
     async processMessage (sourceMessage: IMessage) : Promise<void> {
+        const startTime = Date.now();
+        this._histogram.observe({callName:"msgDelay"}, (startTime - sourceMessage.msgTimestamp)/1000);
+        const processMessageTimer = this._histogram.startTimer({callName: "processMessage"});
+
         try {
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
             if(!message.fspiopOpaqueState || !message.fspiopOpaqueState.headers){
                 this._logger.error(`received message of type: ${message.msgName}, without fspiopOpaqueState or fspiopOpaqueState.headers, ignoring`);
+                processMessageTimer({success: "false"});
                 return;
             }
 
             switch(message.msgName){
                 case QuoteRequestAcceptedEvt.name:
-                    await this._handleQuotingCreatedRequestReceivedEvt(new QuoteRequestAcceptedEvt(message.payload), message.fspiopOpaqueState.headers);
+                    await this._handleQuoteRequestAcceptedEvt(new QuoteRequestAcceptedEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
                 case QuoteResponseAccepted.name:
-                    await this._handleQuotingResponseAcceptedEvt(new QuoteResponseAccepted(message.payload), message.fspiopOpaqueState.headers);
+                    await this._handleQuoteResponseAcceptedEvt(new QuoteResponseAccepted(message.payload), message.fspiopOpaqueState.headers);
                     break;
                 case QuoteQueryResponseEvt.name:
-                    await this._handleQuotingQueryResponseEvt(new QuoteQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
+                    await this._handleQuoteQueryResponseEvt(new QuoteQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
                 case BulkQuoteReceivedEvt.name:
-                    await this._handleBulkQuotingRequestReceivedEvt(new BulkQuoteReceivedEvt(message.payload), message.fspiopOpaqueState.headers);
+                    await this._handleBulkQuoteReceivedEvt(new BulkQuoteReceivedEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
                 case BulkQuoteAcceptedEvt.name:
-                    await this._handleBulkQuoteAcceptedResponseEvt(new BulkQuoteAcceptedEvt(message.payload), message.fspiopOpaqueState.headers);
+                    await this._handleBulkQuoteAcceptedEvt(new BulkQuoteAcceptedEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
                 case BulkQuoteQueryResponseEvt.name:
-                    await this._handleBulkQuotingQueryResponseEvt(new BulkQuoteQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
+                    await this._handleBulkQuoteQueryResponseEvt(new BulkQuoteQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
                 case PartyRejectedEvt.name:
                 case BulkQuoteRejectedEvt.name:
@@ -175,6 +180,8 @@ export class QuotingEventHandler extends BaseEventHandler {
                     break;
             }
 
+            const took = processMessageTimer({success: "true"}) * 1000;
+            this._logger.isDebugEnabled() && this._logger.debug(`  Completed processMessage in - took: ${took} ms`);
         } catch (error: unknown) {
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
@@ -182,6 +189,8 @@ export class QuotingEventHandler extends BaseEventHandler {
             const requesterFspId = clonedHeaders["fspiop-source"] as string;
             const quoteId = message.payload.quoteId as string;
             const bulkQuoteId = message.payload.bulkQuoteId as string;
+
+            processMessageTimer({success: "false"});
 
             await this._sendErrorFeedbackToFsp({
                 message: message,
@@ -203,7 +212,7 @@ export class QuotingEventHandler extends BaseEventHandler {
     }
 
     async _handleErrorReceivedEvt(message: IDomainMessage, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
-        this._logger.info("_handleQuotingErrorReceivedEvt -> start");
+        this._logger.debug("_handleQuotingErrorReceivedEvt -> start");
 
         const { payload } = message;
 
@@ -223,7 +232,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             errorResponse: errorResponse
         });
 
-        this._logger.info("_handleQuotingErrorReceivedEvt -> end");
+        this._logger.debug("_handleQuotingErrorReceivedEvt -> end");
 
         return;
     }
@@ -247,7 +256,9 @@ export class QuotingEventHandler extends BaseEventHandler {
         return errorResponse;
     }
 
-    private async _handleQuotingCreatedRequestReceivedEvt(message: QuoteRequestAcceptedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
+    private async _handleQuoteRequestAcceptedEvt(message: QuoteRequestAcceptedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
+        const mainTimer = this._histogram.startTimer({ callName: "handleQuoteRequestAcceptedEvt"});
+
         try {
             const { payload } = message;
 
@@ -260,7 +271,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             // TODO validate payload.payee.partyIdInfo.fspId actually exists
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(payload.payee.partyIdInfo.fspId as string);
 
-            this._logger.info("_handleQuotingCreatedRequestReceivedEvt -> start");
+            this._logger.debug("_handleQuoteRequestAcceptedEvt -> start");
 
             // Always validate the payload and headers received
             message.validatePayload();
@@ -282,15 +293,17 @@ export class QuotingEventHandler extends BaseEventHandler {
                 payload: transformedPayload
             });
 
-            this._logger.info("_handleQuotingCreatedRequestReceivedEvt -> end");
-
+            this._logger.debug("_handleQuoteRequestAcceptedEvt -> end");
+            mainTimer({success:"true"});
         } catch (error: unknown) {
-            this._logger.error(error,"_handleQuotingCreatedRequestReceivedEvt -> error");
-            throw Error("_handleQuotingCreatedRequestReceivedEvt -> error");
+            this._logger.error(error,"_handleQuoteRequestAcceptedEvt -> error");
+            mainTimer({success:"false"});
+            throw Error("_handleQuoteRequestAcceptedEvt -> error");
         }
     }
 
-    private async _handleQuotingResponseAcceptedEvt(message: QuoteResponseAccepted, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
+    private async _handleQuoteResponseAcceptedEvt(message: QuoteResponseAccepted, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
+        const mainTimer = this._histogram.startTimer({ callName: "handleQuoteResponseAcceptedEvt"});
         try {
             const { payload } = message;
 
@@ -302,7 +315,7 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
-            this._logger.info("_handleQuotingResponseAcceptedEvt -> start");
+            this._logger.debug("_handleQuoteResponseAcceptedEvt -> start");
 
             // Always validate the payload and headers received
             message.validatePayload();
@@ -325,17 +338,19 @@ export class QuotingEventHandler extends BaseEventHandler {
                 payload: transformedPayload
             });
 
-            this._logger.info("_handleQuotingResponseAcceptedEvt -> end");
-
+            this._logger.debug("_handleQuoteResponseAcceptedEvt -> end");
+            mainTimer({success:"true"});
         } catch (error: unknown) {
-            this._logger.error(error,"_handleQuotingResponseAcceptedEvt -> error");
-            throw Error("_handleQuotingResponseAcceptedEvt -> error");
+            this._logger.error(error,"_handleQuoteResponseAcceptedEvt -> error");
+            mainTimer({success:"false"});
+            throw Error("_handleQuoteResponseAcceptedEvt -> error");
         }
 
         return;
     }
 
-    private async _handleQuotingQueryResponseEvt(message: QuoteQueryResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
+    private async _handleQuoteQueryResponseEvt(message: QuoteQueryResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
+        const mainTimer = this._histogram.startTimer({ callName: "handleQuoteQueryResponseEvt"});
         try {
             const { payload } = message;
 
@@ -351,7 +366,7 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
-            this._logger.info("_handleQuotingQueryResponseEvt -> start");
+            this._logger.debug("_handleQuoteQueryResponseEvt -> start");
 
             // Always validate the payload and headers received
             // message.validatePayload();
@@ -374,17 +389,19 @@ export class QuotingEventHandler extends BaseEventHandler {
                 payload: transformedPayload
             });
 
-            this._logger.info("_handleQuotingQueryResponseEvt -> end");
-
+            this._logger.debug("_handleQuoteQueryResponseEvt -> end");
+            mainTimer({success:"true"});
         } catch (error: unknown) {
-            this._logger.error(error,"_handleQuotingQueryResponseEvt -> error");
-            throw Error("_handleQuotingQueryResponseEvt -> error");
+            this._logger.error(error,"_handleQuoteQueryResponseEvt -> error");
+            mainTimer({success:"false"});
+            throw Error("_handleQuoteQueryResponseEvt -> error");
         }
 
         return;
     }
 
-    private async _handleBulkQuotingRequestReceivedEvt(message: BulkQuoteReceivedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
+    private async _handleBulkQuoteReceivedEvt(message: BulkQuoteReceivedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
+        const mainTimer = this._histogram.startTimer({ callName: "handleBulkQuoteReceivedEvt"});
         try {
             const { payload } = message;
 
@@ -395,7 +412,7 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
-            this._logger.info("_handleBulkQuotingRequestReceivedEvt -> start");
+            this._logger.debug("_handleBulkQuoteReceivedEvt -> start");
 
             // Always validate the payload and headers received
             message.validatePayload();
@@ -417,17 +434,19 @@ export class QuotingEventHandler extends BaseEventHandler {
                 payload: transformedPayload
             });
 
-            this._logger.info("_handleBulkQuotingRequestReceivedEvt -> end");
-
+            this._logger.debug("_handleBulkQuoteReceivedEvt -> end");
+            mainTimer({success:"true"});
         } catch (error: unknown) {
-            this._logger.error(error, "_handleBulkQuotingRequestReceivedEvt -> error");
-            throw Error("_handleBulkQuotingRequestReceivedEvt -> error");
+            mainTimer({success:"false"});
+            this._logger.error(error, "_handleBulkQuoteReceivedEvt -> error");
+            throw Error("_handleBulkQuoteReceivedEvt -> error");
         }
 
         return;
     }
 
-    private async _handleBulkQuoteAcceptedResponseEvt(message: BulkQuoteAcceptedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
+    private async _handleBulkQuoteAcceptedEvt(message: BulkQuoteAcceptedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
+        const mainTimer = this._histogram.startTimer({ callName: "handleBulkQuoteAcceptedEvt"});
         try {
             const { payload } = message;
 
@@ -439,7 +458,7 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
-            this._logger.info("_handleBulkQuoteAcceptedResponseEvt -> start");
+            this._logger.debug("_handleBulkQuoteAcceptedEvt -> start");
 
             // Always validate the payload and headers received
             message.validatePayload();
@@ -462,17 +481,19 @@ export class QuotingEventHandler extends BaseEventHandler {
                 payload: transformedPayload
             });
 
-            this._logger.info("_handleBulkQuoteAcceptedResponseEvt -> end");
-
+            this._logger.debug("_handleBulkQuoteAcceptedEvt -> end");
+            mainTimer({success:"true"});
         } catch (error: unknown) {
-            this._logger.error(error, "_handleBulkQuoteAcceptedResponseEvt -> error");
-            throw Error("_handleBulkQuoteAcceptedResponseEvt -> error");
+            mainTimer({success:"false"});
+            this._logger.error(error, "_handleBulkQuoteAcceptedEvt -> error");
+            throw Error("_handleBulkQuoteAcceptedEvt -> error");
         }
 
         return;
     }
 
-    private async _handleBulkQuotingQueryResponseEvt(message: BulkQuoteQueryResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders): Promise<void> {
+    private async _handleBulkQuoteQueryResponseEvt(message: BulkQuoteQueryResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders): Promise<void> {
+        const mainTimer = this._histogram.startTimer({ callName: "handleBulkQuoteQueryResponseEvt"});
         try{
             const { payload } = message;
             const clonedHeaders = fspiopOpaqueState;
@@ -480,7 +501,7 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
 
-            this._logger.info("_handleBulkQuoteQueryResponseEvt -> start");
+            this._logger.debug("_handleBulkQuoteQueryResponseEvt -> start");
 
             // Always validate the payload and headers received
             // message.validatePayload();
@@ -503,9 +524,10 @@ export class QuotingEventHandler extends BaseEventHandler {
                 payload: transformedPayload
             });
 
-            this._logger.info("_handleBulkQuoteQueryResponseEvt -> end");
-
+            this._logger.debug("_handleBulkQuoteQueryResponseEvt -> end");
+            mainTimer({success:"true"});
         } catch (error: unknown) {
+            mainTimer({success:"false"});
             this._logger.error(error,"_handleBulkQuoteQueryResponseEvt -> error");
             throw Error("_handleBulkQuoteQueryResponseEvt -> error");
         }

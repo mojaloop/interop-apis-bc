@@ -71,6 +71,7 @@ import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import { IParticipantService } from "../interfaces/infrastructure";
 import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 import { getAccountLookupBCErrorMapping } from "../error_mappings/account-lookup";
+import {OpenTelemetryClient} from "@mojaloop/platform-shared-lib-observability-client-lib";
 
 export class AccountLookupEventHandler extends BaseEventHandler {
 
@@ -91,119 +92,118 @@ export class AccountLookupEventHandler extends BaseEventHandler {
     }
 
     async processMessagesBatch (sourceMessages: IMessage[]): Promise<void>{
-        // eslint-disable-next-line no-async-promise-executor
-        return new Promise<void>(async (resolve) => {
-            const timerEndFn = this._histogram.startTimer({ callName: `${this.constructor.name}_batchMsgHandler`});
+        const timerEndFn = this._histogram.startTimer({ callName: `${this.constructor.name}_batchMsgHandler`});
 
-            for (const sourceMessage of sourceMessages) {
-                await this.processMessage(sourceMessage);
-            }
+        for (const sourceMessage of sourceMessages) {
+            await this.processMessage(sourceMessage);
 
-            const took = timerEndFn({ success: "true" })*1000;
-            if (this._logger.isDebugEnabled()) {
-                this._logger.debug(`  Completed batch in ${this.constructor.name} batch size: ${sourceMessages.length}`);
-                this._logger.debug(`  Took: ${took.toFixed(0)}`);
-                this._logger.debug("\n\n");
-            }
-            resolve();
-        });
+            // measure
+
+        }
+
+        const took = timerEndFn({ success: "true" })*1000;
+        if (this._logger.isDebugEnabled()) {
+            this._logger.debug(`  Completed batch in ${this.constructor.name} batch size: ${sourceMessages.length}`);
+            this._logger.debug(`  Took: ${took.toFixed(0)}`);
+            this._logger.debug("\n\n");
+        }
     }
 
     async processMessage (sourceMessage: IMessage) : Promise<void> {
-        return new Promise<void>(async (resolve) => {
-        // return new Promise<void>(async (resolve) => {
-            const processMessageTimer = this._histogram.startTimer({callName: "processMessage"});
+        const startTime = Date.now();
+        this._histogram.observe({callName:"msgDelay"}, (startTime - sourceMessage.msgTimestamp)/1000);
+        const processMessageTimer = this._histogram.startTimer({callName: "processMessage"});
 
-            if (this._logger.isDebugEnabled()) {
-                const msgDelayMs = Date.now() - sourceMessage.msgTimestamp;
-                this._logger.debug(`Got message in AccountLookupEventHandler - msgName: ${sourceMessage.msgName} - msgDelayMs: ${msgDelayMs}`);
-            }
+        if (this._logger.isDebugEnabled()) {
+            const msgDelayMs = Date.now() - sourceMessage.msgTimestamp;
+            this._logger.debug(`Got message in AccountLookupEventHandler - msgName: ${sourceMessage.msgName} - msgDelayMs: ${msgDelayMs}`);
+        }
 
-            try {
-                const message: IDomainMessage = sourceMessage as IDomainMessage;
+        try {
+            const message: IDomainMessage = sourceMessage as IDomainMessage;
 
-                if (!message.fspiopOpaqueState || !message.fspiopOpaqueState.headers) {
-                    this._logger.error(`received message of type: ${message.msgName}, without fspiopOpaqueState or fspiopOpaqueState.headers, ignoring`);
-                    return resolve();
-                }
-
-                switch (message.msgName) {
-                    case ParticipantAssociationCreatedEvt.name:
-                        await this._handleParticipantAssociationRequestReceivedEvt(new ParticipantAssociationCreatedEvt(message.payload), message.fspiopOpaqueState.headers);
-                        break;
-                    case ParticipantAssociationRemovedEvt.name:
-                        await this._handleParticipantDisassociateRequestReceivedEvt(new ParticipantAssociationRemovedEvt(message.payload), message.fspiopOpaqueState.headers);
-                        break;
-                    case PartyInfoRequestedEvt.name:
-                        await this._handlePartyInfoRequestedEvt(new PartyInfoRequestedEvt(message.payload), message.fspiopOpaqueState.headers);
-                        break;
-                    case PartyQueryResponseEvt.name:
-                        await this._handlePartyQueryResponseEvt(new PartyQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
-                        break;
-                    case ParticipantQueryResponseEvt.name:
-                        await this._handleParticipantQueryResponseEvt(new ParticipantQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
-                        break;
-                    case PartyRejectedResponseEvt.name:
-                    case AccountLookUpUnknownErrorEvent.name:
-                    case AccountLookupBCInvalidMessagePayloadErrorEvent.name:
-                    case AccountLookupBCInvalidMessageTypeErrorEvent.name:
-                    case AccountLookupBCUnableToAssociateParticipantErrorEvent.name:
-                    case AccountLookupBCUnableToDisassociateParticipantErrorEvent.name:
-                    case AccountLookupBCUnableToGetOracleAdapterErrorEvent.name:
-                    case AccountLookUpUnableToGetParticipantFromOracleErrorEvent.name:
-                    case AccountLookupBCDestinationParticipantNotFoundErrorEvent.name:
-                    case AccountLookupBCInvalidDestinationParticipantErrorEvent.name:
-                    case AccountLookupBCRequesterParticipantNotFoundErrorEvent.name:
-                    case AccountLookupBCInvalidRequesterParticipantErrorEvent.name:
-                    case AccountLookupBCRequiredRequesterParticipantIdMismatchErrorEvent.name:
-                    case AccountLookupBCRequiredRequesterParticipantIsNotApprovedErrorEvent.name:
-                    case AccountLookupBCRequiredRequesterParticipantIsNotActiveErrorEvent.name:
-                    case AccountLookupBCRequiredDestinationParticipantIdMismatchErrorEvent.name:
-                    case AccountLookupBCRequiredDestinationParticipantIsNotApprovedErrorEvent.name:
-                    case AccountLookupBCRequiredDestinationParticipantIsNotActiveErrorEvent.name:
-                        await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState.headers);
-                        break;
-                    default:
-                        this._logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
-                        break;
-                }
-
-                const took = processMessageTimer({success: "true"}) * 1000;
-                this._logger.debug(`  Completed processMessage in AccountLookupEventHandler - took: ${took} ms`);
-            } catch (error: unknown) {
-                this._logger.error(error, "processMessage Error");
-
-                const message: IDomainMessage = sourceMessage as IDomainMessage;
-
-                const clonedHeaders = message.fspiopOpaqueState.headers;
-                const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
-                const partyType = message.payload.partyType as string;
-                const partyId = message.payload.partyId as string;
-                const partySubType = message.payload.partySubType as string;
-
+            if (!message.fspiopOpaqueState || !message.fspiopOpaqueState.headers) {
+                this._logger.error(`received message of type: ${message.msgName}, without fspiopOpaqueState or fspiopOpaqueState.headers, ignoring`);
                 processMessageTimer({success: "false"});
-
-                await this._sendErrorFeedbackToFsp({
-                    message: message,
-                    headers: message.fspiopOpaqueState.headers,
-                    id: [partyType, partyId, partySubType],
-                    errorResponse: {
-                        errorCode: Enums.ServerErrors.GENERIC_SERVER_ERROR.code,
-                        errorDescription: Enums.ServerErrors.GENERIC_SERVER_ERROR.name,
-                        sourceFspId: requesterFspId,
-                        destinationFspId: null
-                    }
-                });
+                return;
             }
 
-            // make sure we only return from the processMessage/handler after completing the request,
-            // otherwise this will commit the event and will be lost
-            resolve();
-        });
+            switch (message.msgName) {
+                case ParticipantAssociationCreatedEvt.name:
+                    await this._handleParticipantAssociationRequestReceivedEvt(new ParticipantAssociationCreatedEvt(message.payload), message.fspiopOpaqueState.headers);
+                    break;
+                case ParticipantAssociationRemovedEvt.name:
+                    await this._handleParticipantDisassociateRequestReceivedEvt(new ParticipantAssociationRemovedEvt(message.payload), message.fspiopOpaqueState.headers);
+                    break;
+                case PartyInfoRequestedEvt.name:
+                    await this._handlePartyInfoRequestedEvt(new PartyInfoRequestedEvt(message.payload), message.fspiopOpaqueState.headers);
+                    break;
+                case PartyQueryResponseEvt.name:
+                    await this._handlePartyQueryResponseEvt(new PartyQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
+                    break;
+                case ParticipantQueryResponseEvt.name:
+                    await this._handleParticipantQueryResponseEvt(new ParticipantQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
+                    break;
+                case PartyRejectedResponseEvt.name:
+                case AccountLookUpUnknownErrorEvent.name:
+                case AccountLookupBCInvalidMessagePayloadErrorEvent.name:
+                case AccountLookupBCInvalidMessageTypeErrorEvent.name:
+                case AccountLookupBCUnableToAssociateParticipantErrorEvent.name:
+                case AccountLookupBCUnableToDisassociateParticipantErrorEvent.name:
+                case AccountLookupBCUnableToGetOracleAdapterErrorEvent.name:
+                case AccountLookUpUnableToGetParticipantFromOracleErrorEvent.name:
+                case AccountLookupBCDestinationParticipantNotFoundErrorEvent.name:
+                case AccountLookupBCInvalidDestinationParticipantErrorEvent.name:
+                case AccountLookupBCRequesterParticipantNotFoundErrorEvent.name:
+                case AccountLookupBCInvalidRequesterParticipantErrorEvent.name:
+                case AccountLookupBCRequiredRequesterParticipantIdMismatchErrorEvent.name:
+                case AccountLookupBCRequiredRequesterParticipantIsNotApprovedErrorEvent.name:
+                case AccountLookupBCRequiredRequesterParticipantIsNotActiveErrorEvent.name:
+                case AccountLookupBCRequiredDestinationParticipantIdMismatchErrorEvent.name:
+                case AccountLookupBCRequiredDestinationParticipantIsNotApprovedErrorEvent.name:
+                case AccountLookupBCRequiredDestinationParticipantIsNotActiveErrorEvent.name:
+                    await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState.headers);
+                    break;
+                default:
+                    this._logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
+                    break;
+            }
+
+            const took = processMessageTimer({success: "true"}) * 1000;
+            this._logger.isDebugEnabled() && this._logger.debug(`  Completed processMessage in - took: ${took} ms`);
+        } catch (error: unknown) {
+            this._logger.error(error, "processMessage Error");
+
+            const message: IDomainMessage = sourceMessage as IDomainMessage;
+
+            const clonedHeaders = message.fspiopOpaqueState.headers;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+            const partyType = message.payload.partyType as string;
+            const partyId = message.payload.partyId as string;
+            const partySubType = message.payload.partySubType as string;
+
+            processMessageTimer({success: "false"});
+
+            await this._sendErrorFeedbackToFsp({
+                message: message,
+                headers: message.fspiopOpaqueState.headers,
+                id: [partyType, partyId, partySubType],
+                errorResponse: {
+                    errorCode: Enums.ServerErrors.GENERIC_SERVER_ERROR.code,
+                    errorDescription: Enums.ServerErrors.GENERIC_SERVER_ERROR.name,
+                    sourceFspId: requesterFspId,
+                    destinationFspId: null
+                }
+            });
+        }
+
+        // make sure we only return from the processMessage/handler after completing the request,
+        // otherwise this will commit the event and will be lost
+        return;
     }
 
     async _handleErrorReceivedEvt(message: IDomainMessage, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
-        this._logger.info("_handleAccountLookupErrorReceivedEvt -> start");
+        this._logger.debug("_handleAccountLookupErrorReceivedEvt -> start");
 
         const { payload } = message;
 
@@ -225,7 +225,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             errorResponse: errorResponse
         });
 
-        this._logger.info("_handleAccountLookupErrorReceivedEvt -> end");
+        this._logger.debug("_handleAccountLookupErrorReceivedEvt -> end");
 
         return;
     }
@@ -251,7 +251,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
     }
 
     private async _handleParticipantAssociationRequestReceivedEvt(message: ParticipantAssociationCreatedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
-        this._logger.info("_handleParticipantAssociationRequestReceivedEvt -> start");
+        this._logger.debug("_handleParticipantAssociationRequestReceivedEvt -> start");
 
         try {
             const { payload } = message;
@@ -284,7 +284,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 payload: transformedPayload
             });
 
-            this._logger.info("_handleParticipantAssociationRequestReceivedEvt -> end");
+            this._logger.debug("_handleParticipantAssociationRequestReceivedEvt -> end");
 
         } catch (error: unknown) {
             this._logger.error(error,"_handleParticipantAssociationRequestReceivedEvt -> error");
@@ -295,7 +295,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
     }
 
     private async _handleParticipantDisassociateRequestReceivedEvt(message: ParticipantAssociationRemovedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
-        this._logger.info("_handleParticipantDisassociateRequestReceivedEvt -> start");
+        this._logger.debug("_handleParticipantDisassociateRequestReceivedEvt -> start");
 
         try {
             const { payload } = message;
@@ -331,7 +331,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 payload: transformedPayload
             });
 
-            this._logger.info("_handleParticipantDisassociateRequestReceivedEvt -> end");
+            this._logger.debug("_handleParticipantDisassociateRequestReceivedEvt -> end");
 
         } catch (error: unknown) {
             this._logger.error(error,"_handleParticipantDisassociateRequestReceivedEvt -> error");
@@ -482,7 +482,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
 
     private async _handleParticipantQueryResponseEvt(message: ParticipantQueryResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
-        this._logger.info("_handleParticipantQueryResponseEvt -> start");
+        this._logger.debug("_handleParticipantQueryResponseEvt -> start");
 
         try {
             const { payload } = message;
@@ -524,7 +524,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 payload: transformedPayload
             });
 
-            this._logger.info("_handleParticipantQueryResponseEvt -> end");
+            this._logger.debug("_handleParticipantQueryResponseEvt -> end");
         } catch (error: unknown) {
             this._logger.error(error,"_handleParticipantQueryResponseEvt -> error");
             throw Error("_handleParticipantQueryResponseEvt -> error");

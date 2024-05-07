@@ -97,6 +97,10 @@ export abstract class BaseRoutesFastify {
     // common header validation to be hooked by adding "fastify.addHook("preHandler", this._preHandler.bind(this));"
     // in the bindRoutes() of the implementation of this base class
     protected async _preHandler(request: FastifyRequest<GetParticipantByTypeAndIdDTO>, reply: FastifyReply): Promise<void> {
+        // extract tracing headers
+
+
+        // check accept
         const url = request.routeOptions.url || request.raw.url as string;
         const resource = url.replace(/^\//, "").split("/")[0];
 

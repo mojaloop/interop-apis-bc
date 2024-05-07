@@ -135,6 +135,10 @@ export class TransferEventHandler extends BaseEventHandler {
     }
 
     async processMessage (sourceMessage: IMessage) : Promise<void> {
+        const startTime = Date.now();
+        this._histogram.observe({callName:"msgDelay"}, (startTime - sourceMessage.msgTimestamp)/1000);
+        const processMessageTimer = this._histogram.startTimer({callName: "processMessage"});
+
         const parentSpan = OpenTelemetryClient.getInstance().startSpanWithPropagationInput(this._tracer, "processMessage", sourceMessage.fspiopOpaqueState.tracing);
         parentSpan.setAttributes({
             "msgName": sourceMessage.msgName,
@@ -216,6 +220,8 @@ export class TransferEventHandler extends BaseEventHandler {
                     this._logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
                     break;
             }
+            const took = processMessageTimer({success: "true"}) * 1000;
+            this._logger.isDebugEnabled() && this._logger.debug(`  Completed processMessage in - took: ${took} ms`);
         } catch (error: unknown) {
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
@@ -225,6 +231,7 @@ export class TransferEventHandler extends BaseEventHandler {
             const bulkTransferId = message.payload.bulkTransferId as string;
 
             parentSpan.setStatus({ code: SpanStatusCode.ERROR }).end();
+            processMessageTimer({success: "false"});
 
             await this._sendErrorFeedbackToFsp({
                 message: message,
@@ -246,7 +253,7 @@ export class TransferEventHandler extends BaseEventHandler {
     }
 
     async _handleErrorReceivedEvt(message: DomainErrorEventMsg, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
-        this._logger.info("_handleTransferErrorReceivedEvt -> start");
+        this._logger.debug("_handleTransferErrorReceivedEvt -> start");
 
         const { payload } = message;
 
@@ -267,7 +274,7 @@ export class TransferEventHandler extends BaseEventHandler {
             errorResponse: errorResponse
         });
 
-        this._logger.info("_handleTransferErrorReceivedEvt -> end");
+        this._logger.debug("_handleTransferErrorReceivedEvt -> end");
 
         return;
     }
@@ -316,7 +323,7 @@ export class TransferEventHandler extends BaseEventHandler {
         // TODO validate vars above
 
         try {
-            this._logger.info("_handleTransferPreparedEvt -> start");
+            this._logger.debug("_handleTransferPreparedEvt -> start");
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
@@ -343,7 +350,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 payload: transformedPayload
             });
 
-            this._logger.info("_handleTransferPreparedEvt -> end");
+            this._logger.debug("_handleTransferPreparedEvt -> end");
             parentSpan.end();
         } catch (error: unknown) {
             this._logger.error(error, "_handleTransferPreparedEvt -> error");
@@ -370,7 +377,7 @@ export class TransferEventHandler extends BaseEventHandler {
         // TODO validate vars above
 
         try {
-            this._logger.info("_handleTransferReserveFulfiledEvt -> start");
+            this._logger.debug("_handleTransferReserveFulfiledEvt -> start");
 
             const requestedEndpointPayer = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
@@ -425,7 +432,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 });
             }
 
-            this._logger.info("_handleTransferReserveFulfiledEvt -> end");
+            this._logger.debug("_handleTransferReserveFulfiledEvt -> end");
             parentSpan.end();
         } catch (error: unknown) {
             this._logger.error(error, "_handleTransferReserveFulfiledEvt -> error");
@@ -439,7 +446,7 @@ export class TransferEventHandler extends BaseEventHandler {
 
 
     private async _handleTransferQueryResponseEvt(message: TransferQueryResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
-        this._logger.info("_handleTransferQueryResponseEvt -> start");
+        this._logger.debug("_handleTransferQueryResponseEvt -> start");
 
         try {
             const { payload } = message;
@@ -477,7 +484,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 payload: transformedPayload
             });
 
-            this._logger.info("_handleTransferQueryResponseEvt -> end");
+            this._logger.debug("_handleTransferQueryResponseEvt -> end");
 
         } catch (error: unknown) {
             this._logger.error("_handleTransferQueryResponseEvt -> error");
@@ -488,7 +495,7 @@ export class TransferEventHandler extends BaseEventHandler {
     }
 
     private async _handleTransferRejectRequestEvt(message: TransferRejectRequestProcessedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
-        this._logger.info("_handleTransferRejectRequestEvt -> start");
+        this._logger.debug("_handleTransferRejectRequestEvt -> start");
 
         try {
             const { payload } = message;
@@ -522,7 +529,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 payload: Transformer.transformPayloadTransferRequestPutError(payload),
             });
 
-            this._logger.info("_handleTransferRejectRequestEvt -> end");
+            this._logger.debug("_handleTransferRejectRequestEvt -> end");
 
         } catch (error: unknown) {
             this._logger.error("_handleTransferRejectRequestEvt -> error");
@@ -534,7 +541,7 @@ export class TransferEventHandler extends BaseEventHandler {
 
     private async _handleBulkTransferPreparedEvt(message: BulkTransferPreparedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
         try {
-            this._logger.info("_handleBulkTransferPreparedEvt -> start");
+            this._logger.debug("_handleBulkTransferPreparedEvt -> start");
 
             const { payload } = message;
 
@@ -566,7 +573,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 payload: transformedPayload
             });
 
-            this._logger.info("_handleBulkTransferPreparedEvt -> end");
+            this._logger.debug("_handleBulkTransferPreparedEvt -> end");
 
         } catch (error: unknown) {
             this._logger.error(error, "_handleBulkTransferPreparedEvt -> error");
@@ -588,7 +595,7 @@ export class TransferEventHandler extends BaseEventHandler {
 
 
         try {
-            this._logger.info("_handleBulkTransferFulfiledEvt -> start");
+            this._logger.debug("_handleBulkTransferFulfiledEvt -> start");
 
             const requestedEndpointPayer = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
@@ -613,7 +620,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 payload: transformedPayload
             });
 
-            this._logger.info("_handleBulkTransferFulfiledEvt -> end");
+            this._logger.debug("_handleBulkTransferFulfiledEvt -> end");
 
         } catch (error: unknown) {
             this._logger.error(error, "_handleBulkTransferFulfiledEvt -> error");
@@ -639,7 +646,7 @@ export class TransferEventHandler extends BaseEventHandler {
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
-            this._logger.info("_handleBulkTransferQueryResponseEvt -> start");
+            this._logger.debug("_handleBulkTransferQueryResponseEvt -> start");
 
             // Always validate the payload and headers received
             message.validatePayload();
@@ -662,7 +669,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 payload: transformedPayload
             });
 
-            this._logger.info("_handleBulkTransferQueryResponseEvt -> end");
+            this._logger.debug("_handleBulkTransferQueryResponseEvt -> end");
 
         } catch (error: unknown) {
             this._logger.error("_handleBulkTransferQueryResponseEvt -> error");
@@ -673,7 +680,7 @@ export class TransferEventHandler extends BaseEventHandler {
     }
 
     private async _handleBulkTransferRejectRequestEvt(message: BulkTransferRejectRequestProcessedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
-        this._logger.info("_handleBulkTransferRejectRequestEvt -> start");
+        this._logger.debug("_handleBulkTransferRejectRequestEvt -> start");
 
         try {
             const { payload } = message;
@@ -709,7 +716,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 payload: transformedPayload
             });
 
-            this._logger.info("_handleBulkTransferRejectRequestEvt -> end");
+            this._logger.debug("_handleBulkTransferRejectRequestEvt -> end");
 
         } catch (error: unknown) {
             this._logger.error("_handleBulkTransferRejectRequestEvt -> error");

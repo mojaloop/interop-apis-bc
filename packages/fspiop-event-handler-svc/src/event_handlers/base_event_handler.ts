@@ -101,12 +101,12 @@ export abstract class BaseEventHandler  {
         this._jwsHelper = jwsHelper;
 
         this._metrics = metrics;
-        this._histogram = metrics.getHistogram("AccountLookupEventHandler", "AccountLookupEventHandler metrics", ["callName", "success"]);
+        this._histogram = metrics.getHistogram(this.constructor.name, `${this.constructor.name} metrics`, ["callName", "success"]);
         this._tracer = OpenTelemetryClient.getInstance().getTracer(this.constructor.name);
     }
 
     async init () : Promise<void> {
-        this._logger.info("Event handler starting...");
+        this._logger.debug("Event handler starting...");
         try{
             this._kafkaConsumer.setTopics(this._kafkaTopics);
             //this._kafkaConsumer.setCallbackFn(this.processMessage.bind(this));
@@ -115,7 +115,7 @@ export abstract class BaseEventHandler  {
             await this._kafkaConsumer.startAndWaitForRebalance();
             await this._kafkaProducer.connect();
 
-            this._logger.info("Event handler started.");
+            this._logger.debug("Event handler started.");
         }
         catch(error: unknown) {
             this._logger.error(`Error initializing ${this._handlerName} handler: ${(error as Error).message}`);
@@ -270,7 +270,7 @@ export abstract class BaseEventHandler  {
 
         }
 
-        this._logger.info(`Sending ${messageToSend?.msgName} event `);
+        this._logger.debug(`Sending ${messageToSend?.msgName} event `);
         await this._kafkaProducer.send(messageToSend);
 
     }

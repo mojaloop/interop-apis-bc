@@ -48,7 +48,7 @@ export type JwsConfig = {
     privateKey: Buffer;
     publicKeys: {
         [key:string]: Buffer
-    } 
+    }
 };
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -69,7 +69,7 @@ export class FspiopJwsSignature {
 			return this.instance;
 		}
 		this.instance = new FspiopJwsSignature();
-		
+
 		return this.instance;
 	}
 
@@ -109,7 +109,7 @@ export class FspiopJwsSignature {
 	public addPublicKeys(publicKeys: any): any {
 		return this._publicKeys = publicKeys;
 	}
-    
+
     get privateKey(): Buffer {
 		return this._privateKey;
 	}
@@ -138,16 +138,16 @@ export class FspiopJwsSignature {
                 throw new PublicKeyNotAvailableForDFSPError(`JWS public key for '${headers["fspiop-source"]}' not available. Unable to verify JWS. Only have keys for: ${util.inspect(Object.keys(this._publicKeys))}`);
             }
 
-            // first we check the required headers are present 
+            // first we check the required headers are present
             if(!headers["fspiop-uri"] || !headers["fspiop-http-method"] || !headers["fspiop-signature"]) {
                 throw new MissingRequiredJWSFSPIOPHeaders(`fspiop-uri, fspiop-http-method and fspiop-signature HTTP headers are all required for JWS. Only got ${util.inspect(headers)}`);
             }
 
-            // if all required headers are present we start by extracting the components of the signature header 
+            // if all required headers are present we start by extracting the components of the signature header
             const { protectedHeader, signature } = JSON.parse(headers[FSPIOP_HEADERS_SIGNATURE] as string);
 
-            const token = `${protectedHeader}.${base64url(JSON.stringify(payload))}.${signature}`; 
-            
+            const token = `${protectedHeader}.${base64url(JSON.stringify(payload))}.${signature}`;
+
             const result = JsonWebSignatureHelper.verify(Buffer.from(pubKey).toString(), token, AllowedSigningAlgorithms.RS256);
             // check protected header has all required fields and matches actual incoming headers
             this._validateProtectedHeader(headers, result.header);
@@ -182,7 +182,7 @@ export class FspiopJwsSignature {
         if(decodedProtectedHeader["FSPIOP-URI"] !== headers["fspiop-uri"]) {
             throw new NonMatchingFSPIOPURIJWSHeader(`FSPIOP-URI HTTP request header value: ${headers["fspiop-uri"]} does not match protected header value: ${decodedProtectedHeader["FSPIOP-URI"]}`);
         }
-    
+
 
         // check FSPIOP-HTTP-Method is present and matches
         if(!decodedProtectedHeader["FSPIOP-HTTP-Method"]) {
@@ -218,7 +218,7 @@ export class FspiopJwsSignature {
 
         // if we have an HTTP fspiop-destination header it should also be in the protected header and the values should match exactly
         if(headers["fspiop-destination"] && !decodedProtectedHeader["FSPIOP-Destination"]) {
-            throw new MissingFSPIOPDestinationInProtectedHeader(`HTTP fspiop-destination header is present but is not present in protected header: ${util.inspect(decodedProtectedHeader)}`); 
+            throw new MissingFSPIOPDestinationInProtectedHeader(`HTTP fspiop-destination header is present but is not present in protected header: ${util.inspect(decodedProtectedHeader)}`);
         }
         if(decodedProtectedHeader["FSPIOP-Destination"] && !headers["fspiop-destination"]) {
             throw new MissingFSPIOPDestinationHeader(`FSPIOP-Destination header is present in protected header but not in HTTP request: ${util.inspect(headers)}`);
@@ -230,7 +230,7 @@ export class FspiopJwsSignature {
 
 
     sign(headers: any, payload: any): string {
-        this._logger.info(`JWS Signing request: ${util.inspect(headers)} - ${util.inspect(payload)}`);
+        this._logger.debug(`JWS Signing request: ${util.inspect(headers)} - ${util.inspect(payload)}`);
         const uri = headers[FSPIOP_HEADERS_URI];
 
         if(!payload) {
@@ -255,7 +255,7 @@ export class FspiopJwsSignature {
     }
 
     getSignature(headers: any, payload: any): string {
-        this._logger.info(`Get JWS Signature: ${util.inspect(headers)} - ${util.inspect(payload)}`);
+        this._logger.debug(`Get JWS Signature: ${util.inspect(headers)} - ${util.inspect(payload)}`);
         const uri = headers[FSPIOP_HEADERS_URI];
 
         if(!payload) {
@@ -291,7 +291,7 @@ export class FspiopJwsSignature {
         // now we sign
         const privKey = this._privateKey;
 
-        const token = JsonWebSignatureHelper.sign(Buffer.from(privKey).toString(), 
+        const token = JsonWebSignatureHelper.sign(Buffer.from(privKey).toString(),
             {
                 "alg": "RS256",
                 "FSPIOP-URI": headers[FSPIOP_HEADERS_URI],
@@ -300,7 +300,7 @@ export class FspiopJwsSignature {
                 "FSPIOP-Destination": headers[FSPIOP_HEADERS_DESTINATION],
                 "FSPIOP-Date": headers[FSPIOP_HEADERS_DATE]
             },
-            JSON.stringify(payload), 
+            JSON.stringify(payload),
             AllowedSigningAlgorithms.RS256
         );
 

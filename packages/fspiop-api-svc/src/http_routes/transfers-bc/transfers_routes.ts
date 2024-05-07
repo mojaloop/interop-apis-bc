@@ -174,13 +174,13 @@ export class TransfersRoutes extends BaseRoutesFastify {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId,
                 headers: clonedHeaders,
-                tracing: {}
             };
+            msg.tracingInfo = {}
 
             parentSpan.setAttribute("transferId", transferId);
             const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan);
             // inject tracing headers
-            OpenTelemetryClient.getInstance().propagationInject(childSpan, msg.fspiopOpaqueState.tracing);
+            OpenTelemetryClient.getInstance().propagationInject(childSpan, msg.tracingInfo);
 
             await this.kafkaProducer.send(msg);
             childSpan.end();
@@ -264,13 +264,13 @@ export class TransfersRoutes extends BaseRoutesFastify {
             msg.fspiopOpaqueState = {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId,
-                headers: clonedHeaders,
-                tracing: {}
+                headers: clonedHeaders
             };
+            msg.tracingInfo = {};
 
             parentSpan.setAttributes({"transferId": transferId});
             const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan);
-            OpenTelemetryClient.getInstance().propagationInject(childSpan, msg.fspiopOpaqueState.tracing);
+            OpenTelemetryClient.getInstance().propagationInject(childSpan, msg.tracingInfo);
             await this.kafkaProducer.send(msg);
             childSpan.end();
 
