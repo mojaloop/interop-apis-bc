@@ -140,7 +140,7 @@ export class TransferEventHandler extends BaseEventHandler {
         this._histogram.observe({callName:"msgDelay"}, (startTime - sourceMessage.msgTimestamp)/1000);
         const processMessageTimer = this._histogram.startTimer({callName: "processMessage"});
 
-        const parentSpan = OpenTelemetryClient.getInstance().startSpanWithPropagationInput(this._tracer, "processMessage", sourceMessage.fspiopOpaqueState.tracing);
+        const parentSpan = OpenTelemetryClient.getInstance().startSpanWithPropagationInput(this._tracer, "processMessage", sourceMessage.tracingInfo);
         parentSpan.setAttributes({
             "msgName": sourceMessage.msgName,
             "transferId": sourceMessage.payload.transferId
@@ -317,10 +317,10 @@ export class TransferEventHandler extends BaseEventHandler {
         const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
         const destinationFspId = payload.payeeFsp;
 
-        const tracing: any = {};
+        // const tracing: any = {};
         //const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "handleTransferPreparedEvt", parentSpan);
         parentSpan.updateName("handleTransferPreparedEvt");
-        OpenTelemetryClient.getInstance().propagationInject(parentSpan, tracing);
+        // OpenTelemetryClient.getInstance().propagationInject(parentSpan, tracing);
 
         // TODO validate vars above
 
@@ -340,8 +340,11 @@ export class TransferEventHandler extends BaseEventHandler {
             // provide original headers for tracing and test header pass-through
             (clonedHeaders as any).original_headers = { ...clonedHeaders };
 
-            if(tracing && tracing.traceparent) (clonedHeaders as any).traceparent = tracing.traceparent;
-            if(tracing && tracing.tracestate) (clonedHeaders as any).tracestate = tracing.tracestate;
+
+            OpenTelemetryClient.getInstance().propagationInject(parentSpan, clonedHeaders);
+
+            // if(tracing && tracing.traceparent) (clonedHeaders as any).traceparent = tracing.traceparent;
+            // if(tracing && tracing.tracestate) (clonedHeaders as any).tracestate = tracing.tracestate;
 
             await Request.sendRequest({
                 url: urlBuilder.build(),
@@ -371,10 +374,10 @@ export class TransferEventHandler extends BaseEventHandler {
         const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
         const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
 
-        const tracing: any = {};
+        // const tracing: any = {};
         // const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "handleTransferFulfiledEvt", parentSpan);
         parentSpan.updateName("handleTransferFulfiledEvt");
-        OpenTelemetryClient.getInstance().propagationInject(parentSpan, tracing);
+        // OpenTelemetryClient.getInstance().propagationInject(parentSpan, tracing);
 
         // TODO validate vars above
 
@@ -397,8 +400,9 @@ export class TransferEventHandler extends BaseEventHandler {
             // provide original headers for tracing and test header pass-through
             (clonedHeaders as any).original_headers = { ...clonedHeaders };
 
-            if(tracing && tracing.traceparent) (clonedHeaders as any).traceparent = tracing.traceparent;
-            if(tracing && tracing.tracestate) (clonedHeaders as any).tracestate = tracing.tracestate;
+            OpenTelemetryClient.getInstance().propagationInject(parentSpan, clonedHeaders);
+            // if(tracing && tracing.traceparent) (clonedHeaders as any).traceparent = tracing.traceparent;
+            // if(tracing && tracing.tracestate) (clonedHeaders as any).tracestate = tracing.tracestate;
 
             await Request.sendRequest({
                 url: urlBuilderPayer.build(),
@@ -421,8 +425,10 @@ export class TransferEventHandler extends BaseEventHandler {
 
                 // provide original headers for tracing and test header pass-through
                 (clonedHeaders as any).original_headers = { ...clonedHeaders };
-                if(tracing && tracing.traceparent) (clonedHeaders as any).traceparent = tracing.traceparent;
-                if(tracing && tracing.tracestate) (clonedHeaders as any).tracestate = tracing.tracestate;
+
+                OpenTelemetryClient.getInstance().propagationInject(parentSpan, clonedHeaders);
+                // if(tracing && tracing.traceparent) (clonedHeaders as any).traceparent = tracing.traceparent;
+                // if(tracing && tracing.tracestate) (clonedHeaders as any).tracestate = tracing.tracestate;
 
                 await Request.sendRequest({
                     url: urlBuilderPayee.build(),

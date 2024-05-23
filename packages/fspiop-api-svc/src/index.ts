@@ -36,8 +36,6 @@
 import {Service} from "./service";
 export { Service } from "./service";
 
-
-
 Service.start().then(() => {
     console.log("Started interop service");
 });

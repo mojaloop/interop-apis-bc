@@ -31,13 +31,16 @@ optionally within square brackets <email>.
 "use strict";
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import { FspiopJwsSignature, FspiopValidator } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import {FspiopJwsSignature, FspiopValidator} from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import fastify, {FastifyInstance, FastifyReply, FastifyRequest} from "fastify";
-import {IHistogram, IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import {IHistogram, IMetrics, Tracer} from "@mojaloop/platform-shared-lib-observability-types-lib";
 import {GetParticipantByTypeAndIdDTO} from "./account-lookup-bc/participant_route_dto";
-import { parseAcceptHeader, parseContentTypeHeader, protocolVersions, FSPIOPErrorCodes } from "./validation";
-import {RawReplyDefaultExpression, RawRequestDefaultExpression} from "fastify/types/utils";
+import {FSPIOPErrorCodes, parseAcceptHeader, parseContentTypeHeader, protocolVersions} from "./validation";
+
+import * as OpentelemetryApi from "@opentelemetry/api";
+import {SpanKind, SpanOptions} from "@opentelemetry/api";
+import {OpenTelemetryClient} from "@mojaloop/platform-shared-lib-observability-client-lib";
 
 // Define resource types and error messages with type annotations for better type safety
 const defaultProtocolResources: string[] = [
@@ -75,6 +78,7 @@ export abstract class BaseRoutesFastify {
 
     protected readonly _metrics: IMetrics;
     protected readonly _histogram: IHistogram;
+    protected readonly _tracer: Tracer;
 
     constructor(
         producer: IMessageProducer,
@@ -91,15 +95,52 @@ export abstract class BaseRoutesFastify {
 
         this._metrics = metrics;
 
+        this._tracer = OpenTelemetryClient.getInstance().getTracer(this.constructor.name);
+
         this._histogram = metrics.getHistogram(this.constructor.name, `${this.constructor.name} metrics`, ["callName", "success"]);
+    }
+
+    protected _addHooks(fastify:FastifyInstance): void{
+        // hook header validation from base class - MANDATORY for FSPIOP Routes
+        fastify.addHook("preHandler", this._preHandlerContentType.bind(this));
+
+        // hook span preprocessor - tries to propagate trace info from headers
+        fastify.addHook("preHandler", this._preHandlerTracing.bind(this));
+    }
+
+    /**
+     * Returns the automatically created span with propagated context if available (will also be automatically ended)
+     * @protected
+     */
+    protected _getActiveSpan():OpentelemetryApi.Span{
+        const span = OpenTelemetryClient.getInstance().getActiveSpan();
+        if(span) return span;
+        throw new Error("invalid Span in BaseRoutesFastify");
+    }
+
+    protected _preHandlerTracing(request: FastifyRequest<GetParticipantByTypeAndIdDTO>, reply: FastifyReply, done:()=>void): void {
+        // try to get a tracing context from headers
+        const ctx = OpenTelemetryClient.getInstance().propagationExtract(request.headers);
+
+        const spanName = `${request.method} ${request.url}`;
+        const spanOptions:SpanOptions={
+            kind: SpanKind.SERVER,
+            attributes: {
+                "url": request.url,
+            }
+        };
+
+        // call the continuation chain with the active span/context set
+        this._tracer.startActiveSpan(spanName, spanOptions, ctx, span => {
+            done();
+            span.end();
+        });
+
     }
 
     // common header validation to be hooked by adding "fastify.addHook("preHandler", this._preHandler.bind(this));"
     // in the bindRoutes() of the implementation of this base class
-    protected async _preHandler(request: FastifyRequest<GetParticipantByTypeAndIdDTO>, reply: FastifyReply): Promise<void> {
-        // extract tracing headers
-
-
+    protected async _preHandlerContentType(request: FastifyRequest<GetParticipantByTypeAndIdDTO>, reply: FastifyReply): Promise<void> {
         // check accept
         const url = request.routeOptions.url || request.raw.url as string;
         const resource = url.replace(/^\//, "").split("/")[0];

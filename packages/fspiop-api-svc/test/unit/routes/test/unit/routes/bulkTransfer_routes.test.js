@@ -62,6 +62,7 @@ const pathWithoutId = `/${interop_apis_bc_fspiop_utils_lib_1.Enums.EntityTypeEnu
 let configClientMock;
 let jwsHelperMock;
 let routeValidatorMock;
+let metricsMock;
 jest.setTimeout(10000);
 describe("FSPIOP Routes - Unit Tests Bulk Transfer", () => {
     let app;
@@ -103,6 +104,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Transfer", () => {
         producer = new platform_shared_lib_nodejs_kafka_client_lib_1.MLKafkaJsonProducer(kafkaJsonProducerOptions);
         routeValidatorMock = (0, interop_apis_bc_shared_mocks_lib_1.getRouteValidator)();
         jwsHelperMock = (0, interop_apis_bc_shared_mocks_lib_1.getJwsConfig)();
+        metricsMock = new interop_apis_bc_shared_mocks_lib_1.MemoryMetric(logger);
         bulkTransferRoutes = new bulk_transfers_routes_1.TransfersBulkRoutes(producer, routeValidatorMock, jwsHelperMock, metricsMock, logger);
         app.register(bulkTransferRoutes.bindRoutes, { prefix: `/${BULK_TRANSFERS_URL_RESOURCE_NAME}` });
         let portNum = SVC_DEFAULT_HTTP_PORT;

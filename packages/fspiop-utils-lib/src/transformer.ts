@@ -29,7 +29,7 @@
  --------------
  ******/
 
-'use strict';
+"use strict";
 
 import {
 	BulkQuoteReceivedEvtPayload,
@@ -74,7 +74,7 @@ import {
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export const removeEmpty = (obj: any) => {
 	Object.entries(obj).forEach(([key, val]) =>
-		(val && typeof val === 'object') && removeEmpty(val) ||
+		(val && typeof val === "object") && removeEmpty(val) ||
 		(val === null || val === "") && delete obj[key]
 	);
 	return obj;

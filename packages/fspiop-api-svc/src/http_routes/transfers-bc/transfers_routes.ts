@@ -54,7 +54,7 @@ import {
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import {FSPIOPErrorCodes} from "../validation";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import {FastifyPluginAsync, FastifyReply, FastifyRequest} from "fastify";
+import {FastifyInstance, FastifyPluginOptions, FastifyReply, FastifyRequest} from "fastify";
 import {
     TransferFulfilRequestedDTO,
     TransferPrepareRequestedDTO,
@@ -64,12 +64,12 @@ import {
 import {BaseRoutesFastify} from "../_base_routerfastify";
 
 import {OpenTelemetryClient} from "@mojaloop/platform-shared-lib-observability-client-lib";
-import {IMetrics, SpanStatusCode, Tracer} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import {IMetrics, SpanStatusCode} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import {SpanKind} from "@opentelemetry/api";
 
 
 
 export class TransfersRoutes extends BaseRoutesFastify {
-    private readonly _tracer: Tracer;
 
     constructor(
         producer: IMessageProducer,
@@ -79,13 +79,11 @@ export class TransfersRoutes extends BaseRoutesFastify {
         logger: ILogger
     ) {
         super(producer, validator, jwsHelper, metrics, logger);
-
-        this._tracer = OpenTelemetryClient.getInstance().getTracer(this.constructor.name);
     }
 
-    public bindRoutes: FastifyPluginAsync = async (fastify) => {
-        // hook header validation from base class - MANDATORY for FSPIOP Routes
-        fastify.addHook("preHandler", this._preHandler.bind(this));
+    public async bindRoutes(fastify: FastifyInstance, options: FastifyPluginOptions): Promise<void>{
+        // bind common hooks like content-type validation and tracing extraction
+        this._addHooks(fastify);
 
         // GET Transfer by ID
         fastify.get("/:id", this.transferQueryReceived.bind(this));
@@ -98,11 +96,11 @@ export class TransfersRoutes extends BaseRoutesFastify {
 
         // Errors
         fastify.put("/:id/error", this.transferRejectRequested.bind(this));
-    };
+    }
 
     private async transferPrepareRequested(req: FastifyRequest<TransferPrepareRequestedDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got transferPrepareRequested request");
-        const parentSpan = OpenTelemetryClient.getInstance().startSpan(this._tracer, "POST transfers prepare");
+        const parentSpan = this._getActiveSpan();
 
         try {
             // Headers
@@ -137,7 +135,7 @@ export class TransfersRoutes extends BaseRoutesFastify {
 
                 reply.code(400).send(transformError);
 
-                parentSpan.setStatus({ code: SpanStatusCode.ERROR }).end();
+                parentSpan.setStatus({ code: SpanStatusCode.ERROR });
                 return;
             }
 
@@ -178,7 +176,7 @@ export class TransfersRoutes extends BaseRoutesFastify {
             msg.tracingInfo = {};
 
             parentSpan.setAttribute("transferId", transferId);
-            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan);
+            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan, SpanKind.PRODUCER);
             // inject tracing headers
             OpenTelemetryClient.getInstance().propagationInject(childSpan, msg.tracingInfo);
 
@@ -191,7 +189,6 @@ export class TransfersRoutes extends BaseRoutesFastify {
 
             this.logger.debug("transferPrepareRequested responded");
 
-            parentSpan.end();
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
                 reply.code(400).send((error as ValidationdError).errorInformation);
@@ -204,14 +201,14 @@ export class TransfersRoutes extends BaseRoutesFastify {
                 reply.code(500).send(transformError);
             }
 
-            parentSpan.setStatus({ code: SpanStatusCode.ERROR }).end();
+            parentSpan.setStatus({ code: SpanStatusCode.ERROR });
             return;
         }
     }
 
     private async transferFulfilRequested(req: FastifyRequest<TransferFulfilRequestedDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got transferFulfilRequested request");
-        const parentSpan = OpenTelemetryClient.getInstance().startSpanWithPropagationInput(this._tracer, "PUT transfers fulfil", req.headers);
+        const parentSpan = this._getActiveSpan();
 
         try {
             // Headers
@@ -236,7 +233,7 @@ export class TransfersRoutes extends BaseRoutesFastify {
                 });
 
                 reply.code(400).send(transformError);
-                parentSpan.setStatus({ code: SpanStatusCode.ERROR }).end();
+                parentSpan.setStatus({ code: SpanStatusCode.ERROR });
                 return;
             }
 
@@ -269,7 +266,7 @@ export class TransfersRoutes extends BaseRoutesFastify {
             msg.tracingInfo = {};
 
             parentSpan.setAttributes({"transferId": transferId});
-            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan);
+            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan, SpanKind.PRODUCER);
             OpenTelemetryClient.getInstance().propagationInject(childSpan, msg.tracingInfo);
             await this.kafkaProducer.send(msg);
             childSpan.end();
@@ -280,7 +277,6 @@ export class TransfersRoutes extends BaseRoutesFastify {
 
             this.logger.debug("transferFulfilRequested responded");
 
-            parentSpan.end();
         } catch (error: unknown) {
             const transformError = Transformer.transformPayloadError({
                 errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
@@ -289,11 +285,13 @@ export class TransfersRoutes extends BaseRoutesFastify {
             });
 
             reply.code(500).send(transformError);
-            parentSpan.setStatus({ code: SpanStatusCode.ERROR }).end();
+            parentSpan.setStatus({ code: SpanStatusCode.ERROR });
         }
     }
 
     private async transferRejectRequested(req: FastifyRequest<TransferRejectRequestedDTO>, reply: FastifyReply): Promise<void> {
+        const parentSpan = this._getActiveSpan();
+
         this.logger.debug("Got transferRejectRequested request");
         try {
             // Headers
@@ -359,7 +357,10 @@ export class TransfersRoutes extends BaseRoutesFastify {
     }
 
     private async transferQueryReceived(req: FastifyRequest<TransferQueryReceivedDTO>, reply: FastifyReply): Promise<void> {
+        const parentSpan = this._getActiveSpan();
+
         this.logger.debug("Got transferQueryReceived request");
+
         try {
             const clonedHeaders = { ...req.headers };
             const transferId = req.params["id"] as string || null;

@@ -52,7 +52,7 @@ import { FSPIOPErrorCodes } from "../validation";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
-import { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
+import {FastifyInstance, FastifyPluginAsync, FastifyPluginOptions, FastifyReply, FastifyRequest} from "fastify";
 import { QuoteQueryReceivedDTO, QuoteRejectRequestDTO, QuoteRequestReceivedDTO, QuoteResponseReceivedDTO } from "./quotes_routes_dto";
 import {BaseRoutesFastify} from "../_base_routerfastify";
 
@@ -68,9 +68,9 @@ export class QuoteRoutes extends BaseRoutesFastify {
         super(producer, validator, jwsHelper, metrics, logger);
     }
 
-    public bindRoutes: FastifyPluginAsync = async (fastify) => {
-        // hook header validation from base class - MANDATORY for FSPIOP Routes
-        fastify.addHook("preHandler", this._preHandler.bind(this));
+    public async bindRoutes(fastify: FastifyInstance, options: FastifyPluginOptions): Promise<void>{
+        // bind common hooks like content-type validation and tracing extraction
+        this._addHooks(fastify);
 
         // GET Quote by ID
         fastify.get("/:id", this.quoteQueryReceived.bind(this));
@@ -83,7 +83,7 @@ export class QuoteRoutes extends BaseRoutesFastify {
 
         // Errors
         fastify.put("/:id/error", this.quoteRejectRequest.bind(this));
-    };
+    }
 
     private async quoteRequestReceived(req: FastifyRequest<QuoteRequestReceivedDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got quoteRequestReceived request");

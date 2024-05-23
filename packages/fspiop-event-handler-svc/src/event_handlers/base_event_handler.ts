@@ -61,9 +61,9 @@ import { OpenTelemetryClient } from "@mojaloop/platform-shared-lib-observability
 
 
 export const HandlerNames = {
-    AccountLookUp: 'AccountLookUpEventHandler',
-    Quotes: 'QuotesEventHandler',
-    Transfers: 'TransfersEventHandler',
+    AccountLookUp: "AccountLookUpEventHandler",
+    Quotes: "QuotesEventHandler",
+    Transfers: "TransfersEventHandler",
 } as const;
 
 export abstract class BaseEventHandler  {
@@ -116,8 +116,7 @@ export abstract class BaseEventHandler  {
             await this._kafkaProducer.connect();
 
             this._logger.debug("Event handler started.");
-        }
-        catch(error: unknown) {
+        } catch(error: unknown) {
             this._logger.error(`Error initializing ${this._handlerName} handler: ${(error as Error).message}`);
             throw new Error(`Error initializing ${this._handlerName}`);
         }
@@ -275,8 +274,7 @@ export abstract class BaseEventHandler  {
 
     }
 
-    private buildFspFeedbackUrl(endpoint: IParticipantEndpoint, id: string[], message: IDomainMessage | undefined): string
-    {
+    private buildFspFeedbackUrl(endpoint: IParticipantEndpoint, id: string[], message: IDomainMessage | undefined): string {
         const header = message?.fspiopOpaqueState.headers["content-type"];
         const urlBuilder = new Request.URLBuilder(endpoint.value);
 

@@ -44,22 +44,12 @@ import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJSON = require("../package.json");
 
-const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
-const LOGLEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
-
-const BC_NAME = "interop-apis-bc";
-const APP_NAME = "fspiop-api-svc";
-const APP_VERSION = packageJSON.version;
-const INSTANCE_NAME = `${BC_NAME}_${APP_NAME}`;
-const INSTANCE_ID = `${INSTANCE_NAME}__${crypto.randomUUID()}`;
-
-
 
 import Fastify, {FastifyError, FastifyInstance, FastifyReply, FastifyRequest} from "fastify";
 import fastifyCors from "@fastify/cors";
 import fastifyFormbody from "@fastify/formbody";
 import fastifyUnderPressure from "@fastify/under-pressure";
-import fastifySwagger from "@fastify/swagger";
+//import fastifySwagger from "@fastify/swagger";
 
 import { KafkaLogger } from "@mojaloop/logging-bc-client-lib";
 import {
@@ -72,7 +62,7 @@ import { IAuditClient } from "@mojaloop/auditing-bc-public-types-lib";
 import { ParticipantRoutes } from "./http_routes/account-lookup-bc/participant_routes";
 import { PartyRoutes } from "./http_routes/account-lookup-bc/party_routes";
 import {
-    MLKafkaJsonConsumer, MLKafkaJsonProducer, MLKafkaJsonProducerOptions
+    MLKafkaJsonConsumer, MLKafkaJsonConsumerOptions, MLKafkaJsonProducer, MLKafkaJsonProducerOptions
 } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { QuoteRoutes } from "./http_routes/quoting-bc/quote_routes";
 import { QuoteBulkRoutes } from "./http_routes/quoting-bc/bulk_quote_routes";
@@ -93,13 +83,28 @@ import {PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-cli
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const metricsPlugin = require("fastify-metrics");
 
-const API_SPEC_FILE_PATH = process.env["API_SPEC_FILE_PATH"] || "../dist/api_spec.yaml";
+//const API_SPEC_FILE_PATH = process.env["API_SPEC_FILE_PATH"] || "../dist/api_spec.yaml";
 
+
+const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
+const LOGLEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
+
+const BC_NAME = "interop-apis-bc";
+const APP_NAME = "fspiop-api-svc";
+const APP_VERSION = packageJSON.version;
+const INSTANCE_NAME = `${BC_NAME}_${APP_NAME}`;
+const INSTANCE_ID = `${INSTANCE_NAME}__${crypto.randomUUID()}`;
 
 
 const SVC_DEFAULT_HTTP_PORT = 4000;
 
+// Message Consumer/Publisher
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
+const KAFKA_AUTH_ENABLED = process.env["KAFKA_AUTH_ENABLED"] && process.env["KAFKA_AUTH_ENABLED"].toUpperCase()==="TRUE" || false;
+const KAFKA_AUTH_PROTOCOL = process.env["KAFKA_AUTH_PROTOCOL"] || "sasl_plaintext";
+const KAFKA_AUTH_MECHANISM = process.env["KAFKA_AUTH_MECHANISM"] || "plain";
+const KAFKA_AUTH_USERNAME = process.env["KAFKA_AUTH_USERNAME"] || "user";
+const KAFKA_AUTH_PASSWORD = process.env["KAFKA_AUTH_PASSWORD"] || "password";
 
 const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
@@ -131,8 +136,25 @@ const SERVICE_START_TIMEOUT_MS = (process.env["SERVICE_START_TIMEOUT_MS"] && par
 
 const JWS_FILES_PATH = process.env["JWS_FILES_PATH"] || "/app/data/keys/";
 
-const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
+// kafka common options
+const kafkaProducerCommonOptions:MLKafkaJsonProducerOptions = {
     kafkaBrokerList: KAFKA_URL,
+    producerClientId: `${INSTANCE_ID}`,
+};
+const kafkaConsumerCommonOptions:MLKafkaJsonConsumerOptions ={
+    kafkaBrokerList: KAFKA_URL
+};
+if(KAFKA_AUTH_ENABLED){
+    kafkaProducerCommonOptions.authentication = kafkaConsumerCommonOptions.authentication = {
+        protocol: KAFKA_AUTH_PROTOCOL as "plaintext" | "ssl" | "sasl_plaintext" | "sasl_ssl",
+        mechanism: KAFKA_AUTH_MECHANISM as "PLAIN" | "GSSAPI" | "SCRAM-SHA-256" | "SCRAM-SHA-512",
+        username: KAFKA_AUTH_USERNAME,
+        password: KAFKA_AUTH_PASSWORD
+    };
+}
+
+const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
+    ...kafkaProducerCommonOptions,
     producerClientId: `${INSTANCE_NAME}`,
     skipAcknowledgements: false // never change this to true without understanding what it does
 };
@@ -174,19 +196,14 @@ export class Service {
     static bulkQuotesRoutes: QuoteBulkRoutes;
     static transfersRoutes: TransfersRoutes;
     static bulkTransfersRoutes: TransfersBulkRoutes;
-    static participantService: IParticipantServiceAdapter;
     static auditClient: IAuditClient;
     static configClient: IConfigurationClient;
     static producer: IMessageProducer;
     static metrics: IMetrics;
-
-    //static tracerApi = OpenTelemetryApi.trace.getTracerProvider();
-
     static startupTimer: NodeJS.Timeout;
 
     static async start(
         logger?: ILogger,
-        participantService?: IParticipantServiceAdapter,
         auditClient?: IAuditClient,
         configProvider?: IConfigProvider,
         metrics?: IMetrics,
@@ -217,7 +234,7 @@ export class Service {
             authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
 
             const messageConsumer = new MLKafkaJsonConsumer({
-                kafkaBrokerList: KAFKA_URL,
+                ...kafkaConsumerCommonOptions,
                 kafkaGroupId: `${INSTANCE_ID}` // unique consumer group - use instance id when possible
             }, this.logger.createChild("configClient.consumer"));
             configProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer);
@@ -259,17 +276,6 @@ export class Service {
 
         await Service.setupTracing();
 
-        // Not needed right now
-        // if (!participantService) {
-        //     const participantLogger = logger.createChild("participantLogger");
-        //     participantLogger.setLogLevel(LogLevel.INFO);
-        //
-        //     const authRequester: IAuthenticatedHttpRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
-        //     authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
-        //     participantService = new ParticipantAdapter(participantLogger, PARTICIPANTS_SVC_URL, authRequester, PARTICIPANTS_CACHE_TIMEOUT_MS);
-        // }
-        // this.participantService = participantService;
-
         // Singleton for Validation and JWS functions
         const currencyList = this.configClient.globalConfigs.getCurrencies();
         const routeValidator = FspiopValidator.getInstance();
@@ -293,8 +299,6 @@ export class Service {
         if (jwsConfig.privateKey) {
             jwsHelper.addPrivateKey(jwsConfig.privateKey);
         }
-
-        //await Service.setupEventHandlers(jwsHelper);
 
         // Create and initialise the http hanlders
         this.producer = new MLKafkaJsonProducer(kafkaJsonProducerOptions);
@@ -326,9 +330,13 @@ export class Service {
     }
 
     static async setupTracing():Promise<void>{
+        //eslint-disable-next-line @typescript-eslint/no-var-requires
+        const { W3CTraceContextPropagator, W3CBaggagePropagator, CompositePropagator, } = require("@opentelemetry/core");
 
-        OpenTelemetryClient.Start(BC_NAME, APP_NAME, APP_VERSION, INSTANCE_ID, this.logger);
-
+        const prop = new CompositePropagator({
+            propagators: [new W3CTraceContextPropagator(), new W3CBaggagePropagator()],
+        });
+        OpenTelemetryClient.Start(BC_NAME, APP_NAME, APP_VERSION, INSTANCE_ID, this.logger, undefined, prop);
     }
 
     static async setupFastify(): Promise<void> {
@@ -353,8 +361,6 @@ export class Service {
                 endpoint: "/metrics",
                 promClient: (this.metrics as PrometheusMetrics).getPromClient(),
             });
-
-
 
             this.app.register(fastifyCors, { origin: true });
             this.app.register(fastifyFormbody, {
@@ -398,13 +404,17 @@ export class Service {
             //     specification: openApiDocument,
             // });
 
+            // Add decorate here to is present in all scopes (below)
+            if(!this.app.hasDecorator("tracing")) {
+                this.app.decorateRequest("tracing", null);
+            }
 
-            this.app.register(this.participantRoutes.bindRoutes, { prefix: `/${PARTICIPANTS_URL_RESOURCE_NAME}` });
-            this.app.register(this.partyRoutes.bindRoutes, { prefix: `/${PARTIES_URL_RESOURCE_NAME}` });
-            this.app.register(this.quotesRoutes.bindRoutes, { prefix: `/${QUOTES_URL_RESOURCE_NAME}` });
-            this.app.register(this.bulkQuotesRoutes.bindRoutes, { prefix: `/${BULK_QUOTES_URL_RESOURCE_NAME}` });
-            this.app.register(this.transfersRoutes.bindRoutes, { prefix: `/${TRANSFERS_URL_RESOURCE_NAME}` });
-            this.app.register(this.bulkTransfersRoutes.bindRoutes, { prefix: `/${BULK_TRANSFERS_URL_RESOURCE_NAME}` });
+            this.app.register(this.participantRoutes.bindRoutes.bind(this.participantRoutes), { prefix: `/${PARTICIPANTS_URL_RESOURCE_NAME}` });
+            this.app.register(this.partyRoutes.bindRoutes.bind(this.partyRoutes), { prefix: `/${PARTIES_URL_RESOURCE_NAME}` });
+            this.app.register(this.quotesRoutes.bindRoutes.bind(this.quotesRoutes), { prefix: `/${QUOTES_URL_RESOURCE_NAME}` });
+            this.app.register(this.bulkQuotesRoutes.bindRoutes.bind(this.bulkQuotesRoutes), { prefix: `/${BULK_QUOTES_URL_RESOURCE_NAME}` });
+            this.app.register(this.transfersRoutes.bindRoutes.bind(this.transfersRoutes), { prefix: `/${TRANSFERS_URL_RESOURCE_NAME}` });
+            this.app.register(this.bulkTransfersRoutes.bindRoutes.bind(this.bulkTransfersRoutes), { prefix: `/${BULK_TRANSFERS_URL_RESOURCE_NAME}` });
 
             // Error handling middleware
             this.app.setErrorHandler((error:FastifyError, request: FastifyRequest, reply: FastifyReply) => {
@@ -521,7 +531,6 @@ export class Service {
         }, 5000);
     }
 }
-
 
 /**
  * process termination and cleanup

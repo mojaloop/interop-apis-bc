@@ -31,10 +31,10 @@
 
  "use strict";
 
-import request from 'axios';
-import { FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION,FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_CONTENT_TYPE, FSPIOP_HEADERS_ACCEPT, FSPIOP_HEADERS_DATE, FSPIOP_HEADERS_URI, FSPIOP_HEADERS_SWITCH } from './constants';
-import { FspiopRequestMethodsEnum, ResponseTypeEnum } from './enums';
-import HeaderBuilder from './headers/header_builder';
+import request from "axios";
+import { FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION,FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION, FSPIOP_HEADERS_SOURCE, FSPIOP_HEADERS_DESTINATION, FSPIOP_HEADERS_HTTP_METHOD, FSPIOP_HEADERS_SIGNATURE, FSPIOP_HEADERS_CONTENT_TYPE, FSPIOP_HEADERS_ACCEPT, FSPIOP_HEADERS_DATE, FSPIOP_HEADERS_URI, FSPIOP_HEADERS_SWITCH } from "./constants";
+import { FspiopRequestMethodsEnum, ResponseTypeEnum } from "./enums";
+import HeaderBuilder from "./headers/header_builder";
 import { AllowedSigningAlgorithms } from "@mojaloop/security-bc-client-lib";
 import keyValueBy from "npm-check-updates/build/src/lib/keyValueBy";
 
@@ -153,12 +153,12 @@ export class URLBuilder {
             this._base = new URL(url);
             this._params = new URLSearchParams(this._base.search.slice(1));
         } catch (e: unknown) {
-            throw Error('Not able to build url' + e);
+            throw Error("Not able to build url" + e);
         }
     }
 
     appendQueryParam(name: string, value: string) {
-        this._params.append(name, value ? value.toString() : '');
+        this._params.append(name, value ? value.toString() : "");
     }
 
     clearQueryParams(): URLBuilder {
@@ -188,11 +188,11 @@ export class URLBuilder {
 
     getQueryParam(name: string): string | void {
         if (!this._params) {
-            return '';
+            return "";
         }
 
         const value = this._params.get(name);
-        return (!value || value === 'undefined' || value === 'null') ? undefined : value;
+        return (!value || value === "undefined" || value === "null") ? undefined : value;
     }
 
     getQueryString(): string {
@@ -219,7 +219,7 @@ export class URLBuilder {
     }
 
     setQueryParam(name: string, value: string | number): URLBuilder {
-        this._params.set(name, value ? value.toString() : '');
+        this._params.set(name, value ? value.toString() : "");
         return this;
     }
 
@@ -228,7 +228,7 @@ export class URLBuilder {
             return;
         }
 
-        if (value[0] === '?') {
+        if (value[0] === "?") {
             value = value.slice(1);
         }
 
@@ -243,7 +243,7 @@ export class URLBuilder {
     }
 
     build(): string {
-        let url = this._base.toString().replace(/\/$/, ''); // This regular expression removes the '/' in case it exists in the last character
+        let url = this._base.toString().replace(/\/$/, ""); // This regular expression removes the '/' in case it exists in the last character
         const query = this._params.toString();
 
         if(this._entity) {
@@ -259,11 +259,11 @@ export class URLBuilder {
         }
 
         if(this._withError) {
-            url += `/error`;
+            url += "/error";
         }
 
-        if (query !== '') {
-            url = '?' + query;
+        if (query !== "") {
+            url = "?" + query;
         }
 
         return url;

@@ -39,9 +39,9 @@ import {
     BulkQuoteRequestedEvt,
     BulkQuoteRequestedEvtPayload,
     BulkQuoteRejectedEvt,
-    BulkQuoteRejectedEvtPayload 
+    BulkQuoteRejectedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { 
+import {
     Constants,
     FspiopJwsSignature,
     FspiopValidator,
@@ -52,7 +52,7 @@ import { FSPIOPErrorCodes } from "../validation";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
-import { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
+import {FastifyInstance, FastifyPluginAsync, FastifyPluginOptions, FastifyReply, FastifyRequest} from "fastify";
 import {
     BulkQuotePendingDTO,
     BulkQuoteQueryReceivedDTO,
@@ -73,9 +73,9 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
         super(producer, validator, jwsHelper, metrics, logger);
     }
 
-    public bindRoutes: FastifyPluginAsync = async (fastify) => {
-        // hook header validation from base class - MANDATORY for FSPIOP Routes
-        fastify.addHook("preHandler", this._preHandler.bind(this));
+    public async bindRoutes(fastify: FastifyInstance, options: FastifyPluginOptions): Promise<void>{
+        // bind common hooks like content-type validation and tracing extraction
+        this._addHooks(fastify);
 
         // GET Bulk Quote by ID
         fastify.get("/:id", this.bulkQuoteQueryReceived.bind(this));
@@ -88,7 +88,7 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
 
         // Errors
         fastify.put("/:id/error", this.bulkQuoteRejectRequest.bind(this));
-    };
+    }
 
     private async bulkQuoteQueryReceived(req: FastifyRequest<BulkQuoteQueryReceivedDTO>, reply: FastifyReply): Promise<void> {
         try {

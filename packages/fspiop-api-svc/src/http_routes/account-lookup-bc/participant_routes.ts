@@ -34,7 +34,7 @@
 
 "use strict";
 
-import { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
+import {FastifyInstance, FastifyPluginOptions, FastifyReply, FastifyRequest} from "fastify";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { Constants, FspiopJwsSignature, FspiopValidator, Transformer, ValidationdError } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {
@@ -51,7 +51,7 @@ import { FSPIOPErrorCodes } from "../validation";
 import { IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 import { BaseRoutesFastify } from "../_base_routerfastify";
-import { GetParticipantByTypeAndIdAndSubIdDTO, GetParticipantByTypeAndIdDTO, ParticipantByTypeAndIdAndSubIdRejectDTO, ParticipantByTypeAndIdRejectDTO } from "./participant_route_dto";
+import { GetParticipantByTypeAndIdAndSubIdDTO, GetParticipantByTypeAndIdDTO, ParticipantByTypeAndIdAndSubIdRejectDTO } from "./participant_route_dto";
 
 export class ParticipantRoutes extends BaseRoutesFastify {
 
@@ -65,9 +65,9 @@ export class ParticipantRoutes extends BaseRoutesFastify {
         super(producer, validator, jwsHelper, metrics, logger);
     }
 
-    public bindRoutes: FastifyPluginAsync = async (fastify) => {
-        // hook header validation from base class - MANDATORY for FSPIOP Routes
-        fastify.addHook("preHandler", this._preHandler.bind(this));
+    public async bindRoutes(fastify: FastifyInstance, options: FastifyPluginOptions): Promise<void>{
+        // bind common hooks like content-type validation and tracing extraction
+        this._addHooks(fastify);
 
         // POST Associate Party Party by Type & ID
         fastify.post("/:type/:id", this.associatePartyByTypeAndId.bind(this));
@@ -93,7 +93,7 @@ export class ParticipantRoutes extends BaseRoutesFastify {
 
         // PUT ERROR Participant by Type, ID & SubId
         fastify.put("/:type/:id/:subid/error", this.participantRequestByTypeAndIdAndSubIdReject.bind(this));
-    };
+    }
 
     private async getParticipantsByTypeAndID(req: FastifyRequest<GetParticipantByTypeAndIdDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got getParticipantsByTypeAndID request");
@@ -548,7 +548,7 @@ export class ParticipantRoutes extends BaseRoutesFastify {
             if(this._jwsHelper.isEnabled()) {
                 this._jwsHelper.validate(req.headers, req.body);
             }
-            
+
             const msgPayload: ParticipantRejectedEvtPayload = {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId,

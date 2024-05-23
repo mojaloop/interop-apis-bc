@@ -31,7 +31,6 @@ optionally within square brackets <email>.
 
 "use strict";
 import {existsSync} from "fs";
-import {Server} from "http";
 import {ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
 import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
 import {
@@ -73,13 +72,11 @@ import {GetParticipantsConfigs} from "./configset";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
 import PromClient from "prom-client";
-import {IMetrics, ITracing} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 import {PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-client-lib";
 import {FspiopJwsSignature} from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 
-import Fastify, {FastifyError, FastifyInstance, FastifyReply, FastifyRequest} from "fastify";
-import fastifyCors from "@fastify/cors";
-import fastifyFormbody from "@fastify/formbody";
+import Fastify, {FastifyInstance} from "fastify";
 import fastifyUnderPressure from "@fastify/under-pressure";
 import crypto from "crypto";
 import {OpenTelemetryClient} from "@mojaloop/platform-shared-lib-observability-client-lib";
@@ -87,7 +84,7 @@ import {OpenTelemetryClient} from "@mojaloop/platform-shared-lib-observability-c
 const metricsPlugin = require("fastify-metrics");
 
 
-const API_SPEC_FILE_PATH = process.env["API_SPEC_FILE_PATH"] || "../dist/api_spec.yaml";
+//const API_SPEC_FILE_PATH = process.env["API_SPEC_FILE_PATH"] || "../dist/api_spec.yaml";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJSON = require("../package.json");
@@ -101,21 +98,17 @@ const APP_VERSION = packageJSON.version;
 
 const SVC_DEFAULT_HTTP_PORT = 4001;
 
+// Message Consumer/Publisher
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
+const KAFKA_AUTH_ENABLED = process.env["KAFKA_AUTH_ENABLED"] && process.env["KAFKA_AUTH_ENABLED"].toUpperCase()==="TRUE" || false;
+const KAFKA_AUTH_PROTOCOL = process.env["KAFKA_AUTH_PROTOCOL"] || "sasl_plaintext";
+const KAFKA_AUTH_MECHANISM = process.env["KAFKA_AUTH_MECHANISM"] || "plain";
+const KAFKA_AUTH_USERNAME = process.env["KAFKA_AUTH_USERNAME"] || "user";
+const KAFKA_AUTH_PASSWORD = process.env["KAFKA_AUTH_PASSWORD"] || "password";
 
 const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
 const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || "/app/data/audit_private_key.pem";
-
-// Account Lookup
-const PARTICIPANTS_URL_RESOURCE_NAME = "participants";
-const PARTIES_URL_RESOURCE_NAME = "parties";
-// Quotes
-const QUOTES_URL_RESOURCE_NAME = "quotes";
-const BULK_QUOTES_URL_RESOURCE_NAME = "bulkQuotes";
-// Transfers
-const TRANSFERS_URL_RESOURCE_NAME = "transfers";
-const BULK_TRANSFERS_URL_RESOURCE_NAME = "bulkTransfers";
 
 const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "interop-api-bc-fspiop-api-svc";
 const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
@@ -139,9 +132,25 @@ const JWS_FILES_PATH = process.env["JWS_FILES_PATH"] || "/app/data/keys/";
 const CONSUMER_BATCH_SIZE = (process.env["CONSUMER_BATCH_SIZE"] && parseInt(process.env["CONSUMER_BATCH_SIZE"])) || 1;
 const CONSUMER_BATCH_TIMEOUT_MS = (process.env["CONSUMER_BATCH_TIMEOUT_MS"] && parseInt(process.env["CONSUMER_BATCH_TIMEOUT_MS"])) || 10;
 
+// kafka common options
+const kafkaProducerCommonOptions:MLKafkaJsonProducerOptions = {
+    kafkaBrokerList: KAFKA_URL,
+    producerClientId: `${INSTANCE_ID}`,
+};
+const kafkaConsumerCommonOptions:MLKafkaJsonConsumerOptions ={
+    kafkaBrokerList: KAFKA_URL
+};
+if(KAFKA_AUTH_ENABLED){
+    kafkaProducerCommonOptions.authentication = kafkaConsumerCommonOptions.authentication = {
+        protocol: KAFKA_AUTH_PROTOCOL as "plaintext" | "ssl" | "sasl_plaintext" | "sasl_ssl",
+        mechanism: KAFKA_AUTH_MECHANISM as "PLAIN" | "GSSAPI" | "SCRAM-SHA-256" | "SCRAM-SHA-512",
+        username: KAFKA_AUTH_USERNAME,
+        password: KAFKA_AUTH_PASSWORD
+    };
+}
 
 const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
-    kafkaBrokerList: KAFKA_URL,
+    ...kafkaProducerCommonOptions,
     producerClientId: `${BC_NAME}_${APP_NAME}`,
     skipAcknowledgements: false // never change this to true without understanding what it does
 };
@@ -167,7 +176,7 @@ let accountEvtHandler:AccountLookupEventHandler;
 let quotingEvtHandler:QuotingEventHandler;
 let transferEvtHandler:TransferEventHandler;
 
-type FspiopHttpRequestError = {
+/*type FspiopHttpRequestError = {
     name: string;
     statusCode: number;
     data: {
@@ -176,17 +185,16 @@ type FspiopHttpRequestError = {
         params: string;
         message: string;
     }[]
-}
+}*/
+
 export class Service {
     static logger: ILogger;
     static app: FastifyInstance;
-
     static participantService: IParticipantService;
     static auditClient: IAuditClient;
     static configClient: IConfigurationClient;
     static producer:IMessageProducer;
     static metrics: IMetrics;
-
     static startupTimer: NodeJS.Timeout;
 
     static async start(
@@ -221,7 +229,7 @@ export class Service {
             authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
 
             const messageConsumer = new MLKafkaJsonConsumer({
-                kafkaBrokerList: KAFKA_URL,
+                ...kafkaConsumerCommonOptions,
                 kafkaGroupId: `${APP_NAME}_${Date.now()}` // unique consumer group - use instance id when possible
             }, this.logger.createChild("configClient.consumer"));
             configProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer);
@@ -231,7 +239,6 @@ export class Service {
         await this.configClient.init();
         await this.configClient.bootstrap(true);
         await this.configClient.fetch();
-
 
         if(!auditClient) {
             if (!existsSync(AUDIT_KEY_FILE_PATH)) {
@@ -313,7 +320,7 @@ export class Service {
 
     static async setupEventHandlers(jwsHelper:FspiopJwsSignature):Promise<void>{
         const accountEvtHandlerConsumerOptions: MLKafkaJsonConsumerOptions = {
-            kafkaBrokerList: KAFKA_URL,
+            ...kafkaConsumerCommonOptions,
             kafkaGroupId: `${BC_NAME}_${APP_NAME}_AccountLookupEventHandler`,
             batchSize: CONSUMER_BATCH_SIZE,
             batchTimeoutMs: CONSUMER_BATCH_TIMEOUT_MS
@@ -330,7 +337,7 @@ export class Service {
         );
 
         const quotingEvtHandlerConsumerOptions: MLKafkaJsonConsumerOptions = {
-            kafkaBrokerList: KAFKA_URL,
+            ...kafkaConsumerCommonOptions,
             kafkaGroupId: `${BC_NAME}_${APP_NAME}_QuotingEventHandler`,
         };
 
@@ -345,7 +352,7 @@ export class Service {
         );
 
         const transferEvtHandlerConsumerOptions: MLKafkaJsonConsumerOptions = {
-            kafkaBrokerList: KAFKA_URL,
+            ...kafkaConsumerCommonOptions,
             kafkaGroupId: `${BC_NAME}_${APP_NAME}_TransferEventHandler`,
         };
 

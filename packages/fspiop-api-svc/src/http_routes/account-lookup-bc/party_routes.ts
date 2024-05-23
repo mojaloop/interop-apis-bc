@@ -34,7 +34,7 @@
 
 "use strict";
 
-import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
+import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {
     Constants,
     FspiopJwsSignature,
@@ -50,11 +50,12 @@ import {
     PartyRejectedEvt,
     PartyRejectedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { FSPIOPErrorCodes } from "../validation";
+import {FSPIOPErrorCodes} from "../validation";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
-import { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
-import { GetPartyByTypeAndIdAndSubIdQueryRejectDTO,
+import {FastifyInstance, FastifyPluginAsync, FastifyPluginOptions, FastifyReply, FastifyRequest} from "fastify";
+import {
+    GetPartyByTypeAndIdAndSubIdQueryRejectDTO,
     GetPartyByTypeAndIdQueryRejectDTO,
     GetPartyInfoAvailableByTypeAndIdAndSubIdDTO,
     GetPartyInfoAvailableByTypeAndIdDTO,
@@ -75,37 +76,37 @@ export class PartyRoutes extends BaseRoutesFastify {
         super(producer, validator, jwsHelper, metrics, logger);
     }
 
-    public bindRoutes: FastifyPluginAsync = async (fastify) => {
-        // hook header validation from base class - MANDATORY for FSPIOP Routes
-        fastify.addHook("preHandler", this._preHandler.bind(this));
+    public async bindRoutes(fastify: FastifyInstance, options: FastifyPluginOptions): Promise<void> {
+        // bind common hooks like content-type validation and tracing extraction
+        this._addHooks(fastify);
 
-            // GET Party by Type & ID
-            fastify.get("/:type/:id", this.getPartyQueryReceivedByTypeAndId.bind(this));
+        // GET Party by Type & ID
+        fastify.get("/:type/:id", this.getPartyQueryReceivedByTypeAndId.bind(this));
 
-            // GET Parties by Type, ID & SubId
-            fastify.get("/:type/:id/:subid", this.getPartyQueryReceivedByTypeAndIdSubId.bind(this));
+        // GET Parties by Type, ID & SubId
+        fastify.get("/:type/:id/:subid", this.getPartyQueryReceivedByTypeAndIdSubId.bind(this));
 
-            // PUT ERROR Party by Type & ID
-            fastify.put("/:type/:id/error", this.getPartyByTypeAndIdQueryReject.bind(this));
+        // PUT ERROR Party by Type & ID
+        fastify.put("/:type/:id/error", this.getPartyByTypeAndIdQueryReject.bind(this));
 
-            // PUT ERROR Parties by Type, ID & SubId
-            fastify.put("/:type/:id/:subid/error", this.getPartyByTypeAndIdAndSubIdQueryReject.bind(this));
+        // PUT ERROR Parties by Type, ID & SubId
+        fastify.put("/:type/:id/:subid/error", this.getPartyByTypeAndIdAndSubIdQueryReject.bind(this));
 
-            // PUT Party by Type & ID
-            fastify.put("/:type/:id", this.getPartyInfoAvailableByTypeAndId.bind(this));
+        // PUT Party by Type & ID
+        fastify.put("/:type/:id", this.getPartyInfoAvailableByTypeAndId.bind(this));
 
-            // PUT Parties by Type, ID & SubId
-            fastify.put("/:type/:id/:subid", this.getPartyInfoAvailableByTypeAndIdAndSubId.bind(this));
-            // next();
+        // PUT Parties by Type, ID & SubId
+        fastify.put("/:type/:id/:subid", this.getPartyInfoAvailableByTypeAndIdAndSubId.bind(this));
+        // next();
         // });
-    };
+    }
 
     private async getPartyQueryReceivedByTypeAndId(req: FastifyRequest<GetPartyQueryReceivedByTypeAndIdDTO>, reply: FastifyReply): Promise<void> {
-        const mainTimer = this._histogram.startTimer({ callName: "getPartyQueryReceivedByTypeAndId"});
+        const mainTimer = this._histogram.startTimer({callName: "getPartyQueryReceivedByTypeAndId"});
         this.logger.debug("Got getPartyQueryReceivedByTypeAndId request");
 
         try {
-            const clonedHeaders = { ...req.headers };
+            const clonedHeaders = {...req.headers};
             const type = req.params["type"] as string || null;
             const id = req.params["id"] as string || null;
             const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
@@ -119,18 +120,18 @@ export class PartyRoutes extends BaseRoutesFastify {
                     extensionList: null
                 });
 
-                mainTimer({success:"false"});
+                mainTimer({success: "false"});
                 reply.code(400).send(transformError);
                 return;
             }
 
-            if(currency) {
-                const currencyTimer = this._histogram.startTimer({ callName: "getPartyInfoAvailableByTypeAndId - currency"});
+            if (currency) {
+                const currencyTimer = this._histogram.startTimer({callName: "getPartyInfoAvailableByTypeAndId - currency"});
                 this._validator.currencyAndAmount({
                     currency: currency,
                     amount: null
                 });
-                currencyTimer({success:"true"});
+                currencyTimer({success: "true"});
             }
 
             const msgPayload: PartyQueryReceivedEvtPayload = {
@@ -160,10 +161,10 @@ export class PartyRoutes extends BaseRoutesFastify {
 
             reply.code(202).send(null);
 
-            const took = mainTimer({success:"true"});
+            const took = mainTimer({success: "true"});
             this.logger.debug(`getPartyQueryReceivedByTypeAndId responded - took: ${took}`);
         } catch (error: unknown) {
-            if(error instanceof ValidationdError) {
+            if (error instanceof ValidationdError) {
                 reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
@@ -173,17 +174,17 @@ export class PartyRoutes extends BaseRoutesFastify {
                 });
                 reply.code(500).send(transformError);
             }
-            mainTimer({success:"false"});
+            mainTimer({success: "false"});
             return;
         }
     }
 
     private async getPartyQueryReceivedByTypeAndIdSubId(req: FastifyRequest<GetPartyQueryReceivedByTypeAndIdSubIdDTO>, reply: FastifyReply): Promise<void> {
-        const mainTimer = this._histogram.startTimer({ callName: "getPartyQueryReceivedByTypeAndIdSubId"});
+        const mainTimer = this._histogram.startTimer({callName: "getPartyQueryReceivedByTypeAndIdSubId"});
         this.logger.debug("Got getPartyQueryReceivedByTypeAndIdSubId request");
 
         try {
-            const clonedHeaders = { ...req.headers };
+            const clonedHeaders = {...req.headers};
             const type = req.params["type"] as string || null;
             const id = req.params["id"] as string || null;
             const partySubIdOrType = req.params["subid"] as string || null;
@@ -199,11 +200,11 @@ export class PartyRoutes extends BaseRoutesFastify {
                 });
 
                 reply.code(400).send(transformError);
-                mainTimer({success:"false"});
+                mainTimer({success: "false"});
                 return;
             }
 
-            if(currency) {
+            if (currency) {
                 this._validator.currencyAndAmount({
                     currency: currency,
                     amount: null
@@ -234,10 +235,10 @@ export class PartyRoutes extends BaseRoutesFastify {
 
             reply.code(202).send(null);
 
-            const took = mainTimer({success:"true"});
+            const took = mainTimer({success: "true"});
             this.logger.debug(`getPartyQueryReceivedByTypeAndIdSubId responded - took: ${took}`);
         } catch (error: unknown) {
-            if(error instanceof ValidationdError) {
+            if (error instanceof ValidationdError) {
                 reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
@@ -247,19 +248,19 @@ export class PartyRoutes extends BaseRoutesFastify {
                 });
                 reply.code(500).send(transformError);
             }
-            mainTimer({success:"false"});
+            mainTimer({success: "false"});
             return;
         }
     }
 
 
     private async getPartyInfoAvailableByTypeAndId(req: FastifyRequest<GetPartyInfoAvailableByTypeAndIdDTO>, reply: FastifyReply): Promise<void> {
-        const mainTimer = this._histogram.startTimer({ callName: "getPartyInfoAvailableByTypeAndId"});
+        const mainTimer = this._histogram.startTimer({callName: "getPartyInfoAvailableByTypeAndId"});
         this.logger.debug("Got getPartyInfoAvailableByTypeAndId request");
 
         try {
-            const headersTimer = this._histogram.startTimer({ callName: "getPartyInfoAvailableByTypeAndId - headers"});
-            const clonedHeaders = { ...req.headers };
+            const headersTimer = this._histogram.startTimer({callName: "getPartyInfoAvailableByTypeAndId - headers"});
+            const clonedHeaders = {...req.headers};
             const type = req.params["type"] as string || null;
             const id = req.params["id"] as string || null;
             const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
@@ -276,7 +277,7 @@ export class PartyRoutes extends BaseRoutesFastify {
             const kycInfo = req.body.party.personalInfo["kycInformation"] || null;
             const supportedCurrencies = req.body.party["supportedCurrencies"] || null;
 
-            headersTimer({success:"true"});
+            headersTimer({success: "true"});
 
             if (!type || !id || !requesterFspId || !ownerFspId) {
                 const transformError = Transformer.transformPayloadError({
@@ -286,20 +287,20 @@ export class PartyRoutes extends BaseRoutesFastify {
                 });
 
                 reply.code(400).send(transformError);
-                mainTimer({success:"false"});
+                mainTimer({success: "false"});
                 return;
             }
 
-            if(currency) {
-                const currencyTimer = this._histogram.startTimer({ callName: "getPartyInfoAvailableByTypeAndId - currency"});
+            if (currency) {
+                const currencyTimer = this._histogram.startTimer({callName: "getPartyInfoAvailableByTypeAndId - currency"});
                 this._validator.currencyAndAmount({
                     currency: currency,
                     amount: null
                 });
-                currencyTimer({success:"true"});
+                currencyTimer({success: "true"});
             }
 
-            if(this._jwsHelper.isEnabled()) {
+            if (this._jwsHelper.isEnabled()) {
                 this._jwsHelper.validate(req.headers, req.body);
             }
 
@@ -338,10 +339,10 @@ export class PartyRoutes extends BaseRoutesFastify {
 
             reply.code(202).send(null);
 
-            const took = mainTimer({success:"true"});
+            const took = mainTimer({success: "true"});
             this.logger.debug(`getPartyInfoAvailableByTypeAndId responded - took ${took}`);
         } catch (error: unknown) {
-            if(error instanceof ValidationdError) {
+            if (error instanceof ValidationdError) {
                 reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
@@ -351,17 +352,17 @@ export class PartyRoutes extends BaseRoutesFastify {
                 });
                 reply.code(500).send(transformError);
             }
-            mainTimer({success:"false"});
+            mainTimer({success: "false"});
             return;
         }
     }
 
     private async getPartyInfoAvailableByTypeAndIdAndSubId(req: FastifyRequest<GetPartyInfoAvailableByTypeAndIdAndSubIdDTO>, reply: FastifyReply): Promise<void> {
-            const mainTimer = this._histogram.startTimer({ callName: "getPartyInfoAvailableByTypeAndIdAndSubId"});
+        const mainTimer = this._histogram.startTimer({callName: "getPartyInfoAvailableByTypeAndIdAndSubId"});
         this.logger.debug("Got getPartyInfoAvailableByTypeAndIdAndSubId request");
 
         try {
-            const clonedHeaders = { ...req.headers };
+            const clonedHeaders = {...req.headers};
             const type = req.params["type"] as string || null;
             const id = req.params["id"] as string || null;
             const partySubIdOrType = req.params["subid"] as string || null;
@@ -387,18 +388,18 @@ export class PartyRoutes extends BaseRoutesFastify {
                 });
 
                 reply.code(400).send(transformError);
-                mainTimer({success:"false"});
+                mainTimer({success: "false"});
                 return;
             }
 
-            if(currency) {
+            if (currency) {
                 this._validator.currencyAndAmount({
                     currency: currency,
                     amount: null
                 });
             }
 
-            if(this._jwsHelper.isEnabled()) {
+            if (this._jwsHelper.isEnabled()) {
                 this._jwsHelper.validate(req.headers, req.body);
             }
 
@@ -436,10 +437,10 @@ export class PartyRoutes extends BaseRoutesFastify {
 
             reply.code(202).send(null);
 
-            const took = mainTimer({success:"true"});
+            const took = mainTimer({success: "true"});
             this.logger.debug(`getPartyInfoAvailableByTypeAndIdAndSubId responded - took ${took}`);
         } catch (error: unknown) {
-            if(error instanceof ValidationdError) {
+            if (error instanceof ValidationdError) {
                 reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
@@ -449,18 +450,18 @@ export class PartyRoutes extends BaseRoutesFastify {
                 });
                 reply.code(500).send(transformError);
             }
-            mainTimer({success:"false"});
+            mainTimer({success: "false"});
             return;
         }
     }
 
     private async getPartyByTypeAndIdQueryReject(req: FastifyRequest<GetPartyByTypeAndIdQueryRejectDTO>, reply: FastifyReply): Promise<void> {
-            const mainTimer = this._histogram.startTimer({ callName: "getPartyByTypeAndIdQueryReject"});
+        const mainTimer = this._histogram.startTimer({callName: "getPartyByTypeAndIdQueryReject"});
         this.logger.debug("Got getPartyByTypeAndIdQueryReject request");
 
         try {
             // Headers
-            const clonedHeaders = { ...req.headers };
+            const clonedHeaders = {...req.headers};
             const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
 
@@ -478,18 +479,18 @@ export class PartyRoutes extends BaseRoutesFastify {
                 });
 
                 reply.code(400).send(transformError);
-                mainTimer({success:"false"});
+                mainTimer({success: "false"});
                 return;
             }
 
-            if(currency) {
+            if (currency) {
                 this._validator.currencyAndAmount({
                     currency: currency,
                     amount: null
                 });
             }
 
-            if(this._jwsHelper.isEnabled()) {
+            if (this._jwsHelper.isEnabled()) {
                 this._jwsHelper.validate(req.headers, req.body);
             }
             const msgPayload: PartyRejectedEvtPayload = {
@@ -518,10 +519,10 @@ export class PartyRoutes extends BaseRoutesFastify {
 
             reply.code(202).send(null);
 
-            const took = mainTimer({success:"true"});
+            const took = mainTimer({success: "true"});
             this.logger.debug(`getPartyByTypeAndIdQueryReject responded - took: ${took}`);
         } catch (error: unknown) {
-            if(error instanceof ValidationdError) {
+            if (error instanceof ValidationdError) {
                 reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
@@ -531,18 +532,18 @@ export class PartyRoutes extends BaseRoutesFastify {
                 });
                 reply.code(500).send(transformError);
             }
-            mainTimer({success:"false"});
+            mainTimer({success: "false"});
             return;
         }
     }
 
     private async getPartyByTypeAndIdAndSubIdQueryReject(req: FastifyRequest<GetPartyByTypeAndIdAndSubIdQueryRejectDTO>, reply: FastifyReply): Promise<void> {
-        const mainTimer = this._histogram.startTimer({ callName: "getPartyByTypeAndIdAndSubIdQueryReject"});
+        const mainTimer = this._histogram.startTimer({callName: "getPartyByTypeAndIdAndSubIdQueryReject"});
         this.logger.debug("Got getPartyByTypeAndIdAndSubIdQueryReject request");
 
         try {
             // Headers
-            const clonedHeaders = { ...req.headers };
+            const clonedHeaders = {...req.headers};
             const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
 
@@ -561,18 +562,18 @@ export class PartyRoutes extends BaseRoutesFastify {
                 });
 
                 reply.code(400).send(transformError);
-                mainTimer({success:"false"});
+                mainTimer({success: "false"});
                 return;
             }
 
-            if(currency) {
+            if (currency) {
                 this._validator.currencyAndAmount({
                     currency: currency,
                     amount: null
                 });
             }
 
-            if(this._jwsHelper.isEnabled()) {
+            if (this._jwsHelper.isEnabled()) {
                 this._jwsHelper.validate(req.headers, req.body);
             }
 
@@ -602,10 +603,10 @@ export class PartyRoutes extends BaseRoutesFastify {
 
             reply.code(202).send(null);
 
-            const took = mainTimer({success:"true"});
+            const took = mainTimer({success: "true"});
             this.logger.debug(`getPartyByTypeAndIdAndSubIdQueryReject responded - took: ${took}`);
         } catch (error: unknown) {
-            if(error instanceof ValidationdError) {
+            if (error instanceof ValidationdError) {
                 reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
@@ -615,7 +616,7 @@ export class PartyRoutes extends BaseRoutesFastify {
                 });
                 reply.code(500).send(transformError);
             }
-            mainTimer({success:"false"});
+            mainTimer({success: "false"});
             return;
         }
     }

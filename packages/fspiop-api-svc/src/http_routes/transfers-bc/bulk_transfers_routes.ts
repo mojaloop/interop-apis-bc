@@ -54,7 +54,7 @@ import { FSPIOPErrorCodes } from "../validation";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
-import { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
+import {FastifyInstance, FastifyPluginAsync, FastifyPluginOptions, FastifyReply, FastifyRequest} from "fastify";
 import {
     BulkTransferFulfilRequestedDTO,
     BulkTransferPrepareRequestDTO,
@@ -75,9 +75,9 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
         super(producer, validator, jwsHelper, metrics, logger);
     }
 
-    public bindRoutes: FastifyPluginAsync = async (fastify) => {
-        // hook header validation from base class - MANDATORY for FSPIOP Routes
-        fastify.addHook("preHandler", this._preHandler.bind(this));
+    public async bindRoutes(fastify: FastifyInstance, options: FastifyPluginOptions): Promise<void>{
+        // bind common hooks like content-type validation and tracing extraction
+        this._addHooks(fastify);
 
         // GET Bulk Transfers by ID
         fastify.get("/:id", this.bulkTransferQueryReceived.bind(this));
@@ -90,7 +90,7 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
 
         // Errors
         fastify.put("/:id/error", this.bulkTransfersRejectRequest.bind(this));
-    };
+    }
 
     private async bulkTransferQueryReceived(req: FastifyRequest<BulkTransferQueryReceivedDTO>, reply: FastifyReply): Promise<void> {
         this.logger.debug("Got bulkTransferQueryReceived request");
@@ -297,8 +297,7 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
             reply.code(202).send(null);
 
             this.logger.debug("bulkTransferFulfilRequested responded");
-        }
-        catch (error: unknown) {
+        } catch (error: unknown) {
             const transformError = Transformer.transformPayloadError({
                 errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                 errorDescription: (error as Error).message,
@@ -359,8 +358,7 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
             });
 
             this.logger.debug("bulk transfer rejected responded");
-        }
-        catch (error: unknown) {
+        } catch (error: unknown) {
             const transformError = Transformer.transformPayloadError({
                 errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                 errorDescription: (error as Error).message,
