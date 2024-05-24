@@ -76,9 +76,28 @@ let metricsMock:IMetrics;
 
 jest.setTimeout(10000);
 
+jest.mock("@mojaloop/platform-shared-lib-observability-client-lib", () => {
+    const originalModule = jest.requireActual("@mojaloop/platform-shared-lib-observability-client-lib");
+
+    return {
+        ...originalModule,
+        OpenTelemetryClient: {
+            getInstance: jest.fn(() => ({
+                getTracer: jest.fn((tracer, spanName, input) => {
+                    return {
+                        startActiveSpan: jest.fn((spanName, spanOptions, ctx, span) => {
+                            return;
+                        }), 
+                    }
+                }),
+                propagationExtract: jest.fn()
+            })),
+        },
+    };
+});
+
 describe("FSPIOP Routes - Participant", () => {
     let app: FastifyInstance;
-    let fastifyServer: FastifyInstance;
     let participantRoutes: ParticipantRoutes;
     let logger: ILogger;
     let authTokenUrl: string;
@@ -133,7 +152,8 @@ describe("FSPIOP Routes - Participant", () => {
         metricsMock = new MemoryMetric(logger);
 
         participantRoutes = new ParticipantRoutes(producer, routeValidatorMock, jwsHelperMock, metricsMock, logger);
-        app.register(participantRoutes.bindRoutes, { prefix: `/${PARTICIPANTS_URL_RESOURCE_NAME}` }); 
+        participantRoutes.init();
+        app.register(participantRoutes.bindRoutes.bind(participantRoutes), { prefix: `/${PARTICIPANTS_URL_RESOURCE_NAME}` });
 
         let portNum = SVC_DEFAULT_HTTP_PORT as number;
         app.listen({ port: portNum }, () => {
@@ -141,9 +161,6 @@ describe("FSPIOP Routes - Participant", () => {
             console.log(`FSPIOP-API-SVC Service started, version: ${APP_VERSION}`);
         });
 
-        fastifyServer = app;
-
-        jest.spyOn(participantRoutes, "init").mockImplementation(jest.fn());
         jest.spyOn(logger, "debug").mockImplementation(jest.fn());
 
         await participantRoutes.init();
@@ -154,8 +171,7 @@ describe("FSPIOP Routes - Participant", () => {
         jest.clearAllMocks();
         await producer.destroy();
         await participantRoutes.destroy();
-
-        await fastifyServer.close()
+        await app.close()
     });
 
 

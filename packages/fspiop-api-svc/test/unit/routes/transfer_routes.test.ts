@@ -44,7 +44,7 @@ import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-li
 import fastify, { FastifyInstance, FastifyRequest } from "fastify";
 import { fastifyCors } from "@fastify/cors";
 import { fastifyFormbody } from "@fastify/formbody";
-import { IMetrics } from "@mojaloop/platform-shared-lib-observability-types-lib";
+import { IMetrics, Span } from "@mojaloop/platform-shared-lib-observability-types-lib";
 
 const packageJSON = require("../../../package.json");
 
@@ -70,10 +70,11 @@ const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
 const pathWithId = `/${Enums.EntityTypeEnum.TRANSFERS}/2243fdbe-5dea-3abd-a210-3780e7f2f1f4`;
 const pathWithoutId = `/${Enums.EntityTypeEnum.TRANSFERS}`;
 
-let configClientMock: IConfigurationClient;
 let jwsHelperMock: FspiopJwsSignature;
 let routeValidatorMock: FspiopValidator;
 let metricsMock:IMetrics;
+
+jest.setTimeout(10000);
 
 jest.mock("@mojaloop/platform-shared-lib-observability-client-lib", () => {
     const originalModule = jest.requireActual("@mojaloop/platform-shared-lib-observability-client-lib");
@@ -82,50 +83,36 @@ jest.mock("@mojaloop/platform-shared-lib-observability-client-lib", () => {
         ...originalModule,
         OpenTelemetryClient: {
             getInstance: jest.fn(() => ({
-                getTracer: jest.fn(() => ({
-
-                })),
-                startSpanWithPropagationInput: jest.fn((tracer, spanName, input) => {
+                getTracer: jest.fn((tracer, spanName, input) => {
                     return {
-                        setAttributes: jest.fn((tracer, spanName, input) => {
-                        }),
+                        startActiveSpan: jest.fn((spanName, spanOptions, ctx, span) => {
+                            return;
+                        }), 
+                    }
+                }),
+                propagationExtract: jest.fn(),
+                getActiveSpan: jest.fn(() => {
+                    return {
+                        setAttributes: jest.fn((options) => {
+                            return;
+                        }), 
                         setStatus: jest.fn(() => {
                             return {
                                 end: jest.fn()
                             }
                         }),
                         setAttribute: jest.fn(),
-                        end: jest.fn()
                     }
                 }),
-                startChildSpan: jest.fn(() => {
-                    return {
-                        setAttribute: jest.fn(),
-                        end: jest.fn()
-                    }
-                }),
-                startSpan: jest.fn(() => {
-                    return {
-                        setAttribute: jest.fn(),
-                        end: jest.fn()
-                    }
-                }),
-                propagationInject: jest.fn()
-            })),
-        },
-        PrometheusMetrics: {
-            Setup: jest.fn(() => ({
-             
+                startChildSpan: jest.fn(),
+                propagationInject: jest.fn(),
             })),
         },
     };
 });
 
-jest.setTimeout(10000);
-
 describe("FSPIOP Routes - Unit Tests Transfer", () => {
     let app: FastifyInstance;
-    let fastifyServer: FastifyInstance;
     let transferRoutes: TransfersRoutes;
     let logger: ILogger;
     let authTokenUrl: string;
@@ -169,7 +156,6 @@ describe("FSPIOP Routes - Unit Tests Transfer", () => {
             LOGLEVEL
         );
         authTokenUrl = "mocked_auth_url";
-        configClientMock = new MemoryConfigClientMock(logger, authTokenUrl);
 
         producer = new MLKafkaJsonProducer(kafkaJsonProducerOptions);
         
@@ -180,18 +166,15 @@ describe("FSPIOP Routes - Unit Tests Transfer", () => {
         metricsMock = new MemoryMetric(logger);
 
         transferRoutes = new TransfersRoutes(producer, routeValidatorMock, jwsHelperMock, metricsMock, logger);
-
-        app.register(transferRoutes.bindRoutes, { prefix: `/${TRANSFERS_URL_RESOURCE_NAME}` }); 
+        transferRoutes.init();
+        app.register(transferRoutes.bindRoutes.bind(transferRoutes), { prefix: `/${TRANSFERS_URL_RESOURCE_NAME}` });
 
         let portNum = SVC_DEFAULT_HTTP_PORT as number;
-        app.listen({ port: portNum, host: "localhost" }, () => {
+        app.listen({ port: portNum }, () => {
             console.log(`🚀 Server ready at: http://localhost:${portNum}`);
             console.log(`FSPIOP-API-SVC Service started, version: ${APP_VERSION}`);
         });
 
-        fastifyServer = app;
-
-        jest.spyOn(transferRoutes, "init").mockImplementation(jest.fn());
         jest.spyOn(logger, "debug").mockImplementation(jest.fn());
 
         await transferRoutes.init();
@@ -203,7 +186,7 @@ describe("FSPIOP Routes - Unit Tests Transfer", () => {
 
         await producer.destroy();
         await transferRoutes.destroy();
-        await fastifyServer.close()
+        await app.close()
     });
 
 

@@ -76,9 +76,28 @@ let metricsMock:IMetrics;
 
 jest.setTimeout(10000);
 
+jest.mock("@mojaloop/platform-shared-lib-observability-client-lib", () => {
+    const originalModule = jest.requireActual("@mojaloop/platform-shared-lib-observability-client-lib");
+
+    return {
+        ...originalModule,
+        OpenTelemetryClient: {
+            getInstance: jest.fn(() => ({
+                getTracer: jest.fn((tracer, spanName, input) => {
+                    return {
+                        startActiveSpan: jest.fn((spanName, spanOptions, ctx, span) => {
+                            return;
+                        }), 
+                    }
+                }),
+                propagationExtract: jest.fn()
+            })),
+        },
+    };
+});
+
 describe("FSPIOP Routes - Unit Tests Bulk Transfer", () => {
     let app: FastifyInstance;
-    let fastifyServer: FastifyInstance;
     let bulkTransferRoutes: TransfersBulkRoutes;
     let logger: ILogger;
     let authTokenUrl: string;
@@ -131,9 +150,10 @@ describe("FSPIOP Routes - Unit Tests Bulk Transfer", () => {
         jwsHelperMock = getJwsConfig();
 
         metricsMock = new MemoryMetric(logger);
-        
+
         bulkTransferRoutes = new TransfersBulkRoutes(producer, routeValidatorMock, jwsHelperMock, metricsMock, logger);
-        app.register(bulkTransferRoutes.bindRoutes, { prefix: `/${BULK_TRANSFERS_URL_RESOURCE_NAME}` }); 
+        bulkTransferRoutes.init();
+        app.register(bulkTransferRoutes.bindRoutes.bind(bulkTransferRoutes), { prefix: `/${BULK_TRANSFERS_URL_RESOURCE_NAME}` });
 
         let portNum = SVC_DEFAULT_HTTP_PORT as number;
         app.listen({ port: portNum }, () => {
@@ -141,13 +161,11 @@ describe("FSPIOP Routes - Unit Tests Bulk Transfer", () => {
             console.log(`FSPIOP-API-SVC Service started, version: ${APP_VERSION}`);
         });
 
-        fastifyServer = app;
-
-        jest.spyOn(bulkTransferRoutes, "init").mockImplementation(jest.fn());
         jest.spyOn(logger, "debug").mockImplementation(jest.fn());
 
         await bulkTransferRoutes.init();
     });
+
 
 
     afterAll(async () => {
@@ -155,7 +173,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Transfer", () => {
 
         await producer.destroy();
         await bulkTransferRoutes.destroy();
-        await fastifyServer.close()
+        await app.close()
     });
 
 

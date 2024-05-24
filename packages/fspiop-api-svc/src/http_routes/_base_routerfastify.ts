@@ -118,7 +118,7 @@ export abstract class BaseRoutesFastify {
         throw new Error("invalid Span in BaseRoutesFastify");
     }
 
-    protected _preHandlerTracing(request: FastifyRequest<GetParticipantByTypeAndIdDTO>, reply: FastifyReply, done:()=>void): void {
+    protected async _preHandlerTracing(request: FastifyRequest<GetParticipantByTypeAndIdDTO>, reply: FastifyReply): Promise<void> {
         // try to get a tracing context from headers
         const ctx = OpenTelemetryClient.getInstance().propagationExtract(request.headers);
 
@@ -132,10 +132,10 @@ export abstract class BaseRoutesFastify {
 
         // call the continuation chain with the active span/context set
         this._tracer.startActiveSpan(spanName, spanOptions, ctx, span => {
-            done();
             span.end();
         });
 
+        return;
     }
 
     // common header validation to be hooked by adding "fastify.addHook("preHandler", this._preHandler.bind(this));"

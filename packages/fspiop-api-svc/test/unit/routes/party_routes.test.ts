@@ -76,9 +76,28 @@ let metricsMock:IMetrics;
 
 jest.setTimeout(10000);
 
+jest.mock("@mojaloop/platform-shared-lib-observability-client-lib", () => {
+    const originalModule = jest.requireActual("@mojaloop/platform-shared-lib-observability-client-lib");
+
+    return {
+        ...originalModule,
+        OpenTelemetryClient: {
+            getInstance: jest.fn(() => ({
+                getTracer: jest.fn((tracer, spanName, input) => {
+                    return {
+                        startActiveSpan: jest.fn((spanName, spanOptions, ctx, span) => {
+                            return;
+                        }), 
+                    }
+                }),
+                propagationExtract: jest.fn()
+            })),
+        },
+    };
+});
+ 
 describe("FSPIOP Routes - Unit Tests Party", () => {
     let app: FastifyInstance;
-    let fastifyServer: FastifyInstance;
     let partyRoutes: PartyRoutes;
     let logger: ILogger;
     let authTokenUrl: string;
@@ -133,7 +152,8 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
         metricsMock = new MemoryMetric(logger);
 
         partyRoutes = new PartyRoutes(producer, routeValidatorMock, jwsHelperMock, metricsMock, logger);
-        app.register(partyRoutes.bindRoutes, { prefix: `/${PARTIES_URL_RESOURCE_NAME}` }); 
+        partyRoutes.init();
+        app.register(partyRoutes.bindRoutes.bind(partyRoutes), { prefix: `/${PARTIES_URL_RESOURCE_NAME}` });
 
         let portNum = SVC_DEFAULT_HTTP_PORT as number;
         app.listen({ port: portNum }, () => {
@@ -141,9 +161,6 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
             console.log(`FSPIOP-API-SVC Service started, version: ${APP_VERSION}`);
         });
 
-        fastifyServer = app;
-
-        jest.spyOn(partyRoutes, "init").mockImplementation(jest.fn());
         jest.spyOn(logger, "debug").mockImplementation(jest.fn());
 
         await partyRoutes.init();
@@ -155,7 +172,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
 
         await producer.destroy();
         await partyRoutes.destroy();
-        await fastifyServer.close()
+        await app.close()
     });
 
 

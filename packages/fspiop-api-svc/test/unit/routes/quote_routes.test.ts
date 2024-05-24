@@ -70,16 +70,34 @@ const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
 const pathWithId = `/${Enums.EntityTypeEnum.QUOTES}/2243fdbe-5dea-3abd-a210-3780e7f2f1f4`;
 const pathWithoutId = `/${Enums.EntityTypeEnum.QUOTES}`;
 
-let configClientMock: IConfigurationClient;
 let jwsHelperMock: FspiopJwsSignature;
 let routeValidatorMock: FspiopValidator;
 let metricsMock:IMetrics;
 
 jest.setTimeout(10000);
 
+jest.mock("@mojaloop/platform-shared-lib-observability-client-lib", () => {
+    const originalModule = jest.requireActual("@mojaloop/platform-shared-lib-observability-client-lib");
+
+    return {
+        ...originalModule,
+        OpenTelemetryClient: {
+            getInstance: jest.fn(() => ({
+                getTracer: jest.fn((tracer, spanName, input) => {
+                    return {
+                        startActiveSpan: jest.fn((spanName, spanOptions, ctx, span) => {
+                            return;
+                        }), 
+                    }
+                }),
+                propagationExtract: jest.fn()
+            })),
+        },
+    };
+});
+
 describe("FSPIOP Routes - Unit Tests Quote", () => {
     let app: FastifyInstance;
-    let fastifyServer: FastifyInstance;
     let quoteRoutes: QuoteRoutes;
     let logger: ILogger;
     let authTokenUrl: string;
@@ -123,7 +141,6 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
             LOGLEVEL
         );
         authTokenUrl = "mocked_auth_url";
-        configClientMock = new MemoryConfigClientMock(logger, authTokenUrl);
 
         producer = new MLKafkaJsonProducer(kafkaJsonProducerOptions);
         
@@ -134,7 +151,8 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
         metricsMock = new MemoryMetric(logger);
 
         quoteRoutes = new QuoteRoutes(producer, routeValidatorMock, jwsHelperMock, metricsMock, logger);
-        app.register(quoteRoutes.bindRoutes, { prefix: `/${QUOTES_URL_RESOURCE_NAME}` }); 
+        quoteRoutes.init();
+        app.register(quoteRoutes.bindRoutes.bind(quoteRoutes), { prefix: `/${QUOTES_URL_RESOURCE_NAME}` });
 
         let portNum = SVC_DEFAULT_HTTP_PORT as number;
         app.listen({ port: portNum }, () => {
@@ -142,9 +160,6 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
             console.log(`FSPIOP-API-SVC Service started, version: ${APP_VERSION}`);
         });
 
-        fastifyServer = app;
-
-        jest.spyOn(quoteRoutes, "init").mockImplementation(jest.fn());
         jest.spyOn(logger, "debug").mockImplementation(jest.fn());
 
         await quoteRoutes.init();
@@ -156,7 +171,7 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
 
         await producer.destroy();
         await quoteRoutes.destroy();
-        await fastifyServer.close()
+        await app.close()
     });
 
 

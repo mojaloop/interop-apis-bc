@@ -77,6 +77,26 @@ let metricsMock:IMetrics;
 
 jest.setTimeout(10000);
 
+jest.mock("@mojaloop/platform-shared-lib-observability-client-lib", () => {
+    const originalModule = jest.requireActual("@mojaloop/platform-shared-lib-observability-client-lib");
+
+    return {
+        ...originalModule,
+        OpenTelemetryClient: {
+            getInstance: jest.fn(() => ({
+                getTracer: jest.fn((tracer, spanName, input) => {
+                    return {
+                        startActiveSpan: jest.fn((spanName, spanOptions, ctx, span) => {
+                            return;
+                        }), 
+                    }
+                }),
+                propagationExtract: jest.fn()
+            })),
+        },
+    };
+});
+
 describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
     let app: FastifyInstance;
     let bulkQuoteRoutes: QuoteBulkRoutes;
@@ -133,7 +153,8 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         metricsMock = new MemoryMetric(logger);
 
         bulkQuoteRoutes = new QuoteBulkRoutes(producer, routeValidatorMock, jwsHelperMock, metricsMock, logger);
-        app.register(bulkQuoteRoutes.bindRoutes, { prefix: `/${BULK_QUOTES_URL_RESOURCE_NAME}` }); 
+        bulkQuoteRoutes.init();
+        app.register(bulkQuoteRoutes.bindRoutes.bind(bulkQuoteRoutes), { prefix: `/${BULK_QUOTES_URL_RESOURCE_NAME}` });
 
         let portNum = SVC_DEFAULT_HTTP_PORT as number;
         app.listen({ port: portNum }, () => {
@@ -141,12 +162,10 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
             console.log(`FSPIOP-API-SVC Service started, version: ${APP_VERSION}`);
         });
 
-        jest.spyOn(bulkQuoteRoutes, "init").mockImplementation(jest.fn());
         jest.spyOn(logger, "debug").mockImplementation(jest.fn());
 
         await bulkQuoteRoutes.init();
     });
-
 
     afterAll(async () => {
         jest.clearAllMocks();
@@ -155,7 +174,6 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
         await bulkQuoteRoutes.destroy();
         await app.close()
     });
-
 
     it("should give a bad request calling bulkQuoteQueryReceived endpoint", async () => {
         // Arrange & Act
