@@ -93,7 +93,7 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
     }
 
     private async bulkTransferQueryReceived(req: FastifyRequest<BulkTransferQueryReceivedDTO>, reply: FastifyReply): Promise<void> {
-        this.logger.debug("Got bulkTransferQueryReceived request");
+        this._logger.debug("Got bulkTransferQueryReceived request");
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
@@ -130,13 +130,13 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
                 headers: clonedHeaders
             };
 
-            await this.kafkaProducer.send(msg);
+            await this._kafkaProducer.send(msg);
 
-            this.logger.debug("bulkTransferQueryReceived sent message");
+            this._logger.debug("bulkTransferQueryReceived sent message");
 
             reply.code(202).send(null);
 
-            this.logger.debug("bulkTransferQueryReceived responded");
+            this._logger.debug("bulkTransferQueryReceived responded");
 
         } catch (error: unknown) {
             const transformError = Transformer.transformPayloadError({
@@ -149,7 +149,7 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
     }
 
     private async bulkTransferPrepareRequest(req: FastifyRequest<BulkTransferPrepareRequestDTO>, reply: FastifyReply): Promise<void> {
-        this.logger.debug("Got bulkTransfersRequest request");
+        this._logger.debug("Got bulkTransfersRequest request");
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
@@ -218,13 +218,13 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
                 headers: clonedHeaders
             };
 
-            await this.kafkaProducer.send(msg);
+            await this._kafkaProducer.send(msg);
 
-            this.logger.debug("bulkTransfersRequest sent message");
+            this._logger.debug("bulkTransfersRequest sent message");
 
             reply.code(202).send(null);
 
-            this.logger.debug("bulkTransfersRequest responded");
+            this._logger.debug("bulkTransfersRequest responded");
 
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
@@ -242,7 +242,7 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
     }
 
     private async bulkTransferFulfilRequested(req: FastifyRequest<BulkTransferFulfilRequestedDTO>, reply: FastifyReply): Promise<void> {
-        this.logger.debug("Got bulkTransferFulfilRequested request");
+        this._logger.debug("Got bulkTransferFulfilRequested request");
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
@@ -290,13 +290,13 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
                 headers: clonedHeaders
             };
 
-            await this.kafkaProducer.send(msg);
+            await this._kafkaProducer.send(msg);
 
-            this.logger.debug("bulkTransferFulfilRequested sent message");
+            this._logger.debug("bulkTransferFulfilRequested sent message");
 
             reply.code(202).send(null);
 
-            this.logger.debug("bulkTransferFulfilRequested responded");
+            this._logger.debug("bulkTransferFulfilRequested responded");
         } catch (error: unknown) {
             const transformError = Transformer.transformPayloadError({
                 errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
@@ -309,7 +309,7 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
     }
 
     private async bulkTransfersRejectRequest(req: FastifyRequest<BulkTransfersRejectRequestDTO>, reply: FastifyReply): Promise<void> {
-        this.logger.debug("Got bulk transfer rejected request");
+        this._logger.debug("Got bulk transfer rejected request");
 
         try{
             const clonedHeaders = { ...req.headers };
@@ -349,15 +349,15 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
                 headers: clonedHeaders
             };
 
-            await this.kafkaProducer.send(msg);
+            await this._kafkaProducer.send(msg);
 
-            this.logger.debug("bulk transfer rejected sent message");
+            this._logger.debug("bulk transfer rejected sent message");
 
             reply.code(202).send({
                 status: "ok"
             });
 
-            this.logger.debug("bulk transfer rejected responded");
+            this._logger.debug("bulk transfer rejected responded");
         } catch (error: unknown) {
             const transformError = Transformer.transformPayloadError({
                 errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,

@@ -51,10 +51,12 @@ import {
 import { FSPIOPErrorCodes } from "../validation";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import {IMetrics, SpanStatusCode} from "@mojaloop/platform-shared-lib-observability-types-lib";
 import {FastifyInstance, FastifyPluginAsync, FastifyPluginOptions, FastifyReply, FastifyRequest} from "fastify";
 import { QuoteQueryReceivedDTO, QuoteRejectRequestDTO, QuoteRequestReceivedDTO, QuoteResponseReceivedDTO } from "./quotes_routes_dto";
 import {BaseRoutesFastify} from "../_base_routerfastify";
+import {OpenTelemetryClient} from "@mojaloop/platform-shared-lib-observability-client-lib";
+import {SpanKind} from "@opentelemetry/api";
 
 export class QuoteRoutes extends BaseRoutesFastify {
 
@@ -86,7 +88,9 @@ export class QuoteRoutes extends BaseRoutesFastify {
     }
 
     private async quoteRequestReceived(req: FastifyRequest<QuoteRequestReceivedDTO>, reply: FastifyReply): Promise<void> {
-        this.logger.debug("Got quoteRequestReceived request");
+        let parentSpan = this._getActiveSpan();
+
+        this._logger.debug("Got quoteRequestReceived request");
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
@@ -160,16 +164,24 @@ export class QuoteRoutes extends BaseRoutesFastify {
                 destinationFspId: destinationFspId,
                 headers: clonedHeaders
             };
+            msg.tracingInfo = {};
 
-            await this.kafkaProducer.send(msg);
+            parentSpan.setAttribute("quoteId", quoteId);
+            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan, SpanKind.PRODUCER);
+            // inject tracing headers
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(childSpan, msg.tracingInfo);
 
-            this.logger.debug("quoteRequestReceived sent message");
+            await this._kafkaProducer.send(msg);
+            childSpan.end();
+
+            this._logger.debug("quoteRequestReceived sent message");
 
             reply.code(202).send(null);
 
-            this.logger.debug("quoteRequestReceived responded");
+            this._logger.debug("quoteRequestReceived responded");
 
         } catch (error: unknown) {
+
             if(error instanceof ValidationdError) {
                 reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
@@ -185,7 +197,8 @@ export class QuoteRoutes extends BaseRoutesFastify {
     }
 
     private async quoteResponseReceived(req: FastifyRequest<QuoteResponseReceivedDTO>, reply: FastifyReply): Promise<void> {
-        this.logger.debug("Got quoteResponseReceived request");
+        const parentSpan = this._getActiveSpan();
+        this._logger.debug("Got quoteResponseReceived request");
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
@@ -214,6 +227,7 @@ export class QuoteRoutes extends BaseRoutesFastify {
                 });
 
                 reply.code(400).send(transformError);
+                return;
             }
 
             this._validator.currencyAndAmount(transferAmount);
@@ -254,16 +268,23 @@ export class QuoteRoutes extends BaseRoutesFastify {
                 destinationFspId: destinationFspId,
                 headers: clonedHeaders
             };
+            msg.tracingInfo = {};
 
-            await this.kafkaProducer.send(msg);
+            parentSpan.setAttribute("quoteId", quoteId);
+            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan, SpanKind.PRODUCER);
+            // inject tracing headers
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(childSpan, msg.tracingInfo);
 
-            this.logger.debug("quoteResponseReceived sent message");
+            await this._kafkaProducer.send(msg);
+            childSpan.end();
+
+            this._logger.debug("quoteResponseReceived sent message");
 
             reply.code(200).send(null);
 
-            this.logger.debug("quoteResponseReceived responded");
-
+            this._logger.debug("quoteResponseReceived responded");
         } catch (error: unknown) {
+
             if(error instanceof ValidationdError) {
                 reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
@@ -279,7 +300,8 @@ export class QuoteRoutes extends BaseRoutesFastify {
     }
 
     private async quoteQueryReceived(req: FastifyRequest<QuoteQueryReceivedDTO>, reply: FastifyReply): Promise<void> {
-        this.logger.debug("Got quoteQueryReceived request");
+        const parentSpan = this._getActiveSpan();
+        this._logger.debug("Got quoteQueryReceived request");
         try {
             const clonedHeaders = { ...req.headers };
             const quoteId = req.params["id"] as string || null;
@@ -311,16 +333,23 @@ export class QuoteRoutes extends BaseRoutesFastify {
                 destinationFspId: destinationFspId,
                 headers: clonedHeaders
             };
+            msg.tracingInfo = {};
 
-            await this.kafkaProducer.send(msg);
+            parentSpan.setAttribute("quoteId", quoteId);
+            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan, SpanKind.PRODUCER);
+            // inject tracing headers
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(childSpan, msg.tracingInfo);
 
-            this.logger.debug("quoteQueryReceived sent message");
+            await this._kafkaProducer.send(msg);
+            childSpan.end();
+
+            this._logger.debug("quoteQueryReceived sent message");
 
             reply.code(202).send(null);
 
-            this.logger.debug("quoteQueryReceived responded");
-
+            this._logger.debug("quoteQueryReceived responded");
         } catch (error: unknown) {
+
             const transformError = Transformer.transformPayloadError({
                 errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                 errorDescription: (error as Error).message,
@@ -332,7 +361,8 @@ export class QuoteRoutes extends BaseRoutesFastify {
     }
 
     private async quoteRejectRequest(req: FastifyRequest<QuoteRejectRequestDTO>, reply: FastifyReply): Promise<void> {
-        this.logger.debug("Got quote rejected request");
+        const parentSpan = this._getActiveSpan();
+        this._logger.debug("Got quote rejected request");
 
         try{
             const clonedHeaders = { ...req.headers };
@@ -371,16 +401,24 @@ export class QuoteRoutes extends BaseRoutesFastify {
                 destinationFspId: destinationFspId,
                 headers: clonedHeaders
             };
+            msg.tracingInfo = {};
 
-            await this.kafkaProducer.send(msg);
+            parentSpan.setAttribute("quoteId", quoteId);
+            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan, SpanKind.PRODUCER);
+            // inject tracing headers
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(childSpan, msg.tracingInfo);
 
-            this.logger.debug("quote rejected sent message");
+            await this._kafkaProducer.send(msg);
+            childSpan.end();
+
+            this._logger.debug("quote rejected sent message");
 
             reply.code(202).send(null);
 
-            this.logger.debug("quote rejected responded");
+            this._logger.debug("quote rejected responded");
 
         } catch (error: unknown) {
+
             const transformError = Transformer.transformPayloadError({
                 errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                 errorDescription: (error as Error).message,

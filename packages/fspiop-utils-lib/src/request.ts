@@ -50,7 +50,7 @@ export interface FspiopHttpHeaders {
   [FSPIOP_HEADERS_SWITCH]: string;
 }
 
-type RequestOptions = {
+export type RequestOptions = {
   url: string,
   headers: FspiopHttpHeaders,
   source: string,
@@ -112,15 +112,13 @@ export const sendRequest = async ({
     // copy trace headers
     if((headers as any)["traceparent"]) (transformedHeaders as any)["traceparent"] = (headers as any)["traceparent"];
     if((headers as any)["tracestate"]) (transformedHeaders as any)["tracestate"] = (headers as any)["tracestate"];
+    if((headers as any)["baggage"]) (transformedHeaders as any)["baggage"] = (headers as any)["baggage"];
 
-    // copy test headers
-    // eslint-disable-next-line no-prototype-builtins
-    if (headers.hasOwnProperty("original_headers")) {
-        for (const key in (headers as any).original_headers){
-            // eslint-disable-next-line no-prototype-builtins
-            if (key.toUpperCase().startsWith("TEST-") && !transformedHeaders.hasOwnProperty(key)){
-                (transformedHeaders as any)[key] =  (headers as any).original_headers[key];
-            }
+    // copy other tracing headers
+    for (const key in headers){
+        // eslint-disable-next-line no-prototype-builtins
+        if (key.toUpperCase().startsWith("TRACING-") && !transformedHeaders.hasOwnProperty(key)){
+            (transformedHeaders as any)[key] =  (headers as any)[key];
         }
     }
 

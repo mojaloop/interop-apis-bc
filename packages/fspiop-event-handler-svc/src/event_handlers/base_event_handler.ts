@@ -56,8 +56,15 @@ import {
     Transformer,
     FspiopJwsSignature
 } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import {IHistogram, IMetrics, Tracer} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import {IHistogram, IMetrics, SpanStatusCode, Tracer} from "@mojaloop/platform-shared-lib-observability-types-lib";
 import { OpenTelemetryClient } from "@mojaloop/platform-shared-lib-observability-client-lib";
+import {SpanKind, SpanOptions} from "@opentelemetry/api";
+import * as OpentelemetryApi from "@opentelemetry/api";
+import {FspiopRequestMethodsEnum, ResponseTypeEnum} from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/enums";
+import {
+    FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION,
+    FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION
+} from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants";
 
 
 export const HandlerNames = {
@@ -110,7 +117,7 @@ export abstract class BaseEventHandler  {
         try{
             this._kafkaConsumer.setTopics(this._kafkaTopics);
             //this._kafkaConsumer.setCallbackFn(this.processMessage.bind(this));
-            this._kafkaConsumer.setBatchCallbackFn(this.processMessagesBatch.bind(this));
+            this._kafkaConsumer.setBatchCallbackFn(this._processMessagesBatch.bind(this));
             await this._kafkaConsumer.connect();
             await this._kafkaConsumer.startAndWaitForRebalance();
             await this._kafkaProducer.connect();
@@ -120,7 +127,103 @@ export abstract class BaseEventHandler  {
             this._logger.error(`Error initializing ${this._handlerName} handler: ${(error as Error).message}`);
             throw new Error(`Error initializing ${this._handlerName}`);
         }
+    }
 
+    private async _processMessagesBatch (sourceMessages: IMessage[]): Promise<void>{
+        const timerEndFn = this._histogram.startTimer({ callName: `${this.constructor.name}_batchMsgHandler`});
+
+        // TODO find a way to have a span for the batch
+
+        for (const sourceMessage of sourceMessages) {
+            // extract the context from msg.tracingInfo
+            const context =  OpenTelemetryClient.getInstance().propagationExtract(sourceMessage.tracingInfo);
+
+            const spanName = `processMessage ${sourceMessage.msgName}`;
+            const spanOptions: SpanOptions = {
+                kind: SpanKind.CONSUMER,
+                attributes: {
+                    "msgName": sourceMessage.msgName,
+                    "batchSize": sourceMessages.length
+                }
+            };
+
+            // start per message span with the correct context
+            await this._tracer.startActiveSpan(spanName, spanOptions, context, async (span) => {
+                try{
+                    await this.processMessage(sourceMessage);
+                }catch(err:any){
+                    // error handling is being done inside processMessage, here we only take care of the span
+                    span.setStatus({code: SpanStatusCode.ERROR});
+                    span.setAttributes({
+                        "error.name": err.name,
+                        "error.message": err.message,
+                        "error.stack": err.stack
+                    });
+                }finally{
+                    span.end();
+                }
+            });
+        }
+
+        const took = timerEndFn({ success: "true" })*1000;
+        if (this._logger.isDebugEnabled()) {
+            this._logger.debug(`  Completed batch in ${this.constructor.name} batch size: ${sourceMessages.length}`);
+            this._logger.debug(`  Took: ${took.toFixed(0)}`);
+            this._logger.debug("\n\n");
+        }
+    }
+
+    protected _getActiveSpan(): OpentelemetryApi.Span {
+        const span = OpentelemetryApi.trace.getActiveSpan();
+        if (span) return span;
+
+        // BaseEventHandler._processMessagesBatch makes sure there is always a span,
+        // in the context of a request handler, even if a non-recording one
+        throw new Error("Invalid Span in BaseEventHandler - this should not happen");
+    }
+
+    protected async _sendHttpRequest(
+        urlBuilder:Request.URLBuilder, headers: Request.FspiopHttpHeaders,
+        source: string,  destination: string | null, method: FspiopRequestMethodsEnum,
+        payload: any, responseType?: ResponseTypeEnum,
+        protocolVersions?: {
+            content: typeof FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION;
+            accept: typeof FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION;
+        }
+    ):Promise<void>{
+        const url = urlBuilder.build();
+
+        // create child span and propagate tracing info
+        const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "http request", this._getActiveSpan(), SpanKind.CLIENT);
+        childSpan.setAttributes({
+            "url": url,
+            "method": method,
+        })
+        OpenTelemetryClient.getInstance().propagationInjectFromSpan(childSpan, headers);
+
+        try {
+            await Request.sendRequest({
+                url: url,
+                headers: headers,
+                source: source,
+                destination: destination,
+                method: method,
+                payload: payload,
+                responseType: responseType,
+                protocolVersions: protocolVersions
+            });
+        }catch(err:any){
+            childSpan.setStatus({code: SpanStatusCode.ERROR});
+            childSpan.setAttributes({
+                // "reply.statusCode": err.statusCode,
+                "error.name": err.name,
+                "error.message": err.message,
+                // "error.stack": err.stack
+            });
+            throw Error(err);
+        }finally {
+            childSpan.end();
+        }
     }
 
     protected async _validateParticipantAndGetEndpoint(fspId: string):Promise<IParticipantEndpoint>{
@@ -199,8 +302,8 @@ export abstract class BaseEventHandler  {
                     clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
                 }
 
-                // provide original headers for tracing and test header pass-through
-                (clonedHeaders as any).original_headers = { ...clonedHeaders };
+                // propagate tracing info
+                OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
 
                 await Request.sendRequest({
                     url: url,
@@ -319,7 +422,7 @@ export abstract class BaseEventHandler  {
     }
 
     abstract processMessage (sourceMessage: IMessage): Promise<void>
-    abstract processMessagesBatch (sourceMessages: IMessage[]): Promise<void>
+
 
     abstract _handleErrorReceivedEvt(message: IMessage, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>
 

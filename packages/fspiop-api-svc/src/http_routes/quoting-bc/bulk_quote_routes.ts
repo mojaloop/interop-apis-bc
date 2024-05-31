@@ -92,7 +92,7 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
 
     private async bulkQuoteQueryReceived(req: FastifyRequest<BulkQuoteQueryReceivedDTO>, reply: FastifyReply): Promise<void> {
         try {
-            this.logger.debug("Got bulkQuoteQueryReceived request");
+            this._logger.debug("Got bulkQuoteQueryReceived request");
 
             // Headers
             const clonedHeaders = { ...req.headers };
@@ -125,13 +125,13 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
                 headers: clonedHeaders
             };
 
-            await this.kafkaProducer.send(msg);
+            await this._kafkaProducer.send(msg);
 
-            this.logger.debug("bulkQuoteQueryReceived sent message");
+            this._logger.debug("bulkQuoteQueryReceived sent message");
 
             reply.code(202).send(null);
 
-            this.logger.debug("bulkQuoteQueryReceived responded");
+            this._logger.debug("bulkQuoteQueryReceived responded");
 
         } catch (error: unknown) {
             const transformError = Transformer.transformPayloadError({
@@ -144,7 +144,7 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
     }
 
     private async bulkQuoteRequest(req: FastifyRequest<BulkQuoteRequestDTO>, reply: FastifyReply): Promise<void> {
-        this.logger.debug("Got bulkQuoteRequest request");
+        this._logger.debug("Got bulkQuoteRequest request");
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
@@ -203,13 +203,13 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
                 headers: clonedHeaders
             };
 
-            await this.kafkaProducer.send(msg);
+            await this._kafkaProducer.send(msg);
 
-            this.logger.debug("bulkQuoteRequest sent message");
+            this._logger.debug("bulkQuoteRequest sent message");
 
             reply.code(202).send(null);
 
-            this.logger.debug("bulkQuoteRequest responded");
+            this._logger.debug("bulkQuoteRequest responded");
 
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
@@ -227,7 +227,7 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
     }
 
     private async bulkQuotePending(req: FastifyRequest<BulkQuotePendingDTO>, reply: FastifyReply): Promise<void> {
-        this.logger.debug("Got bulkQuotePending request");
+        this._logger.debug("Got bulkQuotePending request");
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
@@ -288,13 +288,13 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
                 headers: clonedHeaders
             };
 
-            await this.kafkaProducer.send(msg);
+            await this._kafkaProducer.send(msg);
 
-            this.logger.debug("bulkQuotePending sent message");
+            this._logger.debug("bulkQuotePending sent message");
 
             reply.code(202).send(null);
 
-            this.logger.debug("bulkQuotePending responded");
+            this._logger.debug("bulkQuotePending responded");
 
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
@@ -312,7 +312,7 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
     }
 
     private async bulkQuoteRejectRequest(req: FastifyRequest<BulkQuoteRejectRequestDTO>, reply: FastifyReply): Promise<void> {
-        this.logger.debug("Got bulk quote rejected request");
+        this._logger.debug("Got bulk quote rejected request");
 
         try{
             const clonedHeaders = { ...req.headers };
@@ -352,15 +352,15 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
                 headers: clonedHeaders
             };
 
-            await this.kafkaProducer.send(msg);
+            await this._kafkaProducer.send(msg);
 
-            this.logger.debug("bulk quote rejected sent message");
+            this._logger.debug("bulk quote rejected sent message");
 
             reply.code(202).send({
                 status: "ok"
             });
 
-            this.logger.debug("bulk quote rejected responded");
+            this._logger.debug("bulk quote rejected responded");
 
         } catch (error: unknown) {
             const transformError = Transformer.transformPayloadError({

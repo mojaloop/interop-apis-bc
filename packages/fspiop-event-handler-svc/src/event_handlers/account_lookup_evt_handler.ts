@@ -70,9 +70,10 @@ import {
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import { IParticipantService } from "../interfaces/infrastructure";
-import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import {IMetrics, SpanStatusCode} from "@mojaloop/platform-shared-lib-observability-types-lib";
 import { getAccountLookupBCErrorMapping } from "../error_mappings/account-lookup";
 import {OpenTelemetryClient} from "@mojaloop/platform-shared-lib-observability-client-lib";
+import * as OpentelemetryApi from "@opentelemetry/api";
 
 export class AccountLookupEventHandler extends BaseEventHandler {
 
@@ -92,14 +93,27 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         );
     }
 
-    async processMessagesBatch (sourceMessages: IMessage[]): Promise<void>{
+   /* async processMessagesBatch (sourceMessages: IMessage[]): Promise<void>{
         const timerEndFn = this._histogram.startTimer({ callName: `${this.constructor.name}_batchMsgHandler`});
 
         for (const sourceMessage of sourceMessages) {
-            await this.processMessage(sourceMessage);
+            // extract the context from msg.tracingInfo
+            const context =  OpenTelemetryClient.getInstance().propagationExtract(sourceMessage.tracingInfo);
 
-            // measure
+            // activate the context
+            await OpentelemetryApi.context.with(context, async ()=>{
+                const parentSpan = OpenTelemetryClient.getInstance().startSpan(this._tracer, "processMessage", OpenTelemetryClient.getInstance().context);
+                parentSpan.setAttributes({
+                    "msgName": sourceMessage.msgName,
+                    "partyId": sourceMessage.payload.partyId
+                });
 
+                await this.processMessage(sourceMessage);
+
+                parentSpan.end();
+            });
+
+            // await this.processMessage(sourceMessage);
         }
 
         const took = timerEndFn({ success: "true" })*1000;
@@ -108,7 +122,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             this._logger.debug(`  Took: ${took.toFixed(0)}`);
             this._logger.debug("\n\n");
         }
-    }
+    }*/
 
     async processMessage (sourceMessage: IMessage) : Promise<void> {
         const startTime = Date.now();
@@ -120,13 +134,22 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             this._logger.debug(`Got message in AccountLookupEventHandler - msgName: ${sourceMessage.msgName} - msgDelayMs: ${msgDelayMs}`);
         }
 
+        // set specific span attributes
+        const span = OpenTelemetryClient.getInstance().getActiveSpan();
+        if(span){
+            span.setAttributes({
+                "entityId": sourceMessage.payload.quoteId,
+                "quoteId": sourceMessage.payload.quoteId,
+            });
+        }
+
         try {
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
             if (!message.fspiopOpaqueState || !message.fspiopOpaqueState.headers) {
-                this._logger.error(`received message of type: ${message.msgName}, without fspiopOpaqueState or fspiopOpaqueState.headers, ignoring`);
+                this._logger.warn(`received message of type: ${message.msgName}, without fspiopOpaqueState or fspiopOpaqueState.headers, ignoring`);
                 processMessageTimer({success: "false"});
-                return;
+                return Promise.resolve();
             }
 
             switch (message.msgName) {
@@ -187,6 +210,9 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             const partyType = message.payload.partyType as string;
             const partyId = message.payload.partyId as string;
             const partySubType = message.payload.partySubType as string;
+
+            const activeSpan = OpenTelemetryClient.getInstance().getActiveSpan();
+            if(activeSpan) activeSpan.setStatus({ code: SpanStatusCode.ERROR });
 
             processMessageTimer({success: "false"});
 
@@ -278,8 +304,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
             urlBuilder.setLocation([partyType, partyId, partySubType]);
 
-             // provide original headers for tracing and test header pass-through
-            (clonedHeaders as any).original_headers = { ...clonedHeaders };
+             // propagate tracing info
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
 
             await Request.sendRequest({
                 url: urlBuilder.build(),
@@ -325,8 +351,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
             urlBuilder.setLocation([partyType, partyId, partySubType]);
 
-             // provide original headers for tracing and test header pass-through
-            (clonedHeaders as any).original_headers = { ...clonedHeaders };
+             // propagate tracing info
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
 
             await Request.sendRequest({
                 url: urlBuilder.build(),
@@ -383,8 +409,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
             urlBuilder.setLocation([partyType, partyId, partySubType]);
 
-             // provide original headers for tracing and test header pass-through
-            (clonedHeaders as any).original_headers = { ...clonedHeaders };
+             // propagate tracing info
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
 
             const requestTimer = this._histogram.startTimer({ callName: "handlePartyInfoRequestedEvt_sendRequest"});
             try {
@@ -450,8 +476,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
             urlBuilder.setLocation([partyType, partyId, partySubType]);
 
-             // provide original headers for tracing and test header pass-through
-            (clonedHeaders as any).original_headers = { ...clonedHeaders };
+             // propagate tracing info
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
 
             const requestTimer = this._histogram.startTimer({ callName: "handlePartyQueryResponseEvt_sendRequest"});
             try {
@@ -471,8 +497,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             }
 
             // eslint-disable-next-line no-prototype-builtins
-            if (fspiopOpaqueState && fspiopOpaqueState.hasOwnProperty("test-request-timestamp")) {
-                const reOriginalTimestamp = (fspiopOpaqueState as any)["test-request-timestamp"] || 0;
+            if (fspiopOpaqueState && fspiopOpaqueState.hasOwnProperty("tracing-request-start-timestamp")) {
+                const reOriginalTimestamp = (fspiopOpaqueState as any)["tracing-request-start-timestamp"] || 0;
                 const durationMs = Date.now() - parseInt(reOriginalTimestamp);
                 this._logger.debug(`_handlePartyQueryResponseEvt -> END TO END took: ${durationMs} ms`);
             }
@@ -519,8 +545,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
             urlBuilder.setLocation([partyType, partyId, partySubType]);
 
-             // provide original headers for tracing and test header pass-through
-            (clonedHeaders as any).original_headers = { ...clonedHeaders };
+             // propagate tracing info
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
 
             await Request.sendRequest({
                 url: urlBuilder.build(),
@@ -569,7 +595,10 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
             urlBuilder.setLocation([partyType, partyId, partySubType]);
             urlBuilder.hasError(true);
-            
+
+            // propagate tracing info
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
+
             await Request.sendRequest({
                 url: urlBuilder.build(),
                 headers: clonedHeaders,
@@ -617,7 +646,10 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
             urlBuilder.setLocation([partyType, partyId, partySubType]);
             urlBuilder.hasError(true);
-            
+
+            // propagate tracing info
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
+
             await Request.sendRequest({
                 url: urlBuilder.build(),
                 headers: clonedHeaders,

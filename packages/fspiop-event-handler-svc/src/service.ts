@@ -80,6 +80,7 @@ import Fastify, {FastifyInstance} from "fastify";
 import fastifyUnderPressure from "@fastify/under-pressure";
 import crypto from "crypto";
 import {OpenTelemetryClient} from "@mojaloop/platform-shared-lib-observability-client-lib";
+import {CompositePropagator, W3CBaggagePropagator, W3CTraceContextPropagator} from "@opentelemetry/core";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const metricsPlugin = require("fastify-metrics");
 
@@ -315,7 +316,14 @@ export class Service {
     }
 
     static async setupTracing():Promise<void>{
-        OpenTelemetryClient.Start(BC_NAME, APP_NAME, APP_VERSION, INSTANCE_ID, this.logger);
+        //eslint-disable-next-line @typescript-eslint/no-var-requires
+        const { W3CTraceContextPropagator, W3CBaggagePropagator, CompositePropagator, } = require("@opentelemetry/core");
+
+        const prop = new CompositePropagator({
+            propagators: [new W3CTraceContextPropagator(), new W3CBaggagePropagator()],
+        });
+
+        OpenTelemetryClient.Start(BC_NAME, APP_NAME, APP_VERSION, INSTANCE_ID, this.logger, undefined, prop);
     }
 
     static async setupEventHandlers(jwsHelper:FspiopJwsSignature):Promise<void>{

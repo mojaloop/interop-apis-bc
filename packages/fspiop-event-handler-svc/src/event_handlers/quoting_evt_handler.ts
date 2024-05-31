@@ -75,8 +75,11 @@ import {
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import { IParticipantService } from "../interfaces/infrastructure";
-import {IMetrics } from "@mojaloop/platform-shared-lib-observability-types-lib";
+import {IMetrics, Span, SpanStatusCode} from "@mojaloop/platform-shared-lib-observability-types-lib";
 import { getQuotingBCErrorMapping } from "../error_mappings/quoting";
+import {OpenTelemetryClient} from "@mojaloop/platform-shared-lib-observability-client-lib";
+import * as OpentelemetryApi from "@opentelemetry/api";
+import {SpanKind, SpanOptions} from "@opentelemetry/api";
 
 export class QuotingEventHandler extends BaseEventHandler {
     constructor(
@@ -94,37 +97,30 @@ export class QuotingEventHandler extends BaseEventHandler {
         );
     }
 
-    async processMessagesBatch (sourceMessages: IMessage[]): Promise<void>{
-        // eslint-disable-next-line no-async-promise-executor
-        return new Promise<void>(async (resolve) => {
-            const timerEndFn = this._histogram.startTimer({ callName: `${this.constructor.name}_batchMsgHandler`});
-
-            for (const sourceMessage of sourceMessages) {
-                await this.processMessage(sourceMessage);
-            }
-
-            const took = timerEndFn({ success: "true" })*1000;
-            if (this._logger.isDebugEnabled()) {
-                this._logger.debug(`  Completed batch in ${this.constructor.name} batch size: ${sourceMessages.length}`);
-                this._logger.debug(`  Took: ${took.toFixed(0)}`);
-                this._logger.debug("\n\n");
-            }
-            resolve();
-        });
-    }
-
     async processMessage (sourceMessage: IMessage) : Promise<void> {
         const startTime = Date.now();
         this._histogram.observe({callName:"msgDelay"}, (startTime - sourceMessage.msgTimestamp)/1000);
         const processMessageTimer = this._histogram.startTimer({callName: "processMessage"});
 
+        if (this._logger.isDebugEnabled()) {
+            const msgDelayMs = Date.now() - sourceMessage.msgTimestamp;
+            this._logger.debug(`Got message in QuotingEventHandler - msgName: ${sourceMessage.msgName} - msgDelayMs: ${msgDelayMs}`);
+        }
+
+        // set specific span attributes
+        const span = this._getActiveSpan();
+        span.setAttributes({
+            "entityId": sourceMessage.payload.quoteId,
+            "quoteId": sourceMessage.payload.quoteId,
+        });
+
         try {
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
             if(!message.fspiopOpaqueState || !message.fspiopOpaqueState.headers){
-                this._logger.error(`received message of type: ${message.msgName}, without fspiopOpaqueState or fspiopOpaqueState.headers, ignoring`);
+                this._logger.warn(`received message of type: ${message.msgName}, without fspiopOpaqueState or fspiopOpaqueState.headers, ignoring`);
                 processMessageTimer({success: "false"});
-                return;
+                return Promise.resolve();
             }
 
             switch(message.msgName){
@@ -184,9 +180,13 @@ export class QuotingEventHandler extends BaseEventHandler {
                     break;
             }
 
+
             const took = processMessageTimer({success: "true"}) * 1000;
             this._logger.isDebugEnabled() && this._logger.debug(`  Completed processMessage in - took: ${took} ms`);
         } catch (error: unknown) {
+            const activeSpan = OpenTelemetryClient.getInstance().getActiveSpan();
+            if(activeSpan) activeSpan.setStatus({ code: SpanStatusCode.ERROR });
+
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
             const clonedHeaders = { ...message.fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
@@ -285,21 +285,15 @@ export class QuotingEventHandler extends BaseEventHandler {
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
 
-             // provide original headers for tracing and test header pass-through
-            (clonedHeaders as any).original_headers = { ...clonedHeaders };
-
-            await Request.sendRequest({
-                url: urlBuilder.build(),
-                headers: clonedHeaders,
-                source: requesterFspId,
-                destination: destinationFspId,
-                method: Enums.FspiopRequestMethodsEnum.POST,
-                payload: transformedPayload
-            });
+            await this._sendHttpRequest(
+                urlBuilder, clonedHeaders, requesterFspId, destinationFspId,
+                Enums.FspiopRequestMethodsEnum.POST, transformedPayload
+            );
 
             this._logger.debug("_handleQuoteRequestAcceptedEvt -> end");
             mainTimer({success:"true"});
         } catch (error: unknown) {
+
             this._logger.error(error,"_handleQuoteRequestAcceptedEvt -> error");
             mainTimer({success:"false"});
             throw Error("_handleQuoteRequestAcceptedEvt -> error");
@@ -330,17 +324,10 @@ export class QuotingEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
             urlBuilder.setLocation([payload.quoteId]);
 
-             // provide original headers for tracing and test header pass-through
-            (clonedHeaders as any).original_headers = { ...clonedHeaders };
-
-            await Request.sendRequest({
-                url: urlBuilder.build(),
-                headers: clonedHeaders,
-                source: requesterFspId,
-                destination: destinationFspId,
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: transformedPayload
-            });
+            await this._sendHttpRequest(
+                urlBuilder, clonedHeaders, requesterFspId, destinationFspId,
+                Enums.FspiopRequestMethodsEnum.PUT, transformedPayload
+            );
 
             this._logger.debug("_handleQuoteResponseAcceptedEvt -> end");
             mainTimer({success:"true"});
@@ -381,17 +368,10 @@ export class QuotingEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
             urlBuilder.setId(payload.quoteId);
 
-             // provide original headers for tracing and test header pass-through
-            (clonedHeaders as any).original_headers = { ...clonedHeaders };
-
-            await Request.sendRequest({
-                url: urlBuilder.build(),
-                headers: clonedHeaders,
-                source: requesterFspId,
-                destination: destinationFspId,
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: transformedPayload
-            });
+            await this._sendHttpRequest(
+                urlBuilder, clonedHeaders, requesterFspId, destinationFspId,
+                Enums.FspiopRequestMethodsEnum.PUT, transformedPayload
+            );
 
             this._logger.debug("_handleQuoteQueryResponseEvt -> end");
             mainTimer({success:"true"});
@@ -426,17 +406,10 @@ export class QuotingEventHandler extends BaseEventHandler {
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);
 
-             // provide original headers for tracing and test header pass-through
-            (clonedHeaders as any).original_headers = { ...clonedHeaders };
-
-            await Request.sendRequest({
-                url: urlBuilder.build(),
-                headers: clonedHeaders,
-                source: requesterFspId,
-                destination: requesterFspId,
-                method: Enums.FspiopRequestMethodsEnum.POST,
-                payload: transformedPayload
-            });
+            await this._sendHttpRequest(
+                urlBuilder, clonedHeaders, requesterFspId, requesterFspId,
+                Enums.FspiopRequestMethodsEnum.POST, transformedPayload
+            );
 
             this._logger.debug("_handleBulkQuoteReceivedEvt -> end");
             mainTimer({success:"true"});
@@ -473,8 +446,8 @@ export class QuotingEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);
             urlBuilder.setId(payload.bulkQuoteId);
 
-             // provide original headers for tracing and test header pass-through
-            (clonedHeaders as any).original_headers = { ...clonedHeaders };
+            // propagate tracing info
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
 
             await Request.sendRequest({
                 url: urlBuilder.build(),
@@ -516,8 +489,8 @@ export class QuotingEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);
             urlBuilder.setId(payload.bulkQuoteId);
 
-            // provide original headers for tracing and test header pass-through
-            (clonedHeaders as any).original_headers = { ...clonedHeaders };
+            // propagate tracing info
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
 
             await Request.sendRequest({
                 url: urlBuilder.build(),
@@ -540,7 +513,7 @@ export class QuotingEventHandler extends BaseEventHandler {
 
     private async _handleQuoteRejectRequestEvt(message: QuoteRejectedResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
         this._logger.info("_handleQuoteRejectRequestEvt -> start");
-        
+
         try {
             const { payload } = message;
 
@@ -560,6 +533,9 @@ export class QuotingEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.QUOTES);
             urlBuilder.setId(payload.quoteId);
             urlBuilder.hasError(true);
+
+            // propagate tracing info
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
 
             await Request.sendRequest({
                 url: urlBuilder.build(),
@@ -582,7 +558,7 @@ export class QuotingEventHandler extends BaseEventHandler {
 
     private async _handleBulkQuoteRejectRequestEvt(message: BulkQuoteRejectedResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
         this._logger.info("_handleBulkQuoteRejectRequestEvt -> start");
-        
+
         try {
             const { payload } = message;
 
@@ -597,13 +573,16 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             // Always validate the payload and headers received
             message.validatePayload();
-          
+
             const transformedPayload = Transformer.transformPayloadBulkQuotingRequestPutError(payload);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);
             urlBuilder.setId(payload.bulkQuoteId);
             urlBuilder.hasError(true);
+
+            // propagate tracing info
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
 
             await Request.sendRequest({
                 url: urlBuilder.build(),

@@ -52,7 +52,7 @@ import {
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import {FSPIOPErrorCodes} from "../validation";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import {IMetrics, SpanStatusCode} from "@mojaloop/platform-shared-lib-observability-types-lib";
 import {FastifyInstance, FastifyPluginAsync, FastifyPluginOptions, FastifyReply, FastifyRequest} from "fastify";
 import {
     GetPartyByTypeAndIdAndSubIdQueryRejectDTO,
@@ -63,6 +63,8 @@ import {
     GetPartyQueryReceivedByTypeAndIdSubIdDTO
 } from "./party_route_dto";
 import {BaseRoutesFastify} from "../_base_routerfastify";
+import {OpenTelemetryClient} from "@mojaloop/platform-shared-lib-observability-client-lib";
+import {SpanKind} from "@opentelemetry/api";
 
 export class PartyRoutes extends BaseRoutesFastify {
 
@@ -102,8 +104,9 @@ export class PartyRoutes extends BaseRoutesFastify {
     }
 
     private async getPartyQueryReceivedByTypeAndId(req: FastifyRequest<GetPartyQueryReceivedByTypeAndIdDTO>, reply: FastifyReply): Promise<void> {
+        const parentSpan = this._getActiveSpan();
         const mainTimer = this._histogram.startTimer({callName: "getPartyQueryReceivedByTypeAndId"});
-        this.logger.debug("Got getPartyQueryReceivedByTypeAndId request");
+        this._logger.debug("Got getPartyQueryReceivedByTypeAndId request");
 
         try {
             const clonedHeaders = {...req.headers};
@@ -154,16 +157,24 @@ export class PartyRoutes extends BaseRoutesFastify {
                 destinationFspId: destinationFspId,
                 headers: clonedHeaders
             };
+            msg.tracingInfo = {};
 
-            await this.kafkaProducer.send(msg);
+            parentSpan.setAttribute("partyId", id);
+            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan, SpanKind.PRODUCER);
+            // inject tracing headers
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(childSpan, msg.tracingInfo);
 
-            this.logger.debug("getPartyQueryReceivedByTypeAndId sent message");
+            await this._kafkaProducer.send(msg);
+            childSpan.end();
+
+            this._logger.debug("getPartyQueryReceivedByTypeAndId sent message");
 
             reply.code(202).send(null);
 
             const took = mainTimer({success: "true"});
-            this.logger.debug(`getPartyQueryReceivedByTypeAndId responded - took: ${took}`);
+            this._logger.debug(`getPartyQueryReceivedByTypeAndId responded - took: ${took}`);
         } catch (error: unknown) {
+
             if (error instanceof ValidationdError) {
                 reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
@@ -180,8 +191,9 @@ export class PartyRoutes extends BaseRoutesFastify {
     }
 
     private async getPartyQueryReceivedByTypeAndIdSubId(req: FastifyRequest<GetPartyQueryReceivedByTypeAndIdSubIdDTO>, reply: FastifyReply): Promise<void> {
+        const parentSpan = this._getActiveSpan();
         const mainTimer = this._histogram.startTimer({callName: "getPartyQueryReceivedByTypeAndIdSubId"});
-        this.logger.debug("Got getPartyQueryReceivedByTypeAndIdSubId request");
+        this._logger.debug("Got getPartyQueryReceivedByTypeAndIdSubId request");
 
         try {
             const clonedHeaders = {...req.headers};
@@ -228,16 +240,22 @@ export class PartyRoutes extends BaseRoutesFastify {
                 destinationFspId: destinationFspId,
                 headers: clonedHeaders
             };
+            msg.tracingInfo = {};
 
-            await this.kafkaProducer.send(msg);
+            parentSpan.setAttributes({"partyId": id});
+            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan, SpanKind.PRODUCER);
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(childSpan, msg.tracingInfo);
+            await this._kafkaProducer.send(msg);
+            childSpan.end();
 
-            this.logger.debug("getPartyQueryReceivedByTypeAndIdSubId sent message");
+            this._logger.debug("getPartyQueryReceivedByTypeAndIdSubId sent message");
 
             reply.code(202).send(null);
 
             const took = mainTimer({success: "true"});
-            this.logger.debug(`getPartyQueryReceivedByTypeAndIdSubId responded - took: ${took}`);
+            this._logger.debug(`getPartyQueryReceivedByTypeAndIdSubId responded - took: ${took}`);
         } catch (error: unknown) {
+
             if (error instanceof ValidationdError) {
                 reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
@@ -255,8 +273,9 @@ export class PartyRoutes extends BaseRoutesFastify {
 
 
     private async getPartyInfoAvailableByTypeAndId(req: FastifyRequest<GetPartyInfoAvailableByTypeAndIdDTO>, reply: FastifyReply): Promise<void> {
+        const parentSpan = this._getActiveSpan();
         const mainTimer = this._histogram.startTimer({callName: "getPartyInfoAvailableByTypeAndId"});
-        this.logger.debug("Got getPartyInfoAvailableByTypeAndId request");
+        this._logger.debug("Got getPartyInfoAvailableByTypeAndId request");
 
         try {
             const headersTimer = this._histogram.startTimer({callName: "getPartyInfoAvailableByTypeAndId - headers"});
@@ -332,16 +351,22 @@ export class PartyRoutes extends BaseRoutesFastify {
                 originalDestination: requesterFspId,
                 headers: clonedHeaders
             };
+            msg.tracingInfo = {};
 
-            await this.kafkaProducer.send(msg);
+            parentSpan.setAttributes({"partyId": id});
+            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan, SpanKind.PRODUCER);
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(childSpan, msg.tracingInfo);
+            await this._kafkaProducer.send(msg);
+            childSpan.end();
 
-            this.logger.debug("getPartyInfoAvailableByTypeAndId sent message");
+            this._logger.debug("getPartyInfoAvailableByTypeAndId sent message");
 
             reply.code(202).send(null);
 
             const took = mainTimer({success: "true"});
-            this.logger.debug(`getPartyInfoAvailableByTypeAndId responded - took ${took}`);
+            this._logger.debug(`getPartyInfoAvailableByTypeAndId responded - took ${took}`);
         } catch (error: unknown) {
+
             if (error instanceof ValidationdError) {
                 reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
@@ -358,8 +383,9 @@ export class PartyRoutes extends BaseRoutesFastify {
     }
 
     private async getPartyInfoAvailableByTypeAndIdAndSubId(req: FastifyRequest<GetPartyInfoAvailableByTypeAndIdAndSubIdDTO>, reply: FastifyReply): Promise<void> {
+        const parentSpan = this._getActiveSpan();
         const mainTimer = this._histogram.startTimer({callName: "getPartyInfoAvailableByTypeAndIdAndSubId"});
-        this.logger.debug("Got getPartyInfoAvailableByTypeAndIdAndSubId request");
+        this._logger.debug("Got getPartyInfoAvailableByTypeAndIdAndSubId request");
 
         try {
             const clonedHeaders = {...req.headers};
@@ -430,16 +456,22 @@ export class PartyRoutes extends BaseRoutesFastify {
                 originalDestination: requesterFspId,
                 headers: clonedHeaders
             };
+            msg.tracingInfo = {};
 
-            await this.kafkaProducer.send(msg);
+            parentSpan.setAttributes({"partyId": id});
+            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan, SpanKind.PRODUCER);
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(childSpan, msg.tracingInfo);
+            await this._kafkaProducer.send(msg);
+            childSpan.end();
 
-            this.logger.debug("getPartyInfoAvailableByTypeAndIdAndSubId sent message");
+            this._logger.debug("getPartyInfoAvailableByTypeAndIdAndSubId sent message");
 
             reply.code(202).send(null);
 
             const took = mainTimer({success: "true"});
-            this.logger.debug(`getPartyInfoAvailableByTypeAndIdAndSubId responded - took ${took}`);
+            this._logger.debug(`getPartyInfoAvailableByTypeAndIdAndSubId responded - took ${took}`);
         } catch (error: unknown) {
+
             if (error instanceof ValidationdError) {
                 reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
@@ -456,8 +488,9 @@ export class PartyRoutes extends BaseRoutesFastify {
     }
 
     private async getPartyByTypeAndIdQueryReject(req: FastifyRequest<GetPartyByTypeAndIdQueryRejectDTO>, reply: FastifyReply): Promise<void> {
+        const parentSpan = this._getActiveSpan();
         const mainTimer = this._histogram.startTimer({callName: "getPartyByTypeAndIdQueryReject"});
-        this.logger.debug("Got getPartyByTypeAndIdQueryReject request");
+        this._logger.debug("Got getPartyByTypeAndIdQueryReject request");
 
         try {
             // Headers
@@ -512,16 +545,22 @@ export class PartyRoutes extends BaseRoutesFastify {
                 destinationFspId: destinationFspId,
                 headers: clonedHeaders
             };
+            msg.tracingInfo = {};
 
-            await this.kafkaProducer.send(msg);
+            parentSpan.setAttributes({"partyId": id});
+            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan, SpanKind.PRODUCER);
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(childSpan, msg.tracingInfo);
+            await this._kafkaProducer.send(msg);
+            childSpan.end();
 
-            this.logger.debug("partyByTypeAndIdReject sent message");
+            this._logger.debug("partyByTypeAndIdReject sent message");
 
             reply.code(202).send(null);
 
             const took = mainTimer({success: "true"});
-            this.logger.debug(`getPartyByTypeAndIdQueryReject responded - took: ${took}`);
+            this._logger.debug(`getPartyByTypeAndIdQueryReject responded - took: ${took}`);
         } catch (error: unknown) {
+
             if (error instanceof ValidationdError) {
                 reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
@@ -538,8 +577,9 @@ export class PartyRoutes extends BaseRoutesFastify {
     }
 
     private async getPartyByTypeAndIdAndSubIdQueryReject(req: FastifyRequest<GetPartyByTypeAndIdAndSubIdQueryRejectDTO>, reply: FastifyReply): Promise<void> {
+        const parentSpan = this._getActiveSpan();
         const mainTimer = this._histogram.startTimer({callName: "getPartyByTypeAndIdAndSubIdQueryReject"});
-        this.logger.debug("Got getPartyByTypeAndIdAndSubIdQueryReject request");
+        this._logger.debug("Got getPartyByTypeAndIdAndSubIdQueryReject request");
 
         try {
             // Headers
@@ -596,16 +636,22 @@ export class PartyRoutes extends BaseRoutesFastify {
                 destinationFspId: destinationFspId,
                 headers: clonedHeaders
             };
+            msg.tracingInfo = {};
 
-            await this.kafkaProducer.send(msg);
+            parentSpan.setAttributes({"partyId": id});
+            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan, SpanKind.PRODUCER);
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(childSpan, msg.tracingInfo);
+            await this._kafkaProducer.send(msg);
+            childSpan.end();
 
-            this.logger.debug("partyByTypeAndIdAndSubIdReject sent message");
+            this._logger.debug("partyByTypeAndIdAndSubIdReject sent message");
 
             reply.code(202).send(null);
 
             const took = mainTimer({success: "true"});
-            this.logger.debug(`getPartyByTypeAndIdAndSubIdQueryReject responded - took: ${took}`);
+            this._logger.debug(`getPartyByTypeAndIdAndSubIdQueryReject responded - took: ${took}`);
         } catch (error: unknown) {
+
             if (error instanceof ValidationdError) {
                 reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
