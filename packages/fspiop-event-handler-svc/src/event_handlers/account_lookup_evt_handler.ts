@@ -213,9 +213,12 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
         const { payload } = message;
 
+        // Headers
         const clonedHeaders = fspiopOpaqueState;
-        const sourceFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+        const sourceFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+        // Data model
         const partyType = payload.partyType as string;
         const partyId = payload.partyId as string;
         const partySubType = payload.partySubType as string;
@@ -260,17 +263,22 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         this._logger.debug("_handleParticipantAssociationRequestReceivedEvt -> start");
 
         try {
+            
+            // Headers
+            const clonedHeaders = fspiopOpaqueState;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+            
+            // Data model
             const { payload } = message;
-
-            const requesterFspId = payload.ownerFspId;
+            
             const partyType = payload.partyType;
             const partyId = payload.partyId;
             const partySubType = payload.partySubType as string;
-            const clonedHeaders = fspiopOpaqueState;
-
+            
             // TODO validate vars above
 
-            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
+            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
             const transformedPayload = Transformer.transformPayloadPartyAssociationPut(payload);
 
@@ -285,7 +293,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 url: urlBuilder.build(),
                 headers: clonedHeaders,
                 source: requesterFspId,
-                destination: requesterFspId,
+                destination: destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: transformedPayload
             });
@@ -304,17 +312,21 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         this._logger.debug("_handleParticipantDisassociateRequestReceivedEvt -> start");
 
         try {
+            // Headers
+            const clonedHeaders = fspiopOpaqueState;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+            
+            // Data model
             const { payload } = message;
 
-            const requesterFspId = payload.ownerFspId;
             const partyType = payload.partyType;
             const partyId = payload.partyId;
             const partySubType = payload.partySubType as string;
-            const clonedHeaders = fspiopOpaqueState;
 
             // TODO validate vars above
 
-            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
+            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
             // Always validate the payload and headers received
             message.validatePayload();
@@ -332,7 +344,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 url: urlBuilder.build(),
                 headers: clonedHeaders,
                 source: requesterFspId,
-                destination: requesterFspId,
+                destination: destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: transformedPayload
             });
@@ -352,14 +364,17 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         const mainTimer = this._histogram.startTimer({ callName: "handlePartyInfoRequestedEvt"});
 
         try {
+            // Headers
+            const clonedHeaders = fspiopOpaqueState;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+            
+            // Data model
             const { payload } = message;
 
-            const requesterFspId = payload.requesterFspId;
-            const destinationFspId = payload.destinationFspId;
             const partyType = payload.partyType;
             const partyId = payload.partyId;
             const partySubType = payload.partySubType as string;
-            const clonedHeaders = fspiopOpaqueState;
 
             // TODO handle the case where destinationFspId is null and remove ! below
 
@@ -418,14 +433,17 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         const mainTimer = this._histogram.startTimer({ callName: "handlePartyQueryResponseEvt"});
 
         try {
+            // Headers
+            const clonedHeaders = fspiopOpaqueState;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+            
+            // Data model
             const { payload } = message;
 
-            const requesterFspId = payload.requesterFspId;
-            const destinationFspId = payload.destinationFspId;
             const partyType = payload.partyType ;
             const partyId = payload.partyId;
             const partySubType = payload.partySubType as string;
-            const clonedHeaders = fspiopOpaqueState;
 
             // TODO validate vars above
 
@@ -492,19 +510,23 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         this._logger.debug("_handleParticipantQueryResponseEvt -> start");
 
         try {
+            // Headers
+            const clonedHeaders = fspiopOpaqueState;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+            
+            // NOTE: This is a query, so we have to switch headers
+            clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
+            clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
+
+            // Data model
             const { payload } = message;
 
             const partyType = payload.partyType;
             const partyId = payload.partyId;
             const partySubType = payload.partySubType as string;
-            const clonedHeaders = fspiopOpaqueState;
 
-            clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
-            clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
-            clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
-
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
             // TODO validate vars above
 
@@ -544,15 +566,18 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         this._logger.info("_handlePartyRejectedResponseEvt -> start");
 
         try {
+            // Headers
+            const clonedHeaders = fspiopOpaqueState;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+                        
+            // Data model
             const { payload } = message;
-
 
             const partyType = payload.partyType ;
             const partyId = payload.partyId;
             const partySubType = payload.partySubType as string;
-            const clonedHeaders = fspiopOpaqueState;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] ;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] ;
+
 
             const destinationEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
@@ -592,15 +617,17 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         this._logger.info("_handleParticipantRejectedResponseEvt -> start");
 
         try {
+            // Headers
+            const clonedHeaders = fspiopOpaqueState;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+                        
+            // Data model
             const { payload } = message;
-
 
             const partyType = payload.partyType ;
             const partyId = payload.partyId;
             const partySubType = payload.partySubType as string;
-            const clonedHeaders = fspiopOpaqueState;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] ;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] ;
 
             const destinationEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 

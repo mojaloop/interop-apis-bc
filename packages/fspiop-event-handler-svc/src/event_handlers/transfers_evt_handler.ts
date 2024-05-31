@@ -228,7 +228,7 @@ export class TransferEventHandler extends BaseEventHandler {
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
             const clonedHeaders = message.fspiopOpaqueState.headers;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             const transferId = message.payload.transferId as string;
             const bulkTransferId = message.payload.bulkTransferId as string;
 
@@ -260,8 +260,8 @@ export class TransferEventHandler extends BaseEventHandler {
         const { payload } = message;
 
         const clonedHeaders = fspiopOpaqueState;
-        const sourceFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+        const sourceFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
         const transferId = payload.transferId as string;
         const bulkTransferId = payload.bulkTransferId as string;
 
@@ -311,11 +311,13 @@ export class TransferEventHandler extends BaseEventHandler {
     }
 
     private async _handleTransferPreparedEvt(message: TransferPreparedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders, parentSpan:Span):Promise<void>{
-        const { payload } = message;
-
+        // Headers
         const clonedHeaders = fspiopOpaqueState;
-        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
-        const destinationFspId = payload.payeeFsp;
+        const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+        // Data model
+        const { payload } = message;
 
         // const tracing: any = {};
         //const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "handleTransferPreparedEvt", parentSpan);
@@ -368,11 +370,13 @@ export class TransferEventHandler extends BaseEventHandler {
     }
 
     private async _handleTransferFulfiledEvt(message: TransferFulfiledEvt, fspiopOpaqueState: Request.FspiopHttpHeaders, parentSpan:Span):Promise<void>{
-        const { payload } = message;
-
+        // Headers
         const clonedHeaders = fspiopOpaqueState;
-        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+        const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+        // Data model
+        const { payload } = message;
 
         // const tracing: any = {};
         // const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "handleTransferFulfiledEvt", parentSpan);
@@ -457,15 +461,17 @@ export class TransferEventHandler extends BaseEventHandler {
         this._logger.debug("_handleTransferQueryResponseEvt -> start");
 
         try {
-            const { payload } = message;
-
+            // Headers
             const clonedHeaders = fspiopOpaqueState;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
+            // NOTE: This is a query, so we have to switch headers
             clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
-
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+            
+            // Data model
+            const { payload } = message;
 
             // TODO validate vars above
 
@@ -506,12 +512,13 @@ export class TransferEventHandler extends BaseEventHandler {
         this._logger.debug("_handleTransferRejectRequestEvt -> start");
 
         try {
-            const { payload } = message;
-
+            // Headers
             const clonedHeaders = fspiopOpaqueState;
-
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+            // Data model
+            const { payload } = message;
 
             // TODO validate vars above
 
@@ -551,11 +558,13 @@ export class TransferEventHandler extends BaseEventHandler {
         try {
             this._logger.debug("_handleBulkTransferPreparedEvt -> start");
 
-            const { payload } = message;
-
+            // Headers
             const clonedHeaders = fspiopOpaqueState;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+            // Data model
+            const { payload } = message;
 
             // TODO validate vars above
 
@@ -593,17 +602,18 @@ export class TransferEventHandler extends BaseEventHandler {
 
 
     private async _handleBulkTransferFulfiledEvt(message: BulkTransferFulfiledEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
-        const { payload } = message;
-
-        const clonedHeaders = fspiopOpaqueState;
-        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
-
-        // TODO validate vars above
-
-
         try {
             this._logger.debug("_handleBulkTransferFulfiledEvt -> start");
+
+            // Headers
+            const clonedHeaders = fspiopOpaqueState;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+    
+            // Data model
+            const { payload } = message;
+    
+            // TODO validate vars above
 
             const requestedEndpointPayer = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
@@ -640,15 +650,18 @@ export class TransferEventHandler extends BaseEventHandler {
 
     private async _handleBulkTransferQueryResponseEvt(message: BulkTransferQueryResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
         try {
-            const { payload } = message;
-
+            // Headers
             const clonedHeaders = fspiopOpaqueState;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
+            // NOTE: This is a query, so we have to switch headers
             clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
 
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+            // Data model
+            const { payload } = message;
+
 
             // TODO validate vars above
 
@@ -691,12 +704,13 @@ export class TransferEventHandler extends BaseEventHandler {
         this._logger.debug("_handleBulkTransferRejectRequestEvt -> start");
 
         try {
-            const { payload } = message;
-
+            // Headers
             const clonedHeaders = fspiopOpaqueState;
-
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+            // Data model
+            const { payload } = message;
 
             // TODO validate vars above
 

@@ -53,7 +53,12 @@ import {
 import {FSPIOPErrorCodes} from "../validation";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
-import {FastifyInstance, FastifyPluginAsync, FastifyPluginOptions, FastifyReply, FastifyRequest} from "fastify";
+import {
+    FastifyInstance,
+    FastifyPluginOptions,
+    FastifyReply,
+    FastifyRequest
+} from "fastify";
 import {
     GetPartyByTypeAndIdAndSubIdQueryRejectDTO,
     GetPartyByTypeAndIdQueryRejectDTO,
@@ -106,12 +111,15 @@ export class PartyRoutes extends BaseRoutesFastify {
         this.logger.debug("Got getPartyQueryReceivedByTypeAndId request");
 
         try {
+            // Headers
             const clonedHeaders = {...req.headers};
-            const type = req.params["type"] as string || null;
-            const id = req.params["id"] as string || null;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
-            const currency = req.query["currency"] as string || null;
+
+            // Date Model
+            const type = req.params.type;
+            const id = req.params.id;
+            const currency = req.query.currency;
 
             if (!type || !id || !requesterFspId) {
                 const transformError = Transformer.transformPayloadError({
@@ -184,13 +192,16 @@ export class PartyRoutes extends BaseRoutesFastify {
         this.logger.debug("Got getPartyQueryReceivedByTypeAndIdSubId request");
 
         try {
+            // Headers
             const clonedHeaders = {...req.headers};
-            const type = req.params["type"] as string || null;
-            const id = req.params["id"] as string || null;
-            const partySubIdOrType = req.params["subid"] as string || null;
-            const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = req.headers[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
-            const currency = req.query["currency"] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+
+            // Date Model
+            const type = req.params.type;
+            const id = req.params.id;
+            const partySubIdOrType = req.params.subid;
+            const currency = req.query.currency;
 
             if (!type || !id || !requesterFspId) {
                 const transformError = Transformer.transformPayloadError({
@@ -260,22 +271,26 @@ export class PartyRoutes extends BaseRoutesFastify {
 
         try {
             const headersTimer = this._histogram.startTimer({callName: "getPartyInfoAvailableByTypeAndId - headers"});
+
+            // Headers
             const clonedHeaders = {...req.headers};
-            const type = req.params["type"] as string || null;
-            const id = req.params["id"] as string || null;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
-            const ownerFspId = req.body.party.partyIdInfo["fspId"] || null;
-            const currency = req.query["currency"] as string || null;
-            const name = req.body.party["name"];
-            const merchantClassificationCode = req.body.party["merchantClassificationCode"];
-            const firstName = req.body.party.personalInfo.complexName["firstName"];
-            const middleName = req.body.party.personalInfo.complexName["middleName"];
-            const lastName = req.body.party.personalInfo.complexName["lastName"];
-            const partyDoB = req.body.party.personalInfo["dateOfBirth"] || null;
-            const extensionList = req.body.party.partyIdInfo["extensionList"] || null;
-            const kycInfo = req.body.party.personalInfo["kycInformation"] || null;
-            const supportedCurrencies = req.body.party["supportedCurrencies"] || null;
+
+            // Date Model
+            const type = req.params.type;
+            const id = req.params.id;
+            const ownerFspId = req.body.party.partyIdInfo.fspId;
+            const currency = req.query.currency;
+            const name = req.body.party.name;
+            const merchantClassificationCode = req.body.party.merchantClassificationCode;
+            const firstName = req.body.party.personalInfo.complexName.firstName;
+            const middleName = req.body.party.personalInfo.complexName.middleName;
+            const lastName = req.body.party.personalInfo.complexName.lastName;
+            const partyDoB = req.body.party.personalInfo.dateOfBirth;
+            const extensionList = req.body.party.partyIdInfo.extensionList;
+            const kycInfo = req.body.party.personalInfo.kycInformation;
+            const supportedCurrencies = req.body.party.supportedCurrencies;
 
             headersTimer({success: "true"});
 
@@ -362,23 +377,26 @@ export class PartyRoutes extends BaseRoutesFastify {
         this.logger.debug("Got getPartyInfoAvailableByTypeAndIdAndSubId request");
 
         try {
+            // Headers
             const clonedHeaders = {...req.headers};
-            const type = req.params["type"] as string || null;
-            const id = req.params["id"] as string || null;
-            const partySubIdOrType = req.params["subid"] as string || null;
-            const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
-            const ownerFspId = req.body.party.partyIdInfo["fspId"] || null;
-            const currency = req.query["currency"] as string || null;
-            const merchantClassificationCode = req.body.party["merchantClassificationCode"];
-            const name = req.body.party["name"];
-            const firstName = req.body.party.personalInfo.complexName["firstName"];
-            const middleName = req.body.party.personalInfo.complexName["middleName"];
-            const lastName = req.body.party.personalInfo.complexName["lastName"];
-            const partyDoB = req.body.party.personalInfo["dateOfBirth"] || null;
-            const extensionList = req.body.party.partyIdInfo["extensionList"] || null;
-            const kycInfo = req.body.party.personalInfo["kycInformation"] || null;
-            const supportedCurrencies = req.body.party["supportedCurrencies"] || null;
+
+            // Date Model
+            const type = req.params.type;
+            const id = req.params.id;
+            const partySubIdOrType = req.params.subid;
+            const ownerFspId = req.body.party.partyIdInfo.fspId;
+            const currency = req.query.currency;
+            const merchantClassificationCode = req.body.party.merchantClassificationCode;
+            const name = req.body.party.name;
+            const firstName = req.body.party.personalInfo.complexName.firstName;
+            const middleName = req.body.party.personalInfo.complexName.middleName;
+            const lastName = req.body.party.personalInfo.complexName.lastName;
+            const partyDoB = req.body.party.personalInfo.dateOfBirth;
+            const extensionList = req.body.party.partyIdInfo.extensionList;
+            const kycInfo = req.body.party.personalInfo.kycInformation;
+            const supportedCurrencies = req.body.party.supportedCurrencies;
 
             if (!type || !id || !requesterFspId || !ownerFspId) {
                 const transformError = Transformer.transformPayloadError({
@@ -466,10 +484,10 @@ export class PartyRoutes extends BaseRoutesFastify {
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
 
             // Date Model
-            const type = req.params["type"] as string;
-            const id = req.params["id"] as string;
-            const currency = req.query["currency"] as string || null;
-            const errorInformation = req.body["errorInformation"] || null;
+            const type = req.params.type;
+            const id = req.params.id;
+            const currency = req.query.currency;
+            const errorInformation = req.body.errorInformation;
 
             if (!type || !id || !requesterFspId || !errorInformation) {
                 const transformError = Transformer.transformPayloadError({
@@ -544,15 +562,15 @@ export class PartyRoutes extends BaseRoutesFastify {
         try {
             // Headers
             const clonedHeaders = {...req.headers};
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
 
             // Date Model
-            const type = req.params["type"] as string || null;
-            const id = req.params["id"] as string || null;
-            const currency = req.query["currency"] as string || null;
-            const partySubIdOrType = req.params["subid"] as string || null;
-            const errorInformation = req.body["errorInformation"] || null;
+            const type = req.params.type;
+            const id = req.params.id;
+            const currency = req.query.currency;
+            const partySubIdOrType = req.params.subid;
+            const errorInformation = req.body.errorInformation;
 
             if (!type || !id || !requesterFspId || !errorInformation) {
                 const transformError = Transformer.transformPayloadError({

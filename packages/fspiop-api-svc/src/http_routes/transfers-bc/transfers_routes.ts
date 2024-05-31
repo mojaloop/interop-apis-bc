@@ -105,18 +105,18 @@ export class TransfersRoutes extends BaseRoutesFastify {
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
             // Data Model
-            const transferId = req.body["transferId"] || null;
-            const payeeFsp = req.body["payeeFsp"] || null;
-            const payerFsp = req.body["payerFsp"] || null;
-            const amount = req.body["amount"] || null;
-            const ilpPacket = req.body["ilpPacket"];
-            const condition = req.body["condition"] || null;
-            const expiration = req.body["expiration"] || null;
-            const extensionList = req.body["extensionList"] || null;
+            const transferId = req.body.transferId;
+            const payeeFsp = req.body.payeeFsp;
+            const payerFsp = req.body.payerFsp;
+            const amount = req.body.amount;
+            const ilpPacket = req.body.ilpPacket;
+            const condition = req.body.condition;
+            const expiration = req.body.expiration;
+            const extensionList = req.body.extensionList;
 
             //TODO: validate ilpPacket
 
@@ -213,16 +213,16 @@ export class TransfersRoutes extends BaseRoutesFastify {
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
             const acceptedHeader = clonedHeaders[Constants.FSPIOP_HEADERS_ACCEPT] as string;
 
             // Date Model
-            const transferId = req.params["id"] as string || null;
-            const transferState = req.body["transferState"] || null;
-            const fulfilment = req.body["fulfilment"] || null;
-            const completedTimestamp = req.body["completedTimestamp"] || null;
-            const extensionList = req.body["extensionList"] || null;
+            const transferId = req.params.id;
+            const transferState = req.body.transferState;
+            const fulfilment = req.body.fulfilment;
+            const completedTimestamp = req.body.completedTimestamp;
+            const extensionList = req.body.extensionList;
 
 
             if (!transferId || !transferState || !requesterFspId) {
@@ -296,12 +296,12 @@ export class TransfersRoutes extends BaseRoutesFastify {
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
             // Date Model
-            const transferId = req.params["id"] as string || null;
-            const errorInformation = req.body["errorInformation"] || null;
+            const transferId = req.params.id;
+            const errorInformation = req.body.errorInformation;
 
             if (!transferId || !errorInformation || !requesterFspId) {
                 const transformError = Transformer.transformPayloadError({
@@ -363,9 +363,9 @@ export class TransfersRoutes extends BaseRoutesFastify {
 
         try {
             const clonedHeaders = { ...req.headers };
-            const transferId = req.params["id"] as string || null;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+            const transferId = req.params.id;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
 
 
             if (!transferId || !requesterFspId) {

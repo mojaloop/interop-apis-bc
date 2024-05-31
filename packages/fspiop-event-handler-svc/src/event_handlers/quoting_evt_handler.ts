@@ -221,7 +221,7 @@ export class QuotingEventHandler extends BaseEventHandler {
         const { payload } = message;
 
         const clonedHeaders = fspiopOpaqueState;
-        const sourceFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+        const sourceFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
         const quoteId = payload.quoteId as string;
         const bulkQuoteId = payload.bulkQuoteId as string;
 
@@ -264,11 +264,13 @@ export class QuotingEventHandler extends BaseEventHandler {
         const mainTimer = this._histogram.startTimer({ callName: "handleQuoteRequestAcceptedEvt"});
 
         try {
-            const { payload } = message;
-
+            // Headers
             const clonedHeaders = fspiopOpaqueState;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+                        
+            // Data model
+            const { payload } = message;
 
             // TODO validate vars above
 
@@ -309,11 +311,13 @@ export class QuotingEventHandler extends BaseEventHandler {
     private async _handleQuoteResponseAcceptedEvt(message: QuoteResponseAccepted, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
         const mainTimer = this._histogram.startTimer({ callName: "handleQuoteResponseAcceptedEvt"});
         try {
-            const { payload } = message;
-
+            // Headers
             const clonedHeaders = fspiopOpaqueState;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+                        
+            // Data model
+            const { payload } = message;
 
             // TODO validate vars above
 
@@ -356,15 +360,18 @@ export class QuotingEventHandler extends BaseEventHandler {
     private async _handleQuoteQueryResponseEvt(message: QuoteQueryResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
         const mainTimer = this._histogram.startTimer({ callName: "handleQuoteQueryResponseEvt"});
         try {
-            const { payload } = message;
-
+            // Headers
             const clonedHeaders = fspiopOpaqueState;
-
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+                        
+            // NOTE: This is a query, so we have to switch headers
             clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
 
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+            // Data model
+            const { payload } = message;
+
 
             // TODO validate vars above
 
@@ -407,14 +414,17 @@ export class QuotingEventHandler extends BaseEventHandler {
     private async _handleBulkQuoteReceivedEvt(message: BulkQuoteReceivedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
         const mainTimer = this._histogram.startTimer({ callName: "handleBulkQuoteReceivedEvt"});
         try {
-            const { payload } = message;
-
+            // Headers
             const clonedHeaders = fspiopOpaqueState;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+            // Data model
+            const { payload } = message;
 
             // TODO validate vars above
 
-            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
+            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
             this._logger.debug("_handleBulkQuoteReceivedEvt -> start");
 
@@ -433,7 +443,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 url: urlBuilder.build(),
                 headers: clonedHeaders,
                 source: requesterFspId,
-                destination: requesterFspId,
+                destination: destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.POST,
                 payload: transformedPayload
             });
@@ -452,11 +462,13 @@ export class QuotingEventHandler extends BaseEventHandler {
     private async _handleBulkQuoteAcceptedEvt(message: BulkQuoteAcceptedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
         const mainTimer = this._histogram.startTimer({ callName: "handleBulkQuoteAcceptedEvt"});
         try {
-            const { payload } = message;
-
+            // Headers
             const clonedHeaders = fspiopOpaqueState;
-            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+            // Data model
+            const { payload } = message;
 
             // TODO validate vars above
 
@@ -480,7 +492,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 url: urlBuilder.build(),
                 headers: clonedHeaders,
                 source: requesterFspId,
-                destination: requesterFspId,
+                destination: destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: transformedPayload
             });
@@ -499,11 +511,19 @@ export class QuotingEventHandler extends BaseEventHandler {
     private async _handleBulkQuoteQueryResponseEvt(message: BulkQuoteQueryResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders): Promise<void> {
         const mainTimer = this._histogram.startTimer({ callName: "handleBulkQuoteQueryResponseEvt"});
         try{
-            const { payload } = message;
+            // Headers
             const clonedHeaders = fspiopOpaqueState;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
-            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
+            // NOTE: This is a query, so we have to switch headers
+            clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
+
+            // Data model
+            const { payload } = message;
+
+            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
             this._logger.debug("_handleBulkQuoteQueryResponseEvt -> start");
 
@@ -523,7 +543,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 url: urlBuilder.build(),
                 headers: clonedHeaders,
                 source: requesterFspId,
-                destination: requesterFspId,
+                destination: destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: transformedPayload
             });
@@ -542,12 +562,13 @@ export class QuotingEventHandler extends BaseEventHandler {
         this._logger.info("_handleQuoteRejectRequestEvt -> start");
         
         try {
-            const { payload } = message;
-
+            // Headers
             const clonedHeaders = fspiopOpaqueState;
-
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+            // Data model
+            const { payload } = message;
 
             // TODO validate vars above
 
@@ -584,12 +605,13 @@ export class QuotingEventHandler extends BaseEventHandler {
         this._logger.info("_handleBulkQuoteRejectRequestEvt -> start");
         
         try {
-            const { payload } = message;
-
+            // Headers
             const clonedHeaders = fspiopOpaqueState;
-
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+            // Data model
+            const { payload } = message;
 
             // TODO validate vars above
 
