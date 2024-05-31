@@ -117,41 +117,6 @@ export class TransferEventHandler extends BaseEventHandler {
         );
     }
 
-/*    async processMessagesBatch (sourceMessages: IMessage[]): Promise<void>{
-        // eslint-disable-next-line no-async-promise-executor
-        return new Promise<void>(async (resolve) => {
-            const timerEndFn = this._histogram.startTimer({ callName: `${this.constructor.name}_batchMsgHandler`});
-
-            for (const sourceMessage of sourceMessages) {
-                // extract the context from msg.tracingInfo
-                const context =  OpenTelemetryClient.getInstance().propagationExtract(sourceMessage.tracingInfo);
-
-                // activate the context
-                await OpentelemetryApi.context.with(context, async ()=>{
-                    const parentSpan = OpenTelemetryClient.getInstance().startSpan(this._tracer, "processMessage", OpenTelemetryClient.getInstance().context);
-                    parentSpan.setAttributes({
-                        "msgName": sourceMessage.msgName,
-                        "transferId": sourceMessage.payload.transferId
-                    });
-
-                    await this.processMessage(sourceMessage);
-
-                    parentSpan.end();
-                });
-
-                // await this.processMessage(sourceMessage);
-            }
-
-            const took = timerEndFn({ success: "true" })*1000;
-            if (this._logger.isDebugEnabled()) {
-                this._logger.debug(`  Completed batch in ${this.constructor.name} batch size: ${sourceMessages.length}`);
-                this._logger.debug(`  Took: ${took.toFixed(0)}`);
-                this._logger.debug("\n\n");
-            }
-            resolve();
-        });
-    }*/
-
     async processMessage (sourceMessage: IMessage) : Promise<void> {
         const startTime = Date.now();
         this._histogram.observe({callName:"msgDelay"}, (startTime - sourceMessage.msgTimestamp)/1000);
@@ -163,13 +128,10 @@ export class TransferEventHandler extends BaseEventHandler {
         }
 
         // set specific span attributes
-        const span = OpenTelemetryClient.getInstance().getActiveSpan();
-        if(span){
-            span.setAttributes({
-                "entityId": sourceMessage.payload.quoteId,
-                "quoteId": sourceMessage.payload.quoteId,
-            });
-        }
+        this._getActiveSpan().setAttributes({
+            "entityId": sourceMessage.payload.quoteId,
+            "quoteId": sourceMessage.payload.quoteId
+        });
 
         try {
             const message: IDomainMessage = sourceMessage as IDomainMessage;
@@ -252,12 +214,11 @@ export class TransferEventHandler extends BaseEventHandler {
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
             const clonedHeaders = message.fspiopOpaqueState.headers;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             const transferId = message.payload.transferId as string;
             const bulkTransferId = message.payload.bulkTransferId as string;
 
-            const activeSpan = OpenTelemetryClient.getInstance().getActiveSpan();
-            if(activeSpan) activeSpan.setStatus({ code: SpanStatusCode.ERROR });
+            this._getActiveSpan().setStatus({ code: SpanStatusCode.ERROR });
 
             processMessageTimer({success: "false"});
 
@@ -285,8 +246,8 @@ export class TransferEventHandler extends BaseEventHandler {
         const { payload } = message;
 
         const clonedHeaders = fspiopOpaqueState;
-        const sourceFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+        const sourceFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
         const transferId = payload.transferId as string;
         const bulkTransferId = payload.bulkTransferId as string;
 
@@ -336,11 +297,12 @@ export class TransferEventHandler extends BaseEventHandler {
     }
 
     private async _handleTransferPreparedEvt(message: TransferPreparedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
-        const { payload } = message;
-
         const clonedHeaders = fspiopOpaqueState;
-        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
-        const destinationFspId = payload.payeeFsp;
+        const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+        // Data model
+        const { payload } = message;
 
         // TODO validate vars above
 
@@ -357,17 +319,10 @@ export class TransferEventHandler extends BaseEventHandler {
 
             const transformedPayload = Transformer.transformPayloadTransferRequestPost(payload);
 
-            // propagate tracing info
-            OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
-
-            await Request.sendRequest({
-                url: urlBuilder.build(),
-                headers: clonedHeaders,
-                source: requesterFspId,
-                destination: destinationFspId,
-                method: Enums.FspiopRequestMethodsEnum.POST,
-                payload: transformedPayload
-            });
+            await this._sendHttpRequest(
+                urlBuilder, clonedHeaders, requesterFspId, destinationFspId,
+                Enums.FspiopRequestMethodsEnum.POST, transformedPayload
+            );
 
             this._logger.debug("_handleTransferPreparedEvt -> end");
         } catch (error: unknown) {
@@ -380,11 +335,13 @@ export class TransferEventHandler extends BaseEventHandler {
     }
 
     private async _handleTransferFulfiledEvt(message: TransferFulfiledEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
-        const { payload } = message;
-
+        // Headers
         const clonedHeaders = fspiopOpaqueState;
-        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+        const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+        // Data model
+        const { payload } = message;
 
         // TODO validate vars above
 
@@ -404,17 +361,10 @@ export class TransferEventHandler extends BaseEventHandler {
             urlBuilderPayer.setEntity(Enums.EntityTypeEnum.TRANSFERS);
             urlBuilderPayer.setLocation([payload.transferId]);
 
-            // propagate tracing info
-            OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
-
-            await Request.sendRequest({
-                url: urlBuilderPayer.build(),
-                headers: clonedHeaders,
-                source: requesterFspId,
-                destination: destinationFspId,
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: transformedPayload
-            });
+            await this._sendHttpRequest(
+                urlBuilderPayer, clonedHeaders, requesterFspId, destinationFspId,
+                Enums.FspiopRequestMethodsEnum.PUT, transformedPayload
+            );
 
             if(payload.notifyPayee) {
                 if(this._jwsHelper.isEnabled()) {
@@ -426,17 +376,10 @@ export class TransferEventHandler extends BaseEventHandler {
                 urlBuilderPayee.setEntity(Enums.EntityTypeEnum.TRANSFERS);
                 urlBuilderPayee.setLocation([payload.transferId]);
 
-                // propagate tracing info
-                OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
-
-                await Request.sendRequest({
-                    url: urlBuilderPayee.build(),
-                    headers: clonedHeaders,
-                    source: requesterFspId,
-                    destination: destinationFspId,
-                    method: Enums.FspiopRequestMethodsEnum.PATCH,
-                    payload: transformedPayload
-                });
+                await this._sendHttpRequest(
+                    urlBuilderPayee, clonedHeaders, requesterFspId, destinationFspId,
+                    Enums.FspiopRequestMethodsEnum.PATCH, transformedPayload
+                );
             }
 
             this._logger.debug("_handleTransferReserveFulfiledEvt -> end");
@@ -448,19 +391,22 @@ export class TransferEventHandler extends BaseEventHandler {
         return;
     }
 
+
     private async _handleTransferQueryResponseEvt(message: TransferQueryResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
         this._logger.debug("_handleTransferQueryResponseEvt -> start");
 
         try {
-            const { payload } = message;
-
+            // Headers
             const clonedHeaders = fspiopOpaqueState;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
+            // NOTE: This is a query, so we have to switch headers
             clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
 
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+            // Data model
+            const { payload } = message;
 
             // TODO validate vars above
 
@@ -475,17 +421,10 @@ export class TransferEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.TRANSFERS);
             urlBuilder.setId(payload.transferId);
 
-            // propagate tracing info
-            OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
-
-            await Request.sendRequest({
-                url: urlBuilder.build(),
-                headers: clonedHeaders,
-                source: requesterFspId,
-                destination: destinationFspId,
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: transformedPayload
-            });
+            await this._sendHttpRequest(
+                urlBuilder, clonedHeaders, requesterFspId, destinationFspId,
+                Enums.FspiopRequestMethodsEnum.PUT, transformedPayload
+            );
 
             this._logger.debug("_handleTransferQueryResponseEvt -> end");
 
@@ -501,12 +440,13 @@ export class TransferEventHandler extends BaseEventHandler {
         this._logger.debug("_handleTransferRejectRequestEvt -> start");
 
         try {
-            const { payload } = message;
-
+            // Headers
             const clonedHeaders = fspiopOpaqueState;
-
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+            // Data model
+            const { payload } = message;
 
             // TODO validate vars above
 
@@ -520,17 +460,10 @@ export class TransferEventHandler extends BaseEventHandler {
             urlBuilder.setId(payload.transferId);
             urlBuilder.hasError(true);
 
-            // propagate tracing info
-            OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
-
-            await Request.sendRequest({
-                url: urlBuilder.build(),
-                headers: clonedHeaders,
-                source: requesterFspId,
-                destination: destinationFspId,
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadTransferRequestPutError(payload),
-            });
+            await this._sendHttpRequest(
+                urlBuilder, clonedHeaders, requesterFspId, destinationFspId,
+                Enums.FspiopRequestMethodsEnum.PUT, Transformer.transformPayloadTransferRequestPutError(payload)
+            );
 
             this._logger.debug("_handleTransferRejectRequestEvt -> end");
 
@@ -546,11 +479,13 @@ export class TransferEventHandler extends BaseEventHandler {
         try {
             this._logger.debug("_handleBulkTransferPreparedEvt -> start");
 
-            const { payload } = message;
-
+            // Headers
             const clonedHeaders = fspiopOpaqueState;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+            // Data model
+            const { payload } = message;
 
             // TODO validate vars above
 
@@ -564,17 +499,10 @@ export class TransferEventHandler extends BaseEventHandler {
             const urlBuilderPayer = new Request.URLBuilder(requestedEndpointPayer.value);
             urlBuilderPayer.setEntity(Enums.EntityTypeEnum.BULK_TRANSFERS);
 
-            // propagate tracing info
-            OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
-
-            await Request.sendRequest({
-                url: urlBuilderPayer.build(),
-                headers: clonedHeaders,
-                source: requesterFspId,
-                destination: destinationFspId,
-                method: Enums.FspiopRequestMethodsEnum.POST,
-                payload: transformedPayload
-            });
+            await this._sendHttpRequest(
+                urlBuilderPayer, clonedHeaders, requesterFspId, destinationFspId,
+                Enums.FspiopRequestMethodsEnum.POST, transformedPayload
+            );
 
             this._logger.debug("_handleBulkTransferPreparedEvt -> end");
 
@@ -588,17 +516,18 @@ export class TransferEventHandler extends BaseEventHandler {
 
 
     private async _handleBulkTransferFulfiledEvt(message: BulkTransferFulfiledEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
-        const { payload } = message;
-
-        const clonedHeaders = fspiopOpaqueState;
-        const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
-
-        // TODO validate vars above
-
-
         try {
             this._logger.debug("_handleBulkTransferFulfiledEvt -> start");
+
+            // Headers
+            const clonedHeaders = fspiopOpaqueState;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+            // Data model
+            const { payload } = message;
+
+            // TODO validate vars above
 
             const requestedEndpointPayer = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
@@ -611,17 +540,10 @@ export class TransferEventHandler extends BaseEventHandler {
             urlBuilderPayer.setEntity(Enums.EntityTypeEnum.BULK_TRANSFERS);
             urlBuilderPayer.setLocation([payload.bulkTransferId]);
 
-            // propagate tracing info
-            OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
-
-            await Request.sendRequest({
-                url: urlBuilderPayer.build(),
-                headers: clonedHeaders,
-                source: requesterFspId,
-                destination: destinationFspId,
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: transformedPayload
-            });
+            await this._sendHttpRequest(
+                urlBuilderPayer, clonedHeaders, requesterFspId, destinationFspId,
+                Enums.FspiopRequestMethodsEnum.PUT, transformedPayload
+            );
 
             this._logger.debug("_handleBulkTransferFulfiledEvt -> end");
 
@@ -635,15 +557,18 @@ export class TransferEventHandler extends BaseEventHandler {
 
     private async _handleBulkTransferQueryResponseEvt(message: BulkTransferQueryResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
         try {
-            const { payload } = message;
-
+            // Headers
             const clonedHeaders = fspiopOpaqueState;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
+            // NOTE: This is a query, so we have to switch headers
             clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
 
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+            // Data model
+            const { payload } = message;
+
 
             // TODO validate vars above
 
@@ -660,17 +585,10 @@ export class TransferEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_TRANSFERS);
             urlBuilder.setId(payload.bulkTransferId);
 
-            // propagate tracing info
-            OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
-
-            await Request.sendRequest({
-                url: urlBuilder.build(),
-                headers: clonedHeaders,
-                source: requesterFspId,
-                destination: destinationFspId,
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: transformedPayload
-            });
+            await this._sendHttpRequest(
+                urlBuilder, clonedHeaders, requesterFspId, destinationFspId,
+                Enums.FspiopRequestMethodsEnum.PUT, transformedPayload
+            );
 
             this._logger.debug("_handleBulkTransferQueryResponseEvt -> end");
 
@@ -686,12 +604,13 @@ export class TransferEventHandler extends BaseEventHandler {
         this._logger.debug("_handleBulkTransferRejectRequestEvt -> start");
 
         try {
-            const { payload } = message;
-
+            // Headers
             const clonedHeaders = fspiopOpaqueState;
-
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+            // Data model
+            const { payload } = message;
 
             // TODO validate vars above
 
@@ -707,17 +626,10 @@ export class TransferEventHandler extends BaseEventHandler {
             urlBuilder.setId(payload.bulkTransferId);
             urlBuilder.hasError(true);
 
-            // propagate tracing info
-            OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
-
-            await Request.sendRequest({
-                url: urlBuilder.build(),
-                headers: clonedHeaders,
-                source: requesterFspId,
-                destination: destinationFspId,
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: transformedPayload
-            });
+            await this._sendHttpRequest(
+                urlBuilder, clonedHeaders, requesterFspId, destinationFspId,
+                Enums.FspiopRequestMethodsEnum.PUT, transformedPayload
+            );
 
             this._logger.debug("_handleBulkTransferRejectRequestEvt -> end");
 

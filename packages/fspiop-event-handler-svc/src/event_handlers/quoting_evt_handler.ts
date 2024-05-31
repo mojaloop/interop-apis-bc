@@ -180,12 +180,10 @@ export class QuotingEventHandler extends BaseEventHandler {
                     break;
             }
 
-
             const took = processMessageTimer({success: "true"}) * 1000;
             this._logger.isDebugEnabled() && this._logger.debug(`  Completed processMessage in - took: ${took} ms`);
         } catch (error: unknown) {
-            const activeSpan = OpenTelemetryClient.getInstance().getActiveSpan();
-            if(activeSpan) activeSpan.setStatus({ code: SpanStatusCode.ERROR });
+            this._getActiveSpan().setStatus({ code: SpanStatusCode.ERROR });
 
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
@@ -221,7 +219,7 @@ export class QuotingEventHandler extends BaseEventHandler {
         const { payload } = message;
 
         const clonedHeaders = fspiopOpaqueState;
-        const sourceFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+        const sourceFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
         const quoteId = payload.quoteId as string;
         const bulkQuoteId = payload.bulkQuoteId as string;
 
@@ -264,11 +262,13 @@ export class QuotingEventHandler extends BaseEventHandler {
         const mainTimer = this._histogram.startTimer({ callName: "handleQuoteRequestAcceptedEvt"});
 
         try {
-            const { payload } = message;
-
+            // Headers
             const clonedHeaders = fspiopOpaqueState;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+            // Data model
+            const { payload } = message;
 
             // TODO validate vars above
 
@@ -303,11 +303,13 @@ export class QuotingEventHandler extends BaseEventHandler {
     private async _handleQuoteResponseAcceptedEvt(message: QuoteResponseAccepted, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
         const mainTimer = this._histogram.startTimer({ callName: "handleQuoteResponseAcceptedEvt"});
         try {
-            const { payload } = message;
-
+            // Headers
             const clonedHeaders = fspiopOpaqueState;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+            // Data model
+            const { payload } = message;
 
             // TODO validate vars above
 
@@ -343,15 +345,18 @@ export class QuotingEventHandler extends BaseEventHandler {
     private async _handleQuoteQueryResponseEvt(message: QuoteQueryResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
         const mainTimer = this._histogram.startTimer({ callName: "handleQuoteQueryResponseEvt"});
         try {
-            const { payload } = message;
-
+            // Headers
             const clonedHeaders = fspiopOpaqueState;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
+            // NOTE: This is a query, so we have to switch headers
             clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
 
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+            // Data model
+            const { payload } = message;
+
 
             // TODO validate vars above
 
@@ -387,14 +392,17 @@ export class QuotingEventHandler extends BaseEventHandler {
     private async _handleBulkQuoteReceivedEvt(message: BulkQuoteReceivedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
         const mainTimer = this._histogram.startTimer({ callName: "handleBulkQuoteReceivedEvt"});
         try {
-            const { payload } = message;
-
+            // Headers
             const clonedHeaders = fspiopOpaqueState;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+            // Data model
+            const { payload } = message;
 
             // TODO validate vars above
 
-            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
+            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
             this._logger.debug("_handleBulkQuoteReceivedEvt -> start");
 
@@ -425,11 +433,13 @@ export class QuotingEventHandler extends BaseEventHandler {
     private async _handleBulkQuoteAcceptedEvt(message: BulkQuoteAcceptedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
         const mainTimer = this._histogram.startTimer({ callName: "handleBulkQuoteAcceptedEvt"});
         try {
-            const { payload } = message;
-
+            // Headers
             const clonedHeaders = fspiopOpaqueState;
-            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+            // Data model
+            const { payload } = message;
 
             // TODO validate vars above
 
@@ -446,17 +456,10 @@ export class QuotingEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);
             urlBuilder.setId(payload.bulkQuoteId);
 
-            // propagate tracing info
-            OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
-
-            await Request.sendRequest({
-                url: urlBuilder.build(),
-                headers: clonedHeaders,
-                source: requesterFspId,
-                destination: requesterFspId,
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: transformedPayload
-            });
+            await this._sendHttpRequest(
+                urlBuilder, clonedHeaders, requesterFspId, destinationFspId,
+                Enums.FspiopRequestMethodsEnum.PUT, transformedPayload
+            );
 
             this._logger.debug("_handleBulkQuoteAcceptedEvt -> end");
             mainTimer({success:"true"});
@@ -472,11 +475,19 @@ export class QuotingEventHandler extends BaseEventHandler {
     private async _handleBulkQuoteQueryResponseEvt(message: BulkQuoteQueryResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders): Promise<void> {
         const mainTimer = this._histogram.startTimer({ callName: "handleBulkQuoteQueryResponseEvt"});
         try{
-            const { payload } = message;
+            // Headers
             const clonedHeaders = fspiopOpaqueState;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
-            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
+            // NOTE: This is a query, so we have to switch headers
+            clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
+
+            // Data model
+            const { payload } = message;
+
+            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
             this._logger.debug("_handleBulkQuoteQueryResponseEvt -> start");
 
@@ -489,17 +500,10 @@ export class QuotingEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);
             urlBuilder.setId(payload.bulkQuoteId);
 
-            // propagate tracing info
-            OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
-
-            await Request.sendRequest({
-                url: urlBuilder.build(),
-                headers: clonedHeaders,
-                source: requesterFspId,
-                destination: requesterFspId,
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: transformedPayload
-            });
+            await this._sendHttpRequest(
+                urlBuilder, clonedHeaders, requesterFspId, destinationFspId,
+                Enums.FspiopRequestMethodsEnum.PUT, transformedPayload
+            );
 
             this._logger.debug("_handleBulkQuoteQueryResponseEvt -> end");
             mainTimer({success:"true"});
@@ -515,12 +519,13 @@ export class QuotingEventHandler extends BaseEventHandler {
         this._logger.info("_handleQuoteRejectRequestEvt -> start");
 
         try {
-            const { payload } = message;
-
+            // Headers
             const clonedHeaders = fspiopOpaqueState;
-
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+            // Data model
+            const { payload } = message;
 
             // TODO validate vars above
 
@@ -534,17 +539,10 @@ export class QuotingEventHandler extends BaseEventHandler {
             urlBuilder.setId(payload.quoteId);
             urlBuilder.hasError(true);
 
-            // propagate tracing info
-            OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
-
-            await Request.sendRequest({
-                url: urlBuilder.build(),
-                headers: clonedHeaders,
-                source: requesterFspId,
-                destination: destinationFspId,
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadQuotingRequestPutError(payload),
-            });
+            await this._sendHttpRequest(
+                urlBuilder, clonedHeaders, requesterFspId, destinationFspId,
+                Enums.FspiopRequestMethodsEnum.PUT, Transformer.transformPayloadQuotingRequestPutError(payload)
+            );
 
             this._logger.info("_handleQuoteRejectRequestEvt -> end");
 
@@ -560,12 +558,13 @@ export class QuotingEventHandler extends BaseEventHandler {
         this._logger.info("_handleBulkQuoteRejectRequestEvt -> start");
 
         try {
-            const { payload } = message;
-
+            // Headers
             const clonedHeaders = fspiopOpaqueState;
-
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+            // Data model
+            const { payload } = message;
 
             // TODO validate vars above
 
@@ -581,17 +580,10 @@ export class QuotingEventHandler extends BaseEventHandler {
             urlBuilder.setId(payload.bulkQuoteId);
             urlBuilder.hasError(true);
 
-            // propagate tracing info
-            OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
-
-            await Request.sendRequest({
-                url: urlBuilder.build(),
-                headers: clonedHeaders,
-                source: requesterFspId,
-                destination: destinationFspId,
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: transformedPayload
-            });
+            await this._sendHttpRequest(
+                urlBuilder, clonedHeaders, requesterFspId, destinationFspId,
+                Enums.FspiopRequestMethodsEnum.PUT, transformedPayload
+            );
 
             this._logger.info("_handleBulkQuoteRejectRequestEvt -> end");
 

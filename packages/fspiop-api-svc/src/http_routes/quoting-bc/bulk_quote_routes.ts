@@ -52,7 +52,7 @@ import { FSPIOPErrorCodes } from "../validation";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
-import {FastifyInstance, FastifyPluginAsync, FastifyPluginOptions, FastifyReply, FastifyRequest} from "fastify";
+import {FastifyInstance, FastifyPluginOptions, FastifyReply, FastifyRequest} from "fastify";
 import {
     BulkQuotePendingDTO,
     BulkQuoteQueryReceivedDTO,
@@ -96,10 +96,12 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
 
             // Headers
             const clonedHeaders = { ...req.headers };
-            const bulkQuoteId = req.params["id"] as string || null;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
+            // Date Model
+            const bulkQuoteId = req.params.id;
+            
             if (!bulkQuoteId || !requesterFspId) {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
@@ -148,16 +150,16 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
             // Date Model
-            const bulkQuoteId = req.body["bulkQuoteId"] || null;
-            const payer = req.body["payer"] || null;
-            const geoCode = req.body["geoCode"] || null;
-            const expiration = req.body["expiration"] || null;
-            const individualQuotes = req.body["individualQuotes"] || null;
-            const extensionList = req.body["extensionList"] || null;
+            const bulkQuoteId = req.body.bulkQuoteId;
+            const payer = req.body.payer;
+            const geoCode = req.body.geoCode;
+            const expiration = req.body.expiration;
+            const individualQuotes = req.body.individualQuotes;
+            const extensionList = req.body.extensionList;
 
             //TODO: validate ilpPacket
 
@@ -231,14 +233,14 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
-            const bulkQuoteId = req.params["id"] as string || null;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+            const bulkQuoteId = req.params.id;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
             // Date Model
-            const expiration = req.body["expiration"] || null;
-            const individualQuoteResults = req.body["individualQuoteResults"] || null;
-            const extensionList = req.body["extensionList"] || null;
+            const expiration = req.body.expiration;
+            const individualQuoteResults = req.body.individualQuoteResults;
+            const extensionList = req.body.extensionList;
 
             if (!bulkQuoteId || !requesterFspId || !individualQuoteResults) {
                 const transformError = Transformer.transformPayloadError({
@@ -316,11 +318,11 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
 
         try{
             const clonedHeaders = { ...req.headers };
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
-            const bulkQuoteId = req.params["id"] as string || null;
-            const errorInformation = req.body["errorInformation"] || null;
+            const bulkQuoteId = req.params.id;
+            const errorInformation = req.body.errorInformation;
 
             if(!bulkQuoteId || !errorInformation || !requesterFspId) {
                 const transformError = Transformer.transformPayloadError({

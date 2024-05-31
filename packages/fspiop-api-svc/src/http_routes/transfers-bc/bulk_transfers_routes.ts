@@ -54,7 +54,12 @@ import { FSPIOPErrorCodes } from "../validation";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
-import {FastifyInstance, FastifyPluginAsync, FastifyPluginOptions, FastifyReply, FastifyRequest} from "fastify";
+import {
+    FastifyInstance,
+    FastifyPluginOptions,
+    FastifyReply,
+    FastifyRequest
+} from "fastify";
 import {
     BulkTransferFulfilRequestedDTO,
     BulkTransferPrepareRequestDTO,
@@ -96,10 +101,12 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
         this._logger.debug("Got bulkTransferQueryReceived request");
         try {
             // Headers
-            const clonedHeaders = { ...req.headers };
-            const bulkTransfersId = req.params["id"] as string || null;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+            const clonedHeaders = {...req.headers};
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE]; // NOTE: We do this because the destination is coming as null
+
+            // Date Model
+            const bulkTransfersId = req.params.id;
 
             if (!bulkTransfersId || !requesterFspId) {
                 const transformError = Transformer.transformPayloadError({
@@ -153,17 +160,17 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
             // Date Model
-            const bulkTransferId = req.body["bulkTransferId"] || null;
-            const bulkQuoteId = req.body["bulkQuoteId"] || null;
-            const payerFsp = req.body["payerFsp"] || null;
-            const payeeFsp = req.body["payeeFsp"] || null;
-            const expiration = req.body["expiration"];
-            const individualTransfers = req.body["individualTransfers"] || null;
-            const extensionList = req.body["extensionList"] || null;
+            const bulkTransferId = req.body.bulkTransferId;
+            const bulkQuoteId = req.body.bulkQuoteId;
+            const payerFsp = req.body.payerFsp;
+            const payeeFsp = req.body.payeeFsp;
+            const expiration = req.body.expiration;
+            const individualTransfers = req.body.individualTransfers;
+            const extensionList = req.body.extensionList;
 
             //TODO: validate ilpPacket
 
@@ -246,15 +253,15 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
-            const bulkTransferId = req.params["id"] as string || null;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
-
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+            
             // Date Model
-            const completedTimestamp = req.body["completedTimestamp"];
-            const bulkTransferState = req.body["bulkTransferState"] || null;
-            const individualTransferResults = req.body["individualTransferResults"] || null;
-            const extensionList = req.body["extensionList"] || null;
+            const bulkTransferId = req.params.id;
+            const completedTimestamp = req.body.completedTimestamp;
+            const bulkTransferState = req.body.bulkTransferState;
+            const individualTransferResults = req.body.individualTransferResults;
+            const extensionList = req.body.extensionList;
 
             if (!bulkTransferId || !requesterFspId || !individualTransferResults) {
                 const transformError = Transformer.transformPayloadError({
@@ -313,11 +320,11 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
 
         try{
             const clonedHeaders = { ...req.headers };
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
-            const bulkTransferId = req.params["id"] as string || null;
-            const errorInformation = req.body["errorInformation"] || null;
+            const bulkTransferId = req.params.id;
+            const errorInformation = req.body.errorInformation;
 
             if(!bulkTransferId || !errorInformation || !requesterFspId) {
                 const transformError = Transformer.transformPayloadError({

@@ -177,17 +177,6 @@ let accountEvtHandler:AccountLookupEventHandler;
 let quotingEvtHandler:QuotingEventHandler;
 let transferEvtHandler:TransferEventHandler;
 
-/*type FspiopHttpRequestError = {
-    name: string;
-    statusCode: number;
-    data: {
-        keyword: string;
-        instancePath: string;
-        params: string;
-        message: string;
-    }[]
-}*/
-
 export class Service {
     static logger: ILogger;
     static app: FastifyInstance;

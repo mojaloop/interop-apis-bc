@@ -109,7 +109,7 @@ export abstract class BaseEventHandler  {
 
         this._metrics = metrics;
         this._histogram = metrics.getHistogram(this.constructor.name, `${this.constructor.name} metrics`, ["callName", "success"]);
-        this._tracer = OpenTelemetryClient.getInstance().getTracer(this.constructor.name);
+        this._tracer = OpenTelemetryClient.getInstance().trace.getTracer(this.constructor.name);
     }
 
     async init () : Promise<void> {
@@ -276,13 +276,13 @@ export abstract class BaseEventHandler  {
         }
 
         for(const fspId of fspIds ) {
+            // create child span and propagate tracing info
+            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "http request", this._getActiveSpan(), SpanKind.CLIENT);
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(childSpan, headers);
+
             try {
 
                 const endpoint = await this._validateParticipantAndGetEndpoint(fspId);
-
-                if(!endpoint) {
-                    throw Error(`fspId ${fspId} has no valid participant associated`);
-                }
 
                 const url = this.buildFspFeedbackUrl(endpoint, id, message);
                 const clonedHeaders = { ...headers };
@@ -302,8 +302,10 @@ export abstract class BaseEventHandler  {
                     clonedHeaders[Constants.FSPIOP_HEADERS_SIGNATURE] = this._jwsHelper.sign(clonedHeaders, transformedPayload);
                 }
 
-                // propagate tracing info
-                OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
+                childSpan.setAttributes({
+                    "url": url,
+                    "method": Enums.FspiopRequestMethodsEnum.PUT,
+                })
 
                 await Request.sendRequest({
                     url: url,
@@ -314,9 +316,17 @@ export abstract class BaseEventHandler  {
                     payload: transformedPayload
                 });
 
-            } catch(err: unknown) {
-                const error = (err as Error).message;
+                childSpan.end();
+            } catch(err: any) {
+                childSpan.setStatus({code: SpanStatusCode.ERROR});
+                childSpan.setAttributes({
+                    // "reply.statusCode": err.statusCode,
+                    "error.name": err.name,
+                    "error.message": err.message,
+                    // "error.stack": err.stack
+                });
 
+                const error = (err as Error).message;
                 this._logger.error(error);
 
                 await this.handleErrorEventForFspFeedbackFailure(message, error).catch((err: unknown) => {

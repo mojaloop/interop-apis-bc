@@ -99,7 +99,7 @@ export abstract class BaseRoutesFastify {
 
         this._metrics = metrics;
 
-        this._tracer = OpenTelemetryClient.getInstance().getTracer(this.constructor.name);
+        this._tracer = OpenTelemetryClient.getInstance().trace.getTracer(this.constructor.name);
 
         this._histogram = metrics.getHistogram(this.constructor.name, `${this.constructor.name} metrics`, ["callName", "success"]);
     }
@@ -162,7 +162,6 @@ export abstract class BaseRoutesFastify {
         /// capture the context created by attaching baggage to the tracing context from headers
         const newContext = OpentelemetryApi.propagation.setBaggage(headersCtx, baggage)
 
-        //const spanName = `${request.method} ${request.url}`;
         const spanName = this._getDefaultFormatSpanName(request);
         const spanOptions: SpanOptions = {
             kind: SpanKind.SERVER,
@@ -190,7 +189,7 @@ export abstract class BaseRoutesFastify {
                     "error.stack": err.stack
                 });
                 span.end();
-            })
+            });
 
             // this will execute the rest of the http request, with the above span and context being "active"
             done();

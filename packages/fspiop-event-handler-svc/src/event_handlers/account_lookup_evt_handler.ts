@@ -93,37 +93,6 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         );
     }
 
-   /* async processMessagesBatch (sourceMessages: IMessage[]): Promise<void>{
-        const timerEndFn = this._histogram.startTimer({ callName: `${this.constructor.name}_batchMsgHandler`});
-
-        for (const sourceMessage of sourceMessages) {
-            // extract the context from msg.tracingInfo
-            const context =  OpenTelemetryClient.getInstance().propagationExtract(sourceMessage.tracingInfo);
-
-            // activate the context
-            await OpentelemetryApi.context.with(context, async ()=>{
-                const parentSpan = OpenTelemetryClient.getInstance().startSpan(this._tracer, "processMessage", OpenTelemetryClient.getInstance().context);
-                parentSpan.setAttributes({
-                    "msgName": sourceMessage.msgName,
-                    "partyId": sourceMessage.payload.partyId
-                });
-
-                await this.processMessage(sourceMessage);
-
-                parentSpan.end();
-            });
-
-            // await this.processMessage(sourceMessage);
-        }
-
-        const took = timerEndFn({ success: "true" })*1000;
-        if (this._logger.isDebugEnabled()) {
-            this._logger.debug(`  Completed batch in ${this.constructor.name} batch size: ${sourceMessages.length}`);
-            this._logger.debug(`  Took: ${took.toFixed(0)}`);
-            this._logger.debug("\n\n");
-        }
-    }*/
-
     async processMessage (sourceMessage: IMessage) : Promise<void> {
         const startTime = Date.now();
         this._histogram.observe({callName:"msgDelay"}, (startTime - sourceMessage.msgTimestamp)/1000);
@@ -135,13 +104,11 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         }
 
         // set specific span attributes
-        const span = OpenTelemetryClient.getInstance().getActiveSpan();
-        if(span){
-            span.setAttributes({
-                "entityId": sourceMessage.payload.quoteId,
-                "quoteId": sourceMessage.payload.quoteId,
-            });
-        }
+        this._getActiveSpan().setAttributes({
+            "entityId": sourceMessage.payload.quoteId,
+            "quoteId": sourceMessage.payload.quoteId,
+        });
+
 
         try {
             const message: IDomainMessage = sourceMessage as IDomainMessage;
@@ -211,8 +178,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             const partyId = message.payload.partyId as string;
             const partySubType = message.payload.partySubType as string;
 
-            const activeSpan = OpenTelemetryClient.getInstance().getActiveSpan();
-            if(activeSpan) activeSpan.setStatus({ code: SpanStatusCode.ERROR });
+            this._getActiveSpan().setStatus({ code: SpanStatusCode.ERROR });
 
             processMessageTimer({success: "false"});
 
@@ -239,9 +205,12 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
         const { payload } = message;
 
+        // Headers
         const clonedHeaders = fspiopOpaqueState;
-        const sourceFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
+        const sourceFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+        // Data model
         const partyType = payload.partyType as string;
         const partyId = payload.partyId as string;
         const partySubType = payload.partySubType as string;
@@ -286,17 +255,22 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         this._logger.debug("_handleParticipantAssociationRequestReceivedEvt -> start");
 
         try {
+
+            // Headers
+            const clonedHeaders = fspiopOpaqueState;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+            // Data model
             const { payload } = message;
 
-            const requesterFspId = payload.ownerFspId;
             const partyType = payload.partyType;
             const partyId = payload.partyId;
             const partySubType = payload.partySubType as string;
-            const clonedHeaders = fspiopOpaqueState;
 
             // TODO validate vars above
 
-            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
+            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
             const transformedPayload = Transformer.transformPayloadPartyAssociationPut(payload);
 
@@ -304,17 +278,10 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
             urlBuilder.setLocation([partyType, partyId, partySubType]);
 
-             // propagate tracing info
-            OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
-
-            await Request.sendRequest({
-                url: urlBuilder.build(),
-                headers: clonedHeaders,
-                source: requesterFspId,
-                destination: requesterFspId,
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: transformedPayload
-            });
+            await this._sendHttpRequest(
+                urlBuilder, clonedHeaders, requesterFspId, destinationFspId,
+                Enums.FspiopRequestMethodsEnum.PUT, transformedPayload
+            );
 
             this._logger.debug("_handleParticipantAssociationRequestReceivedEvt -> end");
 
@@ -330,17 +297,21 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         this._logger.debug("_handleParticipantDisassociateRequestReceivedEvt -> start");
 
         try {
+            // Headers
+            const clonedHeaders = fspiopOpaqueState;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+            // Data model
             const { payload } = message;
 
-            const requesterFspId = payload.ownerFspId;
             const partyType = payload.partyType;
             const partyId = payload.partyId;
             const partySubType = payload.partySubType as string;
-            const clonedHeaders = fspiopOpaqueState;
 
             // TODO validate vars above
 
-            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(requesterFspId);
+            const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
             // Always validate the payload and headers received
             message.validatePayload();
@@ -351,17 +322,10 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
             urlBuilder.setLocation([partyType, partyId, partySubType]);
 
-             // propagate tracing info
-            OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
-
-            await Request.sendRequest({
-                url: urlBuilder.build(),
-                headers: clonedHeaders,
-                source: requesterFspId,
-                destination: requesterFspId,
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: transformedPayload
-            });
+            await this._sendHttpRequest(
+                urlBuilder, clonedHeaders, requesterFspId, destinationFspId,
+                Enums.FspiopRequestMethodsEnum.PUT, transformedPayload
+            );
 
             this._logger.debug("_handleParticipantDisassociateRequestReceivedEvt -> end");
 
@@ -378,14 +342,17 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         const mainTimer = this._histogram.startTimer({ callName: "handlePartyInfoRequestedEvt"});
 
         try {
+            // Headers
+            const clonedHeaders = fspiopOpaqueState;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+            // Data model
             const { payload } = message;
 
-            const requesterFspId = payload.requesterFspId;
-            const destinationFspId = payload.destinationFspId;
             const partyType = payload.partyType;
             const partyId = payload.partyId;
             const partySubType = payload.partySubType as string;
-            const clonedHeaders = fspiopOpaqueState;
 
             // TODO handle the case where destinationFspId is null and remove ! below
 
@@ -409,25 +376,10 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
             urlBuilder.setLocation([partyType, partyId, partySubType]);
 
-             // propagate tracing info
-            OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
-
-            const requestTimer = this._histogram.startTimer({ callName: "handlePartyInfoRequestedEvt_sendRequest"});
-            try {
-                 await Request.sendRequest({
-                    url: urlBuilder.build(),
-                    headers: clonedHeaders,
-                    source: requesterFspId,
-                    destination: destinationFspId,
-                    method: Enums.FspiopRequestMethodsEnum.GET,
-                    payload: transformedPayload
-                });
-                requestTimer({success:"true"});
-            }catch (err){
-                this._logger.error(err,"_handlePartyInfoRequestedEvt -> sendRequest error");
-                requestTimer({success:"false"});
-                throw Error("_handlePartyInfoRequestedEvt -> sendRequest error");
-            }
+            await this._sendHttpRequest(
+                urlBuilder, clonedHeaders, requesterFspId, destinationFspId,
+                Enums.FspiopRequestMethodsEnum.GET, transformedPayload
+            );
 
             this._logger.debug("_handlePartyInfoRequestedEvt -> end");
             mainTimer({success:"true"});
@@ -444,22 +396,21 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         const mainTimer = this._histogram.startTimer({ callName: "handlePartyQueryResponseEvt"});
 
         try {
+            // Headers
+            const clonedHeaders = fspiopOpaqueState;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+            // Data model
             const { payload } = message;
 
-            const requesterFspId = payload.requesterFspId;
-            const destinationFspId = payload.destinationFspId;
             const partyType = payload.partyType ;
             const partyId = payload.partyId;
             const partySubType = payload.partySubType as string;
-            const clonedHeaders = fspiopOpaqueState;
 
             // TODO validate vars above
 
             const destinationEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
-
-            if(!destinationEndpoint) {
-                throw Error(`fspId ${destinationFspId} has no valid participant associated`);
-            }
 
             // Always validate the payload and headers received
             message.validatePayload();
@@ -476,32 +427,10 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
             urlBuilder.setLocation([partyType, partyId, partySubType]);
 
-             // propagate tracing info
-            OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
-
-            const requestTimer = this._histogram.startTimer({ callName: "handlePartyQueryResponseEvt_sendRequest"});
-            try {
-                await Request.sendRequest({
-                    url: urlBuilder.build(),
-                    headers: clonedHeaders,
-                    source: requesterFspId,
-                    destination: destinationFspId,
-                    method: Enums.FspiopRequestMethodsEnum.PUT,
-                    payload: transformedPayload
-                });
-                requestTimer({success:"true"});
-            }catch (err){
-                this._logger.error(err,"_handlePartyQueryResponseEvt -> sendRequest error");
-                requestTimer({success:"false"});
-                throw Error("_handlePartyQueryResponseEvt -> sendRequest error");
-            }
-
-            // eslint-disable-next-line no-prototype-builtins
-            if (fspiopOpaqueState && fspiopOpaqueState.hasOwnProperty("tracing-request-start-timestamp")) {
-                const reOriginalTimestamp = (fspiopOpaqueState as any)["tracing-request-start-timestamp"] || 0;
-                const durationMs = Date.now() - parseInt(reOriginalTimestamp);
-                this._logger.debug(`_handlePartyQueryResponseEvt -> END TO END took: ${durationMs} ms`);
-            }
+            await this._sendHttpRequest(
+                urlBuilder, clonedHeaders, requesterFspId, destinationFspId,
+                Enums.FspiopRequestMethodsEnum.PUT, transformedPayload
+            );
 
             this._logger.debug("_handlePartyQueryResponseEvt -> end");
             mainTimer({success:"true"});
@@ -518,19 +447,23 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         this._logger.debug("_handleParticipantQueryResponseEvt -> start");
 
         try {
+            // Headers
+            const clonedHeaders = fspiopOpaqueState;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+
+            // NOTE: This is a query, so we have to switch headers
+            clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
+            clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
+
+            // Data model
             const { payload } = message;
 
             const partyType = payload.partyType;
             const partyId = payload.partyId;
             const partySubType = payload.partySubType as string;
-            const clonedHeaders = fspiopOpaqueState;
 
-            clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
-            clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
-            clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
-
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
             // TODO validate vars above
 
@@ -545,17 +478,10 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
             urlBuilder.setLocation([partyType, partyId, partySubType]);
 
-             // propagate tracing info
-            OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
-
-            await Request.sendRequest({
-                url: urlBuilder.build(),
-                headers: clonedHeaders,
-                source: requesterFspId,
-                destination: destinationFspId,
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: transformedPayload
-            });
+            await this._sendHttpRequest(
+                urlBuilder, clonedHeaders, requesterFspId, destinationFspId,
+                Enums.FspiopRequestMethodsEnum.PUT, transformedPayload
+            );
 
             this._logger.debug("_handleParticipantQueryResponseEvt -> end");
         } catch (error: unknown) {
@@ -570,15 +496,18 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         this._logger.info("_handlePartyRejectedResponseEvt -> start");
 
         try {
-            const { payload } = message;
+            // Headers
+            const clonedHeaders = fspiopOpaqueState;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
+            // Data model
+            const { payload } = message;
 
             const partyType = payload.partyType ;
             const partyId = payload.partyId;
             const partySubType = payload.partySubType as string;
-            const clonedHeaders = fspiopOpaqueState;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] ;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] ;
+
 
             const destinationEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
@@ -596,17 +525,10 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             urlBuilder.setLocation([partyType, partyId, partySubType]);
             urlBuilder.hasError(true);
 
-            // propagate tracing info
-            OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
-
-            await Request.sendRequest({
-                url: urlBuilder.build(),
-                headers: clonedHeaders,
-                source: requesterFspId,
-                destination: destinationFspId,
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: transformedPayload
-            });
+            await this._sendHttpRequest(
+                urlBuilder, clonedHeaders, requesterFspId, destinationFspId,
+                Enums.FspiopRequestMethodsEnum.PUT, transformedPayload
+            );
 
             this._logger.info("_handlePartyRejectedResponseEvt -> end");
         } catch (error: unknown) {
@@ -621,15 +543,17 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         this._logger.info("_handleParticipantRejectedResponseEvt -> start");
 
         try {
-            const { payload } = message;
+            // Headers
+            const clonedHeaders = fspiopOpaqueState;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
+            // Data model
+            const { payload } = message;
 
             const partyType = payload.partyType ;
             const partyId = payload.partyId;
             const partySubType = payload.partySubType as string;
-            const clonedHeaders = fspiopOpaqueState;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] ;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] ;
 
             const destinationEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
@@ -647,17 +571,10 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             urlBuilder.setLocation([partyType, partyId, partySubType]);
             urlBuilder.hasError(true);
 
-            // propagate tracing info
-            OpenTelemetryClient.getInstance().propagationInjectFromSpan(OpenTelemetryClient.getInstance().getActiveSpan(), clonedHeaders);
-
-            await Request.sendRequest({
-                url: urlBuilder.build(),
-                headers: clonedHeaders,
-                source: requesterFspId,
-                destination: destinationFspId,
-                method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: transformedPayload
-            });
+            await this._sendHttpRequest(
+                urlBuilder, clonedHeaders, requesterFspId, destinationFspId,
+                Enums.FspiopRequestMethodsEnum.PUT, transformedPayload
+            );
 
             this._logger.info("_handleParticipantRejectedResponseEvt -> end");
         } catch (error: unknown) {

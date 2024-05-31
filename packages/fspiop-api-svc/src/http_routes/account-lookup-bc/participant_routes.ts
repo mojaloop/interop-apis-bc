@@ -101,12 +101,15 @@ export class ParticipantRoutes extends BaseRoutesFastify {
         const parentSpan = this._getActiveSpan();
         this._logger.debug("Got getParticipantsByTypeAndID request");
         try {
-            const clonedHeaders = { ...req.headers };
-            const type = req.params["type"] as string;
-            const id = req.params["id"] as string;
-            const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string;
+            // Headers
+            const clonedHeaders = {...req.headers};
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
 
-            const currency = req.query["currency"] as string || null;
+            // Date Model
+            const type = req.params.type;
+            const id = req.params.id;
+
+            const currency = req.query.currency;
 
             if (!type || !id || !requesterFspId) {
                 const transformError = Transformer.transformPayloadError({
@@ -176,13 +179,16 @@ export class ParticipantRoutes extends BaseRoutesFastify {
         const parentSpan = this._getActiveSpan();
         this._logger.debug("Got getParticipantsByTypeAndID request");
         try {
-            const clonedHeaders = { ...req.headers };
-            const type = req.params["type"] as string;
-            const id = req.params["id"] as string;
-            const partySubIdOrType = req.params["subid"] as string || null;
-            const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string;
+            // Headers
+            const clonedHeaders = {...req.headers};
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
 
-            const currency = req.query["currency"] as string || null;
+            // Date Model
+            const type = req.params.type;
+            const id = req.params.id;
+            const partySubIdOrType = req.params.subid;
+
+            const currency = req.query.currency;
 
             if (!type || !id || !requesterFspId || !partySubIdOrType) {
                 const transformError = Transformer.transformPayloadError({
@@ -252,12 +258,15 @@ export class ParticipantRoutes extends BaseRoutesFastify {
         const parentSpan = this._getActiveSpan();
         this._logger.debug("Got associatePartyByTypeAndId request");
         try {
-            const clonedHeaders = { ...req.headers };
-            const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const type = req.params["type"] as string || null;
-            const id = req.params["id"] as string || null;
-            const ownerFspId = req.body["fspId"] as string || null;
-            const currency = req.body["currency"] as string || null;
+            // Headers
+            const clonedHeaders = {...req.headers};
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+
+            // Date Model
+            const type = req.params.type;
+            const id = req.params.id;
+            const ownerFspId = req.body.fspId;
+            const currency = req.body.currency;
 
             if (!type || !id || !ownerFspId || !requesterFspId) {
                 const transformError = Transformer.transformPayloadError({
@@ -332,13 +341,16 @@ export class ParticipantRoutes extends BaseRoutesFastify {
         const parentSpan = this._getActiveSpan();
         this._logger.debug("Got associatePartyByTypeAndId request");
         try {
-            const clonedHeaders = { ...req.headers };
-            const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const type = req.params["type"] as string || null;
-            const id = req.params["id"] as string || null;
-            const partySubIdOrType = req.params["subid"] as string || null;
-            const ownerFspId = req.body["fspId"] as string || null;
-            const currency = req.body["currency"] as string || null;
+            // Headers
+            const clonedHeaders = {...req.headers};
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+
+            // Date Model
+            const type = req.params.type;
+            const id = req.params.id;
+            const partySubIdOrType = req.params.subid;
+            const ownerFspId = req.body.fspId;
+            const currency = req.body.currency;
 
             if (!type || !id || !ownerFspId || !requesterFspId) {
                 const transformError = Transformer.transformPayloadError({
@@ -413,11 +425,14 @@ export class ParticipantRoutes extends BaseRoutesFastify {
         const parentSpan = this._getActiveSpan();
         this._logger.debug("Got disassociatePartyByTypeAndId request");
         try {
-            const clonedHeaders = { ...req.headers };
-            const type = req.params["type"] as string || null;
-            const id = req.params["id"] as string || null;
-            const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const currency = req.query["currency"] as string || null;
+            // Headers
+            const clonedHeaders = {...req.headers};
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+
+            // Date Model
+            const type = req.params.type ;
+            const id = req.params.id ;
+            const currency = req.query.currency;
 
             if (!type || !id || !requesterFspId) {
                 const transformError = Transformer.transformPayloadError({
@@ -487,12 +502,15 @@ export class ParticipantRoutes extends BaseRoutesFastify {
         const parentSpan = this._getActiveSpan();
         this._logger.debug("Got disassociatePartyByTypeAndIdAndSubId request");
         try {
-            const clonedHeaders = { ...req.headers };
-            const type = req.params["type"] as string || null;
-            const id = req.params["id"] as string || null;
-            const partySubIdOrType = req.params["subid"] as string || null;
-            const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const currency = req.query["currency"] as string || null;
+            // Headers
+            const clonedHeaders = {...req.headers};
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+
+            // Date Model
+            const type = req.params.type;
+            const id = req.params.id;
+            const partySubIdOrType = req.params.subid;
+            const currency = req.query.currency;
 
             if (!type || !id || !requesterFspId) {
                 const transformError = Transformer.transformPayloadError({
@@ -568,10 +586,10 @@ export class ParticipantRoutes extends BaseRoutesFastify {
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
 
             // Date Model
-            const type = req.params["type"] as string;
-            const id = req.params["id"] as string;
-            const currency = req.query["currency"] as string || null;
-            const errorInformation = req.body["errorInformation"] || null;
+            const type = req.params.type;
+            const id = req.params.id;
+            const currency = req.query.currency;
+            const errorInformation = req.body.errorInformation;
 
             if (!type || !id || !requesterFspId || !errorInformation) {
                 const transformError = Transformer.transformPayloadError({
@@ -651,15 +669,15 @@ export class ParticipantRoutes extends BaseRoutesFastify {
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
 
             // Date Model
-            const type = req.params["type"] as string || null;
-            const id = req.params["id"] as string || null;
-            const currency = req.query["currency"] as string || null;
-            const partySubIdOrType = req.params["subid"] as string || null;
-            const errorInformation = req.body["errorInformation"] || null;
+            const type = req.params.type;
+            const id = req.params.id;
+            const currency = req.query.currency;
+            const partySubIdOrType = req.params.subid;
+            const errorInformation = req.body.errorInformation;
 
             if (!type || !id || !requesterFspId || !errorInformation) {
                 const transformError = Transformer.transformPayloadError({

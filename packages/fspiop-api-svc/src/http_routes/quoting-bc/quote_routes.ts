@@ -94,23 +94,23 @@ export class QuoteRoutes extends BaseRoutesFastify {
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
             // Date Model
-            const quoteId = req.body["quoteId"] || null;
-            const transactionId = req.body["transactionId"] || null;
-            const transactionRequestId = req.body["transactionRequestId"] || null;
-            const payee = req.body["payee"] || null;
-            const payer = req.body["payer"] || null;
-            const amountType = req.body["amountType"] || null;
-            const amount: { currency: string, amount: string } = req.body["amount"] || null;
-            const fees = req.body["fees"] || null;
-            const transactionType = req.body["transactionType"] || null;
-            const geoCode = req.body["geoCode"] || null;
-            const note = req.body["note"] || null;
-            const expiration = req.body["expiration"] || null;
-            const extensionList = req.body["extensionList"] || null;
+            const quoteId = req.body.quoteId;
+            const transactionId = req.body.transactionId;
+            const transactionRequestId = req.body.transactionRequestId;
+            const payee = req.body.payee;
+            const payer = req.body.payer;
+            const amountType = req.body.amountType;
+            const amount: { currency: string, amount: string } = req.body.amount;
+            const fees = req.body.fees;
+            const transactionType = req.body.transactionType;
+            const geoCode = req.body.geoCode;
+            const note = req.body.note;
+            const expiration = req.body.expiration;
+            const extensionList = req.body.extensionList;
 
             if (!requesterFspId || !quoteId || !transactionId || !payee || !payer || !amountType || !amount || !transactionType) {
                 const transformError = Transformer.transformPayloadError({
@@ -202,20 +202,20 @@ export class QuoteRoutes extends BaseRoutesFastify {
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
             // Date Model
-            const quoteId = req.params["id"] || null;
-            const transferAmount = req.body["transferAmount"] || null;
-            const expiration = req.body["expiration"] || null;
-            const ilpPacket = req.body["ilpPacket"] || null;
-            const condition = req.body["condition"] || null;
-            const payeeReceiveAmount = req.body["payeeReceiveAmount"] || null;
-            const payeeFspFee = req.body["payeeFspFee"] || null;
-            const payeeFspCommission = req.body["payeeFspCommission"] || null;
-            const geoCode = req.body["geoCode"] || null;
-            const extensionList = req.body["extensionList"] || null;
+            const quoteId = req.params.id;
+            const transferAmount = req.body.transferAmount;
+            const expiration = req.body.expiration;
+            const ilpPacket = req.body.ilpPacket;
+            const condition = req.body.condition;
+            const payeeReceiveAmount = req.body.payeeReceiveAmount;
+            const payeeFspFee = req.body.payeeFspFee;
+            const payeeFspCommission = req.body.payeeFspCommission;
+            const geoCode = req.body.geoCode;
+            const extensionList = req.body.extensionList;
 
             //TODO: validate ilpPacket
 
@@ -303,10 +303,13 @@ export class QuoteRoutes extends BaseRoutesFastify {
         const parentSpan = this._getActiveSpan();
         this._logger.debug("Got quoteQueryReceived request");
         try {
-            const clonedHeaders = { ...req.headers };
-            const quoteId = req.params["id"] as string || null;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+            // Headers
+            const clonedHeaders = {...req.headers};
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE]; // NOTE: We do this because the destination is coming as null
+
+            // Date Model
+            const quoteId = req.params.id;
 
             if (!quoteId || !requesterFspId) {
                 const transformError = Transformer.transformPayloadError({
@@ -365,12 +368,14 @@ export class QuoteRoutes extends BaseRoutesFastify {
         this._logger.debug("Got quote rejected request");
 
         try{
-            const clonedHeaders = { ...req.headers };
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+            // Headers
+            const clonedHeaders = {...req.headers};
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE]; // NOTE: We do this because the destination is coming as null
 
-            const quoteId = req.params["id"] as string || null;
-            const errorInformation = req.body["errorInformation"] || null;
+            // Date Model
+            const quoteId = req.params.id;
+            const errorInformation = req.body.errorInformation
 
             if(!quoteId || !errorInformation || !requesterFspId) {
                 const transformError = Transformer.transformPayloadError({
