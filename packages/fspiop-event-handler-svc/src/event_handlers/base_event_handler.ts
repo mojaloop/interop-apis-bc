@@ -198,7 +198,7 @@ export abstract class BaseEventHandler  {
         childSpan.setAttributes({
             "url": url,
             "method": method,
-        })
+        });
         OpenTelemetryClient.getInstance().propagationInjectFromSpan(childSpan, headers);
 
         try {
@@ -305,7 +305,7 @@ export abstract class BaseEventHandler  {
                 childSpan.setAttributes({
                     "url": url,
                     "method": Enums.FspiopRequestMethodsEnum.PUT,
-                })
+                });
 
                 await Request.sendRequest({
                     url: url,

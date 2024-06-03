@@ -119,14 +119,8 @@ export abstract class BaseRoutesFastify {
         fastify.addHook("preHandler", this._preHandlerContentType.bind(this));
 
         // hook span preprocessor - tries to propagate trace info from headers
-        // @ts-ignore
         fastify.addHook("preHandler", this._preHandlerTracing.bind(this));
 
-        // fastify.addHook("preHandler", (instance, opts, done)=>{
-        //     console.log("start");
-        //     done();
-        //     console.log("end");
-        // });
     }
 
     /**
@@ -143,7 +137,6 @@ export abstract class BaseRoutesFastify {
         throw new Error("Invalid Span in BaseRoutesFastify - this should not happen");
     }
 
-    // @ts-ignore
     protected _preHandlerTracing(request: FastifyRequest, reply: FastifyReply, done: () => void): void {
         // try to get a tracing context from headers
         const headersCtx = OpentelemetryApi.propagation.extract(OpentelemetryApi.context.active(), request.headers);
@@ -160,7 +153,7 @@ export abstract class BaseRoutesFastify {
         }
 
         /// capture the context created by attaching baggage to the tracing context from headers
-        const newContext = OpentelemetryApi.propagation.setBaggage(headersCtx, baggage)
+        const newContext = OpentelemetryApi.propagation.setBaggage(headersCtx, baggage);
 
         const spanName = this._getDefaultFormatSpanName(request);
         const spanOptions: SpanOptions = {

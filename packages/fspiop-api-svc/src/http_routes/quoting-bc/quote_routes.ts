@@ -88,7 +88,7 @@ export class QuoteRoutes extends BaseRoutesFastify {
     }
 
     private async quoteRequestReceived(req: FastifyRequest<QuoteRequestReceivedDTO>, reply: FastifyReply): Promise<void> {
-        let parentSpan = this._getActiveSpan();
+        const parentSpan = this._getActiveSpan();
 
         this._logger.debug("Got quoteRequestReceived request");
         try {
@@ -375,7 +375,7 @@ export class QuoteRoutes extends BaseRoutesFastify {
 
             // Date Model
             const quoteId = req.params.id;
-            const errorInformation = req.body.errorInformation
+            const errorInformation = req.body.errorInformation;
 
             if(!quoteId || !errorInformation || !requesterFspId) {
                 const transformError = Transformer.transformPayloadError({
