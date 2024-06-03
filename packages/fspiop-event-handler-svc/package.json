@@ -1,6 +1,6 @@
 {
     "name": "@mojaloop/interop-apis-bc-fspiop-event-handler-svc",
-    "version": "0.6.4_t1",
+    "version": "0.6.5",
     "description": "Mojaloop vNext FSPIOP Event Handler Service",
     "license": "Apache-2.0",
     "homepage": "https://github.com/mojaloop/interop-apis-bc/tree/main/packages/fspiop-event-handler-svc",
@@ -57,8 +57,8 @@
         "@mojaloop/platform-configuration-bc-public-types-lib": "~0.5.2",
         "@mojaloop/platform-shared-lib-messaging-types-lib": "~0.6.2",
         "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "~0.5.18",
-        "@mojaloop/platform-shared-lib-observability-types-lib": "~0.5.5",
-        "@mojaloop/platform-shared-lib-observability-client-lib": "~0.5.7",
+        "@mojaloop/platform-shared-lib-observability-types-lib": "~0.5.6",
+        "@mojaloop/platform-shared-lib-observability-client-lib": "~0.5.8",
         "@mojaloop/platform-shared-lib-public-messages-lib": "~0.5.20",
         "@mojaloop/security-bc-client-lib": "~0.5.12",
         "@mojaloop/security-bc-public-types-lib": "~0.5.6",

@@ -330,28 +330,13 @@ export class Service {
     }
 
     static async setupTracing():Promise<void>{
-        //eslint-disable-next-line @typescript-eslint/no-var-requires
-        const { W3CTraceContextPropagator, W3CBaggagePropagator, CompositePropagator, } = require("@opentelemetry/core");
-
-        const prop = new CompositePropagator({
-            propagators: [new W3CTraceContextPropagator(), new W3CBaggagePropagator()],
-        });
-        OpenTelemetryClient.Start(BC_NAME, APP_NAME, APP_VERSION, INSTANCE_ID, this.logger, undefined, prop);
+        OpenTelemetryClient.Start(BC_NAME, APP_NAME, APP_VERSION, INSTANCE_ID, this.logger);
     }
 
     static async setupFastify(): Promise<void> {
         return new Promise<void>(resolve => {
             this.app = Fastify({
                 logger: false,
-            });
-
-            // automatically return 503's when the system is under pressure
-            this.app.register(fastifyUnderPressure, {
-                maxEventLoopDelay: 200,
-                maxHeapUsedBytes: MAX_RAM_MB*1024**2,
-                maxRssBytes: MAX_RAM_MB*1024**2,
-                maxEventLoopUtilization: 0.80,
-                exposeStatusRoute: "/health"
             });
 
             // setup prom-bundle to automatically collect express metrics
@@ -361,6 +346,16 @@ export class Service {
                 endpoint: "/metrics",
                 promClient: (this.metrics as PrometheusMetrics).getPromClient(),
             });
+
+            // automatically return 503's when the system is under pressure (after metrics, so we can capture the 503's)
+            this.app.register(fastifyUnderPressure, {
+                maxEventLoopDelay: 200,
+                maxHeapUsedBytes: MAX_RAM_MB*1024**2,
+                maxRssBytes: MAX_RAM_MB*1024**2,
+                maxEventLoopUtilization: 0.80,
+                exposeStatusRoute: "/health"
+            });
+
 
             this.app.register(fastifyCors, { origin: true });
             this.app.register(fastifyFormbody, {

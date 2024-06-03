@@ -34,8 +34,7 @@
     },
     "devDependencies": {
         "eslint": "^8.43.0",
-        "npm-check-updates": "^16.10.19",
-        "typescript": "^4.7.4"
+        "npm-check-updates": "^16.10.19"
     },
     "engines": {
         "node": ">=20.10.0"

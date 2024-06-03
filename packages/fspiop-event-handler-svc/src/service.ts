@@ -305,14 +305,7 @@ export class Service {
     }
 
     static async setupTracing():Promise<void>{
-        //eslint-disable-next-line @typescript-eslint/no-var-requires
-        const { W3CTraceContextPropagator, W3CBaggagePropagator, CompositePropagator, } = require("@opentelemetry/core");
-
-        const prop = new CompositePropagator({
-            propagators: [new W3CTraceContextPropagator(), new W3CBaggagePropagator()],
-        });
-
-        OpenTelemetryClient.Start(BC_NAME, APP_NAME, APP_VERSION, INSTANCE_ID, this.logger, undefined, prop);
+        OpenTelemetryClient.Start(BC_NAME, APP_NAME, APP_VERSION, INSTANCE_ID, this.logger);
     }
 
     static async setupEventHandlers(jwsHelper:FspiopJwsSignature):Promise<void>{
