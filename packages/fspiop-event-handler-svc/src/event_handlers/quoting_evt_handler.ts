@@ -415,7 +415,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_QUOTES);
 
             await this._sendHttpRequest(
-                urlBuilder, clonedHeaders, requesterFspId, requesterFspId,
+                urlBuilder, clonedHeaders, requesterFspId, destinationFspId,
                 Enums.FspiopRequestMethodsEnum.POST, transformedPayload
             );
 
@@ -501,7 +501,7 @@ export class QuotingEventHandler extends BaseEventHandler {
             urlBuilder.setId(payload.bulkQuoteId);
 
             await this._sendHttpRequest(
-                urlBuilder, clonedHeaders, requesterFspId, destinationFspId,
+                urlBuilder, clonedHeaders, clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE], clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION],
                 Enums.FspiopRequestMethodsEnum.PUT, transformedPayload
             );
 

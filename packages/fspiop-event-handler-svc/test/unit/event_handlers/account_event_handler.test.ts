@@ -55,7 +55,7 @@ import { AccountLookUpUnableToGetParticipantFromOracleErrorEvent,
     PartyQueryResponseEvt
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
-import { MemoryMetric, MemoryParticipantService, createMessage, getJwsConfig } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { MemoryMetric, MemoryParticipantService, MemorySpan, createMessage, getJwsConfig } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { Constants, Enums, FspiopJwsSignature, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { AccountLookupEventHandler } from "../../../src/event_handlers/account_lookup_evt_handler";
 import { FSPIOP_PARTY_ACCOUNT_TYPES } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants";
@@ -111,11 +111,16 @@ jest.mock("@mojaloop/platform-shared-lib-nodejs-kafka-client-lib", () => {
 
 jest.mock("@mojaloop/platform-shared-lib-observability-client-lib", () => {
     const originalModule = jest.requireActual("@mojaloop/platform-shared-lib-observability-client-lib");
+    const getTracerMock = jest.fn();
 
     return {
         ...originalModule,
         OpenTelemetryClient: {
-            getInstance: jest.fn(() => ({
+            getInstance: jest.fn(() => {
+                return {
+                    trace: {
+                        getTracer: getTracerMock,
+                    },
                 getTracer: jest.fn(() => ({
 
                 })),
@@ -129,7 +134,16 @@ jest.mock("@mojaloop/platform-shared-lib-observability-client-lib", () => {
                             }
                         }),
                         setAttribute: jest.fn(),
+                        updateName: jest.fn(),
                         end: jest.fn()
+                    }
+                }),
+                startChildSpan: jest.fn(() => {
+                    return {
+                        setAttribute: jest.fn(),
+                        setAttributes: jest.fn(),
+                        end: jest.fn(),
+                        setStatus: jest.fn(),
                     }
                 }),
                 startSpan: jest.fn(() => {
@@ -137,7 +151,37 @@ jest.mock("@mojaloop/platform-shared-lib-observability-client-lib", () => {
                         setAttribute: jest.fn(),
                         end: jest.fn()
                     }
-                })
+                }),
+                propagationInject: jest.fn(),
+                propagationInjectFromSpan: jest.fn()
+            }}),
+        },
+        PrometheusMetrics: {
+            Setup: jest.fn(() => ({
+             
+            })),
+        },
+    };
+});
+
+jest.mock("@opentelemetry/api", () => {
+    const originalModule = jest.requireActual("@opentelemetry/api");
+    const getTracerMock = jest.fn();
+    const getSpanMock = jest.fn(() => {
+        const span = new MemorySpan();
+        
+        return span;
+    })
+
+    return {
+        ...originalModule,
+        trace: {
+            getTracer: getTracerMock,
+            getActiveSpan: getSpanMock
+        },
+        propagation: {
+            getBaggage: jest.fn(() => ({
+                getEntry: jest.fn()
             })),
         }
     };
@@ -300,8 +344,8 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
         await waitForExpect(() => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${participantsEntity}/${msg.payload.partyType}/${msg.payload.partyId}/${msg.payload.partySubType}`),
-                source: msg.payload.ownerFspId,
-                destination: msg.payload.ownerFspId,
+                source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
+                destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: Transformer.transformPayloadPartyAssociationPut(message.payload)
             }));
@@ -371,8 +415,8 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
         await waitForExpect(() => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${participantsEntity}/${msg.payload.partyType}/${msg.payload.partyId}/${msg.payload.partySubType}`),
-                source: msg.payload.ownerFspId,
-                destination: msg.payload.ownerFspId,
+                source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
+                destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: Transformer.transformPayloadPartyDisassociationPut(message.payload)
             }));

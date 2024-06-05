@@ -37,7 +37,7 @@ import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platfor
 import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
 import request from "supertest";
-import { getHeaders, getJwsConfig, getRouteValidator, MemoryConfigClientMock, MemoryMetric } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { getHeaders, getJwsConfig, getRouteValidator, MemoryConfigClientMock, MemoryMetric, MemorySpan } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { Enums, FspiopJwsSignature, FspiopValidator } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
@@ -82,32 +82,88 @@ jest.mock("@mojaloop/platform-shared-lib-observability-client-lib", () => {
     return {
         ...originalModule,
         OpenTelemetryClient: {
-            getInstance: jest.fn(() => ({
-                getTracer: jest.fn((tracer, spanName, input) => {
+            getInstance: jest.fn(() => {
+                return {
+                    trace: {
+                        getTracer: jest.fn(() => ({
+                            startActiveSpan: jest.fn((spanName, spanOptions, context, callback) => {
+                                const mockSpan = {
+                                    setStatus: jest.fn(),
+                                    setAttributes: jest.fn(),
+                                    end: jest.fn(),
+                                };
+                                return callback(mockSpan);
+                        })})),
+                        startActiveSpan: jest.fn()
+                        
+                    },
+                getTracer: jest.fn(() => ({
+
+                })),
+                startSpanWithPropagationInput: jest.fn((tracer, spanName, input) => {
                     return {
-                        startActiveSpan: jest.fn((spanName, spanOptions, ctx, span) => {
-                            return;
-                        }), 
-                    }
-                }),
-                propagationExtract: jest.fn(),
-                getActiveSpan: jest.fn(() => {
-                    return {
-                        setAttributes: jest.fn((options) => {
-                            return;
-                        }), 
+                        setAttributes: jest.fn((tracer, spanName, input) => {
+                        }),
                         setStatus: jest.fn(() => {
                             return {
                                 end: jest.fn()
                             }
                         }),
                         setAttribute: jest.fn(),
+                        updateName: jest.fn(),
+                        end: jest.fn()
                     }
                 }),
-                startChildSpan: jest.fn(),
+                startChildSpan: jest.fn(() => {
+                    return {
+                        setAttribute: jest.fn(),
+                        setAttributes: jest.fn(),
+                        end: jest.fn(),
+                        setStatus: jest.fn(),
+                    }
+                }),
+                startSpan: jest.fn(() => {
+                    return {
+                        setAttribute: jest.fn(),
+                        end: jest.fn()
+                    }
+                }),
                 propagationInject: jest.fn(),
+                propagationInjectFromSpan: jest.fn()
+            }}),
+        },
+        PrometheusMetrics: {
+            Setup: jest.fn(() => ({
+             
             })),
         },
+    };
+});
+
+jest.mock("@opentelemetry/api", () => {
+    const originalModule = jest.requireActual("@opentelemetry/api");
+    const getTracerMock = jest.fn();
+    const getSpanMock = jest.fn(() => {
+        const span = new MemorySpan();
+        
+        return span;
+    })
+
+    return {
+        ...originalModule,
+        trace: {
+            getTracer: getTracerMock,
+            getActiveSpan: getSpanMock
+        },
+        propagation: {
+            getBaggage: jest.fn(() => ({
+                getEntry: jest.fn()
+            })),
+            extract: jest.fn(),
+            createBaggage: jest.fn(),
+            setBaggage : jest.fn(),
+            getActiveBaggage: jest.fn(),
+        }
     };
 });
 

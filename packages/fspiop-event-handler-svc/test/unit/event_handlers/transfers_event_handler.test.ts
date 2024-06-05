@@ -74,7 +74,7 @@ import {
     TransfersBCUnknownErrorEvent 
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
-import { MemoryMetric, MemoryParticipantService, createMessage, getJwsConfig } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { MemoryMetric, MemoryParticipantService, createMessage, getJwsConfig, MemorySpan } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { Constants, Enums, FspiopJwsSignature, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { TransferEventHandler } from "../../../src/event_handlers/transfers_evt_handler";
 import { IParticipantServiceAdapter } from "../../../../fspiop-api-svc/src/interfaces/infrastructure";
@@ -128,11 +128,16 @@ jest.mock("@mojaloop/platform-shared-lib-nodejs-kafka-client-lib", () => {
 
 jest.mock("@mojaloop/platform-shared-lib-observability-client-lib", () => {
     const originalModule = jest.requireActual("@mojaloop/platform-shared-lib-observability-client-lib");
+    const getTracerMock = jest.fn();
 
     return {
         ...originalModule,
         OpenTelemetryClient: {
-            getInstance: jest.fn(() => ({
+            getInstance: jest.fn(() => {
+                return {
+                    trace: {
+                        getTracer: getTracerMock,
+                    },
                 getTracer: jest.fn(() => ({
 
                 })),
@@ -153,7 +158,9 @@ jest.mock("@mojaloop/platform-shared-lib-observability-client-lib", () => {
                 startChildSpan: jest.fn(() => {
                     return {
                         setAttribute: jest.fn(),
-                        end: jest.fn()
+                        setAttributes: jest.fn(),
+                        end: jest.fn(),
+                        setStatus: jest.fn(),
                     }
                 }),
                 startSpan: jest.fn(() => {
@@ -162,14 +169,38 @@ jest.mock("@mojaloop/platform-shared-lib-observability-client-lib", () => {
                         end: jest.fn()
                     }
                 }),
-                propagationInject: jest.fn()
-            })),
+                propagationInject: jest.fn(),
+                propagationInjectFromSpan: jest.fn()
+            }}),
         },
         PrometheusMetrics: {
             Setup: jest.fn(() => ({
              
             })),
         },
+    };
+});
+
+jest.mock("@opentelemetry/api", () => {
+    const originalModule = jest.requireActual("@opentelemetry/api");
+    const getTracerMock = jest.fn();
+    const getSpanMock = jest.fn(() => {
+        const span = new MemorySpan();
+        
+        return span;
+    })
+
+    return {
+        ...originalModule,
+        trace: {
+            getTracer: getTracerMock,
+            getActiveSpan: getSpanMock
+        },
+        propagation: {
+            getBaggage: jest.fn(() => ({
+                getEntry: jest.fn()
+            })),
+        }
     };
 });
 
@@ -475,7 +506,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         });
     });
 
-    it("should successfully call TransferFulfiledEvt", async () => {
+    it("should successfully call TransferQueryResponseEvt", async () => {
         // Arrange
         const msg = new TransferQueryResponseEvt({
             transferId: "1fbee0f3-c58e-5afe-8cdd-7e65eea2fca9",

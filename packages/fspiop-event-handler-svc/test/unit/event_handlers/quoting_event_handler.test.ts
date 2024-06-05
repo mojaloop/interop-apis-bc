@@ -36,7 +36,7 @@
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { BulkQuoteAcceptedEvt, BulkQuoteQueryResponseEvt, BulkQuoteReceivedEvt, QuoteBCBulkQuoteExpiredErrorEvent, QuoteBCBulkQuoteNotFoundErrorEvent, QuoteBCDestinationParticipantNotFoundErrorEvent, QuoteBCDuplicateQuoteErrorEvent, QuoteBCInvalidBulkQuoteLengthErrorEvent, QuoteBCInvalidDestinationFspIdErrorEvent, QuoteBCInvalidMessagePayloadErrorEvent, QuoteBCInvalidMessageTypeErrorEvent, QuoteBCInvalidRequesterFspIdErrorEvent, QuoteBCQuoteExpiredErrorEvent, QuoteBCQuoteNotFoundErrorEvent, QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent, QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent, QuoteBCRequesterParticipantNotFoundErrorEvent, QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent, QuoteBCUnableToAddQuoteToDatabaseErrorEvent, QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent, QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent, QuoteBCUnknownErrorEvent, QuoteQueryResponseEvt, QuoteRequestAcceptedEvt, QuoteResponseAccepted, QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
-import { MemoryMetric, MemoryParticipantService, createMessage, getJwsConfig } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { MemoryMetric, MemoryParticipantService, MemorySpan, createMessage, getJwsConfig } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { Constants, Enums, FspiopJwsSignature, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { QuotingEventHandler } from "../../../src/event_handlers/quoting_evt_handler";
 import { FSPIOP_PARTY_ACCOUNT_TYPES } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants";
@@ -91,11 +91,16 @@ jest.mock("@mojaloop/platform-shared-lib-nodejs-kafka-client-lib", () => {
 
 jest.mock("@mojaloop/platform-shared-lib-observability-client-lib", () => {
     const originalModule = jest.requireActual("@mojaloop/platform-shared-lib-observability-client-lib");
+    const getTracerMock = jest.fn();
 
     return {
         ...originalModule,
         OpenTelemetryClient: {
-            getInstance: jest.fn(() => ({
+            getInstance: jest.fn(() => {
+                return {
+                    trace: {
+                        getTracer: getTracerMock,
+                    },
                 getTracer: jest.fn(() => ({
 
                 })),
@@ -116,7 +121,9 @@ jest.mock("@mojaloop/platform-shared-lib-observability-client-lib", () => {
                 startChildSpan: jest.fn(() => {
                     return {
                         setAttribute: jest.fn(),
-                        end: jest.fn()
+                        setAttributes: jest.fn(),
+                        end: jest.fn(),
+                        setStatus: jest.fn(),
                     }
                 }),
                 startSpan: jest.fn(() => {
@@ -125,14 +132,38 @@ jest.mock("@mojaloop/platform-shared-lib-observability-client-lib", () => {
                         end: jest.fn()
                     }
                 }),
-                propagationInject: jest.fn()
-            })),
+                propagationInject: jest.fn(),
+                propagationInjectFromSpan: jest.fn()
+            }}),
         },
         PrometheusMetrics: {
             Setup: jest.fn(() => ({
              
             })),
         },
+    };
+});
+
+jest.mock("@opentelemetry/api", () => {
+    const originalModule = jest.requireActual("@opentelemetry/api");
+    const getTracerMock = jest.fn();
+    const getSpanMock = jest.fn(() => {
+        const span = new MemorySpan();
+        
+        return span;
+    })
+
+    return {
+        ...originalModule,
+        trace: {
+            getTracer: getTracerMock,
+            getActiveSpan: getSpanMock
+        },
+        propagation: {
+            getBaggage: jest.fn(() => ({
+                getEntry: jest.fn()
+            })),
+        }
     };
 });
 
@@ -558,8 +589,8 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         await waitForExpect(() => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${quotesEntity}/${message.payload.quoteId}`),
-                source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
-                destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
+                //source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
+                //destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: Transformer.transformPayloadQuotingResponsePut(message.payload)
             }));
@@ -655,7 +686,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         await waitForExpect(() => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${bulkQuotesEntity}`),
-                source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
+                source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
                 destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.POST,
                 payload: Transformer.transformPayloadBulkQuotingResponsePost(message.payload)
@@ -811,7 +842,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${bulkQuotesEntity}/${message.payload.bulkQuoteId}`),
                 source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
-                destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
+                destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: Transformer.transformPayloadBulkQuotingResponsePut(message.payload)
             }));
@@ -966,7 +997,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${bulkQuotesEntity}/${message.payload.bulkQuoteId}`),
                 source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
-                destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
+                destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: Transformer.transformPayloadBulkQuotingResponsePut(message.payload)
             }));

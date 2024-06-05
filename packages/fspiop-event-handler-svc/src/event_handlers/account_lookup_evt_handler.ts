@@ -479,7 +479,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             urlBuilder.setLocation([partyType, partyId, partySubType]);
 
             await this._sendHttpRequest(
-                urlBuilder, clonedHeaders, requesterFspId, destinationFspId,
+                urlBuilder, clonedHeaders, clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE], clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION],
                 Enums.FspiopRequestMethodsEnum.PUT, transformedPayload
             );
 

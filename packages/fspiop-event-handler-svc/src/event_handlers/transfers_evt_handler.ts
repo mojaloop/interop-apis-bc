@@ -422,7 +422,7 @@ export class TransferEventHandler extends BaseEventHandler {
             urlBuilder.setId(payload.transferId);
 
             await this._sendHttpRequest(
-                urlBuilder, clonedHeaders, requesterFspId, destinationFspId,
+                urlBuilder, clonedHeaders, clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE], clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION],
                 Enums.FspiopRequestMethodsEnum.PUT, transformedPayload
             );
 
@@ -586,7 +586,7 @@ export class TransferEventHandler extends BaseEventHandler {
             urlBuilder.setId(payload.bulkTransferId);
 
             await this._sendHttpRequest(
-                urlBuilder, clonedHeaders, requesterFspId, destinationFspId,
+                urlBuilder, clonedHeaders, clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE], clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION],
                 Enums.FspiopRequestMethodsEnum.PUT, transformedPayload
             );
 
