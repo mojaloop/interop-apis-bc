@@ -1,6 +1,6 @@
 {
     "name": "@mojaloop/interop-apis-bc",
-    "version": "0.5.0",
+    "version": "0.6.0",
     "description": "Mojaloop vNext interoperability APIs Bounded bounded context.",
     "license": "Apache-2.0",
     "homepage": "https://github.com/mojaloop/interop-apis-bc",
