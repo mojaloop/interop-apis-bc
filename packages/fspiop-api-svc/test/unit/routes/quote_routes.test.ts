@@ -33,17 +33,19 @@
 "use strict";
 
 
-import express, {Express} from "express";
 import { QuoteRoutes } from "../../../src/http_routes/quoting-bc/quote_routes";
 import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
 import request from "supertest";
-import { MemoryConfigClientMock, getHeaders, getJwsConfig, getRouteValidator } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
+import { MemoryConfigClientMock, MemoryMetric, MemorySpan, getHeaders, getJwsConfig, getRouteValidator } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import { Enums, FspiopJwsSignature, FspiopValidator } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { Server } from "http";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import fastify, { FastifyInstance, FastifyRequest } from "fastify";
+import fastifyCors from "@fastify/cors";
+import fastifyFormbody from "@fastify/formbody";
+import { IMetrics } from "@mojaloop/platform-shared-lib-observability-types-lib";
 const packageJSON = require("../../../package.json");
 
 const BC_NAME = "interop-apis-bc";
@@ -68,37 +70,138 @@ const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
 const pathWithId = `/${Enums.EntityTypeEnum.QUOTES}/2243fdbe-5dea-3abd-a210-3780e7f2f1f4`;
 const pathWithoutId = `/${Enums.EntityTypeEnum.QUOTES}`;
 
-let configClientMock: IConfigurationClient;
 let jwsHelperMock: FspiopJwsSignature;
 let routeValidatorMock: FspiopValidator;
+let metricsMock:IMetrics;
 
 jest.setTimeout(10000);
 
+jest.mock("@mojaloop/platform-shared-lib-observability-client-lib", () => {
+    const originalModule = jest.requireActual("@mojaloop/platform-shared-lib-observability-client-lib");
+
+    return {
+        ...originalModule,
+        OpenTelemetryClient: {
+            getInstance: jest.fn(() => {
+                return {
+                    trace: {
+                        getTracer: jest.fn(() => ({
+                            startActiveSpan: jest.fn((spanName, spanOptions, context, callback) => {
+                                const mockSpan = {
+                                    setStatus: jest.fn(),
+                                    setAttributes: jest.fn(),
+                                    end: jest.fn(),
+                                };
+                                return callback(mockSpan);
+                        })})),
+                        startActiveSpan: jest.fn()
+                        
+                    },
+                getTracer: jest.fn(() => ({
+
+                })),
+                startSpanWithPropagationInput: jest.fn((tracer, spanName, input) => {
+                    return {
+                        setAttributes: jest.fn((tracer, spanName, input) => {
+                        }),
+                        setStatus: jest.fn(() => {
+                            return {
+                                end: jest.fn()
+                            }
+                        }),
+                        setAttribute: jest.fn(),
+                        updateName: jest.fn(),
+                        end: jest.fn()
+                    }
+                }),
+                startChildSpan: jest.fn(() => {
+                    return {
+                        setAttribute: jest.fn(),
+                        setAttributes: jest.fn(),
+                        end: jest.fn(),
+                        setStatus: jest.fn(),
+                    }
+                }),
+                startSpan: jest.fn(() => {
+                    return {
+                        setAttribute: jest.fn(),
+                        end: jest.fn()
+                    }
+                }),
+                propagationInject: jest.fn(),
+                propagationInjectFromSpan: jest.fn()
+            }}),
+        },
+        PrometheusMetrics: {
+            Setup: jest.fn(() => ({
+             
+            })),
+        },
+    };
+});
+
+jest.mock("@opentelemetry/api", () => {
+    const originalModule = jest.requireActual("@opentelemetry/api");
+    const getTracerMock = jest.fn();
+    const getSpanMock = jest.fn(() => {
+        const span = new MemorySpan();
+        
+        return span;
+    })
+
+    return {
+        ...originalModule,
+        trace: {
+            getTracer: getTracerMock,
+            getActiveSpan: getSpanMock
+        },
+        propagation: {
+            getBaggage: jest.fn(() => ({
+                getEntry: jest.fn()
+            })),
+            extract: jest.fn(),
+            createBaggage: jest.fn(),
+            setBaggage : jest.fn(),
+            getActiveBaggage: jest.fn(),
+        }
+    };
+});
+
 describe("FSPIOP Routes - Unit Tests Quote", () => {
-    let app: Express;
-    let expressServer: Server;
+    let app: FastifyInstance;
     let quoteRoutes: QuoteRoutes;
     let logger: ILogger;
     let authTokenUrl: string;
     let producer:IMessageProducer;
 
     beforeAll(async () => {
-        app = express();
-        app.use(express.json({
-            limit: "100mb",
-            type: (req)=>{
-                const contentLength = req.headers["content-length"];
-                if(contentLength) {
-                    // We need to send this as a number
-                    req.headers["content-length"]= parseInt(contentLength) as unknown as string;
-                }
-
-                return req.headers["content-type"]?.toUpperCase()==="application/json".toUpperCase()
-                    || req.headers["content-type"]?.startsWith("application/vnd.interoperability.")
-                    || false;
+        app = fastify();
+        app.addContentTypeParser('*', { parseAs: 'buffer' }, function (req:FastifyRequest, body: Buffer, done) {
+            try {
+                
+            const contentLength = req.headers['content-length'];
+            if (contentLength) {
+                req.headers['content-length'] = parseInt(contentLength, 10).toString();
             }
-        })); // for parsing application/json
-        app.use(express.urlencoded({limit: "100mb", extended: true})); // for parsing application/x-www-form-urlencoded
+        
+            const contentType = req.headers['content-type']?.toLowerCase();
+        
+            if (contentType === 'application/json' ||
+                contentType?.startsWith('application/vnd.interoperability.')) {
+                const json = JSON.parse(body.toString());
+                done(null, json);
+            } else {
+                // If not a supported content type, do not parse the body
+                done(null, undefined);
+            }
+            } catch (err:unknown) {
+                done((err as Error), undefined);
+            }
+        });
+        app.register(fastifyCors, { origin: true });
+        app.register(fastifyFormbody, {
+            bodyLimit: 100 * 1024 * 1024 // 100MB
+        });
 
         logger = new KafkaLogger(
             BC_NAME,
@@ -109,7 +212,6 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
             LOGLEVEL
         );
         authTokenUrl = "mocked_auth_url";
-        configClientMock = new MemoryConfigClientMock(logger, authTokenUrl);
 
         producer = new MLKafkaJsonProducer(kafkaJsonProducerOptions);
         
@@ -117,16 +219,18 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
 
         jwsHelperMock = getJwsConfig();
 
-        quoteRoutes = new QuoteRoutes(producer, routeValidatorMock, jwsHelperMock, logger);
-        app.use(`/${QUOTES_URL_RESOURCE_NAME}`, quoteRoutes.router);
+        metricsMock = new MemoryMetric(logger);
 
-        let portNum = SVC_DEFAULT_HTTP_PORT;
-        expressServer = app.listen(portNum, () => {
+        quoteRoutes = new QuoteRoutes(producer, routeValidatorMock, jwsHelperMock, metricsMock, logger);
+        quoteRoutes.init();
+        app.register(quoteRoutes.bindRoutes.bind(quoteRoutes), { prefix: `/${QUOTES_URL_RESOURCE_NAME}` });
+
+        let portNum = SVC_DEFAULT_HTTP_PORT as number;
+        app.listen({ port: portNum }, () => {
             console.log(`🚀 Server ready at: http://localhost:${portNum}`);
             console.log(`FSPIOP-API-SVC Service started, version: ${APP_VERSION}`);
         });
 
-        jest.spyOn(quoteRoutes, "init").mockImplementation(jest.fn());
         jest.spyOn(logger, "debug").mockImplementation(jest.fn());
 
         await quoteRoutes.init();
@@ -138,12 +242,13 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
 
         await producer.destroy();
         await quoteRoutes.destroy();
-        await expressServer.close()
+        await app.close()
     });
 
 
     it("should give a bad request calling quoteQueryReceived endpoint", async () => {
         // Arrange & Act
+        await new Promise(resolve => setTimeout(resolve, 5000));
         const res = await request(server)
         .get(pathWithId)
         .set(getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.GET, null, ["fspiop-source"]));

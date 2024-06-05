@@ -1,6 +1,6 @@
 {
     "name": "@mojaloop/interop-apis-bc-shared-mocks-lib",
-    "version": "0.5.0",
+    "version": "0.6.0",
     "description": "Interop APIs BC shared mocks.",
     "license": "Apache-2.0",
     "homepage": "https://github.com/mojaloop/interop-apis-bc/tree/main/packages/shared-mocks-lib",
@@ -34,8 +34,7 @@
     },
     "devDependencies": {
         "eslint": "^8.43.0",
-        "npm-check-updates": "^16.10.19",
-        "typescript": "^4.7.4"
+        "npm-check-updates": "^16.10.19"
     },
     "engines": {
         "node": ">=20.10.0"

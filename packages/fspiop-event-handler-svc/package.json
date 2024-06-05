@@ -1,0 +1,85 @@
+{
+    "name": "@mojaloop/interop-apis-bc-fspiop-event-handler-svc",
+    "version": "0.6.0",
+    "description": "Mojaloop vNext FSPIOP Event Handler Service",
+    "license": "Apache-2.0",
+    "homepage": "https://github.com/mojaloop/interop-apis-bc/tree/main/packages/fspiop-event-handler-svc",
+    "private": true,
+    "mojaloop": {
+        "publish_to_dockerhub": true
+    },
+    "bugs": {
+        "url": "https://github.com/mojaloop/interop-apis-bc/issues#readme"
+    },
+    "contributors": [
+        "Pedro Sousa Barreto <pedrosousabarreto@gmail.com>",
+        "Jose Antunes <jose.antunes@arg.software>",
+        "Rui Rocha <rui.rocha@arg.software>"
+    ],
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "files": [
+        "/dist"
+    ],
+    "scripts": {
+        "start": "npm run service",
+        "start:dev": "npm run build && npm run environment:dev && npm start",
+        "environment:dev": "(AUDIT_KEY_FILE_PATH = ./dist/tmp_key_file) || (set AUDIT_KEY_FILE_PATH = ./dist/tmp_key_file)",
+        "service": "node dist/index.js",
+        "build": "tsc",
+        "watch": "tsc -w",
+        "clean": "(npm run clean:npm || true) && npm run clean:dist",
+        "clean:dist": "rm -rf dist",
+        "clean:npm": "rm -rf node_modules",
+        "pretest": "npm run build",
+        "standard": "npm run lint",
+        "lint": "eslint ./src",
+        "lint:fix": "eslint ./src --fix",
+        "test:unit": "jest --passWithNoTests --testMatch **/test/unit/**/*.test.ts --runInBand",
+        "test:ttk-use-cases": "npx ml-ttk-cli --mode outbound --input-files=./api-specs/working_paths.json --environment-file ./api-specs/examples_environments_hub_local_environment.json --report-format html",
+        "audit:resolve": "SHELL=sh resolve-audit",
+        "audit:check": "SHELL=sh check-audit",
+        "dep:check": "ncu -e 2",
+        "dep:update": "ncu -e 2 -u"
+    },
+    "dependencies": {
+        "@mojaloop/interop-apis-bc-fspiop-utils-lib": "*",
+        "@mojaloop/account-lookup-bc-public-types-lib": "~0.5.2",
+        "@mojaloop/quoting-bc-public-types-lib": "~0.5.8",
+        "@mojaloop/transfers-bc-public-types-lib": "~0.5.3",
+        "@mojaloop/auditing-bc-client-lib": "~0.5.3",
+        "@mojaloop/auditing-bc-public-types-lib": "~0.5.2",
+        "@mojaloop/logging-bc-client-lib": "~0.5.8",
+        "@mojaloop/logging-bc-public-types-lib": "~0.5.4",
+        "@mojaloop/participant-bc-public-types-lib": "~0.5.5",
+        "@mojaloop/participants-bc-client-lib": "~0.5.5",
+        "@mojaloop/platform-configuration-bc-client-lib": "~0.5.7",
+        "@mojaloop/platform-configuration-bc-public-types-lib": "~0.5.2",
+        "@mojaloop/platform-shared-lib-messaging-types-lib": "~0.6.2",
+        "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "~0.5.18",
+        "@mojaloop/platform-shared-lib-observability-types-lib": "~0.5.6",
+        "@mojaloop/platform-shared-lib-observability-client-lib": "~0.5.8",
+        "@mojaloop/platform-shared-lib-public-messages-lib": "~0.5.20",
+        "@mojaloop/security-bc-client-lib": "~0.5.12",
+        "@mojaloop/security-bc-public-types-lib": "~0.5.6",
+        "ajv": "^8.12.0",
+        "axios": "^1.4.0",
+        "base64url": "^3.0.1",
+        "fastify": "^4.26.2",
+        "fastify-metrics": "^11.0.0",
+        "js-yaml": "^4.1.0",
+        "@fastify/cors": "^9.0.1",
+        "@fastify/formbody": "^7.4.0",
+        "@fastify/static": "^7.0.4",
+        "@fastify/swagger": "^8.14.0",
+        "@fastify/under-pressure": "^8.3.0",
+        "@fastify/url-data": "^5.4.0"
+    },
+    "devDependencies": {
+        "@types/js-yaml": "^4.0.9",
+        "@types/supertest": "^2.0.16"
+    },
+    "engines": {
+        "node": ">=20.10.0"
+    }
+}

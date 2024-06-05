@@ -1,6 +1,6 @@
 {
     "name": "@mojaloop/interop-apis-bc",
-    "version": "0.5.0",
+    "version": "0.6.0",
     "description": "Mojaloop vNext interoperability APIs Bounded bounded context.",
     "license": "Apache-2.0",
     "homepage": "https://github.com/mojaloop/interop-apis-bc",
@@ -18,6 +18,7 @@
         "pre_commit_check": "npm run build && npm run lint && npm run test:unit",
         "start": "npm -ws -v run start",
         "start:fspiop-api-svc": "npm -w @mojaloop/interop-apis-bc-fspiop-api-svc run start",
+        "start:fspiop-event-handler-svc": "npm -w @mojaloop/interop-apis-bc-fspiop-event-handler-svc run start",
         "build": "npm -ws run build",
         "watch": "npm -ws  run watch",
         "clean": "(npm run clean:dist || true) && npm run clean:npm",
@@ -53,19 +54,19 @@
         "npm-check-updates": "^16.10.19",
         "nyc": "^15.1.0",
         "supertest": "^6.3.4",
-        "ts-jest": "^29.1.2",
+        "ts-jest": "^29.1.3",
         "tslib": "~2.6.2",
         "typescript": "^5.1.6"
     },
     "workspaces": [
         "packages/fspiop-utils-lib",
         "packages/fspiop-api-svc",
+        "packages/fspiop-event-handler-svc",
         "packages/shared-mocks-lib",
         "packages/*"
     ],
     "dependencies": {
-        "husky": "^8.0.3",
-        "ilp-packet": "^2.2.0"
+        "husky": "^8.0.3"
     },
     "engines": {
         "node": ">=20.10.0"

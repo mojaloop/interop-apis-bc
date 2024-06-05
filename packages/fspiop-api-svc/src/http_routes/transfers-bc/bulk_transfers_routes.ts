@@ -41,7 +41,7 @@ import {
     BulkTransferRejectRequestedEvt,
     BulkTransferRejectRequestedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { 
+import {
     Constants,
     FspiopJwsSignature,
     FspiopValidator,
@@ -50,50 +50,63 @@ import {
     decodeIlpPacket,
     PostQuote
 } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { BaseRoutes } from "../_base_router";
-import { FSPIOPErrorCodes } from "../../validation";
+import { FSPIOPErrorCodes } from "../validation";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import express from "express";
-import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import {
+    FastifyInstance,
+    FastifyPluginOptions,
+    FastifyReply,
+    FastifyRequest
+} from "fastify";
+import {
+    BulkTransferFulfilRequestedDTO,
+    BulkTransferPrepareRequestDTO,
+    BulkTransferQueryReceivedDTO,
+    BulkTransfersRejectRequestDTO
+} from "./bulk_transfers_routes_dto";
+import {BaseRoutesFastify} from "../_base_routerfastify";
 
-export class TransfersBulkRoutes extends BaseRoutes {
+export class TransfersBulkRoutes extends BaseRoutesFastify {
 
     constructor(
         producer: IMessageProducer,
         validator: FspiopValidator,
         jwsHelper: FspiopJwsSignature,
+        metrics: IMetrics,
         logger: ILogger
     ) {
-        super(producer, validator, jwsHelper, logger);
+        super(producer, validator, jwsHelper, metrics, logger);
+    }
 
-        // bind routes
+    public async bindRoutes(fastify: FastifyInstance, options: FastifyPluginOptions): Promise<void>{
+        // bind common hooks like content-type validation and tracing extraction
+        this._addHooks(fastify);
 
         // GET Bulk Transfers by ID
-        this.router.get("/:id/", this.bulkTransferQueryReceived.bind(this));
+        fastify.get("/:id", this.bulkTransferQueryReceived.bind(this));
 
         // POST Bulk Transfers Calculation
-        this.router.post("/", this.bulkTransferPrepareRequest.bind(this));
+        fastify.post("/", this.bulkTransferPrepareRequest.bind(this));
 
         // PUT Bulk Transfers Created
-        this.router.put("/:id", this.bulkTransferFulfilRequested.bind(this));
+        fastify.put("/:id", this.bulkTransferFulfilRequested.bind(this));
 
         // Errors
-        this.router.put("/:id/error", this.bulkTransfersRejectRequest.bind(this));
-
+        fastify.put("/:id/error", this.bulkTransfersRejectRequest.bind(this));
     }
 
-    get Router(): express.Router {
-        return this.router;
-    }
-
-    private async bulkTransferQueryReceived(req: express.Request, res: express.Response): Promise<void> {
-        this.logger.debug("Got bulkTransferQueryReceived request");
+    private async bulkTransferQueryReceived(req: FastifyRequest<BulkTransferQueryReceivedDTO>, reply: FastifyReply): Promise<void> {
+        this._logger.debug("Got bulkTransferQueryReceived request");
         try {
             // Headers
-            const clonedHeaders = { ...req.headers };
-            const bulkTransfersId = req.params["id"] as string || null;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+            const clonedHeaders = {...req.headers};
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE]; // NOTE: We do this because the destination is coming as null
+
+            // Date Model
+            const bulkTransfersId = req.params.id;
 
             if (!bulkTransfersId || !requesterFspId) {
                 const transformError = Transformer.transformPayloadError({
@@ -102,7 +115,7 @@ export class TransfersBulkRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -124,13 +137,13 @@ export class TransfersBulkRoutes extends BaseRoutes {
                 headers: clonedHeaders
             };
 
-            await this.kafkaProducer.send(msg);
+            await this._kafkaProducer.send(msg);
 
-            this.logger.debug("bulkTransferQueryReceived sent message");
+            this._logger.debug("bulkTransferQueryReceived sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
-            this.logger.debug("bulkTransferQueryReceived responded");
+            this._logger.debug("bulkTransferQueryReceived responded");
 
         } catch (error: unknown) {
             const transformError = Transformer.transformPayloadError({
@@ -138,26 +151,26 @@ export class TransfersBulkRoutes extends BaseRoutes {
                 errorDescription: (error as Error).message,
                 extensionList: null
             });
-            res.status(500).json(transformError);
+            reply.code(500).send(transformError);
         }
     }
 
-    private async bulkTransferPrepareRequest(req: express.Request, res: express.Response): Promise<void> {
-        this.logger.debug("Got bulkTransfersRequest request");
+    private async bulkTransferPrepareRequest(req: FastifyRequest<BulkTransferPrepareRequestDTO>, reply: FastifyReply): Promise<void> {
+        this._logger.debug("Got bulkTransfersRequest request");
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
             // Date Model
-            const bulkTransferId = req.body["bulkTransferId"] || null;
-            const bulkQuoteId = req.body["bulkQuoteId"] || null;
-            const payerFsp = req.body["payerFsp"] || null;
-            const payeeFsp = req.body["payeeFsp"] || null;
-            const expiration = req.body["expiration"] || null;
-            const individualTransfers = req.body["individualTransfers"] || null;
-            const extensionList = req.body["extensionList"] || null;
+            const bulkTransferId = req.body.bulkTransferId;
+            const bulkQuoteId = req.body.bulkQuoteId;
+            const payerFsp = req.body.payerFsp;
+            const payeeFsp = req.body.payeeFsp;
+            const expiration = req.body.expiration;
+            const individualTransfers = req.body.individualTransfers;
+            const extensionList = req.body.extensionList;
 
             //TODO: validate ilpPacket
 
@@ -168,7 +181,7 @@ export class TransfersBulkRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -179,7 +192,7 @@ export class TransfersBulkRoutes extends BaseRoutes {
             if(this._jwsHelper.isEnabled()) {
                 this._jwsHelper.validate(req.headers, req.body);
             }
-            
+
             const msgPayload: BulkTransferPrepareRequestedEvtPayload = {
                 bulkTransferId: bulkTransferId,
                 bulkQuoteId: bulkQuoteId,
@@ -212,43 +225,43 @@ export class TransfersBulkRoutes extends BaseRoutes {
                 headers: clonedHeaders
             };
 
-            await this.kafkaProducer.send(msg);
+            await this._kafkaProducer.send(msg);
 
-            this.logger.debug("bulkTransfersRequest sent message");
+            this._logger.debug("bulkTransfersRequest sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
-            this.logger.debug("bulkTransfersRequest responded");
+            this._logger.debug("bulkTransfersRequest responded");
 
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
-                res.status(400).json((error as ValidationdError).errorInformation);
+                reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-                res.status(500).json(transformError);
+                reply.code(500).send(transformError);
             }
             return;
         }
     }
 
-    private async bulkTransferFulfilRequested(req: express.Request, res: express.Response): Promise<void> {
-        this.logger.debug("Got bulkTransferFulfilRequested request");
+    private async bulkTransferFulfilRequested(req: FastifyRequest<BulkTransferFulfilRequestedDTO>, reply: FastifyReply): Promise<void> {
+        this._logger.debug("Got bulkTransferFulfilRequested request");
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
-            const bulkTransferId = req.params["id"] as string || null;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
-
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+            
             // Date Model
-            const completedTimestamp = req.body["completedTimestamp"] || null;
-            const bulkTransferState = req.body["bulkTransferState"] || null;
-            const individualTransferResults = req.body["individualTransferResults"] || null;
-            const extensionList = req.body["extensionList"] || null;
+            const bulkTransferId = req.params.id;
+            const completedTimestamp = req.body.completedTimestamp;
+            const bulkTransferState = req.body.bulkTransferState;
+            const individualTransferResults = req.body.individualTransferResults;
+            const extensionList = req.body.extensionList;
 
             if (!bulkTransferId || !requesterFspId || !individualTransferResults) {
                 const transformError = Transformer.transformPayloadError({
@@ -257,7 +270,7 @@ export class TransfersBulkRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -284,35 +297,34 @@ export class TransfersBulkRoutes extends BaseRoutes {
                 headers: clonedHeaders
             };
 
-            await this.kafkaProducer.send(msg);
+            await this._kafkaProducer.send(msg);
 
-            this.logger.debug("bulkTransferFulfilRequested sent message");
+            this._logger.debug("bulkTransferFulfilRequested sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
-            this.logger.debug("bulkTransferFulfilRequested responded");
-        }
-        catch (error: unknown) {
+            this._logger.debug("bulkTransferFulfilRequested responded");
+        } catch (error: unknown) {
             const transformError = Transformer.transformPayloadError({
                 errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                 errorDescription: (error as Error).message,
                 extensionList: null
             });
 
-            res.status(500).json(transformError);
+            reply.code(500).send(transformError);
         }
     }
 
-    private async bulkTransfersRejectRequest(req: express.Request, res: express.Response): Promise<void> {
-        this.logger.debug("Got bulk transfer rejected request");
+    private async bulkTransfersRejectRequest(req: FastifyRequest<BulkTransfersRejectRequestDTO>, reply: FastifyReply): Promise<void> {
+        this._logger.debug("Got bulk transfer rejected request");
 
         try{
             const clonedHeaders = { ...req.headers };
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
-            const bulkTransferId = req.params["id"] as string || null;
-            const errorInformation = req.body["errorInformation"] || null;
+            const bulkTransferId = req.params.id;
+            const errorInformation = req.body.errorInformation;
 
             if(!bulkTransferId || !errorInformation || !requesterFspId) {
                 const transformError = Transformer.transformPayloadError({
@@ -321,7 +333,7 @@ export class TransfersBulkRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -344,24 +356,23 @@ export class TransfersBulkRoutes extends BaseRoutes {
                 headers: clonedHeaders
             };
 
-            await this.kafkaProducer.send(msg);
+            await this._kafkaProducer.send(msg);
 
-            this.logger.debug("bulk transfer rejected sent message");
+            this._logger.debug("bulk transfer rejected sent message");
 
-            res.status(202).json({
+            reply.code(202).send({
                 status: "ok"
             });
 
-            this.logger.debug("bulk transfer rejected responded");
-        }
-        catch (error: unknown) {
+            this._logger.debug("bulk transfer rejected responded");
+        } catch (error: unknown) {
             const transformError = Transformer.transformPayloadError({
                 errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                 errorDescription: (error as Error).message,
                 extensionList: null
             });
 
-            res.status(500).json(transformError);
+            reply.code(500).send(transformError);
         }
     }
 }

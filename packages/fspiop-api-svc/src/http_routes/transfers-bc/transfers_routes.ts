@@ -31,74 +31,92 @@
 
 "use strict";
 
-import express from "express";
-import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import { 
+import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
+import {
     Constants,
-    Transformer,
-    Enums,
-    ValidationdError,
-    FspiopValidator,
-    FspiopJwsSignature,
     decodeIlpPacket,
-    PostQuote
+    Enums,
+    FspiopJwsSignature,
+    FspiopValidator,
+    PostQuote,
+    Transformer,
+    ValidationdError
 } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {
-    TransferPrepareRequestedEvt,
-    TransferPrepareRequestedEvtPayload,
     TransferFulfilRequestedEvt,
     TransferFulfilRequestedEvtPayload,
-    TransferRejectRequestedEvt,
-    TransferRejectRequestedEvtPayload,
+    TransferPrepareRequestedEvt,
+    TransferPrepareRequestedEvtPayload,
     TransferQueryReceivedEvt,
-    TransferQueryReceivedEvtPayload
+    TransferQueryReceivedEvtPayload,
+    TransferRejectRequestedEvt,
+    TransferRejectRequestedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { BaseRoutes } from "../_base_router";
-import { FSPIOPErrorCodes } from "../../validation";
+import {FSPIOPErrorCodes} from "../validation";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import {FastifyInstance, FastifyPluginOptions, FastifyReply, FastifyRequest} from "fastify";
+import {
+    TransferFulfilRequestedDTO,
+    TransferPrepareRequestedDTO,
+    TransferQueryReceivedDTO,
+    TransferRejectRequestedDTO
+} from "./transfers_routes_dto";
+import {BaseRoutesFastify} from "../_base_routerfastify";
 
-export class TransfersRoutes extends BaseRoutes {
+import {OpenTelemetryClient} from "@mojaloop/platform-shared-lib-observability-client-lib";
+import {IMetrics, SpanStatusCode} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import {SpanKind} from "@opentelemetry/api";
+
+
+
+export class TransfersRoutes extends BaseRoutesFastify {
 
     constructor(
         producer: IMessageProducer,
         validator: FspiopValidator,
         jwsHelper: FspiopJwsSignature,
+        metrics: IMetrics,
         logger: ILogger
     ) {
-        super(producer, validator, jwsHelper, logger);
-
-        // bind routes
-
-        // GET Transfer by ID
-        this.router.get("/:id/", this.transferQueryReceived.bind(this));
-
-        // POST Transfers
-        this.router.post("/", this.transferPrepareRequested.bind(this));
-
-        // PUT Transfers
-        this.router.put("/:id", this.transferFulfilRequested.bind(this));
-
-        // Errors
-        this.router.put("/:id/error", this.transferRejectRequested.bind(this));
+        super(producer, validator, jwsHelper, metrics, logger);
     }
 
-    private async transferPrepareRequested(req: express.Request, res: express.Response): Promise<void> {
-        this.logger.debug("Got transferPrepareRequested request");
+    public async bindRoutes(fastify: FastifyInstance, options: FastifyPluginOptions): Promise<void>{
+        // bind common hooks like content-type validation and tracing extraction
+        this._addHooks(fastify);
+
+        // GET Transfer by ID
+        fastify.get("/:id", this.transferQueryReceived.bind(this));
+
+        // POST Transfers
+        fastify.post("/", this.transferPrepareRequested.bind(this));
+
+        // PUT Transfers
+        fastify.put("/:id", this.transferFulfilRequested.bind(this));
+
+        // Errors
+        fastify.put("/:id/error", this.transferRejectRequested.bind(this));
+    }
+
+    private async transferPrepareRequested(req: FastifyRequest<TransferPrepareRequestedDTO>, reply: FastifyReply): Promise<void> {
+        this._logger.debug("Got transferPrepareRequested request");
+        const parentSpan = this._getActiveSpan();
+
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
             // Data Model
-            const transferId = req.body["transferId"] || null;
-            const payeeFsp = req.body["payeeFsp"] || null;
-            const payerFsp = req.body["payerFsp"] || null;
-            const amount: { currency: string, amount: string } = req.body["amount"] || null;
-            const ilpPacket = req.body["ilpPacket"] || null;
-            const condition = req.body["condition"] || null;
-            const expiration = req.body["expiration"] || null;
-            const extensionList = req.body["extensionList"] || null;
+            const transferId = req.body.transferId;
+            const payeeFsp = req.body.payeeFsp;
+            const payerFsp = req.body.payerFsp;
+            const amount = req.body.amount;
+            const ilpPacket = req.body.ilpPacket;
+            const condition = req.body.condition;
+            const expiration = req.body.expiration;
+            const extensionList = req.body.extensionList;
 
             //TODO: validate ilpPacket
 
@@ -115,7 +133,7 @@ export class TransfersRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -124,7 +142,7 @@ export class TransfersRoutes extends BaseRoutes {
             if(this._jwsHelper.isEnabled()) {
                 this._jwsHelper.validate(req.headers, req.body);
             }
-            
+
             const msgPayload: TransferPrepareRequestedEvtPayload = {
                 transferId: transferId,
                 payeeFsp: payeeFsp,
@@ -151,47 +169,58 @@ export class TransfersRoutes extends BaseRoutes {
             msg.fspiopOpaqueState = {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId,
-                headers: clonedHeaders
+                headers: clonedHeaders,
             };
+            msg.tracingInfo = {};
 
-            await this.kafkaProducer.send(msg);
+            parentSpan.setAttribute("transferId", transferId);
+            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan, SpanKind.PRODUCER);
+            // inject tracing headers
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(childSpan, msg.tracingInfo);
 
-            this.logger.debug("transferPrepareRequested sent message");
+            await this._kafkaProducer.send(msg);
+            childSpan.end();
 
-            res.status(202).json(null);
+            this._logger.debug("transferPrepareRequested sent message");
 
-            this.logger.debug("transferPrepareRequested responded");
+            reply.code(202).send(null);
+
+            this._logger.debug("transferPrepareRequested responded");
 
         } catch (error: unknown) {
+
             if(error instanceof ValidationdError) {
-                res.status(400).json((error as ValidationdError).errorInformation);
+                reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-                res.status(500).json(transformError);
+                reply.code(500).send(transformError);
             }
+
             return;
         }
     }
 
-    private async transferFulfilRequested(req: express.Request, res: express.Response): Promise<void> {
-        this.logger.debug("Got transferFulfilRequested request");
+    private async transferFulfilRequested(req: FastifyRequest<TransferFulfilRequestedDTO>, reply: FastifyReply): Promise<void> {
+        this._logger.debug("Got transferFulfilRequested request");
+        const parentSpan = this._getActiveSpan();
+
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
             const acceptedHeader = clonedHeaders[Constants.FSPIOP_HEADERS_ACCEPT] as string;
 
             // Date Model
-            const transferId = req.params["id"] as string || null;
-            const transferState = req.body["transferState"] || null;
-            const fulfilment = req.body["fulfilment"] || null;
-            const completedTimestamp = req.body["completedTimestamp"] || null;
-            const extensionList = req.body["extensionList"] || null;
+            const transferId = req.params.id;
+            const transferState = req.body.transferState;
+            const fulfilment = req.body.fulfilment;
+            const completedTimestamp = req.body.completedTimestamp;
+            const extensionList = req.body.extensionList;
 
 
             if (!transferId || !transferState || !requesterFspId) {
@@ -201,7 +230,7 @@ export class TransfersRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -215,7 +244,7 @@ export class TransfersRoutes extends BaseRoutes {
                 fulfilment: fulfilment,
                 completedTimestamp: new Date(completedTimestamp).valueOf(),
                 extensionList: extensionList,
-                notifyPayee: transferState === Enums.TransferStateEnum.RESERVED && Constants.ALLOWED_PATCH_ACCEPTED_TRANSFER_HEADERS.includes(acceptedHeader)
+                notifyPayee: transferState as Enums.TransferStateEnum === Enums.TransferStateEnum.RESERVED && Constants.ALLOWED_PATCH_ACCEPTED_TRANSFER_HEADERS.includes(acceptedHeader)
             };
 
             const msg = new TransferFulfilRequestedEvt(msgPayload);
@@ -231,37 +260,45 @@ export class TransfersRoutes extends BaseRoutes {
                 destinationFspId: destinationFspId,
                 headers: clonedHeaders
             };
+            msg.tracingInfo = {};
 
-            await this.kafkaProducer.send(msg);
+            parentSpan.setAttributes({"transferId": transferId});
+            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan, SpanKind.PRODUCER);
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(childSpan, msg.tracingInfo);
+            await this._kafkaProducer.send(msg);
+            childSpan.end();
 
-            this.logger.debug("transferFulfilRequested sent message");
+            this._logger.debug("transferFulfilRequested sent message");
 
-            res.status(200).json(null);
+            reply.code(200).send(null);
 
-            this.logger.debug("transferFulfilRequested responded");
+            this._logger.debug("transferFulfilRequested responded");
 
         } catch (error: unknown) {
+
             const transformError = Transformer.transformPayloadError({
                 errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                 errorDescription: (error as Error).message,
                 extensionList: null
             });
 
-            res.status(500).json(transformError);
+            reply.code(500).send(transformError);
         }
     }
 
-    private async transferRejectRequested(req: express.Request, res: express.Response): Promise<void> {
-        this.logger.debug("Got transferRejectRequested request");
+    private async transferRejectRequested(req: FastifyRequest<TransferRejectRequestedDTO>, reply: FastifyReply): Promise<void> {
+        const parentSpan = this._getActiveSpan();
+
+        this._logger.debug("Got transferRejectRequested request");
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
             // Date Model
-            const transferId = req.params["id"] as string || null;
-            const errorInformation = req.body["errorInformation"] || null;
+            const transferId = req.params.id;
+            const errorInformation = req.body.errorInformation;
 
             if (!transferId || !errorInformation || !requesterFspId) {
                 const transformError = Transformer.transformPayloadError({
@@ -270,7 +307,7 @@ export class TransfersRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -296,33 +333,42 @@ export class TransfersRoutes extends BaseRoutes {
                 destinationFspId: destinationFspId,
                 headers: clonedHeaders
             };
+            msg.tracingInfo = {};
 
-            await this.kafkaProducer.send(msg);
+            parentSpan.setAttributes({"transferId": transferId});
+            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan, SpanKind.PRODUCER);
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(childSpan, msg.tracingInfo);
+            await this._kafkaProducer.send(msg);
+            childSpan.end();
 
-            this.logger.debug("transferRejectRequested sent message");
+            this._logger.debug("transferRejectRequested sent message");
 
-            res.status(200).json(null);
+            reply.code(200).send(null);
 
-            this.logger.debug("transferRejectRequested responded");
+            this._logger.debug("transferRejectRequested responded");
 
         } catch (error: unknown) {
+
             const transformError = Transformer.transformPayloadError({
                 errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                 errorDescription: (error as Error).message,
                 extensionList: null
             });
 
-            res.status(500).json(transformError);
+            reply.code(500).send(transformError);
         }
     }
 
-    private async transferQueryReceived(req: express.Request, res: express.Response): Promise<void> {
-        this.logger.debug("Got transferQueryReceived request");
+    private async transferQueryReceived(req: FastifyRequest<TransferQueryReceivedDTO>, reply: FastifyReply): Promise<void> {
+        const parentSpan = this._getActiveSpan();
+
+        this._logger.debug("Got transferQueryReceived request");
+
         try {
             const clonedHeaders = { ...req.headers };
-            const transferId = req.params["id"] as string || null;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+            const transferId = req.params.id;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
 
 
             if (!transferId || !requesterFspId) {
@@ -332,7 +378,7 @@ export class TransfersRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -350,23 +396,29 @@ export class TransfersRoutes extends BaseRoutes {
                 destinationFspId: destinationFspId,
                 headers: clonedHeaders
             };
+            msg.tracingInfo = {};
 
-            await this.kafkaProducer.send(msg);
+            parentSpan.setAttributes({"transferId": transferId});
+            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan, SpanKind.PRODUCER);
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(childSpan, msg.tracingInfo);
+            await this._kafkaProducer.send(msg);
+            childSpan.end();
 
-            this.logger.debug("transferQueryReceived sent message");
+            this._logger.debug("transferQueryReceived sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
-            this.logger.debug("transferQueryReceived responded");
+            this._logger.debug("transferQueryReceived responded");
 
         } catch (error: unknown) {
+
             const transformError = Transformer.transformPayloadError({
                 errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                 errorDescription: (error as Error).message,
                 extensionList: null
             });
 
-            res.status(500).json(transformError);
+            reply.code(500).send(transformError);
         }
     }
 }

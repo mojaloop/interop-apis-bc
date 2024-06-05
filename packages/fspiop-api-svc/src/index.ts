@@ -30,12 +30,12 @@
 
 "use strict";
 
+// must be first
+// require("./opentelemetry");
+
 import {Service} from "./service";
-
-if(process.env.JEST_WORKER_ID === undefined) {
-    Service.start().then(() => {
-        console.log("Started interop service");
-    });
-}
-
 export { Service } from "./service";
+
+Service.start().then(() => {
+    console.log("Started interop service");
+});

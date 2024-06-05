@@ -32,18 +32,18 @@
 "use strict";
 
 type HeaderResult = {
-    'accept': string,
-    'content-length'?: number, 
-    'content-type': string,
-    'date': string,
-    'x-forwarded-for'?: string,
-    'fspiop-source': string,
-    'fspiop-destination'?: string,
-    'fspiop-encryption'?: string,
-    'fspiop-signature'?: string,
-    'fspiop-uri': string,
-    'fspiop-http-method': string,
-    'alg': string,
+    "accept": string,
+    "content-length"?: number, 
+    "content-type": string,
+    "date": string,
+    "x-forwarded-for"?: string,
+    "fspiop-source": string,
+    "fspiop-destination"?: string,
+    "fspiop-encryption"?: string,
+    "fspiop-signature"?: string,
+    "fspiop-uri": string,
+    "fspiop-http-method": string,
+    "alg": string,
 }
 
 export default class Header {
@@ -62,18 +62,18 @@ export default class Header {
 
     build(): HeaderResult {
         const headers: HeaderResult = {
-            'accept': this.accept,
-            'content-type': this.contentType,
-            'content-length': this.contentLength,
-            'date': this.date,
-            'x-forwarded-for': this.xForwardedFor,
-            'fspiop-source': this.fspiopSource,
-            'fspiop-destination': this.fspiopDestination,
-            'fspiop-encryption': this.fspiopEncryption,
-            'fspiop-signature': this.fspiopSignature,
-            'fspiop-uri': this.fspiopUri,
-            'fspiop-http-method': this.fspiopHttpMethod,
-            'alg': this.algorithm
+            "accept": this.accept,
+            "content-type": this.contentType,
+            "content-length": this.contentLength,
+            "date": this.date,
+            "x-forwarded-for": this.xForwardedFor,
+            "fspiop-source": this.fspiopSource,
+            "fspiop-destination": this.fspiopDestination,
+            "fspiop-encryption": this.fspiopEncryption,
+            "fspiop-signature": this.fspiopSignature,
+            "fspiop-uri": this.fspiopUri,
+            "fspiop-http-method": this.fspiopHttpMethod,
+            "alg": this.algorithm
         };
 
         return headers;

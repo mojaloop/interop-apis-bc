@@ -1077,9 +1077,6 @@ describe("FSPIOP API Service Quoting Handler", () => {
     it("should return QuoteBCInvalidMessagePayloadErrorEvent http call for participant type", async () => {
         // Arrange
         const msg = new QuoteBCInvalidMessagePayloadErrorEvent({
-            quoteId: "123", 
-            bulkQuoteId: null,
-            requesterFspId: "bluebank",
             errorCode: QuotingErrorCodeNames.INVALID_MESSAGE_PAYLOAD
         })
         
@@ -1097,7 +1094,6 @@ describe("FSPIOP API Service Quoting Handler", () => {
                         "errorDescription": Enums.ClientErrors.GENERIC_VALIDATION_ERROR.name
                     }
                 },
-                "url": expect.stringContaining(`/${quotesEntity}/${msg.payload.quoteId}/error`)
             }));
             expect(await res()).toSatisfyApiSpec();
         });
@@ -1106,9 +1102,6 @@ describe("FSPIOP API Service Quoting Handler", () => {
     it("should return QuoteBCInvalidMessageTypeErrorEvent http call for participant type", async () => {
         // Arrange
         const msg = new QuoteBCInvalidMessageTypeErrorEvent({
-            quoteId: "123", 
-            bulkQuoteId: null,
-            requesterFspId: "bluebank",
             errorCode: QuotingErrorCodeNames.INVALID_MESSAGE_TYPE
         })
         
@@ -1126,7 +1119,6 @@ describe("FSPIOP API Service Quoting Handler", () => {
                         "errorDescription": Enums.ClientErrors.GENERIC_VALIDATION_ERROR.name
                     }
                 },
-                "url": expect.stringContaining(`/${quotesEntity}/${msg.payload.quoteId}/error`)
             }));
             expect(await res()).toSatisfyApiSpec();
         });

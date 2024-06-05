@@ -30,70 +30,81 @@ optionally within square brackets <email>.
 
 
 "use strict";
-import {existsSync} from "fs";
-import {Server} from "http";
-import express, {Express} from "express";
-import {ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
-import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
+import { existsSync } from "fs";
+import process from "process";
+import path from "path";
+import jsYaml from "js-yaml";
+import fs from "fs";
+import crypto from "crypto";
+
+// must be before importing fastify and others
+import {OpenTelemetryClient} from "@mojaloop/platform-shared-lib-observability-client-lib";
+import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const packageJSON = require("../package.json");
+
+
+import Fastify, {FastifyError, FastifyInstance, FastifyReply, FastifyRequest} from "fastify";
+import fastifyCors from "@fastify/cors";
+import fastifyFormbody from "@fastify/formbody";
+import fastifyUnderPressure from "@fastify/under-pressure";
+//import fastifySwagger from "@fastify/swagger";
+
+import { KafkaLogger } from "@mojaloop/logging-bc-client-lib";
 import {
     AuditClient,
     KafkaAuditClientDispatcher,
     LocalAuditClientCryptoProvider
 } from "@mojaloop/auditing-bc-client-lib";
-import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
-import process from "process";
-import {ParticipantAdapter} from "./implementations/external_adapters/participant_adapter";
-import {ParticipantRoutes} from "./http_routes/account-lookup-bc/participant_routes";
-import {PartyRoutes} from "./http_routes/account-lookup-bc/party_routes";
+import { IAuditClient } from "@mojaloop/auditing-bc-public-types-lib";
+
+import { ParticipantRoutes } from "./http_routes/account-lookup-bc/participant_routes";
+import { PartyRoutes } from "./http_routes/account-lookup-bc/party_routes";
 import {
-    MLKafkaJsonConsumer,
-    MLKafkaJsonConsumerOptions, MLKafkaJsonProducer,
-    MLKafkaJsonProducerOptions
+    MLKafkaJsonConsumer, MLKafkaJsonConsumerOptions, MLKafkaJsonProducer, MLKafkaJsonProducerOptions
 } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import { AccountLookupEventHandler } from "./event_handlers/account_lookup_evt_handler";
-import { QuotingEventHandler } from "./event_handlers/quoting_evt_handler";
-import { TransferEventHandler } from "./event_handlers/transfers_evt_handler";
-import {
-    AccountLookupBCTopics,
-    QuotingBCTopics,
-    TransfersBCTopics
-} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { QuoteRoutes } from "./http_routes/quoting-bc/quote_routes";
 import { QuoteBulkRoutes } from "./http_routes/quoting-bc/bulk_quote_routes";
 import { TransfersRoutes } from "./http_routes/transfers-bc/transfers_routes";
 import { IParticipantServiceAdapter } from "./interfaces/infrastructure";
-import {AuthenticatedHttpRequester} from "@mojaloop/security-bc-client-lib";
-import {IAuthenticatedHttpRequester} from "@mojaloop/security-bc-public-types-lib";
-import path from "path";
-import { OpenApiDocument, OpenApiValidator } from "express-openapi-validate";
-import jsYaml from "js-yaml";
-import fs from "fs";
-import { validateHeaders } from "./header_validation";
+import { AuthenticatedHttpRequester } from "@mojaloop/security-bc-client-lib";
 import { TransfersBulkRoutes } from "./http_routes/transfers-bc/bulk_transfers_routes";
-import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
+import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {
     DefaultConfigProvider,
     IConfigProvider
 } from "@mojaloop/platform-configuration-bc-client-lib";
-import {GetParticipantsConfigs} from "./configset";
-import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { GetParticipantsConfigs } from "./configset";
+import { IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { FspiopValidator, FspiopJwsSignature } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-
-const API_SPEC_FILE_PATH = process.env["API_SPEC_FILE_PATH"] || "../dist/api_spec.yaml";
-
+import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import {PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-client-lib";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const packageJSON = require("../package.json");
+const metricsPlugin = require("fastify-metrics");
+
+//const API_SPEC_FILE_PATH = process.env["API_SPEC_FILE_PATH"] || "../dist/api_spec.yaml";
+
 
 const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
-const LOGLEVEL:LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
+const LOGLEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
 
 const BC_NAME = "interop-apis-bc";
 const APP_NAME = "fspiop-api-svc";
 const APP_VERSION = packageJSON.version;
+const INSTANCE_NAME = `${BC_NAME}_${APP_NAME}`;
+const INSTANCE_ID = `${INSTANCE_NAME}__${crypto.randomUUID()}`;
+
 
 const SVC_DEFAULT_HTTP_PORT = 4000;
 
+// Message Consumer/Publisher
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
+const KAFKA_AUTH_ENABLED = process.env["KAFKA_AUTH_ENABLED"] && process.env["KAFKA_AUTH_ENABLED"].toUpperCase()==="TRUE" || false;
+const KAFKA_AUTH_PROTOCOL = process.env["KAFKA_AUTH_PROTOCOL"] || "sasl_plaintext";
+const KAFKA_AUTH_MECHANISM = process.env["KAFKA_AUTH_MECHANISM"] || "plain";
+const KAFKA_AUTH_USERNAME = process.env["KAFKA_AUTH_USERNAME"] || "user";
+const KAFKA_AUTH_PASSWORD = process.env["KAFKA_AUTH_PASSWORD"] || "password";
 
 const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
@@ -117,22 +128,41 @@ const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhos
 const AUTH_N_SVC_TOKEN_URL = AUTH_N_SVC_BASEURL + "/token"; // TODO this should not be known here, libs that use the base should add the suffix
 
 
-const PARTICIPANTS_SVC_URL = process.env["PARTICIPANTS_SVC_URL"] || "http://localhost:3010";
-const PARTICIPANTS_CACHE_TIMEOUT_MS = (process.env["PARTICIPANTS_CACHE_TIMEOUT_MS"] && parseInt(process.env["PARTICIPANTS_CACHE_TIMEOUT_MS"])) || 5*60*1000;
+// const PARTICIPANTS_SVC_URL = process.env["PARTICIPANTS_SVC_URL"] || "http://localhost:3010";
+// const PARTICIPANTS_CACHE_TIMEOUT_MS = (process.env["PARTICIPANTS_CACHE_TIMEOUT_MS"] && parseInt(process.env["PARTICIPANTS_CACHE_TIMEOUT_MS"])) || 5 * 60 * 1000;
 
 // this service has more handlers, might take longer than the usual 30 sec
-const SERVICE_START_TIMEOUT_MS= (process.env["SERVICE_START_TIMEOUT_MS"] && parseInt(process.env["SERVICE_START_TIMEOUT_MS"])) || 120_000;
+const SERVICE_START_TIMEOUT_MS = (process.env["SERVICE_START_TIMEOUT_MS"] && parseInt(process.env["SERVICE_START_TIMEOUT_MS"])) || 120_000;
 
 const JWS_FILES_PATH = process.env["JWS_FILES_PATH"] || "/app/data/keys/";
 
-const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
+// kafka common options
+const kafkaProducerCommonOptions:MLKafkaJsonProducerOptions = {
     kafkaBrokerList: KAFKA_URL,
-    producerClientId: `${BC_NAME}_${APP_NAME}`,
+    producerClientId: `${INSTANCE_ID}`,
+};
+const kafkaConsumerCommonOptions:MLKafkaJsonConsumerOptions ={
+    kafkaBrokerList: KAFKA_URL
+};
+if(KAFKA_AUTH_ENABLED){
+    kafkaProducerCommonOptions.authentication = kafkaConsumerCommonOptions.authentication = {
+        protocol: KAFKA_AUTH_PROTOCOL as "plaintext" | "ssl" | "sasl_plaintext" | "sasl_ssl",
+        mechanism: KAFKA_AUTH_MECHANISM as "PLAIN" | "GSSAPI" | "SCRAM-SHA-256" | "SCRAM-SHA-512",
+        username: KAFKA_AUTH_USERNAME,
+        password: KAFKA_AUTH_PASSWORD
+    };
+}
+
+const kafkaJsonProducerOptions: MLKafkaJsonProducerOptions = {
+    ...kafkaProducerCommonOptions,
+    producerClientId: `${INSTANCE_NAME}`,
     skipAcknowledgements: false // never change this to true without understanding what it does
 };
 
 // JWS Signature
 const JWS_DISABLED = process.env["JWS_DISABLED"] || "false";
+
+const MAX_RAM_MB = (process.env["MAX_RAM_MB"] && parseInt(process.env["MAX_RAM_MB"])) || 128;
 
 const jwsConfig: {
     enabled: boolean;
@@ -147,10 +177,6 @@ const jwsConfig: {
 let globalLogger: ILogger;
 
 
-let accountEvtHandler:AccountLookupEventHandler;
-let quotingEvtHandler:QuotingEventHandler;
-let transferEvtHandler:TransferEventHandler;
-
 type FspiopHttpRequestError = {
     name: string;
     statusCode: number;
@@ -163,35 +189,33 @@ type FspiopHttpRequestError = {
 }
 export class Service {
     static logger: ILogger;
-    static app: Express;
-    static expressServer: Server;
+    static app: FastifyInstance;
     static participantRoutes: ParticipantRoutes;
     static partyRoutes: PartyRoutes;
     static quotesRoutes: QuoteRoutes;
     static bulkQuotesRoutes: QuoteBulkRoutes;
     static transfersRoutes: TransfersRoutes;
-    static bulkTransfersRoutes:TransfersBulkRoutes;
-    static participantService: IParticipantServiceAdapter;
+    static bulkTransfersRoutes: TransfersBulkRoutes;
     static auditClient: IAuditClient;
     static configClient: IConfigurationClient;
-    static producer:IMessageProducer;
-
+    static producer: IMessageProducer;
+    static metrics: IMetrics;
     static startupTimer: NodeJS.Timeout;
 
     static async start(
-        logger?:ILogger,
-        participantService?: IParticipantServiceAdapter,
+        logger?: ILogger,
         auditClient?: IAuditClient,
         configProvider?: IConfigProvider,
-    ):Promise<void> {
+        metrics?: IMetrics,
+    ): Promise<void> {
         console.log(`Fspiop-api-svc - service starting with PID: ${process.pid}`);
 
-        this.startupTimer = setTimeout(()=>{
+        this.startupTimer = setTimeout(() => {
             throw new Error("Service start timed-out");
         }, SERVICE_START_TIMEOUT_MS);
 
 
-        if(!logger) {
+        if (!logger) {
             logger = new KafkaLogger(
                 BC_NAME,
                 APP_NAME,
@@ -204,14 +228,14 @@ export class Service {
         }
         globalLogger = this.logger = logger;
 
-        if(!configProvider) {
+        if (!configProvider) {
             // create the instance of IAuthenticatedHttpRequester
             const authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
             authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
 
             const messageConsumer = new MLKafkaJsonConsumer({
-                kafkaBrokerList: KAFKA_URL,
-                kafkaGroupId: `${APP_NAME}_${Date.now()}` // unique consumer group - use instance id when possible
+                ...kafkaConsumerCommonOptions,
+                kafkaGroupId: `${INSTANCE_ID}` // unique consumer group - use instance id when possible
             }, this.logger.createChild("configClient.consumer"));
             configProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer);
         }
@@ -222,7 +246,7 @@ export class Service {
         await this.configClient.fetch();
 
 
-        if(!auditClient) {
+        if (!auditClient) {
             if (!existsSync(AUDIT_KEY_FILE_PATH)) {
                 if (PRODUCTION_MODE) process.exit(9);
 
@@ -239,23 +263,25 @@ export class Service {
         }
         this.auditClient = auditClient;
 
-
-        if(!participantService){
-            const participantLogger = logger.createChild("participantLogger");
-            participantLogger.setLogLevel(LogLevel.INFO);
-
-            const authRequester:IAuthenticatedHttpRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
-            authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
-            participantService = new ParticipantAdapter(participantLogger, PARTICIPANTS_SVC_URL, authRequester, PARTICIPANTS_CACHE_TIMEOUT_MS);
+        if (!metrics) {
+            const labels: Map<string, string> = new Map<string, string>();
+            labels.set("bc", BC_NAME);
+            labels.set("app", APP_NAME);
+            labels.set("version", APP_VERSION);
+            labels.set("instance_id", INSTANCE_ID);
+            PrometheusMetrics.Setup({prefix: "", defaultLabels: labels}, this.logger);
+            metrics = PrometheusMetrics.getInstance();
         }
-        this.participantService = participantService;
+        this.metrics = metrics;
+
+        await Service.setupTracing();
 
         // Singleton for Validation and JWS functions
         const currencyList = this.configClient.globalConfigs.getCurrencies();
         const routeValidator = FspiopValidator.getInstance();
         routeValidator.addCurrencyList(currencyList);
 
-        if(jwsConfig.enabled) {
+        if (jwsConfig.enabled) {
             const privateKey = fs.readFileSync(path.join(__dirname, `${JWS_FILES_PATH}/hub/privatekey.pem`));
             jwsConfig.privateKey = privateKey;
 
@@ -270,22 +296,20 @@ export class Service {
         jwsHelper.addLogger(this.logger);
         jwsHelper.enableJws(jwsConfig.enabled);
         jwsHelper.addPublicKeys(jwsConfig.publicKeys);
-        if(jwsConfig.privateKey) {
+        if (jwsConfig.privateKey) {
             jwsHelper.addPrivateKey(jwsConfig.privateKey);
         }
-
-        await Service.setupEventHandlers(jwsHelper);
 
         // Create and initialise the http hanlders
         this.producer = new MLKafkaJsonProducer(kafkaJsonProducerOptions);
         await this.producer.connect();
 
-        this.participantRoutes = new ParticipantRoutes(this.producer, routeValidator, jwsHelper, this.logger);
-        this.partyRoutes = new PartyRoutes(this.producer, routeValidator, jwsHelper, this.logger);
-        this.quotesRoutes = new QuoteRoutes(this.producer, routeValidator, jwsHelper, this.logger);
-        this.bulkQuotesRoutes = new QuoteBulkRoutes(this.producer, routeValidator, jwsHelper, this.logger);
-        this.transfersRoutes = new TransfersRoutes(this.producer, routeValidator, jwsHelper, this.logger);
-        this.bulkTransfersRoutes = new TransfersBulkRoutes(this.producer, routeValidator, jwsHelper, this.logger);
+        this.participantRoutes = new ParticipantRoutes(this.producer, routeValidator, jwsHelper, this.metrics, this.logger);
+        this.partyRoutes = new PartyRoutes(this.producer, routeValidator, jwsHelper, this.metrics, this.logger);
+        this.quotesRoutes = new QuoteRoutes(this.producer, routeValidator, jwsHelper, this.metrics, this.logger);
+        this.bulkQuotesRoutes = new QuoteBulkRoutes(this.producer, routeValidator, jwsHelper, this.metrics, this.logger);
+        this.transfersRoutes = new TransfersRoutes(this.producer, routeValidator, jwsHelper, this.metrics, this.logger);
+        this.bulkTransfersRoutes = new TransfersBulkRoutes(this.producer, routeValidator, jwsHelper, this.metrics, this.logger);
 
         await Promise.all([
             this.participantRoutes.init(),
@@ -296,193 +320,193 @@ export class Service {
             this.bulkTransfersRoutes.init()
         ]);
 
-        await Service.setupExpress();
 
-        this.logger.info(`Fspiop-api service v: ${APP_VERSION} started`);
+        await Service.setupFastify();
+
+        this.logger.info(`${APP_NAME} service v: ${APP_VERSION} started`);
 
         // remove startup timeout
         clearTimeout(this.startupTimer);
     }
 
-    static async setupEventHandlers(jwsHelper:FspiopJwsSignature):Promise<void>{
-        const accountEvtHandlerConsumerOptions: MLKafkaJsonConsumerOptions = {
-            kafkaBrokerList: KAFKA_URL,
-            kafkaGroupId: `${BC_NAME}_${APP_NAME}_AccountLookupEventHandler`,
-        };
-
-        accountEvtHandler = new AccountLookupEventHandler(
-            this.logger,
-            accountEvtHandlerConsumerOptions,
-            kafkaJsonProducerOptions,
-            [AccountLookupBCTopics.DomainEvents],
-            this.participantService,
-            jwsHelper
-        );
-
-        const quotingEvtHandlerConsumerOptions: MLKafkaJsonConsumerOptions = {
-            kafkaBrokerList: KAFKA_URL,
-            kafkaGroupId: `${BC_NAME}_${APP_NAME}_QuotingEventHandler`,
-        };
-
-        quotingEvtHandler = new QuotingEventHandler(
-            this.logger,
-            quotingEvtHandlerConsumerOptions,
-            kafkaJsonProducerOptions,
-            [QuotingBCTopics.DomainEvents],
-            this.participantService,
-            jwsHelper
-        );
-
-        const transferEvtHandlerConsumerOptions: MLKafkaJsonConsumerOptions = {
-            kafkaBrokerList: KAFKA_URL,
-            kafkaGroupId: `${BC_NAME}_${APP_NAME}_TransferEventHandler`,
-        };
-
-        transferEvtHandler = new TransferEventHandler(
-            this.logger,
-            transferEvtHandlerConsumerOptions,
-            kafkaJsonProducerOptions,
-            [TransfersBCTopics.DomainEvents],
-            this.participantService,
-            jwsHelper
-        );
-
-        await Promise.all([
-            accountEvtHandler.init(),
-            quotingEvtHandler.init(),
-            transferEvtHandler.init()
-        ]);
+    static async setupTracing():Promise<void>{
+        OpenTelemetryClient.Start(BC_NAME, APP_NAME, APP_VERSION, INSTANCE_ID, this.logger);
     }
 
-    static async setupExpress(): Promise<void> {
+    static async setupFastify(): Promise<void> {
         return new Promise<void>(resolve => {
-            this.app = express();
-            this.app.use(express.json({
-                limit: "100mb",
-                type: (req)=>{
-                    const contentLength = req.headers["content-length"];
-                    if(contentLength) {
-                        // We need to send this as a number
-                        req.headers["content-length"]= parseInt(contentLength) as unknown as string;
-                    }
+            this.app = Fastify({
+                logger: false,
+            });
 
-                    return req.headers["content-type"]?.toUpperCase()==="application/json".toUpperCase()
-                        || req.headers["content-type"]?.startsWith("application/vnd.interoperability.")
-                        || false;
+            // setup prom-bundle to automatically collect express metrics
+            this.app.register(metricsPlugin, {
+                routeMetrics: true,
+                defaultMetrics: {enabled: false}, // already collected by our own metrics lib
+                endpoint: "/metrics",
+                promClient: (this.metrics as PrometheusMetrics).getPromClient(),
+            });
+
+            // automatically return 503's when the system is under pressure (after metrics, so we can capture the 503's)
+            this.app.register(fastifyUnderPressure, {
+                maxEventLoopDelay: 200,
+                maxHeapUsedBytes: MAX_RAM_MB*1024**2,
+                maxRssBytes: MAX_RAM_MB*1024**2,
+                maxEventLoopUtilization: 0.80,
+                exposeStatusRoute: "/health"
+            });
+
+
+            this.app.register(fastifyCors, { origin: true });
+            this.app.register(fastifyFormbody, {
+                bodyLimit: 100 * 1024 * 1024 // 100MB
+            });
+
+            // Custom content type for handling specific versioned JSON types
+            this.app.addContentTypeParser("*", { parseAs: "buffer" }, function (req:FastifyRequest, body: Buffer, done) {
+                try {
+                  const contentLength = req.headers["content-length"];
+                  if (contentLength) {
+                    req.headers["content-length"] = parseInt(contentLength, 10).toString();
+                  }
+
+                  const contentType = req.headers["content-type"]?.toLowerCase();
+
+                  if (contentType === "application/json" ||
+                      contentType?.startsWith("application/vnd.interoperability.")) {
+                    const json = JSON.parse(body.toString());
+                    done(null, json);
+                  } else {
+                    // If not a supported content type, do not parse the body
+                    done(null, undefined);
+                  }
+                } catch (err:unknown) {
+                      done((err as Error), undefined);
                 }
-            })); // for parsing application/json
-            this.app.use(express.urlencoded({limit: "100mb", extended: true})); // for parsing application/x-www-form-urlencoded
+            });
 
-            // // Call header validation
-            this.app.use(validateHeaders);
 
-            // Call the request validator in every request
-            const openApiDocument = jsYaml.load(
-                fs.readFileSync(path.join(__dirname, API_SPEC_FILE_PATH), "utf-8"),
-            ) as OpenApiDocument;
-            const validator = new OpenApiValidator(openApiDocument); // TODO: find a way to limit currencies on this point
-            this.app.use(validator.match());
+            // TODO: use the newer @fastify/swagger
+            // const openApiDocument = jsYaml.load(
+            //     fs.readFileSync(path.join(__dirname, API_SPEC_FILE_PATH), "utf-8")
+            // );
+            // this.app.register(fastifySwagger, {
+            //     swagger: openApiDocument,
+            //     mode: "static"
+            // });
+            //
+            // this.app.register(fastifyOAS, {
+            //     specification: openApiDocument,
+            // });
 
-            // hook http handler's routes
-            this.app.use(`/${PARTICIPANTS_URL_RESOURCE_NAME}`, this.participantRoutes.router);
-            this.app.use(`/${PARTIES_URL_RESOURCE_NAME}`, this.partyRoutes.router);
-            this.app.use(`/${QUOTES_URL_RESOURCE_NAME}`, this.quotesRoutes.router);
-            this.app.use(`/${BULK_QUOTES_URL_RESOURCE_NAME}`, this.bulkQuotesRoutes.router);
-            this.app.use(`/${TRANSFERS_URL_RESOURCE_NAME}`, this.transfersRoutes.router);
-            this.app.use(`/${BULK_TRANSFERS_URL_RESOURCE_NAME}`, this.bulkTransfersRoutes.router);
+            // Add decorate here to is present in all scopes (below)
+            if(!this.app.hasDecorator("tracing")) {
+                this.app.decorateRequest("tracing", null);
+            }
 
-            /* eslint-disable-next-line @typescript-eslint/no-unused-vars */ 
-            /* istanbul ignore next */
-            this.app.use((err: FspiopHttpRequestError, req: express.Request, res: express.Response, next: express.NextFunction) => {
-                if(!err.data) {
-                    next();
+            this.app.register(this.participantRoutes.bindRoutes.bind(this.participantRoutes), { prefix: `/${PARTICIPANTS_URL_RESOURCE_NAME}` });
+            this.app.register(this.partyRoutes.bindRoutes.bind(this.partyRoutes), { prefix: `/${PARTIES_URL_RESOURCE_NAME}` });
+            this.app.register(this.quotesRoutes.bindRoutes.bind(this.quotesRoutes), { prefix: `/${QUOTES_URL_RESOURCE_NAME}` });
+            this.app.register(this.bulkQuotesRoutes.bindRoutes.bind(this.bulkQuotesRoutes), { prefix: `/${BULK_QUOTES_URL_RESOURCE_NAME}` });
+            this.app.register(this.transfersRoutes.bindRoutes.bind(this.transfersRoutes), { prefix: `/${TRANSFERS_URL_RESOURCE_NAME}` });
+            this.app.register(this.bulkTransfersRoutes.bindRoutes.bind(this.bulkTransfersRoutes), { prefix: `/${BULK_TRANSFERS_URL_RESOURCE_NAME}` });
+
+            // Error handling middleware
+            this.app.setErrorHandler((error:FastifyError, request: FastifyRequest, reply: FastifyReply) => {
+                // ignore 503 returned by fastifyUnderPressure
+                if (error.statusCode == 503){
+                    reply.send(error);
                     return;
                 }
 
+                // maybe this error handler should handle only 400 and 500's?
+                const err = error as unknown as FspiopHttpRequestError;
+
+                if (!err.data) {
+                  reply.callNotFound();
+                  return;
+                }
+
                 const errorResponseBuilder = (errorCode: string, errorDescription: string, additionalProperties = {}) => {
-                    return {
-                        errorInformation: {
-                            errorCode,
-                            errorDescription,
-                            ...additionalProperties
-                        }
-                    };
+                  return {
+                    errorInformation: {
+                      errorCode,
+                      errorDescription,
+                      ...additionalProperties
+                    }
+                  };
                 };
 
                 const statusCode = err.statusCode || 500;
-
                 const extensionList = [{
-                    key: "keyword",
-                    value: err.data[0].keyword
-                },
-                {
-                    key: "instancePath",
-                    value: err.data[0].instancePath
+                  key: "keyword",
+                  value: err.data[0].keyword
+                }, {
+                  key: "instancePath",
+                  value: err.data[0].instancePath
                 }];
+
                 for (const [key, value] of Object.entries(err.data[0].params)) {
-                    extensionList.push({ key, value });
+                  extensionList.push({ key, value });
                 }
+
                 const customFSPIOPHeaders = ["content-type"];
-
-                const customHeaders:{[key: string]: string} = {};
-                for (const value of customFSPIOPHeaders) {
-                    const headerValue = req.headers[value] as string;
-
-                    if(req.headers[value]) {
-                        customHeaders[value] = headerValue;
-                    }
-                }
-
-                res.set(customHeaders);
-
-                let errorCode:string;
-                const errorType = err.data[0].instancePath;
-
-                if(errorType.includes("body")){
-                    errorCode = "3100";
-                }else if(!errorType.includes("body")) {
-                    errorCode = "3102";
-                }else{
-                    errorCode = "3100";
-                }
-
-                res.status(statusCode).json(errorResponseBuilder(errorCode, `${err.data[0].message} - path: ${err.data[0].instancePath}`, { extensionList: { extension: extensionList} }));
-            });
-
-            /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
-            this.app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
-                // catch all
-                this.logger.warn(`Received unhandled request to url: ${req.url}`);
-                res.status(404).json({
-                    errorInformation: {
-                        errorCode: "3002",
-                        errorDescription: "Unknown URI"
-                    }
+                const customHeaders: {[key: string]: string} = {};
+                customFSPIOPHeaders.forEach(headerKey => {
+                  const headerValue = request.headers[headerKey];
+                  if (headerValue) {
+                    customHeaders[headerKey] = headerValue as string;
+                  }
                 });
 
-                next();
+                // Setting custom headers
+                Object.entries(customHeaders).forEach(([key, value]) => {
+                  reply.header(key, value);
+                });
+
+                let errorCode: string;
+                const errorType = err.data[0].instancePath;
+
+                if (errorType.includes("body")) {
+                  errorCode = "3100";
+                } else {
+                  errorCode = "3102";
+                }
+
+                reply.code(statusCode).send(
+                    errorResponseBuilder(
+                        errorCode,
+                        `${err.data[0].message} - path: ${err.data[0].instancePath}`, { extensionList: { extension: extensionList } }
+                    )
+                );
+            });
+
+            // Catch-all for unhandled requests
+            this.app.setNotFoundHandler((request:FastifyRequest, reply:FastifyReply) => {
+                request.log.warn(`Received unhandled request to url: ${request.url}`);
+                reply.code(404).send({
+                errorInformation: {
+                    errorCode: "3002",
+                    errorDescription: "Unknown URI"
+                }
+                });
             });
 
             let portNum = SVC_DEFAULT_HTTP_PORT;
-            if(process.env["SVC_HTTP_PORT"] && !isNaN(parseInt(process.env["SVC_HTTP_PORT"]))) {
+            if (process.env["SVC_HTTP_PORT"] && !isNaN(parseInt(process.env["SVC_HTTP_PORT"]))) {
                 portNum = parseInt(process.env["SVC_HTTP_PORT"]);
             }
 
-            this.expressServer = this.app.listen(portNum, () => {
-                this.logger.info(`🚀 Server ready at: http://localhost:${portNum}`);
-                this.logger.info(`FSPIOP-API-SVC Service started, version: ${APP_VERSION}`);
+            this.app.listen({host:"0.0.0.0", port: portNum }, () => {
+                this.logger.info(`🚀 Server ready at: http://0.0.0.0:${portNum}`);
+                this.logger.info(`${INSTANCE_ID} Service started, version: ${APP_VERSION}`);
                 resolve();
             });
         });
     }
 
     static async stop() {
-        // if (this.handler) await this.handler.stop();
-        // if (this.messageConsumer) await this.messageConsumer.destroy(true);
-
-        // if (this.auditClient) await this.auditClient.destroy();
-        // if (this.logger && this.logger instanceof KafkaLogger) await this.logger.destroy();
-        if (this.expressServer){
+        if (this.app) {
             await this.participantRoutes.destroy();
             await this.partyRoutes.destroy();
             await this.quotesRoutes.destroy();
@@ -490,17 +514,11 @@ export class Service {
             await this.bulkQuotesRoutes.destroy();
             await this.transfersRoutes.destroy();
 
-            await this.expressServer.close();
-            // const closeExpress = util.promisify(this.expressServer.close);
-            // await closeExpress();
+            await this.app.close();
         }
-        if(this.producer){
+        if (this.producer) {
             await this.producer.destroy();
         }
-
-        await accountEvtHandler.destroy();
-        await quotingEvtHandler.destroy();
-        await transferEvtHandler.destroy();
 
         await this.auditClient.destroy();
         setTimeout(async () => {
@@ -508,7 +526,6 @@ export class Service {
         }, 5000);
     }
 }
-
 
 /**
  * process termination and cleanup
@@ -535,10 +552,11 @@ process.on("SIGTERM", _handle_int_and_term_signals);
 
 //do something when app is closing
 process.on("exit", async () => {
-    globalLogger.info("Microservice - exiting...");
+    globalLogger.info(`Microservice pid: ${process.pid} - exiting...`);
 });
 process.on("uncaughtException", (err: Error) => {
-    globalLogger.error(err);
+    globalLogger ? globalLogger.error(err) : console.error(err);
     console.log("UncaughtException - EXITING...");
     process.exit(999);
 });
+

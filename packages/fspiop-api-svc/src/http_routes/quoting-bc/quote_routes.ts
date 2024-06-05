@@ -31,14 +31,14 @@
 
 "use strict";
 
-import { 
+import {
     Constants,
     FspiopJwsSignature,
     FspiopValidator,
     Transformer,
     ValidationdError
 } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { 
+import {
     QuoteRejectedEvt,
     QuoteRejectedEvtPayload,
     QuoteQueryReceivedEvt,
@@ -48,59 +48,69 @@ import {
     QuoteResponseReceivedEvt,
     QuoteResponseReceivedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { BaseRoutes } from "../_base_router";
-import { FSPIOPErrorCodes } from "../../validation";
+import { FSPIOPErrorCodes } from "../validation";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import express from "express";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import {IMetrics, SpanStatusCode} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import {FastifyInstance, FastifyPluginAsync, FastifyPluginOptions, FastifyReply, FastifyRequest} from "fastify";
+import { QuoteQueryReceivedDTO, QuoteRejectRequestDTO, QuoteRequestReceivedDTO, QuoteResponseReceivedDTO } from "./quotes_routes_dto";
+import {BaseRoutesFastify} from "../_base_routerfastify";
+import {OpenTelemetryClient} from "@mojaloop/platform-shared-lib-observability-client-lib";
+import {SpanKind} from "@opentelemetry/api";
 
-export class QuoteRoutes extends BaseRoutes {
+export class QuoteRoutes extends BaseRoutesFastify {
 
     constructor(
         producer: IMessageProducer,
         validator: FspiopValidator,
         jwsHelper: FspiopJwsSignature,
+        metrics: IMetrics,
         logger: ILogger
     ) {
-        super(producer, validator, jwsHelper, logger);
-
-        // bind routes
-
-        // GET Quote by ID
-        this.router.get("/:id/", this.quoteQueryReceived.bind(this));
-
-        // POST Quote Calculation
-        this.router.post("/", this.quoteRequestReceived.bind(this));
-
-        // PUT Quote Created
-        this.router.put("/:id", this.quoteResponseReceived.bind(this));
-
-        // Errors
-        this.router.put("/:id/error", this.quoteRejectRequest.bind(this));
+        super(producer, validator, jwsHelper, metrics, logger);
     }
 
-    private async quoteRequestReceived(req: express.Request, res: express.Response): Promise<void> {
-        this.logger.debug("Got quoteRequestReceived request");
+    public async bindRoutes(fastify: FastifyInstance, options: FastifyPluginOptions): Promise<void>{
+        // bind common hooks like content-type validation and tracing extraction
+        this._addHooks(fastify);
+
+        // GET Quote by ID
+        fastify.get("/:id", this.quoteQueryReceived.bind(this));
+
+        // POST Quote Calculation
+        fastify.post("/", this.quoteRequestReceived.bind(this));
+
+        // PUT Quote Created
+        fastify.put("/:id", this.quoteResponseReceived.bind(this));
+
+        // Errors
+        fastify.put("/:id/error", this.quoteRejectRequest.bind(this));
+    }
+
+    private async quoteRequestReceived(req: FastifyRequest<QuoteRequestReceivedDTO>, reply: FastifyReply): Promise<void> {
+        const parentSpan = this._getActiveSpan();
+
+        this._logger.debug("Got quoteRequestReceived request");
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
             // Date Model
-            const quoteId = req.body["quoteId"] || null;
-            const transactionId = req.body["transactionId"] || null;
-            const transactionRequestId = req.body["transactionRequestId"] || null;
-            const payee = req.body["payee"] || null;
-            const payer = req.body["payer"] || null;
-            const amountType = req.body["amountType"] || null;
-            const amount: { currency: string, amount: string } = req.body["amount"] || null;
-            const fees = req.body["fees"] || null;
-            const transactionType = req.body["transactionType"] || null;
-            const geoCode = req.body["geoCode"] || null;
-            const note = req.body["note"] || null;
-            const expiration = req.body["expiration"] || null;
-            const extensionList = req.body["extensionList"] || null;
+            const quoteId = req.body.quoteId;
+            const transactionId = req.body.transactionId;
+            const transactionRequestId = req.body.transactionRequestId;
+            const payee = req.body.payee;
+            const payer = req.body.payer;
+            const amountType = req.body.amountType;
+            const amount: { currency: string, amount: string } = req.body.amount;
+            const fees = req.body.fees;
+            const transactionType = req.body.transactionType;
+            const geoCode = req.body.geoCode;
+            const note = req.body.note;
+            const expiration = req.body.expiration;
+            const extensionList = req.body.extensionList;
 
             if (!requesterFspId || !quoteId || !transactionId || !payee || !payer || !amountType || !amount || !transactionType) {
                 const transformError = Transformer.transformPayloadError({
@@ -109,11 +119,15 @@ export class QuoteRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
             this._validator.currencyAndAmount(amount);
+
+            if(fees) {
+                this._validator.currencyAndAmount(fees);
+            }
 
             if(this._jwsHelper.isEnabled()) {
                 this._jwsHelper.validate(req.headers, req.body);
@@ -150,49 +164,58 @@ export class QuoteRoutes extends BaseRoutes {
                 destinationFspId: destinationFspId,
                 headers: clonedHeaders
             };
+            msg.tracingInfo = {};
 
-            await this.kafkaProducer.send(msg);
+            parentSpan.setAttribute("quoteId", quoteId);
+            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan, SpanKind.PRODUCER);
+            // inject tracing headers
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(childSpan, msg.tracingInfo);
 
-            this.logger.debug("quoteRequestReceived sent message");
+            await this._kafkaProducer.send(msg);
+            childSpan.end();
 
-            res.status(202).json(null);
+            this._logger.debug("quoteRequestReceived sent message");
 
-            this.logger.debug("quoteRequestReceived responded");
+            reply.code(202).send(null);
+
+            this._logger.debug("quoteRequestReceived responded");
 
         } catch (error: unknown) {
+
             if(error instanceof ValidationdError) {
-                res.status(400).json((error as ValidationdError).errorInformation);
+                reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-                res.status(500).json(transformError);
+                reply.code(500).send(transformError);
             }
             return;
         }
     }
 
-    private async quoteResponseReceived(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
-        this.logger.debug("Got quoteResponseReceived request");
+    private async quoteResponseReceived(req: FastifyRequest<QuoteResponseReceivedDTO>, reply: FastifyReply): Promise<void> {
+        const parentSpan = this._getActiveSpan();
+        this._logger.debug("Got quoteResponseReceived request");
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
             // Date Model
-            const quoteId = req.params["id"] || null;
-            const transferAmount = req.body["transferAmount"] || null;
-            const expiration = req.body["expiration"] || null;
-            const ilpPacket = req.body["ilpPacket"] || null;
-            const condition = req.body["condition"] || null;
-            const payeeReceiveAmount = req.body["payeeReceiveAmount"] || null;
-            const payeeFspFee = req.body["payeeFspFee"] || null;
-            const payeeFspCommission = req.body["payeeFspCommission"] || null;
-            const geoCode = req.body["geoCode"] || null;
-            const extensionList = req.body["extensionList"] || null;
+            const quoteId = req.params.id;
+            const transferAmount = req.body.transferAmount;
+            const expiration = req.body.expiration;
+            const ilpPacket = req.body.ilpPacket;
+            const condition = req.body.condition;
+            const payeeReceiveAmount = req.body.payeeReceiveAmount;
+            const payeeFspFee = req.body.payeeFspFee;
+            const payeeFspCommission = req.body.payeeFspCommission;
+            const geoCode = req.body.geoCode;
+            const extensionList = req.body.extensionList;
 
             //TODO: validate ilpPacket
 
@@ -203,8 +226,8 @@ export class QuoteRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
-                return next();
+                reply.code(400).send(transformError);
+                return;
             }
 
             this._validator.currencyAndAmount(transferAmount);
@@ -245,37 +268,48 @@ export class QuoteRoutes extends BaseRoutes {
                 destinationFspId: destinationFspId,
                 headers: clonedHeaders
             };
+            msg.tracingInfo = {};
 
-            await this.kafkaProducer.send(msg);
+            parentSpan.setAttribute("quoteId", quoteId);
+            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan, SpanKind.PRODUCER);
+            // inject tracing headers
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(childSpan, msg.tracingInfo);
 
-            this.logger.debug("quoteResponseReceived sent message");
+            await this._kafkaProducer.send(msg);
+            childSpan.end();
 
-            res.status(200).json(null);
+            this._logger.debug("quoteResponseReceived sent message");
 
-            this.logger.debug("quoteResponseReceived responded");
+            reply.code(200).send(null);
 
+            this._logger.debug("quoteResponseReceived responded");
         } catch (error: unknown) {
+
             if(error instanceof ValidationdError) {
-                res.status(400).json((error as ValidationdError).errorInformation);
+                reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-                res.status(500).json(transformError);
+                reply.code(500).send(transformError);
             }
             return;
         }
     }
 
-    private async quoteQueryReceived(req: express.Request, res: express.Response): Promise<void> {
-        this.logger.debug("Got quoteQueryReceived request");
+    private async quoteQueryReceived(req: FastifyRequest<QuoteQueryReceivedDTO>, reply: FastifyReply): Promise<void> {
+        const parentSpan = this._getActiveSpan();
+        this._logger.debug("Got quoteQueryReceived request");
         try {
-            const clonedHeaders = { ...req.headers };
-            const quoteId = req.params["id"] as string || null;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+            // Headers
+            const clonedHeaders = {...req.headers};
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE]; // NOTE: We do this because the destination is coming as null
+
+            // Date Model
+            const quoteId = req.params.id;
 
             if (!quoteId || !requesterFspId) {
                 const transformError = Transformer.transformPayloadError({
@@ -284,7 +318,7 @@ export class QuoteRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -302,36 +336,46 @@ export class QuoteRoutes extends BaseRoutes {
                 destinationFspId: destinationFspId,
                 headers: clonedHeaders
             };
+            msg.tracingInfo = {};
 
-            await this.kafkaProducer.send(msg);
+            parentSpan.setAttribute("quoteId", quoteId);
+            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan, SpanKind.PRODUCER);
+            // inject tracing headers
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(childSpan, msg.tracingInfo);
 
-            this.logger.debug("quoteQueryReceived sent message");
+            await this._kafkaProducer.send(msg);
+            childSpan.end();
 
-            res.status(202).json(null);
+            this._logger.debug("quoteQueryReceived sent message");
 
-            this.logger.debug("quoteQueryReceived responded");
+            reply.code(202).send(null);
 
+            this._logger.debug("quoteQueryReceived responded");
         } catch (error: unknown) {
+
             const transformError = Transformer.transformPayloadError({
                 errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                 errorDescription: (error as Error).message,
                 extensionList: null
             });
 
-            res.status(500).json(transformError);
+            reply.code(500).send(transformError);
         }
     }
 
-    private async quoteRejectRequest(req: express.Request, res: express.Response): Promise<void> {
-        this.logger.debug("Got quote rejected request");
+    private async quoteRejectRequest(req: FastifyRequest<QuoteRejectRequestDTO>, reply: FastifyReply): Promise<void> {
+        const parentSpan = this._getActiveSpan();
+        this._logger.debug("Got quote rejected request");
 
         try{
-            const clonedHeaders = { ...req.headers };
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+            // Headers
+            const clonedHeaders = {...req.headers};
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE]; // NOTE: We do this because the destination is coming as null
 
-            const quoteId = req.params["id"] as string || null;
-            const errorInformation = req.body["errorInformation"] || null;
+            // Date Model
+            const quoteId = req.params.id;
+            const errorInformation = req.body.errorInformation;
 
             if(!quoteId || !errorInformation || !requesterFspId) {
                 const transformError = Transformer.transformPayloadError({
@@ -340,7 +384,7 @@ export class QuoteRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -362,23 +406,31 @@ export class QuoteRoutes extends BaseRoutes {
                 destinationFspId: destinationFspId,
                 headers: clonedHeaders
             };
+            msg.tracingInfo = {};
 
-            await this.kafkaProducer.send(msg);
+            parentSpan.setAttribute("quoteId", quoteId);
+            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan, SpanKind.PRODUCER);
+            // inject tracing headers
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(childSpan, msg.tracingInfo);
 
-            this.logger.debug("quote rejected sent message");
+            await this._kafkaProducer.send(msg);
+            childSpan.end();
 
-            res.status(202).json(null);
+            this._logger.debug("quote rejected sent message");
 
-            this.logger.debug("quote rejected responded");
+            reply.code(202).send(null);
+
+            this._logger.debug("quote rejected responded");
 
         } catch (error: unknown) {
+
             const transformError = Transformer.transformPayloadError({
                 errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                 errorDescription: (error as Error).message,
                 extensionList: null
             });
 
-            res.status(500).json(transformError);
+            reply.code(500).send(transformError);
         }
     }
 }

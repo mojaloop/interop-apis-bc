@@ -31,7 +31,7 @@
 
 "use strict";
 
-import { 
+import {
     BulkQuotePendingReceivedEvt,
     BulkQuotePendingReceivedEvtPayload,
     BulkQuoteQueryReceivedEvt,
@@ -39,61 +39,69 @@ import {
     BulkQuoteRequestedEvt,
     BulkQuoteRequestedEvtPayload,
     BulkQuoteRejectedEvt,
-    BulkQuoteRejectedEvtPayload 
+    BulkQuoteRejectedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { 
+import {
     Constants,
-    FspiopJwsSignature, 
+    FspiopJwsSignature,
     FspiopValidator,
     Transformer,
     ValidationdError
 } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { BaseRoutes } from "../_base_router";
-import { FSPIOPErrorCodes } from "../../validation";
+import { FSPIOPErrorCodes } from "../validation";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import express from "express";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import {FastifyInstance, FastifyPluginOptions, FastifyReply, FastifyRequest} from "fastify";
+import {
+    BulkQuotePendingDTO,
+    BulkQuoteQueryReceivedDTO,
+    BulkQuoteRejectRequestDTO,
+    BulkQuoteRequestDTO
+} from "./bulk_quote_routes_dto";
+import {BaseRoutesFastify} from "../_base_routerfastify";
 
-export class QuoteBulkRoutes extends BaseRoutes {
+export class QuoteBulkRoutes extends BaseRoutesFastify {
 
     constructor(
         producer: IMessageProducer,
         validator: FspiopValidator,
         jwsHelper: FspiopJwsSignature,
+        metrics: IMetrics,
         logger: ILogger
     ) {
-        super(producer, validator, jwsHelper, logger);
+        super(producer, validator, jwsHelper, metrics, logger);
+    }
 
-        // bind routes
+    public async bindRoutes(fastify: FastifyInstance, options: FastifyPluginOptions): Promise<void>{
+        // bind common hooks like content-type validation and tracing extraction
+        this._addHooks(fastify);
 
         // GET Bulk Quote by ID
-        this.router.get("/:id/", this.bulkQuoteQueryReceived.bind(this));
+        fastify.get("/:id", this.bulkQuoteQueryReceived.bind(this));
 
         // POST Bulk Quote Calculation
-        this.router.post("/", this.bulkQuoteRequest.bind(this));
+        fastify.post("/", this.bulkQuoteRequest.bind(this));
 
         // PUT Bulk Quote Created
-        this.router.put("/:id", this.bulkQuotePending.bind(this));
+        fastify.put("/:id", this.bulkQuotePending.bind(this));
 
         // Errors
-        this.router.put("/:id/error", this.bulkQuoteRejectRequest.bind(this));
-
+        fastify.put("/:id/error", this.bulkQuoteRejectRequest.bind(this));
     }
 
-    get Router(): express.Router {
-        return this.router;
-    }
-
-    private async bulkQuoteQueryReceived(req: express.Request, res: express.Response): Promise<void> {
+    private async bulkQuoteQueryReceived(req: FastifyRequest<BulkQuoteQueryReceivedDTO>, reply: FastifyReply): Promise<void> {
         try {
-            this.logger.debug("Got bulkQuoteQueryReceived request");
+            this._logger.debug("Got bulkQuoteQueryReceived request");
 
             // Headers
             const clonedHeaders = { ...req.headers };
-            const bulkQuoteId = req.params["id"] as string || null;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
+            // Date Model
+            const bulkQuoteId = req.params.id;
+            
             if (!bulkQuoteId || !requesterFspId) {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
@@ -101,7 +109,7 @@ export class QuoteBulkRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -119,13 +127,13 @@ export class QuoteBulkRoutes extends BaseRoutes {
                 headers: clonedHeaders
             };
 
-            await this.kafkaProducer.send(msg);
+            await this._kafkaProducer.send(msg);
 
-            this.logger.debug("bulkQuoteQueryReceived sent message");
+            this._logger.debug("bulkQuoteQueryReceived sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
-            this.logger.debug("bulkQuoteQueryReceived responded");
+            this._logger.debug("bulkQuoteQueryReceived responded");
 
         } catch (error: unknown) {
             const transformError = Transformer.transformPayloadError({
@@ -133,25 +141,25 @@ export class QuoteBulkRoutes extends BaseRoutes {
                 errorDescription: (error as Error).message,
                 extensionList: null
             });
-            res.status(500).json(transformError);
+            reply.code(500).send(transformError);
         }
     }
 
-    private async bulkQuoteRequest(req: express.Request, res: express.Response): Promise<void> {
-        this.logger.debug("Got bulkQuoteRequest request");
+    private async bulkQuoteRequest(req: FastifyRequest<BulkQuoteRequestDTO>, reply: FastifyReply): Promise<void> {
+        this._logger.debug("Got bulkQuoteRequest request");
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
             // Date Model
-            const bulkQuoteId = req.body["bulkQuoteId"] || null;
-            const payer = req.body["payer"] || null;
-            const geoCode = req.body["geoCode"] || null;
-            const expiration = req.body["expiration"] || null;
-            const individualQuotes = req.body["individualQuotes"] || null;
-            const extensionList = req.body["extensionList"] || null;
+            const bulkQuoteId = req.body.bulkQuoteId;
+            const payer = req.body.payer;
+            const geoCode = req.body.geoCode;
+            const expiration = req.body.expiration;
+            const individualQuotes = req.body.individualQuotes;
+            const extensionList = req.body.extensionList;
 
             //TODO: validate ilpPacket
 
@@ -162,7 +170,7 @@ export class QuoteBulkRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -197,42 +205,42 @@ export class QuoteBulkRoutes extends BaseRoutes {
                 headers: clonedHeaders
             };
 
-            await this.kafkaProducer.send(msg);
+            await this._kafkaProducer.send(msg);
 
-            this.logger.debug("bulkQuoteRequest sent message");
+            this._logger.debug("bulkQuoteRequest sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
-            this.logger.debug("bulkQuoteRequest responded");
+            this._logger.debug("bulkQuoteRequest responded");
 
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
-                res.status(400).json((error as ValidationdError).errorInformation);
+                reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-                res.status(500).json(transformError);
+                reply.code(500).send(transformError);
             }
             return;
         }
     }
 
-    private async bulkQuotePending(req: express.Request, res: express.Response): Promise<void> {
-        this.logger.debug("Got bulkQuotePending request");
+    private async bulkQuotePending(req: FastifyRequest<BulkQuotePendingDTO>, reply: FastifyReply): Promise<void> {
+        this._logger.debug("Got bulkQuotePending request");
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
-            const bulkQuoteId = req.params["id"] as string || null;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+            const bulkQuoteId = req.params.id;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
             // Date Model
-            const expiration = req.body["expiration"] || null;
-            const individualQuoteResults = req.body["individualQuoteResults"] || null;
-            const extensionList = req.body["extensionList"] || null;
+            const expiration = req.body.expiration;
+            const individualQuoteResults = req.body.individualQuoteResults;
+            const extensionList = req.body.extensionList;
 
             if (!bulkQuoteId || !requesterFspId || !individualQuoteResults) {
                 const transformError = Transformer.transformPayloadError({
@@ -241,7 +249,7 @@ export class QuoteBulkRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -266,7 +274,7 @@ export class QuoteBulkRoutes extends BaseRoutes {
                 expiration: expiration,
                 individualQuoteResults: individualQuoteResults,
                 extensionList: extensionList,
-            };
+            } as BulkQuotePendingReceivedEvtPayload;
 
             const msg = new BulkQuotePendingReceivedEvt(msgPayload);
 
@@ -282,39 +290,39 @@ export class QuoteBulkRoutes extends BaseRoutes {
                 headers: clonedHeaders
             };
 
-            await this.kafkaProducer.send(msg);
+            await this._kafkaProducer.send(msg);
 
-            this.logger.debug("bulkQuotePending sent message");
+            this._logger.debug("bulkQuotePending sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
-            this.logger.debug("bulkQuotePending responded");
+            this._logger.debug("bulkQuotePending responded");
 
         } catch (error: unknown) {
             if(error instanceof ValidationdError) {
-                res.status(400).json((error as ValidationdError).errorInformation);
+                reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-                res.status(500).json(transformError);
+                reply.code(500).send(transformError);
             }
             return;
         }
     }
 
-    private async bulkQuoteRejectRequest(req: express.Request, res: express.Response): Promise<void> {
-        this.logger.debug("Got bulk quote rejected request");
+    private async bulkQuoteRejectRequest(req: FastifyRequest<BulkQuoteRejectRequestDTO>, reply: FastifyReply): Promise<void> {
+        this._logger.debug("Got bulk quote rejected request");
 
         try{
             const clonedHeaders = { ...req.headers };
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
-            const bulkQuoteId = req.params["id"] as string || null;
-            const errorInformation = req.body["errorInformation"] || null;
+            const bulkQuoteId = req.params.id;
+            const errorInformation = req.body.errorInformation;
 
             if(!bulkQuoteId || !errorInformation || !requesterFspId) {
                 const transformError = Transformer.transformPayloadError({
@@ -323,7 +331,7 @@ export class QuoteBulkRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -346,15 +354,15 @@ export class QuoteBulkRoutes extends BaseRoutes {
                 headers: clonedHeaders
             };
 
-            await this.kafkaProducer.send(msg);
+            await this._kafkaProducer.send(msg);
 
-            this.logger.debug("bulk quote rejected sent message");
+            this._logger.debug("bulk quote rejected sent message");
 
-            res.status(202).json({
+            reply.code(202).send({
                 status: "ok"
             });
 
-            this.logger.debug("bulk quote rejected responded");
+            this._logger.debug("bulk quote rejected responded");
 
         } catch (error: unknown) {
             const transformError = Transformer.transformPayloadError({
@@ -363,7 +371,7 @@ export class QuoteBulkRoutes extends BaseRoutes {
                 extensionList: null
             });
 
-            res.status(500).json(transformError);
+            reply.code(500).send(transformError);
         }
     }
 }

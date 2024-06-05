@@ -33,10 +33,11 @@
  ******/
 
 "use strict";
-import express from "express";
+
+import {FastifyInstance, FastifyPluginOptions, FastifyReply, FastifyRequest} from "fastify";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { Constants, FspiopJwsSignature, FspiopValidator, Transformer, ValidationdError } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { 
+import {
     ParticipantQueryReceivedEvtPayload,
     ParticipantQueryReceivedEvt,
     ParticipantDisassociateRequestReceivedEvt,
@@ -46,58 +47,69 @@ import {
     ParticipantRejectedEvt,
     ParticipantRejectedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { BaseRoutes } from "../_base_router";
-import { FSPIOPErrorCodes } from "../../validation";
-import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { FSPIOPErrorCodes } from "../validation";
+import { IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import {IMetrics, SpanStatusCode} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import { BaseRoutesFastify } from "../_base_routerfastify";
+import { GetParticipantByTypeAndIdAndSubIdDTO, GetParticipantByTypeAndIdDTO, ParticipantByTypeAndIdAndSubIdRejectDTO } from "./participant_route_dto";
+import {OpenTelemetryClient} from "@mojaloop/platform-shared-lib-observability-client-lib";
+import {SpanKind} from "@opentelemetry/api";
 
-export class ParticipantRoutes extends BaseRoutes {
+export class ParticipantRoutes extends BaseRoutesFastify {
 
     constructor(
         producer: IMessageProducer,
         validator: FspiopValidator,
         jwsHelper: FspiopJwsSignature,
+        metrics: IMetrics,
         logger: ILogger
     ) {
-        super(producer, validator, jwsHelper, logger);
+        super(producer, validator, jwsHelper, metrics, logger);
+    }
 
-        // bind routes
+    public async bindRoutes(fastify: FastifyInstance, options: FastifyPluginOptions): Promise<void>{
+        // bind common hooks like content-type validation and tracing extraction
+        this._addHooks(fastify);
+
+        // POST Associate Party Party by Type & ID
+        fastify.post("/:type/:id", this.associatePartyByTypeAndId.bind(this));
+
+        // POST Associate Party Party by Type, ID & SubId
+        fastify.post("/:type/:id/:subid", this.associatePartyByTypeAndIdAndSubId.bind(this));
 
         // Requests
         // GET Participant by Type & ID
-        this.router.get("/:type/:id/", this.getParticipantsByTypeAndID.bind(this));
+        fastify.get("/:type/:id", this.getParticipantsByTypeAndID.bind(this));
+
         // GET Participants by Type, ID & SubId
-        this.router.get("/:type/:id/:subid", this.getParticipantsByTypeAndIDAndSubId.bind(this));
-        // POST Associate Party Party by Type & ID
-        this.router.post("/:type/:id/", this.associatePartyByTypeAndId.bind(this));
-        // POST Associate Party Party by Type, ID & SubId
-        this.router.post("/:type/:id/:subid", this.associatePartyByTypeAndIdAndSubId.bind(this));
+        fastify.get("/:type/:id/:subid", this.getParticipantsByTypeAndIDAndSubId.bind(this));
 
-        // Callbacks
         // DELETE Disassociate Party Party by Type & ID
-        this.router.delete("/:type/:id/", this.disassociatePartyByTypeAndId.bind(this));
+        fastify.delete("/:type/:id", this.disassociatePartyByTypeAndId.bind(this));
+
         // DELETE Disassociate Party Party by Type, ID & SubId
-        this.router.delete("/:type/:id/:subid", this.disassociatePartyByTypeAndIdAndSubId.bind(this));
+        fastify.delete("/:type/:id/:subid", this.disassociatePartyByTypeAndIdAndSubId.bind(this));
 
-        // Error Callbacks
         // PUT ERROR Participant by Type & ID
-        this.router.put("/:type/:id/error", this.participantRequestByTypeAndIdReject.bind(this));
-        // PUT ERROR Participants by Type, ID & SubId
-        this.router.put("/:type/:id/:subid/error", this.participantRequestByTypeAndIdAndSubIdReject.bind(this));
+        fastify.put("/:type/:id/error", this.participantRequestByTypeAndIdReject.bind(this));
+
+        // PUT ERROR Participant by Type, ID & SubId
+        fastify.put("/:type/:id/:subid/error", this.participantRequestByTypeAndIdAndSubIdReject.bind(this));
     }
 
-    get Router(): express.Router {
-        return this.router;
-    }
-
-    private async getParticipantsByTypeAndID(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
-        this.logger.debug("Got getParticipantsByTypeAndID request");
+    private async getParticipantsByTypeAndID(req: FastifyRequest<GetParticipantByTypeAndIdDTO>, reply: FastifyReply): Promise<void> {
+        const parentSpan = this._getActiveSpan();
+        this._logger.debug("Got getParticipantsByTypeAndID request");
         try {
-            const clonedHeaders = { ...req.headers };
-            const type = req.params["type"] as string || null;
-            const id = req.params["id"] as string || null;
-            const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+            // Headers
+            const clonedHeaders = {...req.headers};
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
 
-            const currency = req.query["currency"] as string || null;
+            // Date Model
+            const type = req.params.type;
+            const id = req.params.id;
+
+            const currency = req.query.currency;
 
             if (!type || !id || !requesterFspId) {
                 const transformError = Transformer.transformPayloadError({
@@ -106,8 +118,8 @@ export class ParticipantRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
-                return next();
+                reply.code(400).send(transformError);
+                return;
             }
 
             if(currency) {
@@ -133,40 +145,50 @@ export class ParticipantRoutes extends BaseRoutes {
                 destinationFspId: null,
                 headers: clonedHeaders
             };
+            msg.tracingInfo = {};
 
-            await this.kafkaProducer.send(msg);
+            parentSpan.setAttributes({"partyId": id});
+            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan, SpanKind.PRODUCER);
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(childSpan, msg.tracingInfo);
+            await this._kafkaProducer.send(msg);
+            childSpan.end();
 
-            this.logger.debug("getParticipantsByTypeAndID sent message");
+            this._logger.debug("getParticipantsByTypeAndID sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
-            this.logger.debug("getParticipantsByTypeAndID responded");
+            this._logger.debug("getParticipantsByTypeAndID responded");
 
         } catch (error: unknown) {
+
             if(error instanceof ValidationdError) {
-                res.status(400).json((error as ValidationdError).errorInformation);
+                reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-                res.status(500).json(transformError);
+                reply.code(500).send(transformError);
             }
             return;
         }
     }
 
-    private async getParticipantsByTypeAndIDAndSubId(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
-        this.logger.debug("Got getParticipantsByTypeAndIDAndSubId request");
+    private async getParticipantsByTypeAndIDAndSubId(req: FastifyRequest<GetParticipantByTypeAndIdAndSubIdDTO>, reply: FastifyReply): Promise<void> {
+        const parentSpan = this._getActiveSpan();
+        this._logger.debug("Got getParticipantsByTypeAndID request");
         try {
-            const clonedHeaders = { ...req.headers };
-            const type = req.params["type"] as string || null;
-            const id = req.params["id"] as string || null;
-            const partySubIdOrType = req.params["subid"] as string || null;
-            const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+            // Headers
+            const clonedHeaders = {...req.headers};
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
 
-            const currency = req.query["currency"] as string || null;
+            // Date Model
+            const type = req.params.type;
+            const id = req.params.id;
+            const partySubIdOrType = req.params.subid;
+
+            const currency = req.query.currency;
 
             if (!type || !id || !requesterFspId || !partySubIdOrType) {
                 const transformError = Transformer.transformPayloadError({
@@ -175,9 +197,8 @@ export class ParticipantRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-
-                res.status(400).json(transformError);
-                return next();
+                reply.code(400).send(transformError);
+                return;
             }
 
             if(currency) {
@@ -186,7 +207,7 @@ export class ParticipantRoutes extends BaseRoutes {
                     amount: null
                 });
             }
-            
+
             const msgPayload: ParticipantQueryReceivedEvtPayload = {
                 requesterFspId: requesterFspId,
                 partyType: type,
@@ -203,39 +224,49 @@ export class ParticipantRoutes extends BaseRoutes {
                 destinationFspId: null,
                 headers: clonedHeaders
             };
+            msg.tracingInfo = {};
 
-            await this.kafkaProducer.send(msg);
+            parentSpan.setAttributes({"partyId": id});
+            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan, SpanKind.PRODUCER);
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(childSpan, msg.tracingInfo);
+            await this._kafkaProducer.send(msg);
+            childSpan.end();
 
-            this.logger.debug("getParticipantsByTypeAndIDAndSubId sent message");
+            this._logger.debug("getParticipantsByTypeAndID sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
-            this.logger.debug("getParticipantsByTypeAndIDAndSubId responded");
+            this._logger.debug("getParticipantsByTypeAndID responded");
 
         } catch (error: unknown) {
+
             if(error instanceof ValidationdError) {
-                res.status(400).json((error as ValidationdError).errorInformation);
+                reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-                res.status(500).json(transformError);
+                reply.code(500).send(transformError);
             }
             return;
         }
     }
 
-    private async associatePartyByTypeAndId(req: express.Request, res: express.Response): Promise<void> {
-        this.logger.debug("Got associatePartyByTypeAndId request");
+    private async associatePartyByTypeAndId(req: FastifyRequest<{ Params: { type: string; id: string }, Querystring: { currency: string }, Body: { fspId: string, currency: string } }>, reply: FastifyReply): Promise<void> {
+        const parentSpan = this._getActiveSpan();
+        this._logger.debug("Got associatePartyByTypeAndId request");
         try {
-            const clonedHeaders = { ...req.headers };
-            const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const type = req.params["type"] as string || null;
-            const id = req.params["id"] as string || null;
-            const ownerFspId = req.body["fspId"] as string || null;
-            const currency = req.body["currency"] as string || null;
+            // Headers
+            const clonedHeaders = {...req.headers};
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+
+            // Date Model
+            const type = req.params.type;
+            const id = req.params.id;
+            const ownerFspId = req.body.fspId;
+            const currency = req.body.currency;
 
             if (!type || !id || !ownerFspId || !requesterFspId) {
                 const transformError = Transformer.transformPayloadError({
@@ -244,7 +275,7 @@ export class ParticipantRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -276,40 +307,50 @@ export class ParticipantRoutes extends BaseRoutes {
                 headers: clonedHeaders
 
             };
+            msg.tracingInfo = {};
 
-            await this.kafkaProducer.send(msg);
+            parentSpan.setAttributes({"partyId": id});
+            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan, SpanKind.PRODUCER);
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(childSpan, msg.tracingInfo);
+            await this._kafkaProducer.send(msg);
+            childSpan.end();
 
-            this.logger.debug("associatePartyByTypeAndId sent message");
+            this._logger.debug("associatePartyByTypeAndId sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
-            this.logger.debug("associatePartyByTypeAndId responded");
+            this._logger.debug("associatePartyByTypeAndId responded");
 
         } catch (error: unknown) {
+
             if(error instanceof ValidationdError) {
-                res.status(400).json((error as ValidationdError).errorInformation);
+                reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-                res.status(500).json(transformError);
+                reply.code(500).send(transformError);
             }
             return;
         }
     }
 
-    private async associatePartyByTypeAndIdAndSubId(req: express.Request, res: express.Response): Promise<void> {
-        this.logger.debug("Got associatePartyByTypeAndId request");
+    private async associatePartyByTypeAndIdAndSubId(req: FastifyRequest<{ Params: { type: string; id: string, subid: string }, Querystring: { currency: string }, Body: { fspId: string, currency: string } }>, reply: FastifyReply): Promise<void> {
+        const parentSpan = this._getActiveSpan();
+        this._logger.debug("Got associatePartyByTypeAndId request");
         try {
-            const clonedHeaders = { ...req.headers };
-            const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const type = req.params["type"] as string || null;
-            const id = req.params["id"] as string || null;
-            const partySubIdOrType = req.params["subid"] as string || null;
-            const ownerFspId = req.body["fspId"] as string || null;
-            const currency = req.body["currency"] as string || null;
+            // Headers
+            const clonedHeaders = {...req.headers};
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+
+            // Date Model
+            const type = req.params.type;
+            const id = req.params.id;
+            const partySubIdOrType = req.params.subid;
+            const ownerFspId = req.body.fspId;
+            const currency = req.body.currency;
 
             if (!type || !id || !ownerFspId || !requesterFspId) {
                 const transformError = Transformer.transformPayloadError({
@@ -318,7 +359,7 @@ export class ParticipantRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -350,38 +391,48 @@ export class ParticipantRoutes extends BaseRoutes {
                 headers: clonedHeaders
 
             };
+            msg.tracingInfo = {};
 
-            await this.kafkaProducer.send(msg);
+            parentSpan.setAttributes({"partyId": id});
+            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan, SpanKind.PRODUCER);
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(childSpan, msg.tracingInfo);
+            await this._kafkaProducer.send(msg);
+            childSpan.end();
 
-            this.logger.debug("associatePartyByTypeAndId sent message");
+            this._logger.debug("associatePartyByTypeAndId sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
-            this.logger.debug("associatePartyByTypeAndId responded");
+            this._logger.debug("associatePartyByTypeAndId responded");
 
         } catch (error: unknown) {
+
             if(error instanceof ValidationdError) {
-                res.status(400).json((error as ValidationdError).errorInformation);
+                reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-                res.status(500).json(transformError);
+                reply.code(500).send(transformError);
             }
             return;
         }
     }
 
-    private async disassociatePartyByTypeAndId(req: express.Request, res: express.Response): Promise<void> {
-        this.logger.debug("Got disassociatePartyByTypeAndId request");
+    private async disassociatePartyByTypeAndId(req: FastifyRequest<{ Params: { type: string; id: string }, Querystring: { currency: string } }>, reply: FastifyReply): Promise<void> {
+        const parentSpan = this._getActiveSpan();
+        this._logger.debug("Got disassociatePartyByTypeAndId request");
         try {
-            const clonedHeaders = { ...req.headers };
-            const type = req.params["type"] as string || null;
-            const id = req.params["id"] as string || null;
-            const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const currency = req.query["currency"] as string || null;
+            // Headers
+            const clonedHeaders = {...req.headers};
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+
+            // Date Model
+            const type = req.params.type ;
+            const id = req.params.id ;
+            const currency = req.query.currency;
 
             if (!type || !id || !requesterFspId) {
                 const transformError = Transformer.transformPayloadError({
@@ -390,7 +441,7 @@ export class ParticipantRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -416,41 +467,50 @@ export class ParticipantRoutes extends BaseRoutes {
                 requesterFspId: requesterFspId,
                 destinationFspId: null,
                 headers: clonedHeaders
-
             };
+            msg.tracingInfo = {};
 
-            await this.kafkaProducer.send(msg);
+            parentSpan.setAttributes({"partyId": id});
+            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan, SpanKind.PRODUCER);
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(childSpan, msg.tracingInfo);
+            await this._kafkaProducer.send(msg);
+            childSpan.end();
 
-            this.logger.debug("disassociatePartyByTypeAndId sent message");
+            this._logger.debug("disassociatePartyByTypeAndId sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
-            this.logger.debug("disassociatePartyByTypeAndId responded");
+            this._logger.debug("disassociatePartyByTypeAndId responded");
 
         } catch (error: unknown) {
+
             if(error instanceof ValidationdError) {
-                res.status(400).json((error as ValidationdError).errorInformation);
+                reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-                res.status(500).json(transformError);
+                reply.code(500).send(transformError);
             }
             return;
         }
     }
 
-    private async disassociatePartyByTypeAndIdAndSubId(req: express.Request, res: express.Response): Promise<void> {
-        this.logger.debug("Got disassociatePartyByTypeAndIdAndSubId request");
+    private async disassociatePartyByTypeAndIdAndSubId(req: FastifyRequest<{ Params: { type: string; id: string, subid: string }, Querystring: { currency: string }}>, reply: FastifyReply): Promise<void> {
+        const parentSpan = this._getActiveSpan();
+        this._logger.debug("Got disassociatePartyByTypeAndIdAndSubId request");
         try {
-            const clonedHeaders = { ...req.headers };
-            const type = req.params["type"] as string || null;
-            const id = req.params["id"] as string || null;
-            const partySubIdOrType = req.params["subid"] as string || null;
-            const requesterFspId = req.headers[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
-            const currency = req.query["currency"] as string || null;
+            // Headers
+            const clonedHeaders = {...req.headers};
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+
+            // Date Model
+            const type = req.params.type;
+            const id = req.params.id;
+            const partySubIdOrType = req.params.subid;
+            const currency = req.query.currency;
 
             if (!type || !id || !requesterFspId) {
                 const transformError = Transformer.transformPayloadError({
@@ -459,7 +519,7 @@ export class ParticipantRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -469,7 +529,7 @@ export class ParticipantRoutes extends BaseRoutes {
                     amount: null
                 });
             }
-            
+
             const msgPayload: ParticipantDisassociateRequestReceivedEvtPayload = {
                 ownerFspId: requesterFspId,
                 partyId: id,
@@ -486,31 +546,38 @@ export class ParticipantRoutes extends BaseRoutes {
                 destinationFspId: null,
                 headers: clonedHeaders
             };
+            msg.tracingInfo = {};
 
-            await this.kafkaProducer.send(msg);
+            parentSpan.setAttributes({"partyId": id});
+            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan, SpanKind.PRODUCER);
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(childSpan, msg.tracingInfo);
+            await this._kafkaProducer.send(msg);
+            childSpan.end();
 
-            this.logger.debug("disassociatePartyByTypeAndIdAndSubId sent message");
+            this._logger.debug("disassociatePartyByTypeAndIdAndSubId sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
-            this.logger.debug("disassociatePartyByTypeAndIdAndSubId responded");
+            this._logger.debug("disassociatePartyByTypeAndIdAndSubId responded");
         } catch (error: unknown) {
+
             if(error instanceof ValidationdError) {
-                res.status(400).json((error as ValidationdError).errorInformation);
+                reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-                res.status(500).json(transformError);
+                reply.code(500).send(transformError);
             }
             return;
         }
     }
 
-    private async participantRequestByTypeAndIdReject(req: express.Request, res: express.Response): Promise<void> {
-        this.logger.debug("Got participantRequestByTypeAndIdReject request");
+    private async participantRequestByTypeAndIdReject(req: FastifyRequest<ParticipantByTypeAndIdAndSubIdRejectDTO>, reply: FastifyReply): Promise<void> {
+        const parentSpan = this._getActiveSpan();
+        this._logger.debug("Got participantRequestByTypeAndIdReject request");
 
         try {
             // Headers
@@ -519,10 +586,10 @@ export class ParticipantRoutes extends BaseRoutes {
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
 
             // Date Model
-            const type = req.params["type"] as string;
-            const id = req.params["id"] as string;
-            const currency = req.query["currency"] as string || null;
-            const errorInformation = req.body["errorInformation"] || null;
+            const type = req.params.type;
+            const id = req.params.id;
+            const currency = req.query.currency;
+            const errorInformation = req.body.errorInformation;
 
             if (!type || !id || !requesterFspId || !errorInformation) {
                 const transformError = Transformer.transformPayloadError({
@@ -531,7 +598,7 @@ export class ParticipantRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -545,7 +612,7 @@ export class ParticipantRoutes extends BaseRoutes {
             if(this._jwsHelper.isEnabled()) {
                 this._jwsHelper.validate(req.headers, req.body);
             }
-            
+
             const msgPayload: ParticipantRejectedEvtPayload = {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId,
@@ -565,45 +632,52 @@ export class ParticipantRoutes extends BaseRoutes {
                 destinationFspId: destinationFspId,
                 headers: clonedHeaders
             };
+            msg.tracingInfo = {};
 
-            await this.kafkaProducer.send(msg);
+            parentSpan.setAttributes({"partyId": id});
+            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan, SpanKind.PRODUCER);
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(childSpan, msg.tracingInfo);
+            await this._kafkaProducer.send(msg);
+            childSpan.end();
 
-            this.logger.debug("participantRequestByTypeAndIdReject sent message");
+            this._logger.debug("participantRequestByTypeAndIdReject sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
-            this.logger.debug("participantRequestByTypeAndIdReject responded");
+            this._logger.debug("participantRequestByTypeAndIdReject responded");
 
         } catch (error: unknown) {
+
             if(error instanceof ValidationdError) {
-                res.status(400).json((error as ValidationdError).errorInformation);
+                reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-                res.status(500).json(transformError);
+                reply.code(500).send(transformError);
             }
             return;
         }
     }
 
-    private async participantRequestByTypeAndIdAndSubIdReject(req: express.Request, res: express.Response): Promise<void> {
-        this.logger.debug("Got participantRequestByTypeAndIdAndSubIdReject request");
+    private async participantRequestByTypeAndIdAndSubIdReject(req: FastifyRequest<ParticipantByTypeAndIdAndSubIdRejectDTO>, reply: FastifyReply): Promise<void> {
+        const parentSpan = this._getActiveSpan();
+        this._logger.debug("Got participantRequestByTypeAndIdAndSubIdReject request");
 
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string || null;
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string || null;
 
             // Date Model
-            const type = req.params["type"] as string || null;
-            const id = req.params["id"] as string || null;
-            const currency = req.query["currency"] as string || null;
-            const partySubIdOrType = req.params["subid"] as string || null;
-            const errorInformation = req.body["errorInformation"] || null;
+            const type = req.params.type;
+            const id = req.params.id;
+            const currency = req.query.currency;
+            const partySubIdOrType = req.params.subid;
+            const errorInformation = req.body.errorInformation;
 
             if (!type || !id || !requesterFspId || !errorInformation) {
                 const transformError = Transformer.transformPayloadError({
@@ -612,7 +686,7 @@ export class ParticipantRoutes extends BaseRoutes {
                     extensionList: null
                 });
 
-                res.status(400).json(transformError);
+                reply.code(400).send(transformError);
                 return;
             }
 
@@ -646,25 +720,31 @@ export class ParticipantRoutes extends BaseRoutes {
                 destinationFspId: destinationFspId,
                 headers: clonedHeaders
             };
+            msg.tracingInfo = {};
 
-            await this.kafkaProducer.send(msg);
+            parentSpan.setAttributes({"partyId": id});
+            const childSpan = OpenTelemetryClient.getInstance().startChildSpan(this._tracer, "kafka send", parentSpan, SpanKind.PRODUCER);
+            OpenTelemetryClient.getInstance().propagationInjectFromSpan(childSpan, msg.tracingInfo);
+            await this._kafkaProducer.send(msg);
+            childSpan.end();
 
-            this.logger.debug("getPartyByTypeAndIdAndSubIdQueryReject sent message");
+            this._logger.debug("getPartyByTypeAndIdAndSubIdQueryReject sent message");
 
-            res.status(202).json(null);
+            reply.code(202).send(null);
 
-            this.logger.debug("getPartyByTypeAndIdAndSubIdQueryReject responded");
+            this._logger.debug("getPartyByTypeAndIdAndSubIdQueryReject responded");
 
         } catch (error: unknown) {
+
             if(error instanceof ValidationdError) {
-                res.status(400).json((error as ValidationdError).errorInformation);
+                reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
                 });
-                res.status(500).json(transformError);
+                reply.code(500).send(transformError);
             }
             return;
         }
