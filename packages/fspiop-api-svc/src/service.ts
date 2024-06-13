@@ -67,7 +67,6 @@ import {
 import { QuoteRoutes } from "./http_routes/quoting-bc/quote_routes";
 import { QuoteBulkRoutes } from "./http_routes/quoting-bc/bulk_quote_routes";
 import { TransfersRoutes } from "./http_routes/transfers-bc/transfers_routes";
-import { IParticipantServiceAdapter } from "./interfaces/infrastructure";
 import { AuthenticatedHttpRequester } from "@mojaloop/security-bc-client-lib";
 import { TransfersBulkRoutes } from "./http_routes/transfers-bc/bulk_transfers_routes";
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
@@ -240,7 +239,7 @@ export class Service {
             configProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer);
         }
 
-        this.configClient = GetParticipantsConfigs(configProvider, BC_NAME, APP_NAME, APP_VERSION);
+        this.configClient = GetParticipantsConfigs(BC_NAME, configProvider);
         await this.configClient.init();
         await this.configClient.bootstrap(true);
         await this.configClient.fetch();

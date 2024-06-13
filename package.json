@@ -54,8 +54,8 @@
         "npm-check-updates": "^16.10.19",
         "nyc": "^15.1.0",
         "supertest": "^6.3.4",
-        "ts-jest": "^29.1.3",
-        "tslib": "~2.6.2",
+        "ts-jest": "^29.1.4",
+        "tslib": "~2.6.3",
         "typescript": "^5.1.6"
     },
     "workspaces": [

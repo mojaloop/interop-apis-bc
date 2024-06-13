@@ -38,13 +38,11 @@ import { ConfigurationClient,IConfigProvider } from "@mojaloop/platform-configur
 const CONFIGSET_VERSION = "0.0.3";
 
 export function GetParticipantsConfigs(
-    configProvider: IConfigProvider,
     bcName:string,
-    appName:string,
-    appVersion:string
+    configProvider?: IConfigProvider,
 ): ConfigurationClient {
     const configClient = new ConfigurationClient(
-        bcName, appName, appVersion, CONFIGSET_VERSION, configProvider
+        bcName, CONFIGSET_VERSION, configProvider
     );
 
     /*

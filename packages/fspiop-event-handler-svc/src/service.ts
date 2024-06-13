@@ -225,9 +225,8 @@ export class Service {
             configProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer);
         }
 
-        this.configClient = GetParticipantsConfigs(configProvider, BC_NAME, APP_NAME, APP_VERSION);
+        this.configClient = GetParticipantsConfigs(BC_NAME);
         await this.configClient.init();
-        await this.configClient.bootstrap(true);
         await this.configClient.fetch();
 
         if(!auditClient) {
