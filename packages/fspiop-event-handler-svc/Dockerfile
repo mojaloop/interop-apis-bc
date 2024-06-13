@@ -15,6 +15,7 @@ RUN npm install -g node-gyp
 COPY package*.json ./
 COPY packages/fspiop-utils-lib/package*.json ./packages/fspiop-utils-lib/
 COPY packages/fspiop-event-handler-svc/package*.json ./packages/fspiop-event-handler-svc/
+COPY packages/fspiop-config-lib/package*.json ./packages/fspiop-config-lib/
 
 # install devDependencies on builder image
 RUN BUILD_LIBRDKAFKA=0 npm install
