@@ -68,7 +68,6 @@ import {
     DefaultConfigProvider,
     IConfigProvider
 } from "@mojaloop/platform-configuration-bc-client-lib";
-import {GetParticipantsConfigs} from "./configset";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
 import PromClient from "prom-client";
@@ -80,7 +79,8 @@ import Fastify, {FastifyInstance} from "fastify";
 import fastifyUnderPressure from "@fastify/under-pressure";
 import crypto from "crypto";
 import {OpenTelemetryClient} from "@mojaloop/platform-shared-lib-observability-client-lib";
-import {CompositePropagator, W3CBaggagePropagator, W3CTraceContextPropagator} from "@opentelemetry/core";
+import { GetBoundedContextsConfigSet } from "@mojaloop/interop-apis-bc-config-lib";
+
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const metricsPlugin = require("fastify-metrics");
 
@@ -225,9 +225,8 @@ export class Service {
             configProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer);
         }
 
-        this.configClient = GetParticipantsConfigs(configProvider, BC_NAME, APP_NAME, APP_VERSION);
+        this.configClient = GetBoundedContextsConfigSet(BC_NAME);
         await this.configClient.init();
-        await this.configClient.bootstrap(true);
         await this.configClient.fetch();
 
         if(!auditClient) {

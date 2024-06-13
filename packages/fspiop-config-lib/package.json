@@ -1,14 +1,14 @@
 {
-    "name": "@mojaloop/interop-apis-bc-shared-mocks-lib",
+    "name": "@mojaloop/interop-apis-bc-config-lib",
     "version": "0.6.0",
-    "description": "Interop APIs BC shared mocks.",
+    "description": "FSPIOP common config libs.",
     "license": "Apache-2.0",
-    "homepage": "https://github.com/mojaloop/interop-apis-bc/tree/main/packages/shared-mocks-lib",
+    "homepage": "https://github.com/mojaloop/interop-apis-bc/tree/main/packages/interop-apis-config-lib",
     "bugs": {
         "url": "https://github.com/mojaloop/interop-apis-bc/issues#readme"
     },
     "contributors": [
-        "Jose Antunes <jose.antunes@arg.software>",
+        "José Antunes <jose.antunes@arg.software>",
         "Rui Rocha <rui.rocha@arg.software>"
     ],
     "private": true,
@@ -19,9 +19,9 @@
     ],
     "scripts": {
         "build": "tsc",
+        "clean": "npm run clean:npm; npm run clean:dist",
         "clean:dist": "rm -rf dist",
         "clean:npm": "rm -rf node_modules",
-        "clean": "(npm run clean:npm || true) && npm run clean:dist",
         "audit:check": "npm npm audit",
         "dep:check": "ncu -e 2",
         "dep:update": "ncu -u",
@@ -29,12 +29,11 @@
         "lint:fix": "eslint ./src --fix"
     },
     "dependencies": {
-        "@mojaloop/platform-configuration-bc-public-types-lib": "~0.6.1",
-        "@mojaloop/security-bc-public-types-lib": "~0.6.1"
     },
     "devDependencies": {
-        "eslint": "^8.43.0",
-        "npm-check-updates": "^16.10.19"
+        "eslint": "^8.56.0",
+        "npm-check-updates": "^16.14.20",
+        "typescript": "^4.7.4"
     },
     "engines": {
         "node": ">=20.10.0"
