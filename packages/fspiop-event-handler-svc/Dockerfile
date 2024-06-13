@@ -32,6 +32,7 @@ COPY tsconfig.json ./
 
 # copy required supporting packages/packages (especially private ones not published to npm)
 COPY packages/fspiop-utils-lib ./packages/fspiop-utils-lib
+COPY packages/fspiop-config-lib ./packages/fspiop-config-lib
 
 # copy service code
 COPY packages/fspiop-event-handler-svc ./packages/fspiop-event-handler-svc
