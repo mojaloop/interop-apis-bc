@@ -74,11 +74,12 @@ import {
     DefaultConfigProvider,
     IConfigProvider
 } from "@mojaloop/platform-configuration-bc-client-lib";
-import { GetParticipantsConfigs } from "./configset";
 import { IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { FspiopValidator, FspiopJwsSignature } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 import {PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-client-lib";
+import { GetBoundedContextsConfigSet } from "@mojaloop/interop-apis-bc-config-lib";
+
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const metricsPlugin = require("fastify-metrics");
 
@@ -239,7 +240,7 @@ export class Service {
             configProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer);
         }
 
-        this.configClient = GetParticipantsConfigs(BC_NAME, configProvider);
+        this.configClient = GetBoundedContextsConfigSet(BC_NAME, configProvider);
         await this.configClient.init();
         await this.configClient.bootstrap(true);
         await this.configClient.fetch();

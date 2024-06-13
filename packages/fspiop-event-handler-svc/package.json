@@ -43,6 +43,7 @@
         "dep:update": "ncu -e 2 -u"
     },
     "dependencies": {
+        "@mojaloop/interop-apis-bc-config-lib": "*",
         "@mojaloop/interop-apis-bc-fspiop-utils-lib": "*",
         "@mojaloop/account-lookup-bc-public-types-lib": "~0.5.2",
         "@mojaloop/quoting-bc-public-types-lib": "~0.5.8",

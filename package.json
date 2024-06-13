@@ -60,6 +60,7 @@
     },
     "workspaces": [
         "packages/fspiop-utils-lib",
+        "packages/fspiop-config-lib",
         "packages/fspiop-api-svc",
         "packages/fspiop-event-handler-svc",
         "packages/shared-mocks-lib",
