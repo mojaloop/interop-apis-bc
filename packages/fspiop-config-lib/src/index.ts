@@ -31,14 +31,14 @@
 
 "use strict";
 
-import { ConfigurationClient,IConfigProvider } from "@mojaloop/platform-configuration-bc-client-lib";
-// import {ConfigParameterTypes} from "@mojaloop/platform-configuration-bc-public-types-lib";
+import {ConfigurationClient, IConfigProvider} from "@mojaloop/platform-configuration-bc-client-lib";
+import {ConfigParameterTypes} from "@mojaloop/platform-configuration-bc-public-types-lib";
 
 // configs - constants / code dependent
 const CONFIGSET_VERSION = "0.0.3";
 
 export function GetBoundedContextsConfigSet(
-    bcName:string,
+    bcName: string,
     configProvider?: IConfigProvider,
 ): ConfigurationClient {
     const configClient = new ConfigurationClient(
@@ -46,8 +46,23 @@ export function GetBoundedContextsConfigSet(
     );
 
     /*
-    * Add application parameters here
+    * Add specific application parameters here
     * */
+    configClient.bcConfigs.addParam({
+        type: ConfigParameterTypes.INT_NUMBER,
+        name: "TransferTimeToLiveMinSecs",
+        description: "Minimum time in seconds for a transfer expiration date to be considered valid. Ex: setting it to 5 seconds means the switch will reject transfers with an expiration time for less than five seconds in the future. Default of 0 (Zero) disables this check, only checks that expiration time is in the future.",
+        currentValue: 0,
+        defaultValue: 0
+    });
+
+    configClient.bcConfigs.addParam({
+        type: ConfigParameterTypes.INT_NUMBER,
+        name: "TransferTimeToLiveMaxSecs",
+        description: "Maximum time in seconds for a transfer expiration date to be considered valid. Ex: setting it to 3600 seconds means the switch will reject transfers with an expiration time for more than one hour in the future. Default of 0 (Zero) disables this check.",
+        currentValue: 0,
+        defaultValue: 0
+    });
 
     return configClient;
 }

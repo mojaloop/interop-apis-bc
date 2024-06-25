@@ -168,13 +168,32 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
             const bulkQuoteId = req.body.bulkQuoteId;
             const payerFsp = req.body.payerFsp;
             const payeeFsp = req.body.payeeFsp;
-            const expiration = req.body.expiration;
+            const expirationStr = req.body.expiration;
             const individualTransfers = req.body.individualTransfers;
             const extensionList = req.body.extensionList;
 
             //TODO: validate ilpPacket
 
-            if (!requesterFspId || !bulkTransferId || !bulkQuoteId || !payerFsp || !payeeFsp || !individualTransfers) {
+            if (!requesterFspId || !bulkTransferId || !bulkQuoteId || !payerFsp || !payeeFsp || !individualTransfers || !expirationStr) {
+                const transformError = Transformer.transformPayloadError({
+                    errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
+                    errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
+                    extensionList: null
+                });
+
+                reply.code(400).send(transformError);
+                return;
+            }
+
+            let expirationTimestamp : number | null = null;
+            try{
+                expirationTimestamp = Date.parse(expirationStr).valueOf();
+                if(expirationTimestamp < Date.now()) {
+                    const msg = `Invalid expiration time received for bulk transfer with bulkTransferId: ${bulkTransferId}- expiration is in the past`;
+                    this._logger.warn(msg);
+                    throw new Error(msg);
+                }
+            }catch (err: unknown){
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
@@ -198,7 +217,7 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
                 bulkQuoteId: bulkQuoteId,
                 payerFsp: payerFsp,
                 payeeFsp: payeeFsp,
-                expiration: expiration,
+                expiration: expirationTimestamp,
                 individualTransfers: individualTransfers.map((individualTransfer:BulkTransferPrepareRequestedEvtPayload["individualTransfers"][number]) => {
                     const decodedIlpPacket:PostQuote = decodeIlpPacket(individualTransfer.ilpPacket);
 
@@ -255,7 +274,7 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
             const clonedHeaders = { ...req.headers };
             const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
-            
+
             // Date Model
             const bulkTransferId = req.params.id;
             const completedTimestamp = req.body.completedTimestamp;

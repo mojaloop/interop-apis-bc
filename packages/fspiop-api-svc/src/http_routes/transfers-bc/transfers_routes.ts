@@ -115,7 +115,7 @@ export class TransfersRoutes extends BaseRoutesFastify {
             const amount = req.body.amount;
             const ilpPacket = req.body.ilpPacket;
             const condition = req.body.condition;
-            const expiration = req.body.expiration;
+            const expirationStr = req.body.expiration;
             const extensionList = req.body.extensionList;
 
             //TODO: validate ilpPacket
@@ -126,7 +126,26 @@ export class TransfersRoutes extends BaseRoutesFastify {
             const payeeIdType = decodedIlpPacket.payee.partyIdInfo.partyIdType;
             const transferType = decodedIlpPacket.transactionType.scenario;
 
-            if (!transferId || !payeeFsp || !payerFsp || !amount || !ilpPacket || !condition || !expiration || !requesterFspId || !payerIdType || !payeeIdType || !transferType ) {
+            if (!transferId || !payeeFsp || !payerFsp || !amount || !ilpPacket || !condition || !expirationStr || !requesterFspId || !payerIdType || !payeeIdType || !transferType ) {
+                const transformError = Transformer.transformPayloadError({
+                    errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
+                    errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
+                    extensionList: null
+                });
+
+                reply.code(400).send(transformError);
+                return;
+            }
+
+            let expirationTimestamp : number;
+            try{
+                expirationTimestamp = Date.parse(expirationStr).valueOf();
+                if(expirationTimestamp < Date.now()) {
+                    const msg = `Invalid expiration time received for  transfer with transferId: ${transferId}- expiration is in the past`;
+                    this._logger.warn(msg);
+                    throw new Error(msg);
+                }
+            }catch (err: unknown){
                 const transformError = Transformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
@@ -151,7 +170,7 @@ export class TransfersRoutes extends BaseRoutesFastify {
                 currencyCode: amount.currency,
                 ilpPacket: ilpPacket,
                 condition: condition,
-                expiration: expiration,
+                expiration: expirationTimestamp,
                 extensionList: extensionList,
                 payerIdType: payerIdType,
                 payeeIdType: payeeIdType,

@@ -28,22 +28,22 @@
 
 "use strict";
 
-export type BulkTransferQueryReceivedDTO = { 
-    Params: { 
-        id: string 
+export type BulkTransferQueryReceivedDTO = {
+    Params: {
+        id: string
     }
 }
 
-export type BulkTransferPrepareRequestDTO = { 
-    Params: { 
-        id: string 
-    }, 
+export type BulkTransferPrepareRequestDTO = {
+    Params: {
+        id: string
+    },
     Body: {
         bulkTransferId: string;
         bulkQuoteId: string;
         payerFsp: string;
         payeeFsp: string;
-        expiration: number;
+        expiration: string;
         individualTransfers: {
             transferId: string;
             transferAmount: {
@@ -71,9 +71,9 @@ export type BulkTransferPrepareRequestDTO = {
     }
 }
 
-export type BulkTransferFulfilRequestedDTO = { 
-    Params: { 
-        id: string 
+export type BulkTransferFulfilRequestedDTO = {
+    Params: {
+        id: string
     },
     Body: {
         completedTimestamp: number;
@@ -107,10 +107,10 @@ export type BulkTransferFulfilRequestedDTO = {
     }
 }
 
-export type BulkTransfersRejectRequestDTO = { 
-    Params: { 
-        id: string 
-    }, 
+export type BulkTransfersRejectRequestDTO = {
+    Params: {
+        id: string
+    },
     Body: {
         errorInformation: {
             errorCode: string;
