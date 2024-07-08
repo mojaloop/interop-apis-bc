@@ -345,11 +345,11 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             // Headers
             const clonedHeaders = fspiopOpaqueState;
             const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
             // Data model
             const { payload } = message;
 
+            const destinationFspId = payload.destinationFspId;
             const partyType = payload.partyType;
             const partyId = payload.partyId;
             const partySubType = payload.partySubType as string;
