@@ -45,10 +45,10 @@ import {
     Constants,
     FspiopJwsSignature,
     FspiopValidator,
-    Transformer,
     ValidationdError,
     decodeIlpPacket,
-    PostQuote
+    FspiopTransformer,
+    DecodedIlpPacketTransfer
 } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { FSPIOPErrorCodes } from "../validation";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
@@ -109,7 +109,7 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
             const bulkTransfersId = req.params.id;
 
             if (!bulkTransfersId || !requesterFspId) {
-                const transformError = Transformer.transformPayloadError({
+                const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
@@ -146,7 +146,7 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
             this._logger.debug("bulkTransferQueryReceived responded");
 
         } catch (error: unknown) {
-            const transformError = Transformer.transformPayloadError({
+            const transformError = FspiopTransformer.transformPayloadError({
                 errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                 errorDescription: (error as Error).message,
                 extensionList: null
@@ -175,7 +175,7 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
             //TODO: validate ilpPacket
 
             if (!requesterFspId || !bulkTransferId || !bulkQuoteId || !payerFsp || !payeeFsp || !individualTransfers || !expirationStr) {
-                const transformError = Transformer.transformPayloadError({
+                const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
@@ -194,7 +194,7 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
                     throw new Error(msg);
                 }
             }catch (err: unknown){
-                const transformError = Transformer.transformPayloadError({
+                const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
@@ -218,16 +218,16 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
                 payerFsp: payerFsp,
                 payeeFsp: payeeFsp,
                 expiration: expirationTimestamp,
-                individualTransfers: individualTransfers.map((individualTransfer:BulkTransferPrepareRequestedEvtPayload["individualTransfers"][number]) => {
-                    const decodedIlpPacket:PostQuote = decodeIlpPacket(individualTransfer.ilpPacket);
+                individualTransfers: individualTransfers.map((individualTransfer:any) => {
+                    const decodedIlpPacket:DecodedIlpPacketTransfer = decodeIlpPacket(individualTransfer.ilpPacket);
 
                     individualTransfer.payerIdType = decodedIlpPacket.payer.partyIdInfo.partyIdType;
                     individualTransfer.payeeIdType = decodedIlpPacket.payee.partyIdInfo.partyIdType;
                     individualTransfer.transferType = decodedIlpPacket.transactionType.scenario;
-
+                    individualTransfer.extensions = FspiopTransformer.transformExtensionList(individualTransfer.extensionList);
+                    
                     return individualTransfer;
                 }),
-                extensionList: extensionList
             };
 
             const msg = new BulkTransferPrepareRequestedEvt(msgPayload);
@@ -239,9 +239,8 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
 
             // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
             msg.fspiopOpaqueState = {
-                requesterFspId: requesterFspId,
-                destinationFspId: destinationFspId,
-                headers: clonedHeaders
+                headers: clonedHeaders,
+                extensionList: extensionList,
             };
 
             await this._kafkaProducer.send(msg);
@@ -256,7 +255,7 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
             if(error instanceof ValidationdError) {
                 reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
-                const transformError = Transformer.transformPayloadError({
+                const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
@@ -283,7 +282,7 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
             const extensionList = req.body.extensionList;
 
             if (!bulkTransferId || !requesterFspId || !individualTransferResults) {
-                const transformError = Transformer.transformPayloadError({
+                const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
@@ -302,7 +301,6 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
                 completedTimestamp: completedTimestamp,
                 bulkTransferState: bulkTransferState,
                 individualTransferResults: individualTransferResults,
-                extensionList: extensionList,
             };
 
             const msg = new BulkTransferFulfilRequestedEvt(msgPayload);
@@ -311,9 +309,8 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
 
             // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
             msg.fspiopOpaqueState = {
-                requesterFspId: requesterFspId,
-                destinationFspId: destinationFspId,
-                headers: clonedHeaders
+                headers: clonedHeaders,
+                extensionList: extensionList,
             };
 
             await this._kafkaProducer.send(msg);
@@ -324,7 +321,7 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
 
             this._logger.debug("bulkTransferFulfilRequested responded");
         } catch (error: unknown) {
-            const transformError = Transformer.transformPayloadError({
+            const transformError = FspiopTransformer.transformPayloadError({
                 errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                 errorDescription: (error as Error).message,
                 extensionList: null
@@ -346,7 +343,7 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
             const errorInformation = req.body.errorInformation;
 
             if(!bulkTransferId || !errorInformation || !requesterFspId) {
-                const transformError = Transformer.transformPayloadError({
+                const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
@@ -385,7 +382,7 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
 
             this._logger.debug("bulk transfer rejected responded");
         } catch (error: unknown) {
-            const transformError = Transformer.transformPayloadError({
+            const transformError = FspiopTransformer.transformPayloadError({
                 errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                 errorDescription: (error as Error).message,
                 extensionList: null

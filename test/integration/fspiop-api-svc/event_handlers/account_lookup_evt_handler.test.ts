@@ -65,11 +65,11 @@ import request from "supertest";
 import { createMessage, getHeaders, getJwsConfig } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import KafkaConsumer from "../helpers/kafkaproducer";
 import { MongoClient } from "mongodb";
-import { removeEmpty } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/transformer";
 import { FSPIOP_PARTY_ACCOUNT_TYPES } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants";
 import { ClientErrors } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/enums";
 import waitForExpect from "../helpers/utils";
 import { AccountLookupErrorCodeNames } from "@mojaloop/account-lookup-bc-public-types-lib";
+import { FspiopTransformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 
 const server = process.env["SVC_DEFAULT_URL"] || "http://localhost:4000/";
 
@@ -155,7 +155,7 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
         // Act
         const test = await request(server)
         .post(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "MSISDN" + "/" + "123")
-        .send(removeEmpty(validParticipantPostPayload))
+        .send(FspiopTransformer.removeEmpty(validParticipantPostPayload))
         .set(headers);
 
         const messages = consumer.getEvents();
@@ -176,7 +176,7 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "nonexistingpartytype" + "/" + "nonexistingpartyid")
-        .send(removeEmpty(validParticipantPostPayload))
+        .send(FspiopTransformer.removeEmpty(validParticipantPostPayload))
         .set(headers);
 
         const messages = consumer.getEvents();
@@ -197,7 +197,7 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "MSISDN" + "/" + "37713803068")
-        .send(removeEmpty(validParticipantPostPayload))
+        .send(FspiopTransformer.removeEmpty(validParticipantPostPayload))
         .set(headers);
 
         const messages = consumer.getEvents();
@@ -218,7 +218,7 @@ it("should return error from trying to create an already existing association", 
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "MSISDN" + "/" + "37713803068")
-        .send(removeEmpty(validParticipantPostPayload))
+        .send(FspiopTransformer.removeEmpty(validParticipantPostPayload))
         .set(headers);
 
         const messages = consumer.getEvents();
@@ -243,7 +243,7 @@ it("should return error from trying to create an already existing association", 
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "MSISDN" + "/" + "123" + "/" + "456")
-        .send(removeEmpty(validParticipantPostPayload))
+        .send(FspiopTransformer.removeEmpty(validParticipantPostPayload))
         .set(headers);
 
         const messages = consumer.getEvents();
@@ -264,7 +264,7 @@ it("should return error from trying to create an already existing association", 
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "nonexistingpartytype" + "/" + "nonexistingpartyid" + "nonexistingpartysubid")
-        .send(removeEmpty(validParticipantPostPayload))
+        .send(FspiopTransformer.removeEmpty(validParticipantPostPayload))
         .set(headers);
 
         const messages = consumer.getEvents();
@@ -285,7 +285,7 @@ it("should return error from trying to create an already existing association", 
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "MSISDN" + "/" + "37713803068" + "/" + "111222333")
-        .send(removeEmpty(validParticipantPostPayload))
+        .send(FspiopTransformer.removeEmpty(validParticipantPostPayload))
         .set(headers);
 
         const messages = consumer.getEvents();
@@ -306,7 +306,7 @@ it("should return error from trying to create an already existing association", 
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "MSISDN" + "/" + "37713803068" + "111222333")
-        .send(removeEmpty(validParticipantPostPayload))
+        .send(FspiopTransformer.removeEmpty(validParticipantPostPayload))
         .set(headers);
 
         const messages = consumer.getEvents();
@@ -548,7 +548,7 @@ it("should return error from trying to create an already existing association", 
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "nonexistingpartytype" + "/" + "nonexistingpartyid")
-        .send(removeEmpty(validParticipantPostPayload))
+        .send(FspiopTransformer.removeEmpty(validParticipantPostPayload))
         .set(headers);
 
         const messages = consumer.getEvents();
@@ -627,12 +627,12 @@ it("should return error from trying to create an already existing association", 
     it("should return error event due to non existing oracle", async () => {
         // Arrange 
         const headers = getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST);
-        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, removeEmpty(validParticipantPostPayload));
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, FspiopTransformer.removeEmpty(validParticipantPostPayload));
         
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "nonexistingpartytype" + "/" + "nonexistingpartyid" + "nonexistingpartysubid")
-        .send(removeEmpty(validParticipantPostPayload))
+        .send(FspiopTransformer.removeEmpty(validParticipantPostPayload))
         .set(headers);
 
         const messages = consumer.getEvents();

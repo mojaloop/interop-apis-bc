@@ -85,9 +85,10 @@ import {
     TransferHubIdMismatchEvt,
     TransferPayerIdMismatchEvt,
     TransferPayeeIdMismatchEvt,
-    BulkTransferNotFoundEvt
+    BulkTransferNotFoundEvt,
+    TransferFulfilmentValidationFailedEvt
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { Constants, Request, Enums, Transformer, FspiopJwsSignature } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Request, Enums, FspiopJwsSignature, FspiopTransformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { BaseEventHandler, HandlerNames } from "./base_event_handler";
 import { IParticipantService } from "../interfaces/infrastructure";
 import { TransferFulfilRequestedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
@@ -124,7 +125,7 @@ export class TransferEventHandler extends BaseEventHandler {
 
         if (this._logger.isDebugEnabled()) {
             const msgDelayMs = Date.now() - sourceMessage.msgTimestamp;
-            this._logger.debug(`Got message in QuotingEventHandler - msgName: ${sourceMessage.msgName} - msgDelayMs: ${msgDelayMs}`);
+            this._logger.debug(`Got message in TransfersEventHandler - msgName: ${sourceMessage.msgName} - msgDelayMs: ${msgDelayMs}`);
         }
 
         // set specific span attributes
@@ -144,28 +145,28 @@ export class TransferEventHandler extends BaseEventHandler {
 
             switch(message.msgName){
                 case TransferPreparedEvt.name:
-                    await this._handleTransferPreparedEvt(new TransferPreparedEvt(message.payload), message.fspiopOpaqueState.headers);
+                    await this._handleTransferPreparedEvt(new TransferPreparedEvt(message.payload), message.fspiopOpaqueState);
                     break;
                 case TransferFulfiledEvt.name:
-                    await this._handleTransferFulfiledEvt(new TransferFulfiledEvt(message.payload), message.fspiopOpaqueState.headers);
+                    await this._handleTransferFulfiledEvt(new TransferFulfiledEvt(message.payload), message.fspiopOpaqueState);
                     break;
                 case TransferQueryResponseEvt.name:
-                    await this._handleTransferQueryResponseEvt(new TransferQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
+                    await this._handleTransferQueryResponseEvt(new TransferQueryResponseEvt(message.payload), message.fspiopOpaqueState);
                     break;
                 case TransferRejectRequestProcessedEvt.name:
-                    await this._handleTransferRejectRequestEvt(new TransferRejectRequestProcessedEvt(message.payload), message.fspiopOpaqueState.headers);
+                    await this._handleTransferRejectRequestEvt(new TransferRejectRequestProcessedEvt(message.payload), message.fspiopOpaqueState);
                     break;
                 case BulkTransferPreparedEvt.name:
-                    await this._handleBulkTransferPreparedEvt(new BulkTransferPreparedEvt(message.payload), message.fspiopOpaqueState.headers);
+                    await this._handleBulkTransferPreparedEvt(new BulkTransferPreparedEvt(message.payload), message.fspiopOpaqueState);
                     break;
                 case BulkTransferFulfiledEvt.name:
-                    await this._handleBulkTransferFulfiledEvt(new BulkTransferFulfiledEvt(message.payload), message.fspiopOpaqueState.headers);
+                    await this._handleBulkTransferFulfiledEvt(new BulkTransferFulfiledEvt(message.payload), message.fspiopOpaqueState);
                     break;
                 case BulkTransferQueryResponseEvt.name:
-                    await this._handleBulkTransferQueryResponseEvt(new BulkTransferQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
+                    await this._handleBulkTransferQueryResponseEvt(new BulkTransferQueryResponseEvt(message.payload), message.fspiopOpaqueState);
                     break;
                 case BulkTransferRejectRequestProcessedEvt.name:
-                    await this._handleBulkTransferRejectRequestEvt(new BulkTransferRejectRequestProcessedEvt(message.payload), message.fspiopOpaqueState.headers);
+                    await this._handleBulkTransferRejectRequestEvt(new BulkTransferRejectRequestProcessedEvt(message.payload), message.fspiopOpaqueState);
                     break;
                 case TransferNotFoundEvt.name:
                 case BulkTransferNotFoundEvt.name:
@@ -201,8 +202,9 @@ export class TransferEventHandler extends BaseEventHandler {
                 case TransferPayeeNotActiveEvt.name:
                 case TransferPayeeNotApprovedEvt.name:
                 case TransferUnableToDeleteTransferReminderEvt.name:
+                case TransferFulfilmentValidationFailedEvt.name:
                 case TransfersBCUnknownErrorEvent.name:
-                    await this._handleErrorReceivedEvt(message as DomainErrorEventMsg, message.fspiopOpaqueState.headers);
+                    await this._handleErrorReceivedEvt(message as DomainErrorEventMsg, message.fspiopOpaqueState);
                     break;
                 default:
                     this._logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
@@ -240,12 +242,12 @@ export class TransferEventHandler extends BaseEventHandler {
         return;
     }
 
-    async _handleErrorReceivedEvt(message: DomainErrorEventMsg, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
+    async _handleErrorReceivedEvt(message: DomainErrorEventMsg, fspiopOpaqueState: any):Promise<void> {
         this._logger.debug("_handleTransferErrorReceivedEvt -> start");
 
         const { payload } = message;
 
-        const clonedHeaders = fspiopOpaqueState;
+        const clonedHeaders = fspiopOpaqueState.headers;
         const sourceFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
         const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
         const transferId = payload.transferId as string;
@@ -296,18 +298,21 @@ export class TransferEventHandler extends BaseEventHandler {
         return errorResponse;
     }
 
-    private async _handleTransferPreparedEvt(message: TransferPreparedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
-        const clonedHeaders = fspiopOpaqueState;
-        const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
-
-        // Data model
-        const { payload } = message;
-
-        // TODO validate vars above
-
+    private async _handleTransferPreparedEvt(message: TransferPreparedEvt, fspiopOpaqueState: any):Promise<void>{
+                
         try {
             this._logger.debug("_handleTransferPreparedEvt -> start");
+
+            const clonedHeaders = fspiopOpaqueState.headers;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+    
+            // Data model
+            const { payload } = message;
+            const destinationFspId = payload.payeeFsp;
+            
+            // Protocol Specific
+            const { ilpPacket, condition, extensionList } = fspiopOpaqueState;
+            const protocolValues = { ilpPacket, condition, extensionList };
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
@@ -317,7 +322,7 @@ export class TransferEventHandler extends BaseEventHandler {
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.TRANSFERS);
 
-            const transformedPayload = Transformer.transformPayloadTransferRequestPost(payload);
+            const transformedPayload = FspiopTransformer.transformPayloadTransferRequestPost(payload, protocolValues);
 
             await this._sendHttpRequest(
                 urlBuilder, clonedHeaders, requesterFspId, destinationFspId,
@@ -334,19 +339,23 @@ export class TransferEventHandler extends BaseEventHandler {
         return;
     }
 
-    private async _handleTransferFulfiledEvt(message: TransferFulfiledEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
-        // Headers
-        const clonedHeaders = fspiopOpaqueState;
-        const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
-        const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
-
-        // Data model
-        const { payload } = message;
-
-        // TODO validate vars above
+    private async _handleTransferFulfiledEvt(message: TransferFulfiledEvt, fspiopOpaqueState: any):Promise<void>{
+        this._logger.debug("_handleTransferReserveFulfiledEvt -> start");
 
         try {
-            this._logger.debug("_handleTransferReserveFulfiledEvt -> start");
+            // Headers
+            const clonedHeaders = fspiopOpaqueState.headers;
+            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+    
+            // Data model
+            const { payload } = message;
+    
+            // Protocol Specific
+            const { fulfilment, extensionList } = fspiopOpaqueState;
+            const protocolValues = { fulfilment, extensionList };
+
+            // TODO validate vars above
 
             const requestedEndpointPayer = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
@@ -355,7 +364,7 @@ export class TransferEventHandler extends BaseEventHandler {
             // Always validate the payload and headers received
             message.validatePayload();
 
-            const transformedPayload = Transformer.transformPayloadTransferRequestPut(payload);
+            const transformedPayload = FspiopTransformer.transformPayloadTransferRequestPut(payload, protocolValues);
 
             const urlBuilderPayer = new Request.URLBuilder(requestedEndpointPayer.value);
             urlBuilderPayer.setEntity(Enums.EntityTypeEnum.TRANSFERS);
@@ -392,13 +401,12 @@ export class TransferEventHandler extends BaseEventHandler {
     }
 
 
-    private async _handleTransferQueryResponseEvt(message: TransferQueryResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
+    private async _handleTransferQueryResponseEvt(message: TransferQueryResponseEvt, fspiopOpaqueState: any):Promise<void> {
         this._logger.debug("_handleTransferQueryResponseEvt -> start");
 
         try {
             // Headers
-            const clonedHeaders = fspiopOpaqueState;
-            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const clonedHeaders = fspiopOpaqueState.headers;
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
             // NOTE: This is a query, so we have to switch headers
@@ -408,6 +416,10 @@ export class TransferEventHandler extends BaseEventHandler {
             // Data model
             const { payload } = message;
 
+            // Protocol Specific
+            const { fulfilment, extensionList } = fspiopOpaqueState;
+            const protocolValues = { fulfilment, extensionList };
+
             // TODO validate vars above
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
@@ -415,7 +427,7 @@ export class TransferEventHandler extends BaseEventHandler {
             // Always validate the payload and headers received
             message.validatePayload();
 
-            const transformedPayload = Transformer.transformPayloadTransferRequestGet(payload);
+            const transformedPayload = FspiopTransformer.transformPayloadTransferRequestGet(payload, protocolValues);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.TRANSFERS);
@@ -436,12 +448,12 @@ export class TransferEventHandler extends BaseEventHandler {
         return;
     }
 
-    private async _handleTransferRejectRequestEvt(message: TransferRejectRequestProcessedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
+    private async _handleTransferRejectRequestEvt(message: TransferRejectRequestProcessedEvt, fspiopOpaqueState: any):Promise<void> {
         this._logger.debug("_handleTransferRejectRequestEvt -> start");
 
         try {
             // Headers
-            const clonedHeaders = fspiopOpaqueState;
+            const clonedHeaders = fspiopOpaqueState.headers;
             const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
@@ -462,7 +474,7 @@ export class TransferEventHandler extends BaseEventHandler {
 
             await this._sendHttpRequest(
                 urlBuilder, clonedHeaders, requesterFspId, destinationFspId,
-                Enums.FspiopRequestMethodsEnum.PUT, Transformer.transformPayloadTransferRequestPutError(payload)
+                Enums.FspiopRequestMethodsEnum.PUT, FspiopTransformer.transformPayloadTransferRequestPutError(payload)
             );
 
             this._logger.debug("_handleTransferRejectRequestEvt -> end");
@@ -475,17 +487,21 @@ export class TransferEventHandler extends BaseEventHandler {
         return;
     }
 
-    private async _handleBulkTransferPreparedEvt(message: BulkTransferPreparedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
+    private async _handleBulkTransferPreparedEvt(message: BulkTransferPreparedEvt, fspiopOpaqueState: any):Promise<void>{
         try {
             this._logger.debug("_handleBulkTransferPreparedEvt -> start");
 
             // Headers
-            const clonedHeaders = fspiopOpaqueState;
+            const clonedHeaders = fspiopOpaqueState.headers;
             const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
             // Data model
             const { payload } = message;
+
+            // Protocol Specific
+            const { fulfilment, extensionList } = fspiopOpaqueState;
+            const protocolValues = { fulfilment, extensionList };
 
             // TODO validate vars above
 
@@ -494,7 +510,7 @@ export class TransferEventHandler extends BaseEventHandler {
             // Always validate the payload and headers received
             message.validatePayload();
 
-            const transformedPayload = Transformer.transformPayloadBulkTransferRequestPost(payload);
+            const transformedPayload = FspiopTransformer.transformPayloadBulkTransferRequestPost(payload, protocolValues);
 
             const urlBuilderPayer = new Request.URLBuilder(requestedEndpointPayer.value);
             urlBuilderPayer.setEntity(Enums.EntityTypeEnum.BULK_TRANSFERS);
@@ -515,17 +531,21 @@ export class TransferEventHandler extends BaseEventHandler {
     }
 
 
-    private async _handleBulkTransferFulfiledEvt(message: BulkTransferFulfiledEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
+    private async _handleBulkTransferFulfiledEvt(message: BulkTransferFulfiledEvt, fspiopOpaqueState: any):Promise<void>{
         try {
             this._logger.debug("_handleBulkTransferFulfiledEvt -> start");
 
             // Headers
-            const clonedHeaders = fspiopOpaqueState;
+            const clonedHeaders = fspiopOpaqueState.headers;
             const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
             // Data model
             const { payload } = message;
+
+            // Protocol Specific
+            const { fulfilment, extensionList } = fspiopOpaqueState;
+            const protocolValues = { fulfilment, extensionList };
 
             // TODO validate vars above
 
@@ -534,7 +554,7 @@ export class TransferEventHandler extends BaseEventHandler {
             // Always validate the payload and headers received
             message.validatePayload();
 
-            const transformedPayload = Transformer.transformPayloadBulkTransferRequestPut(payload);
+            const transformedPayload = FspiopTransformer.transformPayloadBulkTransferRequestPut(payload, protocolValues);
 
             const urlBuilderPayer = new Request.URLBuilder(requestedEndpointPayer.value);
             urlBuilderPayer.setEntity(Enums.EntityTypeEnum.BULK_TRANSFERS);
@@ -555,10 +575,10 @@ export class TransferEventHandler extends BaseEventHandler {
         return;
     }
 
-    private async _handleBulkTransferQueryResponseEvt(message: BulkTransferQueryResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
+    private async _handleBulkTransferQueryResponseEvt(message: BulkTransferQueryResponseEvt, fspiopOpaqueState: any):Promise<void> {
         try {
             // Headers
-            const clonedHeaders = fspiopOpaqueState;
+            const clonedHeaders = fspiopOpaqueState.headers;
             const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
@@ -569,7 +589,6 @@ export class TransferEventHandler extends BaseEventHandler {
             // Data model
             const { payload } = message;
 
-
             // TODO validate vars above
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
@@ -579,7 +598,7 @@ export class TransferEventHandler extends BaseEventHandler {
             // Always validate the payload and headers received
             message.validatePayload();
 
-            const transformedPayload = Transformer.transformPayloadBulkTransferRequestGet(payload);
+            const transformedPayload = FspiopTransformer.transformPayloadBulkTransferRequestGet(payload);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_TRANSFERS);
@@ -600,12 +619,12 @@ export class TransferEventHandler extends BaseEventHandler {
         return;
     }
 
-    private async _handleBulkTransferRejectRequestEvt(message: BulkTransferRejectRequestProcessedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
+    private async _handleBulkTransferRejectRequestEvt(message: BulkTransferRejectRequestProcessedEvt, fspiopOpaqueState: any):Promise<void> {
         this._logger.debug("_handleBulkTransferRejectRequestEvt -> start");
 
         try {
             // Headers
-            const clonedHeaders = fspiopOpaqueState;
+            const clonedHeaders = fspiopOpaqueState.headers;
             const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
@@ -619,7 +638,7 @@ export class TransferEventHandler extends BaseEventHandler {
             // Always validate the payload and headers received
             message.validatePayload();
 
-            const transformedPayload = Transformer.transformPayloadBulkTransferRequestPutError(payload);
+            const transformedPayload = FspiopTransformer.transformPayloadBulkTransferRequestPutError(payload);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.BULK_TRANSFERS);

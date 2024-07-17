@@ -31,7 +31,7 @@ optionally within square brackets <email>.
 "use strict";
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import {FspiopJwsSignature, FspiopValidator} from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import {FspiopJwsSignature, FspiopValidator, FspiopTransformer} from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import fastify, {FastifyInstance, FastifyReply, FastifyRequest} from "fastify";
 import {IHistogram, IMetrics, SpanStatusCode, Tracer} from "@mojaloop/platform-shared-lib-observability-types-lib";
@@ -95,6 +95,7 @@ export abstract class BaseRoutesFastify {
         this._logger = logger;
         this._validator = validator;
         this._jwsHelper = jwsHelper;
+
         this._router = fastify({logger: false});
 
         this._metrics = metrics;

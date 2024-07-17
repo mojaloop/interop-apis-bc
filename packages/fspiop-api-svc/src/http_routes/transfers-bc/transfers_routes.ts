@@ -39,8 +39,8 @@ import {
     FspiopJwsSignature,
     FspiopValidator,
     PostQuote,
-    Transformer,
-    ValidationdError
+    ValidationdError,
+    FspiopTransformer
 } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {
     TransferFulfilRequestedEvt,
@@ -66,7 +66,7 @@ import {BaseRoutesFastify} from "../_base_routerfastify";
 import {OpenTelemetryClient} from "@mojaloop/platform-shared-lib-observability-client-lib";
 import {IMetrics, SpanStatusCode} from "@mojaloop/platform-shared-lib-observability-types-lib";
 import {SpanKind} from "@opentelemetry/api";
-
+import {DecodedIlpPacketTransfer} from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 
 
 export class TransfersRoutes extends BaseRoutesFastify {
@@ -105,8 +105,8 @@ export class TransfersRoutes extends BaseRoutesFastify {
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
 
             // Data Model
             const transferId = req.body.transferId;
@@ -118,16 +118,15 @@ export class TransfersRoutes extends BaseRoutesFastify {
             const expirationStr = req.body.expiration;
             const extensionList = req.body.extensionList;
 
-            //TODO: validate ilpPacket
-
-            const decodedIlpPacket:PostQuote = decodeIlpPacket(ilpPacket);
+            const decodedIlpPacket:DecodedIlpPacketTransfer = decodeIlpPacket(ilpPacket);
 
             const payerIdType = decodedIlpPacket.payer.partyIdInfo.partyIdType;
             const payeeIdType = decodedIlpPacket.payee.partyIdInfo.partyIdType;
             const transferType = decodedIlpPacket.transactionType.scenario;
 
             if (!transferId || !payeeFsp || !payerFsp || !amount || !ilpPacket || !condition || !expirationStr || !requesterFspId || !payerIdType || !payeeIdType || !transferType ) {
-                const transformError = Transformer.transformPayloadError({
+
+                const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
@@ -141,12 +140,13 @@ export class TransfersRoutes extends BaseRoutesFastify {
             try{
                 expirationTimestamp = Date.parse(expirationStr).valueOf();
                 if(expirationTimestamp < Date.now()) {
-                    const msg = `Invalid expiration time received for  transfer with transferId: ${transferId}- expiration is in the past`;
+                    
+                    const msg = `Invalid expiration time received for transfer with transferId: ${transferId}- expiration is in the past`;
                     this._logger.warn(msg);
                     throw new Error(msg);
                 }
             }catch (err: unknown){
-                const transformError = Transformer.transformPayloadError({
+                const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
@@ -156,25 +156,28 @@ export class TransfersRoutes extends BaseRoutesFastify {
                 return;
             }
 
+            // Validation
             this._validator.currencyAndAmount(amount);
+            this._validator.validateIlpAgainstTransferRequest(req.body, decodedIlpPacket);
+            this._validator.validateCondition(condition);
 
             if(this._jwsHelper.isEnabled()) {
                 this._jwsHelper.validate(req.headers, req.body);
             }
 
             const msgPayload: TransferPrepareRequestedEvtPayload = {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
                 transferId: transferId,
                 payeeFsp: payeeFsp,
                 payerFsp: payerFsp,
                 amount: amount.amount,
                 currencyCode: amount.currency,
-                ilpPacket: ilpPacket,
-                condition: condition,
                 expiration: expirationTimestamp,
-                extensionList: extensionList,
                 payerIdType: payerIdType,
                 payeeIdType: payeeIdType,
-                transferType: transferType
+                transferType: transferType,
+                extensions: extensionList?.extension ? extensionList.extension : [] // TODO: Create conversion from fspiopopaquestate to our internal extensions (plural) 
             };
 
             const msg = new TransferPrepareRequestedEvt(msgPayload);
@@ -186,9 +189,10 @@ export class TransfersRoutes extends BaseRoutesFastify {
 
             // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
             msg.fspiopOpaqueState = {
-                requesterFspId: requesterFspId,
-                destinationFspId: destinationFspId,
                 headers: clonedHeaders,
+                ilpPacket: ilpPacket,
+                condition: condition,
+                extensionList: extensionList,
             };
             msg.tracingInfo = {};
 
@@ -211,7 +215,7 @@ export class TransfersRoutes extends BaseRoutesFastify {
             if(error instanceof ValidationdError) {
                 reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
-                const transformError = Transformer.transformPayloadError({
+                const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
@@ -230,8 +234,8 @@ export class TransfersRoutes extends BaseRoutesFastify {
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
             const acceptedHeader = clonedHeaders[Constants.FSPIOP_HEADERS_ACCEPT] as string;
 
             // Date Model
@@ -241,9 +245,8 @@ export class TransfersRoutes extends BaseRoutesFastify {
             const completedTimestamp = req.body.completedTimestamp;
             const extensionList = req.body.extensionList;
 
-
             if (!transferId || !transferState || !requesterFspId) {
-                const transformError = Transformer.transformPayloadError({
+                const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
@@ -258,11 +261,11 @@ export class TransfersRoutes extends BaseRoutesFastify {
             }
 
             const msgPayload: TransferFulfilRequestedEvtPayload = {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
                 transferId: transferId,
                 transferState: transferState,
-                fulfilment: fulfilment,
                 completedTimestamp: new Date(completedTimestamp).valueOf(),
-                extensionList: extensionList,
                 notifyPayee: transferState as Enums.TransferStateEnum === Enums.TransferStateEnum.RESERVED && Constants.ALLOWED_PATCH_ACCEPTED_TRANSFER_HEADERS.includes(acceptedHeader)
             };
 
@@ -275,9 +278,9 @@ export class TransfersRoutes extends BaseRoutesFastify {
 
             // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
             msg.fspiopOpaqueState = {
-                requesterFspId: requesterFspId,
-                destinationFspId: destinationFspId,
-                headers: clonedHeaders
+                headers: clonedHeaders,
+                fulfilment: fulfilment,
+                extensionList: extensionList,
             };
             msg.tracingInfo = {};
 
@@ -295,7 +298,7 @@ export class TransfersRoutes extends BaseRoutesFastify {
 
         } catch (error: unknown) {
 
-            const transformError = Transformer.transformPayloadError({
+            const transformError = FspiopTransformer.transformPayloadError({
                 errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                 errorDescription: (error as Error).message,
                 extensionList: null
@@ -312,15 +315,15 @@ export class TransfersRoutes extends BaseRoutesFastify {
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
 
             // Date Model
             const transferId = req.params.id;
             const errorInformation = req.body.errorInformation;
 
             if (!transferId || !errorInformation || !requesterFspId) {
-                const transformError = Transformer.transformPayloadError({
+                const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
@@ -335,6 +338,8 @@ export class TransfersRoutes extends BaseRoutesFastify {
             }
 
             const msgPayload: TransferRejectRequestedEvtPayload = {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
                 transferId: transferId,
                 errorInformation: errorInformation
             };
@@ -348,8 +353,6 @@ export class TransfersRoutes extends BaseRoutesFastify {
 
             // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
             msg.fspiopOpaqueState = {
-                requesterFspId: requesterFspId,
-                destinationFspId: destinationFspId,
                 headers: clonedHeaders
             };
             msg.tracingInfo = {};
@@ -368,7 +371,7 @@ export class TransfersRoutes extends BaseRoutesFastify {
 
         } catch (error: unknown) {
 
-            const transformError = Transformer.transformPayloadError({
+            const transformError = FspiopTransformer.transformPayloadError({
                 errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                 errorDescription: (error as Error).message,
                 extensionList: null
@@ -391,7 +394,7 @@ export class TransfersRoutes extends BaseRoutesFastify {
 
 
             if (!transferId || !requesterFspId) {
-                const transformError = Transformer.transformPayloadError({
+                const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
@@ -411,8 +414,6 @@ export class TransfersRoutes extends BaseRoutesFastify {
 
             // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
             msg.fspiopOpaqueState = {
-                requesterFspId: requesterFspId,
-                destinationFspId: destinationFspId,
                 headers: clonedHeaders
             };
             msg.tracingInfo = {};
@@ -431,7 +432,7 @@ export class TransfersRoutes extends BaseRoutesFastify {
 
         } catch (error: unknown) {
 
-            const transformError = Transformer.transformPayloadError({
+            const transformError = FspiopTransformer.transformPayloadError({
                 errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                 errorDescription: (error as Error).message,
                 extensionList: null

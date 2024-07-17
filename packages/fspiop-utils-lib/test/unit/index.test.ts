@@ -75,15 +75,7 @@ import { Enums,
 } from "../../src";
 import axios from "axios";
 import HeaderBuilder from "../../src/headers/header_builder";
-import { 
-    removeEmpty,
-    transformPayloadError,
-    transformPayloadParticipantPut,
-    transformPayloadPartyAssociationPut,
-    transformPayloadPartyDisassociationPut,
-    transformPayloadPartyInfoReceivedPut,
-    transformPayloadPartyInfoRequestedPut
-} from "../../src/transformer";
+import { FspiopTransformer } from "../../src/transformer";
 import { 
     ParticipantAssociationCreatedEvtPayload, 
     ParticipantAssociationRemovedEvtPayload,
@@ -345,7 +337,7 @@ describe("FSPIOP Utils Lib", () => {
         };
 
         // Act
-        const result = removeEmpty(sampleObject);
+        const result = FspiopTransformer.removeEmpty(sampleObject);
 
         // Assert
         expect(result).toEqual({
@@ -368,7 +360,7 @@ describe("FSPIOP Utils Lib", () => {
         };
 
         // Act
-        const result = transformPayloadParticipantPut(payload);
+        const result = FspiopTransformer.transformPayloadParticipantPut(payload);
 
         // Assert
         expect(result).toEqual({
@@ -386,7 +378,7 @@ describe("FSPIOP Utils Lib", () => {
         };
 
         // Act
-        const result = transformPayloadPartyAssociationPut(payload);
+        const result = FspiopTransformer.transformPayloadPartyAssociationPut(payload);
 
         // Assert
         expect(result).toEqual({
@@ -410,7 +402,7 @@ describe("FSPIOP Utils Lib", () => {
         };
 
         // Act
-        const result = transformPayloadPartyDisassociationPut(payload);
+        const result = FspiopTransformer.transformPayloadPartyDisassociationPut(payload);
 
         // Assert
         expect(result).toEqual({
@@ -436,7 +428,7 @@ describe("FSPIOP Utils Lib", () => {
         };
 
         // Act
-        const result = transformPayloadPartyInfoRequestedPut(payload);
+        const result = FspiopTransformer.transformPayloadPartyInfoRequestedPut(payload);
 
         // Assert
         expect(result).toEqual({
@@ -466,13 +458,12 @@ describe("FSPIOP Utils Lib", () => {
             partyDoB: new Date(),
             partySubType: null,
             currency: null,
-            extensionList: null,
             supportedCurrencies: null,
             kycInfo: null,
         };
 
         // Act
-        const result = transformPayloadPartyInfoReceivedPut(payload);
+        const result = FspiopTransformer.transformPayloadPartyInfoReceivedPut(payload);
 
         // Assert
         expect(result).toEqual({
@@ -504,7 +495,7 @@ describe("FSPIOP Utils Lib", () => {
         };
 
         // Act
-        const result = transformPayloadError(payload);
+        const result = FspiopTransformer.transformPayloadError(payload);
 
         // Assert
         expect(result).toEqual({

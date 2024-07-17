@@ -52,15 +52,15 @@ export type BulkTransferPrepareRequestDTO = {
             };
             ilpPacket: string;
             condition: string;
+            payerIdType: string;
+            payeeIdType: string;
+            transferType: string;
             extensionList: {
                 extension: {
                     key: string;
                     value: string;
                 }[];
             } | null;
-            payerIdType: string;
-            payeeIdType: string;
-            transferType: string;
         }[];
         extensionList: {
             extension: {

@@ -39,8 +39,8 @@ import {
     Constants,
     FspiopJwsSignature,
     FspiopValidator,
-    Transformer,
-    ValidationdError
+    ValidationdError,
+    FspiopTransformer
 } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {
     PartyQueryReceivedEvt,
@@ -120,7 +120,7 @@ export class PartyRoutes extends BaseRoutesFastify {
             const currency = req.query.currency;
 
             if (!type || !id || !requesterFspId) {
-                const transformError = Transformer.transformPayloadError({
+                const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
@@ -180,7 +180,7 @@ export class PartyRoutes extends BaseRoutesFastify {
             if (error instanceof ValidationdError) {
                 reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
-                const transformError = Transformer.transformPayloadError({
+                const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
@@ -210,7 +210,7 @@ export class PartyRoutes extends BaseRoutesFastify {
             const currency = req.query.currency;
 
             if (!type || !id || !requesterFspId) {
-                const transformError = Transformer.transformPayloadError({
+                const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
@@ -263,7 +263,7 @@ export class PartyRoutes extends BaseRoutesFastify {
             if (error instanceof ValidationdError) {
                 reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
-                const transformError = Transformer.transformPayloadError({
+                const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
@@ -307,7 +307,7 @@ export class PartyRoutes extends BaseRoutesFastify {
             headersTimer({success: "true"});
 
             if (!type || !id || !requesterFspId || !ownerFspId) {
-                const transformError = Transformer.transformPayloadError({
+                const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
@@ -345,7 +345,6 @@ export class PartyRoutes extends BaseRoutesFastify {
                 middleName: middleName,
                 lastName: lastName,
                 partyDoB: partyDoB,
-                extensionList: extensionList,
                 kycInfo: kycInfo,
                 supportedCurrencies: supportedCurrencies,
             };
@@ -355,9 +354,8 @@ export class PartyRoutes extends BaseRoutesFastify {
 
             // this is a response from the original destination, so we swap requester and destination
             msg.fspiopOpaqueState = {
-                originalRequesterFspId: destinationFspId,
-                originalDestination: requesterFspId,
-                headers: clonedHeaders
+                headers: clonedHeaders,
+                extensionList: extensionList,
             };
             msg.tracingInfo = {};
 
@@ -378,7 +376,7 @@ export class PartyRoutes extends BaseRoutesFastify {
             if (error instanceof ValidationdError) {
                 reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
-                const transformError = Transformer.transformPayloadError({
+                const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
@@ -418,7 +416,7 @@ export class PartyRoutes extends BaseRoutesFastify {
             const supportedCurrencies = req.body.party.supportedCurrencies;
 
             if (!type || !id || !requesterFspId || !ownerFspId) {
-                const transformError = Transformer.transformPayloadError({
+                const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
@@ -454,7 +452,6 @@ export class PartyRoutes extends BaseRoutesFastify {
                 middleName: middleName,
                 lastName: lastName,
                 partyDoB: partyDoB,
-                extensionList: extensionList,
                 kycInfo: kycInfo,
                 supportedCurrencies: supportedCurrencies,
             };
@@ -463,9 +460,8 @@ export class PartyRoutes extends BaseRoutesFastify {
 
             // this is a response from the original destination, so we swap requester and destination
             msg.fspiopOpaqueState = {
-                originalRequesterFspId: destinationFspId,
-                originalDestination: requesterFspId,
-                headers: clonedHeaders
+                headers: clonedHeaders,
+                extensionList: extensionList,
             };
             msg.tracingInfo = {};
 
@@ -486,7 +482,7 @@ export class PartyRoutes extends BaseRoutesFastify {
             if (error instanceof ValidationdError) {
                 reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
-                const transformError = Transformer.transformPayloadError({
+                const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
@@ -516,7 +512,7 @@ export class PartyRoutes extends BaseRoutesFastify {
             const errorInformation = req.body.errorInformation;
 
             if (!type || !id || !requesterFspId || !errorInformation) {
-                const transformError = Transformer.transformPayloadError({
+                const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
@@ -575,7 +571,7 @@ export class PartyRoutes extends BaseRoutesFastify {
             if (error instanceof ValidationdError) {
                 reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
-                const transformError = Transformer.transformPayloadError({
+                const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
@@ -606,7 +602,7 @@ export class PartyRoutes extends BaseRoutesFastify {
             const errorInformation = req.body.errorInformation;
 
             if (!type || !id || !requesterFspId || !errorInformation) {
-                const transformError = Transformer.transformPayloadError({
+                const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
@@ -666,7 +662,7 @@ export class PartyRoutes extends BaseRoutesFastify {
             if (error instanceof ValidationdError) {
                 reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
-                const transformError = Transformer.transformPayloadError({
+                const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null

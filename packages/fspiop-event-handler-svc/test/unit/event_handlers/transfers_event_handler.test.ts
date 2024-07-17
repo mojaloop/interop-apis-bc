@@ -75,7 +75,7 @@ import {
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import { MemoryMetric, MemoryParticipantService, createMessage, getJwsConfig, MemorySpan } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
-import { Constants, Enums, FspiopJwsSignature, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Enums, FspiopJwsSignature, Request, FspiopTransformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { TransferEventHandler } from "../../../src/event_handlers/transfers_evt_handler";
 import { IParticipantServiceAdapter } from "../../../../fspiop-api-svc/src/interfaces/infrastructure";
 import { IParticipant, IParticipantEndpoint, ParticipantEndpointProtocols, ParticipantEndpointTypes, ParticipantTypes } from "@mojaloop/participant-bc-public-types-lib";
@@ -308,12 +308,9 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             payeeFsp: "test-fspiop-destination",
             amount: "USD",
             currencyCode: "10",
-            ilpPacket: "AYICbQAAAAAAAAPoHGcuYmx1ZWJhbmsubXNpc2RuLmJsdWVfYWNjXzGCAkRleUowY21GdWMyRmpkR2x2Ymtsa0lqb2lPV1kxWkRrM09EUXRNMkUxTnkwMU9EWTFMVGxoWVRBdE4yUmtaVGMzT1RFMU5EZ3hJaXdpY1hWdmRHVkpaQ0k2SW1ZMU5UaGtORFE0TFRCbU1UQXROREF4TmkwNE9ESXpMVEU1TjJObU5qZ3haamhrWmlJc0luQmhlV1ZsSWpwN0luQmhjblI1U1dSSmJtWnZJanA3SW5CaGNuUjVTV1JVZVhCbElqb2lUVk5KVTBST0lpd2ljR0Z5ZEhsSlpHVnVkR2xtYVdWeUlqb2lZbXgxWlY5aFkyTmZNU0lzSW1aemNFbGtJam9pWW14MVpXSmhibXNpZlgwc0luQmhlV1Z5SWpwN0luQmhjblI1U1dSSmJtWnZJanA3SW5CaGNuUjVTV1JVZVhCbElqb2lUVk5KVTBST0lpd2ljR0Z5ZEhsSlpHVnVkR2xtYVdWeUlqb2laM0psWlc1ZllXTmpYekVpTENKbWMzQkpaQ0k2SW1keVpXVnVZbUZ1YXlKOWZTd2lZVzF2ZFc1MElqcDdJbU4xY25KbGJtTjVJam9pUlZWU0lpd2lZVzF2ZFc1MElqb2lNVEFpZlN3aWRISmhibk5oWTNScGIyNVVlWEJsSWpwN0luTmpaVzVoY21sdklqb2lSRVZRVDFOSlZDSXNJbWx1YVhScFlYUnZjaUk2SWxCQldVVlNJaXdpYVc1cGRHbGhkRzl5Vkhsd1pTSTZJa0pWVTBsT1JWTlRJbjE5AA",
-            condition: "STksBXN1-J5HnG_4owlzKnbmzCfiOlrKDPgiR-QZ7Kg",
             expiration: 0,
             settlementModel: "DEFAULT",
             preparedAt: 0,
-            extensionList: null
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS, {
@@ -350,17 +347,16 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             payeeFsp: "test-fspiop-destination",
             amount: "USD",
             currencyCode: "10",
-            ilpPacket: "AYICbQAAAAAAAAPoHGcuYmx1ZWJhbmsubXNpc2RuLmJsdWVfYWNjXzGCAkRleUowY21GdWMyRmpkR2x2Ymtsa0lqb2lPV1kxWkRrM09EUXRNMkUxTnkwMU9EWTFMVGxoWVRBdE4yUmtaVGMzT1RFMU5EZ3hJaXdpY1hWdmRHVkpaQ0k2SW1ZMU5UaGtORFE0TFRCbU1UQXROREF4TmkwNE9ESXpMVEU1TjJObU5qZ3haamhrWmlJc0luQmhlV1ZsSWpwN0luQmhjblI1U1dSSmJtWnZJanA3SW5CaGNuUjVTV1JVZVhCbElqb2lUVk5KVTBST0lpd2ljR0Z5ZEhsSlpHVnVkR2xtYVdWeUlqb2lZbXgxWlY5aFkyTmZNU0lzSW1aemNFbGtJam9pWW14MVpXSmhibXNpZlgwc0luQmhlV1Z5SWpwN0luQmhjblI1U1dSSmJtWnZJanA3SW5CaGNuUjVTV1JVZVhCbElqb2lUVk5KVTBST0lpd2ljR0Z5ZEhsSlpHVnVkR2xtYVdWeUlqb2laM0psWlc1ZllXTmpYekVpTENKbWMzQkpaQ0k2SW1keVpXVnVZbUZ1YXlKOWZTd2lZVzF2ZFc1MElqcDdJbU4xY25KbGJtTjVJam9pUlZWU0lpd2lZVzF2ZFc1MElqb2lNVEFpZlN3aWRISmhibk5oWTNScGIyNVVlWEJsSWpwN0luTmpaVzVoY21sdklqb2lSRVZRVDFOSlZDSXNJbWx1YVhScFlYUnZjaUk2SWxCQldVVlNJaXdpYVc1cGRHbGhkRzl5Vkhsd1pTSTZJa0pWVTBsT1JWTlRJbjE5AA",
-            condition: "STksBXN1-J5HnG_4owlzKnbmzCfiOlrKDPgiR-QZ7Kg",
             expiration: 0,
             settlementModel: "DEFAULT",
             preparedAt: 0,
-            extensionList: null
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS, {
             [Constants.FSPIOP_HEADERS_SOURCE]: "test-fspiop-source",
-            [Constants.FSPIOP_HEADERS_DESTINATION]: "test-fspiop-destination"
+            [Constants.FSPIOP_HEADERS_DESTINATION]: "test-fspiop-destination",
+            ilpPacket: "AYICbQAAAAAAAAPoHGcuYmx1ZWJhbmsubXNpc2RuLmJsdWVfYWNjXzGCAkRleUowY21GdWMyRmpkR2x2Ymtsa0lqb2lPV1kxWkRrM09EUXRNMkUxTnkwMU9EWTFMVGxoWVRBdE4yUmtaVGMzT1RFMU5EZ3hJaXdpY1hWdmRHVkpaQ0k2SW1ZMU5UaGtORFE0TFRCbU1UQXROREF4TmkwNE9ESXpMVEU1TjJObU5qZ3haamhrWmlJc0luQmhlV1ZsSWpwN0luQmhjblI1U1dSSmJtWnZJanA3SW5CaGNuUjVTV1JVZVhCbElqb2lUVk5KVTBST0lpd2ljR0Z5ZEhsSlpHVnVkR2xtYVdWeUlqb2lZbXgxWlY5aFkyTmZNU0lzSW1aemNFbGtJam9pWW14MVpXSmhibXNpZlgwc0luQmhlV1Z5SWpwN0luQmhjblI1U1dSSmJtWnZJanA3SW5CaGNuUjVTV1JVZVhCbElqb2lUVk5KVTBST0lpd2ljR0Z5ZEhsSlpHVnVkR2xtYVdWeUlqb2laM0psWlc1ZllXTmpYekVpTENKbWMzQkpaQ0k2SW1keVpXVnVZbUZ1YXlKOWZTd2lZVzF2ZFc1MElqcDdJbU4xY25KbGJtTjVJam9pUlZWU0lpd2lZVzF2ZFc1MElqb2lNVEFpZlN3aWRISmhibk5oWTNScGIyNVVlWEJsSWpwN0luTmpaVzVoY21sdklqb2lSRVZRVDFOSlZDSXNJbWx1YVhScFlYUnZjaUk2SWxCQldVVlNJaXdpYVc1cGRHbGhkRzl5Vkhsd1pTSTZJa0pWVTBsT1JWTlRJbjE5AA",
+            condition: "STksBXN1-J5HnG_4owlzKnbmzCfiOlrKDPgiR-QZ7Kg",
         });
 
         const sendRequestSpy = jest.spyOn(Request, "sendRequest");
@@ -377,7 +373,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
                 source: msg.payload.payerFsp,
                 destination: msg.payload.payeeFsp,
                 method: Enums.FspiopRequestMethodsEnum.POST,
-                payload: Transformer.transformPayloadTransferRequestPost(message.payload)
+                payload: FspiopTransformer.transformPayloadTransferRequestPost(message.payload, message.fspiopOpaqueState)
             }));
         });
 
@@ -389,7 +385,6 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         // Arrange
         const msg = new TransferFulfiledEvt({
             transferId: "1fbee0f3-c58e-5afe-8cdd-7e65eea2fca9",
-            fulfilment: null,
             completedTimestamp: 0,
             payerFspId: "nonexistingfsp",
             payeeFspId: "test-fspiop-destination",
@@ -398,7 +393,6 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             settlementModel: "DEFAULT",
             notifyPayee: false,
             fulfiledAt: 0,
-            extensionList: null
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS, {
@@ -431,7 +425,6 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         // Arrange
         const msg = new TransferFulfiledEvt({
             transferId: "1fbee0f3-c58e-5afe-8cdd-7e65eea2fca9",
-            fulfilment: null,
             completedTimestamp: 0,
             payerFspId: "test-fspiop-source",
             payeeFspId: "test-fspiop-destination",
@@ -440,7 +433,6 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             settlementModel: "DEFAULT",
             notifyPayee: false,
             fulfiledAt: 0,
-            extensionList: null
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS, {
@@ -462,7 +454,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
                 source: msg.payload.payerFspId,
                 destination: msg.payload.payeeFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadTransferRequestPut(message.payload)
+                payload: FspiopTransformer.transformPayloadTransferRequestPut(message.payload, message.fspiopOpaqueState)
             }));
         });
 
@@ -475,9 +467,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferQueryResponseEvt({
             transferId: "1fbee0f3-c58e-5afe-8cdd-7e65eea2fca9",
             transferState: "COMPLETED",
-            fulfilment: null,
             completedTimestamp: null,
-            extensionList: null
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS, {
@@ -511,9 +501,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         const msg = new TransferQueryResponseEvt({
             transferId: "1fbee0f3-c58e-5afe-8cdd-7e65eea2fca9",
             transferState: "COMMITTED",
-            fulfilment: null,
             completedTimestamp: null,
-            extensionList: null
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS, {
@@ -535,7 +523,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
                 source: Constants.FSPIOP_HEADERS_SWITCH,
                 destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadTransferRequestGet(message.payload)
+                payload: FspiopTransformer.transformPayloadTransferRequestGet(message.payload, message.fspiopOpaqueState)
             }));
         });
 
@@ -556,11 +544,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
                 transferId: "1fbee2f3-c58e-5afe-8cdd-6e65eea2fca9",
                 currencyCode: "USD",
                 amount: "10",
-                ilpPacket: "AYICbQAAAAAAAAPoHGcuYmx1ZWJhbmsubXNpc2RuLmJsdWVfYWNjXzGCAkRleUowY21GdWMyRmpkR2x2Ymtsa0lqb2lPV1kxWkRrM09EUXRNMkUxTnkwMU9EWTFMVGxoWVRBdE4yUmtaVGMzT1RFMU5EZ3hJaXdpY1hWdmRHVkpaQ0k2SW1ZMU5UaGtORFE0TFRCbU1UQXROREF4TmkwNE9ESXpMVEU1TjJObU5qZ3haamhrWmlJc0luQmhlV1ZsSWpwN0luQmhjblI1U1dSSmJtWnZJanA3SW5CaGNuUjVTV1JVZVhCbElqb2lUVk5KVTBST0lpd2ljR0Z5ZEhsSlpHVnVkR2xtYVdWeUlqb2lZbXgxWlY5aFkyTmZNU0lzSW1aemNFbGtJam9pWW14MVpXSmhibXNpZlgwc0luQmhlV1Z5SWpwN0luQmhjblI1U1dSSmJtWnZJanA3SW5CaGNuUjVTV1JVZVhCbElqb2lUVk5KVTBST0lpd2ljR0Z5ZEhsSlpHVnVkR2xtYVdWeUlqb2laM0psWlc1ZllXTmpYekVpTENKbWMzQkpaQ0k2SW1keVpXVnVZbUZ1YXlKOWZTd2lZVzF2ZFc1MElqcDdJbU4xY25KbGJtTjVJam9pUlZWU0lpd2lZVzF2ZFc1MElqb2lNVEFpZlN3aWRISmhibk5oWTNScGIyNVVlWEJsSWpwN0luTmpaVzVoY21sdklqb2lSRVZRVDFOSlZDSXNJbWx1YVhScFlYUnZjaUk2SWxCQldVVlNJaXdpYVc1cGRHbGhkRzl5Vkhsd1pTSTZJa0pWVTBsT1JWTlRJbjE5AA",
-                condition: "STksBXN1-J5HnG_4owlzKnbmzCfiOlrKDPgiR-QZ7Kg",
-                extensionList: null
             }],
-            extensionList: null
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_TRANSFERS, {
@@ -601,11 +585,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
                 transferId: "1fbee2f3-c58e-5afe-8cdd-6e65eea2fca9",
                 currencyCode: "USD",
                 amount: "10",
-                ilpPacket: "AYICbQAAAAAAAAPoHGcuYmx1ZWJhbmsubXNpc2RuLmJsdWVfYWNjXzGCAkRleUowY21GdWMyRmpkR2x2Ymtsa0lqb2lPV1kxWkRrM09EUXRNMkUxTnkwMU9EWTFMVGxoWVRBdE4yUmtaVGMzT1RFMU5EZ3hJaXdpY1hWdmRHVkpaQ0k2SW1ZMU5UaGtORFE0TFRCbU1UQXROREF4TmkwNE9ESXpMVEU1TjJObU5qZ3haamhrWmlJc0luQmhlV1ZsSWpwN0luQmhjblI1U1dSSmJtWnZJanA3SW5CaGNuUjVTV1JVZVhCbElqb2lUVk5KVTBST0lpd2ljR0Z5ZEhsSlpHVnVkR2xtYVdWeUlqb2lZbXgxWlY5aFkyTmZNU0lzSW1aemNFbGtJam9pWW14MVpXSmhibXNpZlgwc0luQmhlV1Z5SWpwN0luQmhjblI1U1dSSmJtWnZJanA3SW5CaGNuUjVTV1JVZVhCbElqb2lUVk5KVTBST0lpd2ljR0Z5ZEhsSlpHVnVkR2xtYVdWeUlqb2laM0psWlc1ZllXTmpYekVpTENKbWMzQkpaQ0k2SW1keVpXVnVZbUZ1YXlKOWZTd2lZVzF2ZFc1MElqcDdJbU4xY25KbGJtTjVJam9pUlZWU0lpd2lZVzF2ZFc1MElqb2lNVEFpZlN3aWRISmhibk5oWTNScGIyNVVlWEJsSWpwN0luTmpaVzVoY21sdklqb2lSRVZRVDFOSlZDSXNJbWx1YVhScFlYUnZjaUk2SWxCQldVVlNJaXdpYVc1cGRHbGhkRzl5Vkhsd1pTSTZJa0pWVTBsT1JWTlRJbjE5AA",
-                condition: "STksBXN1-J5HnG_4owlzKnbmzCfiOlrKDPgiR-QZ7Kg",
-                extensionList: null
             }],
-            extensionList: null
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_TRANSFERS, {
@@ -627,7 +607,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
                 source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
                 destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.POST,
-                payload: Transformer.transformPayloadBulkTransferRequestPost(message.payload)
+                payload: FspiopTransformer.transformPayloadBulkTransferRequestPost(message.payload, message.fspiopOpaqueState)
             }));
         });
 
@@ -643,10 +623,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             bulkTransferState: "COMPLETED",
             individualTransferResults: [{
                 transferId: "1fbee2f3-c58e-5afe-8cdd-6e65eea2fca9",
-                fulfilment: "on1meDEOvLmjYTvujP438_lhaMCi8V0wx0uUvjp8vT0",
-                extensionList: null  
             } as any],
-            extensionList: null
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_TRANSFERS, {
@@ -683,10 +660,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             bulkTransferState: "COMPLETED",
             individualTransferResults: [{
                 transferId: "1fbee2f3-c58e-5afe-8cdd-6e65eea2fca9",
-                fulfilment: "on1meDEOvLmjYTvujP438_lhaMCi8V0wx0uUvjp8vT0",
-                extensionList: null  
             } as any],
-            extensionList: null
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_TRANSFERS, {
@@ -708,7 +682,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
                 source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
                 destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadBulkTransferRequestPut(message.payload)
+                payload: FspiopTransformer.transformPayloadBulkTransferRequestPut(message.payload, message.fspiopOpaqueState)
             }));
         });
 
@@ -724,10 +698,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             bulkTransferState: "COMPLETED",
             individualTransferResults: [{
                 transferId: "1fbee2f3-c58e-5afe-8cdd-6e65eea2fca9",
-                fulfilment: "on1meDEOvLmjYTvujP438_lhaMCi8V0wx0uUvjp8vT0",
-                extensionList: null  
             } as any],
-            extensionList: null
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_TRANSFERS, {
@@ -764,10 +735,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             bulkTransferState: "COMPLETED",
             individualTransferResults: [{
                 transferId: "1fbee2f3-c58e-5afe-8cdd-6e65eea2fca9",
-                fulfilment: "on1meDEOvLmjYTvujP438_lhaMCi8V0wx0uUvjp8vT0",
-                extensionList: null  
             } as any],
-            extensionList: null
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_TRANSFERS, {
@@ -789,7 +757,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
                 source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
                 destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadBulkTransferRequestPut(message.payload)
+                payload: FspiopTransformer.transformPayloadBulkTransferRequestPut(message.payload, message.fspiopOpaqueState)
             }));
         });
 
@@ -804,7 +772,6 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             errorInformation: { 
                 errorCode: "transfer id error code",
                 errorDescription: "error transfer description",
-                extensionList: null
             }
         });
 
@@ -842,7 +809,6 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             errorInformation: { 
                 errorCode: "transfer id error code",
                 errorDescription: "error transfer description",
-                extensionList: null
             }
         });
 
@@ -865,7 +831,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
                 source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
                 destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadBulkTransferRequestPutError(message.payload)
+                payload: FspiopTransformer.transformPayloadBulkTransferRequestPutError(message.payload)
             }));
         });
 

@@ -33,7 +33,7 @@
 
 import path from "path";
 import jestOpenAPI from "jest-openapi";
-import { Constants, Enums, Request, PostQuote, PutBulkTransfer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Enums, Request, PostQuote, PutBulkTransfer, FspiopTransformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {
     QuoteRequestAcceptedEvt,
     QuoteRequestReceivedEvt,
@@ -88,7 +88,6 @@ import request from "supertest";
 import { createMessage, getHeaders, getJwsConfig } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
 import KafkaConsumer from "../helpers/kafkaproducer";
 import { MongoClient } from "mongodb";
-import { removeEmpty } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/transformer";
 import waitForExpect from "../helpers/utils";
 import { TransferErrorCodeNames } from "@mojaloop/transfers-bc-public-types-lib";
 
@@ -281,7 +280,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.TRANSFERS)
-        .send(removeEmpty(validTransferPostPayload))
+        .send(FspiopTransformer.removeEmpty(validTransferPostPayload))
         .set(headers);
 
         const messages = consumer.getEvents();
@@ -305,7 +304,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.TRANSFERS)
-        .send(removeEmpty(validTransferPostPayload))
+        .send(FspiopTransformer.removeEmpty(validTransferPostPayload))
         .set(headers);
 
         const messages = consumer.getEvents();
@@ -325,12 +324,12 @@ describe("FSPIOP API Service Transfers Handler", () => {
         headersQuotes[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headersQuotes, validQuotePostPayload);
 
         const headersTransfers = getHeaders(Enums.EntityTypeEnum.TRANSFERS, Enums.FspiopRequestMethodsEnum.POST);
-        headersTransfers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headersTransfers, removeEmpty(validTransferPostPayload));
+        headersTransfers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headersTransfers, FspiopTransformer.removeEmpty(validTransferPostPayload));
 
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.QUOTES)
-        .send(removeEmpty(validQuotePostPayload))
+        .send(FspiopTransformer.removeEmpty(validQuotePostPayload))
         .set(headersQuotes);
 
         await new Promise((r) => setTimeout(r, 10000));
@@ -351,7 +350,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
 
         await request(server)
         .post(Enums.EntityTypeEnum.TRANSFERS)
-        .send(removeEmpty(validTransferPostPayload))
+        .send(FspiopTransformer.removeEmpty(validTransferPostPayload))
         .set(headersTransfers);
 
         const messages = consumer.getEvents();
@@ -501,12 +500,12 @@ describe("FSPIOP API Service Transfers Handler", () => {
         validBulkTransferPostPayload.payerFsp = "nonexistingpayerfsp";
 
         const headers = getHeaders(Enums.EntityTypeEnum.BULK_TRANSFERS, Enums.FspiopRequestMethodsEnum.POST);
-        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, removeEmpty(validBulkTransferPostPayload));
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, FspiopTransformer.removeEmpty(validBulkTransferPostPayload));
 
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.BULK_TRANSFERS)
-        .send(removeEmpty(validBulkTransferPostPayload))
+        .send(FspiopTransformer.removeEmpty(validBulkTransferPostPayload))
         .set(headers);
 
         const messages = consumer.getEvents();
@@ -529,12 +528,12 @@ describe("FSPIOP API Service Transfers Handler", () => {
         validBulkTransferPostPayload.payeeFsp = "nonexistingpayeefsp";
 
         const headers = getHeaders(Enums.EntityTypeEnum.BULK_TRANSFERS, Enums.FspiopRequestMethodsEnum.POST);
-        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, removeEmpty(validBulkTransferPostPayload));
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, FspiopTransformer.removeEmpty(validBulkTransferPostPayload));
 
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.BULK_TRANSFERS)
-        .send(removeEmpty(validBulkTransferPostPayload))
+        .send(FspiopTransformer.removeEmpty(validBulkTransferPostPayload))
         .set(headers);
 
         const messages = consumer.getEvents();
@@ -555,7 +554,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         // Act & Arrange
         // await request(server)
         // .post(Enums.EntityTypeEnum.QUOTES)
-        // .send(removeEmpty(validQuotePostPayload))
+        // .send(FspiopTransformer.removeEmpty(validQuotePostPayload))
         // .set(getHeaders(Enums.EntityTypeEnum.QUOTES));
 
         // await new Promise((r) => setTimeout(r, 10000));
@@ -576,12 +575,12 @@ describe("FSPIOP API Service Transfers Handler", () => {
 
         // Arrange
         const headers = getHeaders(Enums.EntityTypeEnum.BULK_TRANSFERS, Enums.FspiopRequestMethodsEnum.POST);
-        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, removeEmpty(validBulkTransferPostPayload));
+        headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, FspiopTransformer.removeEmpty(validBulkTransferPostPayload));
 
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.BULK_TRANSFERS)
-        .send(removeEmpty(validBulkTransferPostPayload))
+        .send(FspiopTransformer.removeEmpty(validBulkTransferPostPayload))
         .set(headers);
 
         const messages = consumer.getEvents();

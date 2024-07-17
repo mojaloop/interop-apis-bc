@@ -61,12 +61,9 @@ import {
     AccountLookupBCRequiredDestinationParticipantIdMismatchErrorEvent,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { BaseEventHandler, HandlerNames } from "./base_event_handler";
-import { Constants, Enums, FspiopJwsSignature, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import {IDomainMessage, IMessage, IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import {
-    MLKafkaJsonConsumerOptions,
-
-} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import { Constants, Enums, FspiopJwsSignature, FspiopTransformer, Request } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { IDomainMessage, IMessage, IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { MLKafkaJsonConsumerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import { IParticipantService } from "../interfaces/infrastructure";
@@ -258,6 +255,12 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             // Headers
             const clonedHeaders = fspiopOpaqueState;
+
+            // NOTE: This is a query, so we have to switch headers
+            clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
+            clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
+
             const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
@@ -272,7 +275,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
-            const transformedPayload = Transformer.transformPayloadPartyAssociationPut(payload);
+            const transformedPayload = FspiopTransformer.transformPayloadPartyAssociationPut(payload);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
@@ -299,6 +302,12 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         try {
             // Headers
             const clonedHeaders = fspiopOpaqueState;
+
+            // NOTE: This is a query, so we have to switch headers
+            clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
+            clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
+
             const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
@@ -316,7 +325,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             // Always validate the payload and headers received
             message.validatePayload();
 
-            const transformedPayload = Transformer.transformPayloadPartyDisassociationPut(payload);
+            const transformedPayload = FspiopTransformer.transformPayloadPartyDisassociationPut(payload);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
@@ -345,11 +354,13 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             // Headers
             const clonedHeaders = fspiopOpaqueState;
             const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
             // Data model
             const { payload } = message;
 
+            // NOTE: Special case in getting the destination fsp id, as this is a lookup so only the payload will 
+            // have the information as we don't want any bounded context to ever change the opaque state 
+            const destinationFspId = payload.destinationFspId; 
             const partyType = payload.partyType;
             const partyId = payload.partyId;
             const partySubType = payload.partySubType as string;
@@ -366,7 +377,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             // Always validate the payload and headers received
             message.validatePayload();
 
-            const transformedPayload = Transformer.transformPayloadPartyInfoRequestedPut(payload);
+            const transformedPayload = FspiopTransformer.transformPayloadPartyInfoRequestedPut(payload);
 
             if (!clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === "") {
                 clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = destinationFspId;
@@ -415,7 +426,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             // Always validate the payload and headers received
             message.validatePayload();
 
-            const transformedPayload = Transformer.transformPayloadPartyInfoReceivedPut(payload);
+            const transformedPayload = FspiopTransformer.transformPayloadPartyInfoReceivedPut(payload);
 
             if(fspiopOpaqueState) {
                 if (!clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === "") {
@@ -449,13 +460,13 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         try {
             // Headers
             const clonedHeaders = fspiopOpaqueState;
-            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
             // NOTE: This is a query, so we have to switch headers
             clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] = Constants.FSPIOP_HEADERS_SWITCH;
             clonedHeaders[Constants.FSPIOP_HEADERS_HTTP_METHOD] = Enums.FspiopRequestMethodsEnum.PUT;
+
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
             // Data model
             const { payload } = message;
@@ -472,7 +483,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             // Always validate the payload and headers received
             message.validatePayload();
 
-            const transformedPayload = Transformer.transformPayloadParticipantPut(payload);
+            const transformedPayload = FspiopTransformer.transformPayloadParticipantPut(payload);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);
@@ -518,7 +529,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             // Always validate the payload and headers received
             message.validatePayload();
 
-            const transformedPayload = Transformer.transformPayloadPartyRejectedPut(payload);
+            const transformedPayload = FspiopTransformer.transformPayloadPartyRejectedPut(payload);
 
             const urlBuilder = new Request.URLBuilder(destinationEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTIES);
@@ -564,7 +575,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             // Always validate the payload and headers received
             message.validatePayload();
 
-            const transformedPayload = Transformer.transformPayloadParticipantRejectedPut(payload);
+            const transformedPayload = FspiopTransformer.transformPayloadParticipantRejectedPut(payload);
 
             const urlBuilder = new Request.URLBuilder(destinationEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);

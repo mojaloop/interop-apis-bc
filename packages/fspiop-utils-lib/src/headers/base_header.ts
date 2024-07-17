@@ -31,7 +31,7 @@
 
 "use strict";
 
-type HeaderResult = {
+export type HeaderResult = {
     "accept": string,
     "content-length"?: number, 
     "content-type": string,

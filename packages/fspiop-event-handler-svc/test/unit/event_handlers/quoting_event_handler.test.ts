@@ -32,12 +32,38 @@
 
 "use strict";
 
-
 import {MLKafkaJsonConsumerOptions, MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import { BulkQuoteAcceptedEvt, BulkQuoteQueryResponseEvt, BulkQuoteReceivedEvt, QuoteBCBulkQuoteExpiredErrorEvent, QuoteBCBulkQuoteNotFoundErrorEvent, QuoteBCDestinationParticipantNotFoundErrorEvent, QuoteBCDuplicateQuoteErrorEvent, QuoteBCInvalidBulkQuoteLengthErrorEvent, QuoteBCInvalidDestinationFspIdErrorEvent, QuoteBCInvalidMessagePayloadErrorEvent, QuoteBCInvalidMessageTypeErrorEvent, QuoteBCInvalidRequesterFspIdErrorEvent, QuoteBCQuoteExpiredErrorEvent, QuoteBCQuoteNotFoundErrorEvent, QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent, QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent, QuoteBCRequesterParticipantNotFoundErrorEvent, QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent, QuoteBCUnableToAddQuoteToDatabaseErrorEvent, QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent, QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent, QuoteBCUnknownErrorEvent, QuoteQueryResponseEvt, QuoteRequestAcceptedEvt, QuoteResponseAccepted, QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { 
+    BulkQuoteAcceptedEvt,
+    BulkQuoteQueryResponseEvt,
+    BulkQuoteReceivedEvt,
+    QuoteBCBulkQuoteExpiredErrorEvent,
+    QuoteBCBulkQuoteNotFoundErrorEvent,
+    QuoteBCDestinationParticipantNotFoundErrorEvent,
+    QuoteBCDuplicateQuoteErrorEvent,
+    QuoteBCInvalidBulkQuoteLengthErrorEvent,
+    QuoteBCInvalidDestinationFspIdErrorEvent,
+    QuoteBCInvalidMessagePayloadErrorEvent,
+    QuoteBCInvalidMessageTypeErrorEvent,
+    QuoteBCInvalidRequesterFspIdErrorEvent,
+    QuoteBCQuoteExpiredErrorEvent,
+    QuoteBCQuoteNotFoundErrorEvent,
+    QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent,
+    QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent,
+    QuoteBCRequesterParticipantNotFoundErrorEvent,
+    QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent,
+    QuoteBCUnableToAddQuoteToDatabaseErrorEvent,
+    QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent,
+    QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent,
+    QuoteBCUnknownErrorEvent,
+    QuoteQueryResponseEvt,
+    QuoteRequestAcceptedEvt,
+    QuoteResponseAccepted,
+    QuotingBCTopics
+} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import { MemoryMetric, MemoryParticipantService, MemorySpan, createMessage, getJwsConfig } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
-import { Constants, Enums, FspiopJwsSignature, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Enums, FspiopJwsSignature, Request, FspiopTransformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { QuotingEventHandler } from "../../../src/event_handlers/quoting_evt_handler";
 import { FSPIOP_PARTY_ACCOUNT_TYPES } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants";
 import { IParticipant, IParticipantEndpoint, ParticipantEndpointProtocols, ParticipantEndpointTypes, ParticipantTypes } from "@mojaloop/participant-bc-public-types-lib";
@@ -311,7 +337,6 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             geoCode: null,
             note: null,
             expiration: null,
-            extensionList: null,
             converter: null,
             currencyConversion: null,
         });
@@ -389,7 +414,6 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             geoCode: null,
             note: null,
             expiration: null,
-            extensionList: null,
             converter: null,
             currencyConversion: null,
         });
@@ -413,7 +437,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                 source: msg.payload.payer.partyIdInfo.fspId,
                 destination: msg.payload.payee.partyIdInfo.fspId,
                 method: Enums.FspiopRequestMethodsEnum.POST,
-                payload: Transformer.transformPayloadQuotingRequestPost(message.payload)
+                payload: FspiopTransformer.transformPayloadQuotingRequestPost(message.payload, message.fspiopOpaqueState)
             }));
         });
 
@@ -431,13 +455,10 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                 amount: "10"
             },
             expiration: "2022-01-22T08:38:08.699-04:00",
-            ilpPacket: "",
-            condition: "",
             payeeReceiveAmount: null,
             payeeFspFee: null,
             payeeFspCommission: null,
             geoCode: null,
-            extensionList: null
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES, {
@@ -475,13 +496,10 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                 amount: "10"
             },
             expiration: "2022-01-22T08:38:08.699-04:00",
-            ilpPacket: "r18Ukv==",
-            condition: "B5s00ur7cDXyzbcJhn6v3F0nl2DH3gNR5Dc0U4BRApa",
             payeeReceiveAmount: null,
             payeeFspFee: null,
             payeeFspCommission: null,
             geoCode: null,
-            extensionList: null
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTICIPANTS, {
@@ -503,7 +521,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                 source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
                 destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadQuotingResponsePut(message.payload)
+                payload: FspiopTransformer.transformPayloadQuotingResponsePut(message.payload, message.fspiopOpaqueState)
             }));
         });
 
@@ -520,13 +538,10 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                 amount: "10"
             },
             expiration: "2022-01-22T08:38:08.699-04:00",
-            ilpPacket: "",
-            condition: "",
             payeeReceiveAmount: null,
             payeeFspFee: null,
             payeeFspCommission: null,
             geoCode: null,
-            extensionList: null
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES, {
@@ -564,13 +579,10 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                 amount: "10"
             },
             expiration: "2022-01-22T08:38:08.699-04:00",
-            ilpPacket: "r18Ukv==",
-            condition: "B5s00ur7cDXyzbcJhn6v3F0nl2DH3gNR5Dc0U4BRApa",
             payeeReceiveAmount: null,
             payeeFspFee: null,
             payeeFspCommission: null,
             geoCode: null,
-            extensionList: null
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTICIPANTS, {
@@ -592,7 +604,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                 //source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
                 //destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadQuotingResponsePut(message.payload)
+                payload: FspiopTransformer.transformPayloadQuotingResponsePut(message.payload, message.fspiopOpaqueState)
             }));
         });
 
@@ -619,7 +631,6 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             geoCode: null,
             expiration: null,
             individualQuotes: [],
-            extensionList: null,
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES, {
@@ -667,7 +678,6 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             geoCode: null,
             expiration: null,
             individualQuotes: [],
-            extensionList: null
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES, {
@@ -689,7 +699,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                 source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
                 destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.POST,
-                payload: Transformer.transformPayloadBulkQuotingResponsePost(message.payload)
+                payload: FspiopTransformer.transformPayloadBulkQuotingResponsePost(message.payload, message.fspiopOpaqueState)
             }));
         });
 
@@ -739,13 +749,9 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                     currency: "USD",
                     amount: "33"
                 },
-                condition: "B5s00ur7cDXyzbcJhn6v3F0nl2DH3gNR5Dc0U4BRApa",
-                ilpPacket: "r18Ukv==",
                 errorInformation: null,
-                extensionList: null
             }],
             expiration: "2099-01-04T22:49:25.375Z",
-            extensionList: null
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES, {
@@ -816,13 +822,9 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                     currency: "USD",
                     amount: "33"
                 },
-                condition: "B5s00ur7cDXyzbcJhn6v3F0nl2DH3gNR5Dc0U4BRApa",
-                ilpPacket: "r18Ukv==",
                 errorInformation: null,
-                extensionList: null
             }],
             expiration: "2099-01-04T22:49:25.375Z",
-            extensionList: null
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES, {
@@ -844,7 +846,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                 source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
                 destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadBulkQuotingResponsePut(message.payload)
+                payload: FspiopTransformer.transformPayloadBulkQuotingResponsePut(message.payload, message.fspiopOpaqueState)
             }));
         });
 
@@ -894,13 +896,9 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                     currency: "USD",
                     amount: "33"
                 },
-                condition: "B5s00ur7cDXyzbcJhn6v3F0nl2DH3gNR5Dc0U4BRApa",
-                ilpPacket: "r18Ukv==",
                 errorInformation: null,
-                extensionList: null
             }],
             expiration: "2099-01-04T22:49:25.375Z",
-            extensionList: null
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES, {
@@ -971,13 +969,9 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                     currency: "USD",
                     amount: "33"
                 },
-                condition: "B5s00ur7cDXyzbcJhn6v3F0nl2DH3gNR5Dc0U4BRApa",
-                ilpPacket: "r18Ukv==",
                 errorInformation: null,
-                extensionList: null
             }],
             expiration: "2099-01-04T22:49:25.375Z",
-            extensionList: null
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES, {
@@ -999,7 +993,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                 source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
                 destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadBulkQuotingResponsePut(message.payload)
+                payload: FspiopTransformer.transformPayloadBulkQuotingResponsePut(message.payload, message.fspiopOpaqueState)
             }));
         });
 

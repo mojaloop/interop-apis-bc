@@ -62,7 +62,7 @@ export type RequestOptions = {
   protocolVersions?: {
     content: typeof FSPIOP_HEADERS_DEFAULT_ACCEPT_PROTOCOL_VERSION;
     accept: typeof FSPIOP_HEADERS_DEFAULT_CONTENT_PROTOCOL_VERSION;
-  }
+  },
 }
 
 // Keep the following description since it's hard to detect

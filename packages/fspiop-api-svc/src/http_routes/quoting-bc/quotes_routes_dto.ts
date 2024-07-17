@@ -52,7 +52,9 @@ export type QuoteRequestReceivedDTO = {
                     lastName: string | null;
                 } | null;
                 dateOfBirth: string | null;
+                kycInformation: string | null; // TODO: Confirm this
             } | null;
+            supportedCurrencies: string[] | null;
         };
         payer: {
             partyIdInfo: {
@@ -70,7 +72,9 @@ export type QuoteRequestReceivedDTO = {
                     lastName: string | null;
                 } | null;
                 dateOfBirth: string | null;
+                kycInformation: string | null; // TODO: Confirm this
             } | null;
+            supportedCurrencies: string[] | null;
         };
         amountType: "SEND" | "RECEIVE";
         amount: {
@@ -103,6 +107,17 @@ export type QuoteRequestReceivedDTO = {
                 key: string;
                 value: string;
             }[];
+        } | null;
+        converter: string | null;
+        currencyConversion: {
+            sourceAmount: {
+                currency: string;
+                amount: string;
+            };
+            targetAmount: {
+                currency: string;
+                amount: string;
+            };
         } | null;
     }
 }
