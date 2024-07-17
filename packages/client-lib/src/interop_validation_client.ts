@@ -28,7 +28,7 @@
 
 "use strict";
 
-import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
+import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { UnableToValidateFulfilment,} from "./errors";
 import { fulfilmentToCondition } from "./utils";
 import { ITransfer } from "@mojaloop/transfers-bc-public-types-lib";
