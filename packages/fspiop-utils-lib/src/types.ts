@@ -32,13 +32,21 @@ optionally within square brackets <email>.
 "use strict";
 
 // Error & Custom value fields
+
+
 export interface ExtensionList {
 	extension: {
 		key: string,
-
 		value: string
 	}[]
 }
+
+export interface IInputExtensionList {
+    extensionList: {
+        extension: ExtensionList[];
+    } | null;
+}
+
 export interface FspiopError {
 	errorInformation: {
 		errorCode: string,
@@ -82,6 +90,15 @@ export interface PutParty {
 
 
 // Quoting
+export interface IPostQuoteOpaqueState {
+	extensionList: {
+		extension: {
+			key: string,
+			value: string,
+		}[],
+	} | null
+}
+
 export interface PostQuote {
 	quoteId: string,
 	transactionId: string,
@@ -138,6 +155,23 @@ export interface PostQuote {
 		balanceOfPayments: string | null;
 	},
 	expiration: string | null;
+	extensionList: {
+		extension: {
+			key: string,
+			value: string,
+		}[],
+	} | null;
+}
+
+export interface IPutQuoteOpaqueState {
+	ilpPacket: string;
+	condition: string;
+	extensionList: {
+		extension: {
+			key: string;
+			value: string;
+		}[];
+	} | null
 }
 
 export interface PutQuote {
@@ -164,6 +198,15 @@ export interface PutQuote {
 		latitude: string,
 		longitude: string,
 	} | null,
+	extensionList: {
+		extension: {
+			key: string,
+			value: string,
+		}[],
+	} | null
+}
+
+export interface IPostBulkQuoteOpaqueState {
 	extensionList: {
 		extension: {
 			key: string,
@@ -254,6 +297,17 @@ export interface PostBulkQuote {
 	} | null
 }
 
+export interface IPutBulkQuoteOpaqueState {
+	ilpPacket: string;
+	condition: string;
+	extensionList: {
+		extension: {
+			key: string;
+			value: string;
+		}[];
+	} | null;
+}
+
 export interface PutBulkQuote {
 	bulkQuoteId: string,
 	individualQuoteResults: {
@@ -302,7 +356,7 @@ export interface PutBulkQuote {
 					key: string,
 					value: string,
 				}[],
-			},
+			} | null,
 		} | null,
 		extensionList: {
 			extension: {
@@ -322,7 +376,18 @@ export interface PutBulkQuote {
 
 
 // Transfer
-export interface PostTransfer {
+export interface IPostTransferOpaqueState {
+	ilpPacket: string;
+	condition: string;
+	extensionList: {
+		extension: {
+			key: string;
+			value: string;
+		}[];
+	} | null
+}
+
+export interface IPostTransfer {
 	transferId: string,
 	payeeFsp: string,
 	payerFsp: string,
@@ -332,7 +397,23 @@ export interface PostTransfer {
 	},
 	ilpPacket: string,
 	condition: string,
-	expiration: number
+	expiration: string;
+	extensionList: {
+		extension: {
+			key: string;
+			value: string;
+		}[];
+	} | null
+}
+
+export interface IPutTransferOpaqueState {
+	fulfilment: string | null,
+	extensionList: {
+		extension: {
+			key: string;
+			value: string;
+		}[];
+	} | null
 }
 
 export interface PutTransfer {
@@ -359,10 +440,8 @@ export interface GetTransfer {
 	} | null
 }
 
-export interface GetTransfer {
-	transferState: string,
-	fulfilment: string | null,
-	completedTimestamp: string | null,
+
+export interface IPostBulkTransferOpaqueState {
 	extensionList: {
 		extension: {
 			key: string,
@@ -398,6 +477,15 @@ export interface PostBulkTransfer {
     } | null;
 }
 
+export interface IPutBulkTransferOpaqueState {
+	fulfilment: string | null;
+	extensionList: {
+		extension: {
+			key: string;
+			value: string;
+		}[];
+	} | null;
+}
 export interface PutBulkTransfer {
     completedTimestamp: number;
     bulkTransferState: string;

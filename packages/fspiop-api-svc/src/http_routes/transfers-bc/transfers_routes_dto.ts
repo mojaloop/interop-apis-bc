@@ -28,21 +28,21 @@
 
 "use strict";
 
-export type TransferPrepareRequestedDTO = { 
-    Params: { 
-        id: string 
-    }, 
+export type TransferPrepareRequestedDTO = {
+    Params: {
+        id: string
+    },
     Body: {
         transferId: string;
         payeeFsp: string;
         payerFsp: string;
-        amount: { 
-            currency: string, 
-            amount: string 
+        amount: {
+            currency: string,
+            amount: string
         },
         ilpPacket: string;
         condition: string;
-        expiration: number;
+        expiration: string;
         extensionList: {
             extension: {
                 key: string;
@@ -52,10 +52,10 @@ export type TransferPrepareRequestedDTO = {
     }
 }
 
-export type TransferFulfilRequestedDTO = { 
-    Params: { 
-        id: string 
-    }, 
+export type TransferFulfilRequestedDTO = {
+    Params: {
+        id: string
+    },
     Body: {
         transferState: "PENDING" | "ACCEPTED" | "PROCESSING" | "COMPLETED" | "REJECTED";
         fulfilment: string | null;
@@ -70,10 +70,10 @@ export type TransferFulfilRequestedDTO = {
     }
 }
 
-export type TransferRejectRequestedDTO = { 
-    Params: { 
-        id: string 
-    }, 
+export type TransferRejectRequestedDTO = {
+    Params: {
+        id: string
+    },
     Body: {
         errorInformation: {
             errorCode: string;
@@ -88,8 +88,8 @@ export type TransferRejectRequestedDTO = {
     }
 }
 
-export type TransferQueryReceivedDTO = { 
-    Params: { 
-        id: string 
+export type TransferQueryReceivedDTO = {
+    Params: {
+        id: string
     }
 }

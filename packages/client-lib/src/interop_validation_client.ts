@@ -19,25 +19,47 @@
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
 
- * Gates Foundation
- - Name Surname <name.surname@gatesfoundation.com>
-
- * Crosslake
- - Pedro Sousa Barreto <pedrob@crosslaketech.com>
+ * Arg Software
+ - José Antunes <jose.antunes@arg.software>
+ - Rui Rocha <rui.rocha@arg.software>
 
  --------------
  ******/
 
 "use strict";
 
-export * as Constants from "./constants";
-export * as Enums from "./enums";
-export * as Request from "./request";
+import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
+import { UnableToValidateFulfilment,} from "./errors";
+import { fulfilmentToCondition } from "./utils";
+import { ITransfer } from "@mojaloop/transfers-bc-public-types-lib";
 
-export * from "./transformer";
-export * from "./errors";
-export * from "./validator";
-export * from "./jws";
-export * from "./ilp";
-export * from "./types";
-export * from "./ilp_types";
+
+export class InteropValidationClient {
+    private readonly _logger: ILogger;
+
+    constructor(
+        logger: ILogger,
+    ) {
+        this._logger = logger.createChild(this.constructor.name);
+    }
+
+    validateFulfilmentOpaqueState(fspiopOpaqueState: any, transfer: ITransfer): boolean {
+
+        try {
+            if(fspiopOpaqueState) {
+                const { fulfilment } = fspiopOpaqueState;
+
+                if(fulfilment) {
+                    const calculatedCondition = fulfilmentToCondition(fspiopOpaqueState.fulfilment);
+                    return calculatedCondition === transfer.condition;
+                }
+            }
+            return true;
+        } catch (e: unknown) {
+            if (e instanceof Error) throw e;
+
+            throw new UnableToValidateFulfilment("Unable to validate fulfilment");
+        }
+    }
+
+}

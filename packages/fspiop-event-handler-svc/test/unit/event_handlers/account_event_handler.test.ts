@@ -56,7 +56,7 @@ import { AccountLookUpUnableToGetParticipantFromOracleErrorEvent,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import { MemoryMetric, MemoryParticipantService, MemorySpan, createMessage, getJwsConfig } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
-import { Constants, Enums, FspiopJwsSignature, Request, Transformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Enums, FspiopJwsSignature, Request, FspiopTransformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { AccountLookupEventHandler } from "../../../src/event_handlers/account_lookup_evt_handler";
 import { FSPIOP_PARTY_ACCOUNT_TYPES } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants";
 import { IParticipant, IParticipantEndpoint, ParticipantEndpointProtocols, ParticipantEndpointTypes, ParticipantTypes } from "@mojaloop/participant-bc-public-types-lib";
@@ -311,7 +311,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
         await waitForExpect(() => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${participantsEntity}/${msg.payload.partyType}/${msg.payload.partyId}/${msg.payload.partySubType}/error`),
-                source: msg.payload.ownerFspId,
+                source: Constants.FSPIOP_HEADERS_SWITCH,
                 destination: msg.payload.ownerFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: invalidParticipantEndpointError
@@ -347,7 +347,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
                 source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
                 destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadPartyAssociationPut(message.payload)
+                payload: FspiopTransformer.transformPayloadPartyAssociationPut(message.payload)
             }));
         });
 
@@ -382,7 +382,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
         await waitForExpect(() => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${participantsEntity}/${msg.payload.partyType}/${msg.payload.partyId}/${msg.payload.partySubType}/error`),
-                source: msg.payload.ownerFspId,
+                source: Constants.FSPIOP_HEADERS_SWITCH,
                 destination: msg.payload.ownerFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: invalidParticipantEndpointError
@@ -418,7 +418,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
                 source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
                 destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadPartyDisassociationPut(message.payload)
+                payload: FspiopTransformer.transformPayloadPartyDisassociationPut(message.payload)
             }));
         });
 
@@ -493,7 +493,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
                 source: msg.payload.requesterFspId,
                 destination: msg.payload.destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.GET,
-                payload: Transformer.transformPayloadPartyInfoRequestedPut(message.payload)
+                payload: FspiopTransformer.transformPayloadPartyInfoRequestedPut(message.payload)
             }));
         });
 
@@ -517,7 +517,6 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             partyDoB: new Date(),
             partySubType: "456",
             currency: null,
-            extensionList: null,
             supportedCurrencies: null,
             kycInfo: null,
         })
@@ -564,7 +563,6 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             partyDoB: new Date(),
             partySubType: "456",
             currency: null,
-            extensionList: null,
             supportedCurrencies: null,
             kycInfo: null,
         })
@@ -588,7 +586,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
                 source: msg.payload.requesterFspId,
                 destination: msg.payload.destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadPartyInfoReceivedPut(message.payload)
+                payload: FspiopTransformer.transformPayloadPartyInfoReceivedPut(message.payload)
             }));
         });
 
@@ -662,7 +660,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
                 source: Constants.FSPIOP_HEADERS_SWITCH,
                 destination: msg.payload.requesterFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: Transformer.transformPayloadParticipantPut(message.payload)
+                payload: FspiopTransformer.transformPayloadParticipantPut(message.payload)
             }));
         });
 

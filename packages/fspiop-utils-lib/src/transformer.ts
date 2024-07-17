@@ -32,360 +32,422 @@
 "use strict";
 
 import {
-	BulkQuoteReceivedEvtPayload,
-	BulkQuoteAcceptedEvtPayload,
-	ParticipantAssociationCreatedEvtPayload,
-	ParticipantAssociationRemovedEvtPayload,
-	ParticipantQueryResponseEvtPayload,
-	PartyInfoRequestedEvtPayload,
-	PartyQueryResponseEvtPayload,
-	QuoteRequestAcceptedEvtPayload,
-	QuoteResponseAcceptedEvtPayload,
-	TransferPreparedEvtPayload,
-	TransferFulfiledEvtPayload,
-	TransferQueryResponseEvtPayload,
-	TransferRejectRequestProcessedEvtPayload,
-	BulkTransferPreparedEvtPayload,
-	BulkTransferFulfiledEvtPayload,
-	BulkTransferQueryResponseEvtPayload,
-	BulkTransferRejectRequestProcessedEvtPayload,
-	PartyRejectedResponseEvtPayload,
-	ParticipantRejectedResponseEvtPayload,
-	QuoteRejectedResponseEvtPayload,
-	BulkQuoteRejectedResponseEvtPayload
+    BulkQuoteReceivedEvtPayload,
+    BulkQuoteAcceptedEvtPayload,
+    ParticipantAssociationCreatedEvtPayload,
+    ParticipantAssociationRemovedEvtPayload,
+    ParticipantQueryResponseEvtPayload,
+    PartyInfoRequestedEvtPayload,
+    PartyQueryResponseEvtPayload,
+    QuoteRequestAcceptedEvtPayload,
+    QuoteResponseAcceptedEvtPayload,
+    TransferPreparedEvtPayload,
+    TransferFulfiledEvtPayload,
+    TransferQueryResponseEvtPayload,
+    TransferRejectRequestProcessedEvtPayload,
+    BulkTransferPreparedEvtPayload,
+    BulkTransferFulfiledEvtPayload,
+    BulkTransferQueryResponseEvtPayload,
+    BulkTransferRejectRequestProcessedEvtPayload,
+    PartyRejectedResponseEvtPayload,
+    ParticipantRejectedResponseEvtPayload,
+    QuoteRejectedResponseEvtPayload,
+    BulkQuoteRejectedResponseEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { 
-	ExtensionList,
-	FspiopError,
-	GetBulkTransfer,
-	GetTransfer,
-	PostBulkQuote,
-	PostBulkTransfer,
-	PostQuote,
-	PostTransfer,
-	PutBulkQuote,
-	PutBulkTransfer,
-	PutParticipant,
-	PutParty,
-	PutQuote,
-	PutTransfer 
+    ExtensionList,
+    FspiopError,
+    GetBulkTransfer,
+    GetTransfer,
+    PostBulkQuote,
+    PostBulkTransfer,
+    PostQuote,
+    IPostTransfer,
+    PutBulkQuote,
+    PutBulkTransfer,
+    PutParticipant,
+    PutParty,
+    PutQuote,
+    PutTransfer, 
+    IInputExtensionList,
+    IPutQuoteOpaqueState,
+    IPostQuoteOpaqueState,
+    IPostBulkQuoteOpaqueState,
+    IPutBulkQuoteOpaqueState,
+    IPostTransferOpaqueState,
+    IPutTransferOpaqueState,
+    IPostBulkTransferOpaqueState,
+    IPutBulkTransferOpaqueState
 } from "./types";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-export const removeEmpty = (obj: any) => {
-	Object.entries(obj).forEach(([key, val]) =>
-		(val && typeof val === "object") && removeEmpty(val) ||
-		(val === null || val === "") && delete obj[key]
-	);
-	return obj;
-};
+export class FspiopTransformer {
+    static transformExtensionList(input: IInputExtensionList | null): ExtensionList[] {
+        if (input && input.extensionList && input.extensionList.extension) {
+            return input.extensionList.extension;
+        }
 
-export const transformPayloadParticipantPut = (payload: ParticipantQueryResponseEvtPayload): PutParticipant => {
-	return {
-		fspId: payload.ownerFspId
-	};
-};
+        return [];
+    }
 
-export const transformPayloadPartyAssociationPut = (payload: ParticipantAssociationCreatedEvtPayload): PutParty => {
-	const info = {
-		party: {
-			partyIdInfo: {
-				partyIdType: payload.partyType,
-				partyIdentifier: payload.partyId,
-				partySubIdOrType: payload.partySubType,
-				fspId: payload.ownerFspId,
-			}
-		},
-	};
+    /* eslint-disable @typescript-eslint/no-explicit-any */
+    static removeEmpty(obj: any) {
+        Object.entries(obj).forEach(([key, val]) =>
+            (val && typeof val === "object") && FspiopTransformer.removeEmpty(val) ||
+            (val === null || val === "" || val === undefined) && delete obj[key]
+        );
+        return obj;
+    }
 
-	return removeEmpty(info);
-};
+    static transformPayloadParticipantPut(payload: ParticipantQueryResponseEvtPayload): PutParticipant {
+        return {
+            fspId: payload.ownerFspId
+        };
+    }
 
-export const transformPayloadPartyDisassociationPut = (payload: ParticipantAssociationRemovedEvtPayload): PutParty => {
-	const info = {
-		party: {
-			partyIdInfo: {
-				partyIdType: payload.partyType,
-				partyIdentifier: payload.partyId,
-				partySubIdOrType: payload.partySubType,
-				fspId: payload.ownerFspId,
-			}
-		},
-	};
+    static transformPayloadPartyAssociationPut(payload: ParticipantAssociationCreatedEvtPayload): PutParty {
+        const info = {
+            party: {
+                partyIdInfo: {
+                    partyIdType: payload.partyType,
+                    partyIdentifier: payload.partyId,
+                    partySubIdOrType: payload.partySubType,
+                    fspId: payload.ownerFspId,
+                }
+            },
+        };
 
-	return removeEmpty(info);
-};
+        return FspiopTransformer.removeEmpty(info);
+    }
 
-export const transformPayloadPartyInfoRequestedPut = (payload: PartyInfoRequestedEvtPayload): PutParty => {
-	const info = {
-		party: {
-			partyIdInfo: {
-				partyIdType: payload.partyType,
-				partyIdentifier: payload.partyId,
-				partySubIdOrType: payload.partySubType,
-				fspId: payload.requesterFspId
-			}
-		},
-	};
-	return removeEmpty(info);
-};
+    static transformPayloadPartyDisassociationPut(payload: ParticipantAssociationRemovedEvtPayload): PutParty {
+        const info = {
+            party: {
+                partyIdInfo: {
+                    partyIdType: payload.partyType,
+                    partyIdentifier: payload.partyId,
+                    partySubIdOrType: payload.partySubType,
+                    fspId: payload.ownerFspId,
+                }
+            },
+        };
 
-export const transformPayloadPartyInfoReceivedPut = (payload: PartyQueryResponseEvtPayload): PutParty => {
-	const correctPayload = {
-		party: {
-			partyIdInfo: {
-				partyIdType: payload.partyType,
-				partyIdentifier: payload.partyId,
-				partySubIdOrType: payload.partySubType,
-				fspId: payload.ownerFspId,
-				extensionList: payload.extensionList
-			},
-			merchantClassificationCode: payload.merchantClassificationCode,
-			name: payload.name,
-			personalInfo: {
-				complexName: {
-					firstName: payload.firstName,
-					middleName: payload.middleName,
-					lastName: payload.lastName
-				},
-				dateOfBirth: payload.partyDoB,
-				kycInformation: payload.kycInfo,
-			},
-			supportedCurrencies: payload.supportedCurrencies,
-		}
-	};
+        return FspiopTransformer.removeEmpty(info);
+    }
 
-	return removeEmpty(correctPayload);
-};
+    static transformPayloadPartyInfoRequestedPut(payload: PartyInfoRequestedEvtPayload): PutParty {
+        const info = {
+            party: {
+                partyIdInfo: {
+                    partyIdType: payload.partyType,
+                    partyIdentifier: payload.partyId,
+                    partySubIdOrType: payload.partySubType,
+                    fspId: payload.requesterFspId
+                }
+            },
+        };
+        return FspiopTransformer.removeEmpty(info);
+    }
 
-export const transformPayloadError = ({
-	errorCode,
-	errorDescription,
-	extensionList = null
-}: {
-	errorCode: string,
-	errorDescription: string,
-	extensionList?: ExtensionList | null
-}): FspiopError => {
-	const payload: FspiopError = {
-		errorInformation: {
-			errorCode: errorCode,
-			errorDescription: errorDescription,
-		}
-	};
+    static transformPayloadPartyInfoReceivedPut(payload: PartyQueryResponseEvtPayload): PutParty {
+        const correctPayload = {
+            party: {
+                partyIdInfo: {
+                    partyIdType: payload.partyType,
+                    partyIdentifier: payload.partyId,
+                    partySubIdOrType: payload.partySubType,
+                    fspId: payload.ownerFspId,
+                },
+                merchantClassificationCode: payload.merchantClassificationCode,
+                name: payload.name,
+                personalInfo: {
+                    complexName: {
+                        firstName: payload.firstName,
+                        middleName: payload.middleName,
+                        lastName: payload.lastName
+                    },
+                    dateOfBirth: payload.partyDoB,
+                    kycInformation: payload.kycInfo,
+                },
+                supportedCurrencies: payload.supportedCurrencies,
+            }
+        };
 
-	if (extensionList) {
-		payload.errorInformation.extensionList = extensionList;
-	}
+        return FspiopTransformer.removeEmpty(correctPayload);
+    }
 
-	return payload;
-};
+    static transformPayloadError({
+        errorCode,
+        errorDescription,
+        extensionList = null
+    }: {
+        errorCode: string,
+        errorDescription: string,
+        extensionList?: ExtensionList | null
+    }): FspiopError {
+        const payload: FspiopError = {
+            errorInformation: {
+                errorCode: errorCode,
+                errorDescription: errorDescription,
+            }
+        };
 
+        if (extensionList) {
+            payload.errorInformation.extensionList = extensionList;
+        }
 
-export const transformPayloadQuotingRequestPost = (payload: QuoteRequestAcceptedEvtPayload): PostQuote => {
-	const info: PostQuote = {
-		quoteId: payload.quoteId,
-		transactionId: payload.transactionId,
-		payee: payload.payee,
-		payer: payload.payer,
-		amountType: payload.amountType,
-		amount: payload.amount,
-		transactionType: payload.transactionType,
-		expiration: payload.expiration,
-	};
+        return payload;
+    }
 
-	return removeEmpty(info);
-};
+    static transformPayloadQuotingRequestPost(payload: QuoteRequestAcceptedEvtPayload, protocolValues: IPostQuoteOpaqueState): PostQuote {
+        const info: PostQuote = {
+            quoteId: payload.quoteId,
+            transactionId: payload.transactionId,
+            payee: payload.payee,
+            payer: payload.payer,
+            amountType: payload.amountType,
+            amount: payload.amount,
+            transactionType: payload.transactionType,
+            expiration: payload.expiration,
 
-export const transformPayloadQuotingResponsePut = (payload: QuoteResponseAcceptedEvtPayload): PutQuote => {
-	const info: PutQuote = {
-		transferAmount: payload.transferAmount,
-		expiration: payload.expiration,
-		ilpPacket: payload.ilpPacket,
-		condition: payload.condition,
-		payeeReceiveAmount: payload.payeeReceiveAmount,
-		payeeFspFee: payload.payeeFspFee,
-		payeeFspCommission: payload.payeeFspCommission,
-		geoCode: payload.geoCode,
-		extensionList: payload.extensionList
-	};
+            // OpaqueState
+            extensionList: protocolValues.extensionList,
+        };
 
-	return removeEmpty(info);
-};
+        return FspiopTransformer.removeEmpty(info);
+    }
 
-export const transformPayloadQuotingResponseGet = (payload: QuoteResponseAcceptedEvtPayload): PutQuote => {
-	const info: PutQuote = {
-		transferAmount: payload.transferAmount,
-		expiration: payload.expiration,
-		ilpPacket: payload.ilpPacket,
-		condition: payload.condition,
-		payeeReceiveAmount: payload.payeeReceiveAmount,
-		payeeFspFee: payload.payeeFspFee,
-		payeeFspCommission: payload.payeeFspCommission,
-		geoCode: payload.geoCode,
-		extensionList: payload.extensionList
-	};
+    static transformPayloadQuotingResponsePut(payload: QuoteResponseAcceptedEvtPayload, protocolValues: IPutQuoteOpaqueState): PutQuote {
+        const info: PutQuote = {
+            transferAmount: payload.transferAmount,
+            expiration: payload.expiration,
+            payeeReceiveAmount: payload.payeeReceiveAmount,
+            payeeFspFee: payload.payeeFspFee,
+            payeeFspCommission: payload.payeeFspCommission,
+            geoCode: payload.geoCode,
+            
+            // OpaqueState
+            ilpPacket: protocolValues.ilpPacket,
+            condition: protocolValues.condition,
+            extensionList: protocolValues.extensionList,
+        };
 
-	return removeEmpty(info);
-};
+        return FspiopTransformer.removeEmpty(info);
+    }
 
+    static transformPayloadQuotingResponseGet(payload: QuoteResponseAcceptedEvtPayload, protocolValues: IPutQuoteOpaqueState): PutQuote {
+        const info: PutQuote = {
+            transferAmount: payload.transferAmount,
+            expiration: payload.expiration,
+            payeeReceiveAmount: payload.payeeReceiveAmount,
+            payeeFspFee: payload.payeeFspFee,
+            payeeFspCommission: payload.payeeFspCommission,
+            geoCode: payload.geoCode,
 
-export const transformPayloadBulkQuotingResponsePost = (payload: BulkQuoteReceivedEvtPayload): PostBulkQuote => {
-	const info: PostBulkQuote = {
-		bulkQuoteId: payload.bulkQuoteId,
-		payer: payload.payer,
-		geoCode: payload.geoCode,
-		expiration: payload.expiration,
-		individualQuotes: payload.individualQuotes.map((quote:typeof payload.individualQuotes[number]) => {
-			return {
-				...quote,
-				fees: quote.feesPayer
-			};
-		}),
-		extensionList: payload.extensionList
-	};
+            // OpaqueState
+            ilpPacket: protocolValues.ilpPacket,
+            condition: protocolValues.condition,
+            extensionList: protocolValues.extensionList,
+        };
 
-	return removeEmpty(info);
-};
+        return FspiopTransformer.removeEmpty(info);
+    }
 
-export const transformPayloadBulkQuotingResponsePut = (payload: BulkQuoteAcceptedEvtPayload): PutBulkQuote => {
-	const info: PutBulkQuote = {
-		bulkQuoteId: payload.bulkQuoteId,
-		individualQuoteResults: payload.individualQuoteResults,
-		expiration: payload.expiration,
-		extensionList: payload.extensionList
-	};
+    static transformPayloadBulkQuotingResponsePost(payload: BulkQuoteReceivedEvtPayload, protocolValues: IPostBulkQuoteOpaqueState): PostBulkQuote {
+        const info: PostBulkQuote = {
+            bulkQuoteId: payload.bulkQuoteId,
+            payer: payload.payer,
+            geoCode: payload.geoCode,
+            expiration: payload.expiration,
+            individualQuotes: payload.individualQuotes.map((quote:typeof payload.individualQuotes[number]) => {
+                return {
+                    ...quote,
+                    fees: quote.feesPayer,
+                    extensionList: protocolValues.extensionList
+                };
+            }),
 
-	return removeEmpty(info);
-};
+            // OpaqueState
+            extensionList: protocolValues.extensionList,
+        };
 
-export const transformPayloadQuotingRequestPutError = (payload: QuoteRejectedResponseEvtPayload): FspiopError => {
-	const info: FspiopError = {
-		errorInformation: payload.errorInformation
-	};
+        return FspiopTransformer.removeEmpty(info);
+    }
 
-	return removeEmpty(info);
-};
+    static transformPayloadBulkQuotingResponsePut(payload: BulkQuoteAcceptedEvtPayload, protocolValues: IPutBulkQuoteOpaqueState): PutBulkQuote {
+        const info: PutBulkQuote = {
+            bulkQuoteId: payload.bulkQuoteId,
+            individualQuoteResults: payload.individualQuoteResults.map((quote:typeof payload.individualQuoteResults[number]) => {
+                return {
+                    ...quote,
+                    errorInformation: quote.errorInformation ? { 
+                        errorCode: quote.errorInformation.errorCode,
+                        errorDescription: quote.errorInformation.errorDescription,
+                        extensionList: protocolValues.extensionList,
+                    } : null,
+                    ilpPacket: protocolValues.ilpPacket,
+                    condition: protocolValues.condition,
+                    extensionList: protocolValues.extensionList,
+                };
+            }),
+            expiration: payload.expiration,
 
-export const transformPayloadBulkQuotingRequestPutError = (payload: BulkQuoteRejectedResponseEvtPayload): FspiopError => {
-	const info: FspiopError = {
-		errorInformation: payload.errorInformation
-	};
+            // OpaqueState
+            extensionList: protocolValues.extensionList,
+        };
 
-	return removeEmpty(info);
-};
+        return FspiopTransformer.removeEmpty(info);
+    }
 
-export const transformPayloadTransferRequestPost = (payload: TransferPreparedEvtPayload): PostTransfer => {
-	const info: PostTransfer = {
-		transferId: payload.transferId,
-		payeeFsp: payload.payeeFsp,
-		payerFsp: payload.payerFsp,
-		amount: {
-			amount: payload.amount,
-			currency: payload.currencyCode
-		},
-		ilpPacket: payload.ilpPacket,
-		condition: payload.condition,
-		expiration: payload.expiration,
-	};
+    static transformPayloadQuotingRequestPutError(payload: QuoteRejectedResponseEvtPayload): FspiopError {
+        const info: FspiopError = {
+            errorInformation: payload.errorInformation
+        };
 
-	return removeEmpty(info);
-};
+        return FspiopTransformer.removeEmpty(info);
+    }
 
-export const transformPayloadTransferRequestPut = (payload: TransferFulfiledEvtPayload): PutTransfer => {
-	const info: PutTransfer = {
-		transferState: "COMMITTED",
-		fulfilment: payload.fulfilment,
-		completedTimestamp: new Date(payload.completedTimestamp).toJSON(),
-		extensionList: payload.extensionList
-	};
+    static transformPayloadBulkQuotingRequestPutError(payload: BulkQuoteRejectedResponseEvtPayload): FspiopError {
+        const info: FspiopError = {
+            errorInformation: payload.errorInformation
+        };
 
-	return removeEmpty(info);
-};
+        return FspiopTransformer.removeEmpty(info);
+    }
 
-export const transformPayloadTransferRequestGet = (payload: TransferQueryResponseEvtPayload): GetTransfer => {
-	const info: GetTransfer = {
-		transferState: "COMMITTED",
-		fulfilment: payload.fulfilment,
-		completedTimestamp: payload.completedTimestamp ? new Date(payload.completedTimestamp).toJSON() : null,
-		extensionList: payload.extensionList
-	};
+    static transformPayloadTransferRequestPost(payload: TransferPreparedEvtPayload, protocolValues: IPostTransferOpaqueState): IPostTransfer {
+        const info: IPostTransfer = {
+            transferId: payload.transferId,
+            payeeFsp: payload.payeeFsp,
+            payerFsp: payload.payerFsp,
+            amount: {
+                amount: payload.amount,
+                currency: payload.currencyCode
+            },
+            expiration: new Date(payload.expiration).toISOString(),
+            
+            // OpaqueState
+            ilpPacket: protocolValues.ilpPacket,
+            condition: protocolValues.condition,
+            extensionList: protocolValues.extensionList,
+        };
 
-	return removeEmpty(info);
-};
+        return FspiopTransformer.removeEmpty(info);
+    }
 
-export const transformPayloadTransferRequestPutError = (payload: TransferRejectRequestProcessedEvtPayload): FspiopError => {
-	const info: FspiopError = {
-		errorInformation: payload.errorInformation
-	};
+    static transformPayloadTransferRequestPut(payload: TransferFulfiledEvtPayload, protocolValues: IPutTransferOpaqueState): PutTransfer {
+        const info: PutTransfer = {
+            transferState: "COMMITTED",
+            completedTimestamp: new Date(payload.completedTimestamp).toISOString(),
 
-	return removeEmpty(info);
-};
+            // OpaqueState
+            fulfilment: protocolValues.fulfilment,
+            extensionList: protocolValues.extensionList,
+        };
 
-export const transformPayloadBulkTransferRequestPost = (payload: BulkTransferPreparedEvtPayload): PostBulkTransfer => {
-	const info: PostBulkTransfer = {
-		bulkTransferId: payload.bulkTransferId,
-		bulkQuoteId: payload.bulkQuoteId,
-		payeeFsp: payload.payeeFsp,
-		payerFsp: payload.payerFsp,
-		expiration: new Date(payload.expiration).toISOString(),
-		individualTransfers: payload.individualTransfers.map((individualTransfer: any) => {
-			return {
-				...individualTransfer,
-				transferAmount: {
-					amount: individualTransfer.amount,
-					currency: individualTransfer.currencyCode
-				}
-			};
-		}),
-		extensionList: payload.extensionList
-	};
+        return FspiopTransformer.removeEmpty(info);
+    }
 
-	return removeEmpty(info);
-};
+    static transformPayloadTransferRequestGet(payload: TransferQueryResponseEvtPayload, protocolValues: IPutTransferOpaqueState): GetTransfer {
+        const info: GetTransfer = {
+            transferState: "COMMITTED",
+            completedTimestamp: payload.completedTimestamp ? new Date(payload.completedTimestamp).toJSON() : null,
 
-export const transformPayloadBulkTransferRequestPut = (payload: BulkTransferFulfiledEvtPayload): PutBulkTransfer => {
-	const info: PutBulkTransfer = {
-		completedTimestamp: payload.completedTimestamp,
-		bulkTransferState: payload.bulkTransferState,
-		individualTransferResults: payload.individualTransferResults,
-		extensionList: payload.extensionList
-	};
+            // OpaqueState
+            fulfilment: protocolValues.fulfilment,
+            extensionList: protocolValues.extensionList,
+        };
 
-	return removeEmpty(info);
-};
+        return FspiopTransformer.removeEmpty(info);
+    }
 
-export const transformPayloadBulkTransferRequestGet = (payload: BulkTransferQueryResponseEvtPayload): GetBulkTransfer => {
-	const info: GetBulkTransfer = {
-		completedTimestamp: payload.completedTimestamp,
-		bulkTransferState: payload.bulkTransferState,
-		individualTransferResults: payload.individualTransferResults,
-		extensionList: payload.extensionList
-	};
+    static transformPayloadTransferRequestPutError(payload: TransferRejectRequestProcessedEvtPayload): FspiopError {
+        const info: FspiopError = {
+            errorInformation: payload.errorInformation
+        };
 
-	return removeEmpty(info);
-};
+        return FspiopTransformer.removeEmpty(info);
+    }
 
-export const transformPayloadBulkTransferRequestPutError = (payload: BulkTransferRejectRequestProcessedEvtPayload): FspiopError => {
-	const info: FspiopError = {
-		errorInformation: payload.errorInformation
-	};
+    static transformPayloadBulkTransferRequestPost(payload: BulkTransferPreparedEvtPayload, protocolValues: IPutBulkTransferOpaqueState): PostBulkTransfer {
+        const info: PostBulkTransfer = {
+            bulkTransferId: payload.bulkTransferId,
+            bulkQuoteId: payload.bulkQuoteId,
+            payeeFsp: payload.payeeFsp,
+            payerFsp: payload.payerFsp,
+            expiration: new Date(payload.expiration).toISOString(),
+            individualTransfers: payload.individualTransfers.map((individualTransfer: any) => {
+                return {
+                    ...individualTransfer,
+                    transferAmount: {
+                        amount: individualTransfer.amount,
+                        currency: individualTransfer.currencyCode
+                    }
+                };
+            }),
 
-	return removeEmpty(info);
-};
+            // OpaqueState
+            extensionList: protocolValues.extensionList,
+        };
 
-export const transformPayloadPartyRejectedPut = (payload: PartyRejectedResponseEvtPayload): FspiopError => {
-	const info: FspiopError = {
-		errorInformation: payload.errorInformation
-	};
+        return FspiopTransformer.removeEmpty(info);
+    }
 
-	return removeEmpty(info);
-};
+    static transformPayloadBulkTransferRequestPut(payload: BulkTransferFulfiledEvtPayload, protocolValues: IPutBulkTransferOpaqueState): PutBulkTransfer {
+        const info: PutBulkTransfer = {
+            completedTimestamp: payload.completedTimestamp,
+            bulkTransferState: payload.bulkTransferState,
+            individualTransferResults: payload.individualTransferResults.map((transfer:typeof payload.individualTransferResults[number]) => {
+                return {
+                    ...transfer,
+                    errorInformation: transfer.errorInformation ? { 
+                        errorCode: transfer.errorInformation.errorCode,
+                        errorDescription: transfer.errorInformation.errorDescription,
+                        extensionList: protocolValues.extensionList,
+                    } : null as any,
+                    fulfilment: protocolValues.fulfilment,
+                    extensionList: protocolValues.extensionList,
+                };
+            }),
 
-export const transformPayloadParticipantRejectedPut = (payload: ParticipantRejectedResponseEvtPayload): FspiopError => {
-	const info: FspiopError = {
-		errorInformation: payload.errorInformation
-	};
+            // OpaqueState
+            extensionList: protocolValues.extensionList,
+        };
 
-	return removeEmpty(info);
-};
+        return FspiopTransformer.removeEmpty(info);
+    }
+
+    static transformPayloadBulkTransferRequestGet(payload: BulkTransferQueryResponseEvtPayload, protocolValues?: any): GetBulkTransfer {
+        const info: GetBulkTransfer = {
+            completedTimestamp: payload.completedTimestamp,
+            bulkTransferState: payload.bulkTransferState,
+            individualTransferResults: payload.individualTransferResults,
+            ...protocolValues
+        };
+
+        return FspiopTransformer.removeEmpty(info);
+    }
+
+    static transformPayloadBulkTransferRequestPutError(payload: BulkTransferRejectRequestProcessedEvtPayload): FspiopError {
+        const info: FspiopError = {
+            errorInformation: payload.errorInformation
+        };
+
+        return FspiopTransformer.removeEmpty(info);
+    }
+
+    static transformPayloadPartyRejectedPut(payload: PartyRejectedResponseEvtPayload): FspiopError {
+        const info: FspiopError = {
+            errorInformation: payload.errorInformation
+        };
+
+        return FspiopTransformer.removeEmpty(info);
+    }
+
+    static transformPayloadParticipantRejectedPut(payload: ParticipantRejectedResponseEvtPayload): FspiopError {
+        const info: FspiopError = {
+            errorInformation: payload.errorInformation
+        };
+
+        return FspiopTransformer.removeEmpty(info);
+    }
+}

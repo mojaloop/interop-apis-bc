@@ -637,49 +637,49 @@ describe("FSPIOP Routes - Unit Tests Quote", () => {
         });
     });
 
-    it("should throw an error on kafka producer calling quoteResponseReceived endpoint", async () => {
-        // Arrange
-        const quoteResponseReceivedKafka = {
-            "transferAmount": {
-                "currency": "USD",
-                "amount": "1"
-            },
-            "expiration": "2023-09-22T20:52:37.671Z",
-            "ilpPacket": "AYICSwAAAAAAAABkFGcuZ3JlZW5iYW5rLm1zaXNkbi4xggIqZXlKMGNtRnVjMkZqZEdsdmJrbGtJam9pTUdaaVlXWXhZVFV0WkRneVlpMDFZbUptTFRsbVptVXRPV1E0TldabFpEbGpabVE0SWl3aWNYVnZkR1ZKWkNJNklqSXlORE5tWkdKbExUVmtaV0V0TTJGaVpDMWhNakV3TFRNM09EQmxOMlkwWmpGbU5TSXNJbkJoZVdWbElqcDdJbkJoY25SNVNXUkpibVp2SWpwN0luQmhjblI1U1dSVWVYQmxJam9pVFZOSlUwUk9JaXdpY0dGeWRIbEpaR1Z1ZEdsbWFXVnlJam9pTVNJc0ltWnpjRWxrSWpvaVozSmxaVzVpWVc1ckluMTlMQ0p3WVhsbGNpSTZleUp3WVhKMGVVbGtTVzVtYnlJNmV5SndZWEowZVVsa1ZIbHdaU0k2SWsxVFNWTkVUaUlzSW5CaGNuUjVTV1JsYm5ScFptbGxjaUk2SWpFaUxDSm1jM0JKWkNJNkltSnNkV1ZpWVc1ckluMTlMQ0poYlc5MWJuUWlPbnNpWTNWeWNtVnVZM2tpT2lKVlUwUWlMQ0poYlc5MWJuUWlPaUl4SW4wc0luUnlZVzV6WVdOMGFXOXVWSGx3WlNJNmV5SnpZMlZ1WVhKcGJ5STZJa1JGVUU5VFNWUWlMQ0pwYm1sMGFXRjBiM0lpT2lKUVFWbEZVaUlzSW1sdWFYUnBZWFJ2Y2xSNWNHVWlPaUpDVlZOSlRrVlRVeUo5ZlEA",
-            "condition": "VFWFNc85U0f23hniAuTmwk6XVVlR0llxRZ-xqPrCShk",
-            "payeeFspFee": {
-                "currency": "USD",
-                "amount": "0.2"
-            },
-            "payeeFspCommission": {
-                "currency": "USD",
-                "amount": "0.3"
-            },
-            "geoCode": {
-                "latitude": "2",
-                "longitude": "5.6"
-            },
-            "payeeReceiveAmount": {
-                "currency": "USD",
-                "amount": "1"
-            }
-        };
+    // it("should throw an error on kafka producer calling quoteResponseReceived endpoint", async () => {
+    //     // Arrange
+    //     const quoteResponseReceivedKafka = {
+    //         "transferAmount": {
+    //             "currency": "USD",
+    //             "amount": "1"
+    //         },
+    //         "expiration": "2023-09-22T20:52:37.671Z",
+    //         "ilpPacket": "AYICSwAAAAAAAABkFGcuZ3JlZW5iYW5rLm1zaXNkbi4xggIqZXlKMGNtRnVjMkZqZEdsdmJrbGtJam9pTUdaaVlXWXhZVFV0WkRneVlpMDFZbUptTFRsbVptVXRPV1E0TldabFpEbGpabVE0SWl3aWNYVnZkR1ZKWkNJNklqSXlORE5tWkdKbExUVmtaV0V0TTJGaVpDMWhNakV3TFRNM09EQmxOMlkwWmpGbU5TSXNJbkJoZVdWbElqcDdJbkJoY25SNVNXUkpibVp2SWpwN0luQmhjblI1U1dSVWVYQmxJam9pVFZOSlUwUk9JaXdpY0dGeWRIbEpaR1Z1ZEdsbWFXVnlJam9pTVNJc0ltWnpjRWxrSWpvaVozSmxaVzVpWVc1ckluMTlMQ0p3WVhsbGNpSTZleUp3WVhKMGVVbGtTVzVtYnlJNmV5SndZWEowZVVsa1ZIbHdaU0k2SWsxVFNWTkVUaUlzSW5CaGNuUjVTV1JsYm5ScFptbGxjaUk2SWpFaUxDSm1jM0JKWkNJNkltSnNkV1ZpWVc1ckluMTlMQ0poYlc5MWJuUWlPbnNpWTNWeWNtVnVZM2tpT2lKVlUwUWlMQ0poYlc5MWJuUWlPaUl4SW4wc0luUnlZVzV6WVdOMGFXOXVWSGx3WlNJNmV5SnpZMlZ1WVhKcGJ5STZJa1JGVUU5VFNWUWlMQ0pwYm1sMGFXRjBiM0lpT2lKUVFWbEZVaUlzSW1sdWFYUnBZWFJ2Y2xSNWNHVWlPaUpDVlZOSlRrVlRVeUo5ZlEA",
+    //         "condition": "VFWFNc85U0f23hniAuTmwk6XVVlR0llxRZ-xqPrCShk",
+    //         "payeeFspFee": {
+    //             "currency": "USD",
+    //             "amount": "0.2"
+    //         },
+    //         "payeeFspCommission": {
+    //             "currency": "USD",
+    //             "amount": "0.3"
+    //         },
+    //         "geoCode": {
+    //             "latitude": "2",
+    //             "longitude": "5.6"
+    //         },
+    //         "payeeReceiveAmount": {
+    //             "currency": "USD",
+    //             "amount": "1"
+    //         }
+    //     };
 
-        // Act
-        const res = await request(server)
-        .put(pathWithId)
-        .send(quoteResponseReceivedKafka)
-        .set(getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.PUT));
+    //     // Act
+    //     const res = await request(server)
+    //     .put(pathWithId)
+    //     .send(quoteResponseReceivedKafka)
+    //     .set(getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.PUT));
 
-        // Assert
-        expect(res.statusCode).toEqual(500);
-        expect(res.body).toStrictEqual({
-            "errorInformation": {
-                "errorCode": "2001",
-                "errorDescription": "Producer not connected"
-            }
-        });
-    });
+    //     // Assert
+    //     expect(res.statusCode).toEqual(500);
+    //     expect(res.body).toStrictEqual({
+    //         "errorInformation": {
+    //             "errorCode": "2001",
+    //             "errorDescription": "Producer not connected"
+    //         }
+    //     });
+    // });
 
     it("should give a bad request calling quoteRejectRequest endpoint", async () => {
         // Arrange

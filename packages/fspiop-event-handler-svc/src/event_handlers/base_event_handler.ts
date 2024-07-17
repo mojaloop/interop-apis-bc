@@ -53,7 +53,7 @@ import {
     Constants,
     Request,
     Enums,
-    Transformer,
+    FspiopTransformer,
     FspiopJwsSignature
 } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {IHistogram, IMetrics, SpanStatusCode, Tracer} from "@mojaloop/platform-shared-lib-observability-types-lib";
@@ -291,7 +291,7 @@ export abstract class BaseEventHandler  {
                     clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = headers[Constants.FSPIOP_HEADERS_SOURCE];
                 }
 
-                const transformedPayload = Transformer.transformPayloadError({
+                const transformedPayload = FspiopTransformer.transformPayloadError({
                     errorCode: errorResponse.errorCode,
                     errorDescription: errorResponse.errorDescription,
                     extensionList: message.payload.errorInformation ? message.payload.errorInformation.extensionList : null

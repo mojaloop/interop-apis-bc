@@ -300,7 +300,8 @@ describe("FSPIOP Routes - Unit Tests Bulk Transfer", () => {
                     "condition": "STksBXN1-J5HnG_4owlzKnbmzCfiOlrKDPgiR-QZ7Kg"
                 }
             ],
-            "expiration": "2024-02-28T13:27:53.536Z"
+            "expiration": new Date(Date.now() + 60 * 1000).toISOString()
+
         };
 
         // Act
@@ -337,7 +338,8 @@ describe("FSPIOP Routes - Unit Tests Bulk Transfer", () => {
                     "condition": "STksBXN1-J5HnG_4owlzKnbmzCfiOlrKDPgiR-QZ7Kg"
                 }
             ],
-            "expiration": "2024-02-28T13:27:53.536Z"
+            "expiration": new Date(Date.now() + 60 * 1000).toISOString()
+
         };
 
         // Act
@@ -392,7 +394,8 @@ describe("FSPIOP Routes - Unit Tests Bulk Transfer", () => {
                     "condition": "STksBXN1-J5HnG_4owlzKnbmzCfiOlrKDPgiR-QZ7Kg"
                 }
             ],
-            "expiration": "2024-02-28T13:27:53.536Z"
+            "expiration": new Date(Date.now() + 60 * 1000).toISOString()
+
         };
 
         // Act
@@ -430,7 +433,8 @@ describe("FSPIOP Routes - Unit Tests Bulk Transfer", () => {
                     "condition": "STksBXN1-J5HnG_4owlzKnbmzCfiOlrKDPgiR-QZ7Kg"
                 }
             ],
-            "expiration": "2024-02-28T13:27:53.536Z"
+            "expiration": new Date(Date.now() + 60 * 1000).toISOString()
+
         };
 
         // Act
@@ -467,7 +471,8 @@ describe("FSPIOP Routes - Unit Tests Bulk Transfer", () => {
                     "condition": "STksBXN1-J5HnG_4owlzKnbmzCfiOlrKDPgiR-QZ7Kg"
                 }
             ],
-            "expiration": "2024-02-28T13:27:53.536Z"
+            "expiration": new Date(Date.now() + 60 * 1000).toISOString()
+
         };
 
         // Act

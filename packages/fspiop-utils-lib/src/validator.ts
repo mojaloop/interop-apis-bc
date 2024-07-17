@@ -34,6 +34,12 @@ optionally within square brackets <email>.
 import {Currency} from "@mojaloop/platform-configuration-bc-public-types-lib";
 import { ClientErrors } from "./enums";
 import { ValidationdError } from "./errors";
+import base64url from "base64url";
+import Crypto from "crypto";
+import { DecodedIlpPacketQuote, DecodedIlpPacketTransfer } from "./ilp_types";
+import { IPostTransfer, PutQuote } from "./types";
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const FiveBellsCondition = require("five-bells-condition");
 
 type Amount =  {
 	currency: string;
@@ -125,4 +131,104 @@ export class FspiopValidator {
 		return this;
 	}
 
-  }
+	validateIlpAgainstQuoteResponse = (quoteResponseBody:PutQuote, decodedQuoteIlpPacket:DecodedIlpPacketQuote) => {
+
+		if (quoteResponseBody.transferAmount.currency !== decodedQuoteIlpPacket.amount.currency) {
+			throw new ValidationdError({
+				"errorInformation": {
+					"errorCode": ClientErrors.GENERIC_VALIDATION_ERROR.code,
+					"errorDescription": `Request body currency ${quoteResponseBody.transferAmount.currency} and ilpPacket ${decodedQuoteIlpPacket.amount.currency} are not the same`,
+					"extensionList": null
+				}
+			});
+		}
+		if (quoteResponseBody.transferAmount.amount !== decodedQuoteIlpPacket.amount.amount) {
+			throw new ValidationdError({
+				"errorInformation": {
+					"errorCode": ClientErrors.GENERIC_VALIDATION_ERROR.code,
+					"errorDescription": `Request body amount ${quoteResponseBody.transferAmount.amount} and ilpPacket ${decodedQuoteIlpPacket.amount.amount} are not the same`,
+					"extensionList": null
+				}
+			});
+		}
+		return true;
+	};
+	
+	
+	validateIlpAgainstTransferRequest = (transferRequestBody:IPostTransfer, decodedTransferIlpPacket:DecodedIlpPacketTransfer) => {
+	
+		if (transferRequestBody.payerFsp !== decodedTransferIlpPacket.payer.partyIdInfo.fspId) {
+			throw new ValidationdError({
+				"errorInformation": {
+					"errorCode": ClientErrors.GENERIC_VALIDATION_ERROR.code,
+					"errorDescription": `Request body payerFsp ${transferRequestBody.payerFsp} and ilpPacket ${decodedTransferIlpPacket.payer.partyIdInfo.fspId} are not the same`,
+					"extensionList": null
+				}
+			});
+		}
+		if (transferRequestBody.payeeFsp !== decodedTransferIlpPacket.payee.partyIdInfo.fspId) {
+			throw new ValidationdError({
+				"errorInformation": {
+					"errorCode": ClientErrors.GENERIC_VALIDATION_ERROR.code,
+					"errorDescription": `Request body payeeFsp ${transferRequestBody.payeeFsp} and ilpPacket ${decodedTransferIlpPacket.payee.partyIdInfo.fspId} are not the same`,
+					"extensionList": null
+				}
+			});
+		}
+		if (transferRequestBody.amount.currency !== decodedTransferIlpPacket.amount.currency) {
+			throw new ValidationdError({
+				"errorInformation": {
+					"errorCode": ClientErrors.GENERIC_VALIDATION_ERROR.code,
+					"errorDescription": `Request body currency ${transferRequestBody.amount.currency} and ilpPacket ${decodedTransferIlpPacket.amount.currency} are not the same`,
+					"extensionList": null
+				}
+			});
+		}
+		if (transferRequestBody.amount.amount !== decodedTransferIlpPacket.amount.amount) {
+			throw new ValidationdError({
+				"errorInformation": {
+					"errorCode": ClientErrors.GENERIC_VALIDATION_ERROR.code,
+					"errorDescription": `Request body amount ${transferRequestBody.amount.amount} and ilpPacket ${decodedTransferIlpPacket.amount.amount} are not the same`,
+					"extensionList": null
+				}
+			});
+		}
+		return true;
+	};
+
+	validateCondition = (conditionUri:string) => {
+
+		try {
+			// NOTE: we add this prefix because it's a Named Information (NI) 
+			const prefix = "ni:///sha-256;";
+			if (!conditionUri.startsWith(prefix)) {
+				conditionUri = prefix + conditionUri;
+			}
+
+			const condition = `ni:///sha-256;${conditionUri}?fpt=preimage-sha-256&cost=0`;
+			
+			FiveBellsCondition.validateCondition(condition);
+		} catch (err) {
+			throw new ValidationdError({
+				"errorInformation": {
+					"errorCode": ClientErrors.GENERIC_VALIDATION_ERROR.code,
+					"errorDescription": "Invalid condition",
+					"extensionList": null
+				}
+			});
+		}
+	};
+		
+	validateFulfil = (fulfilment:string, condition:string) => {
+		const preimage = base64url.toBuffer(fulfilment);
+	
+		if (preimage.length !== 32) {
+			return false;
+		}
+	
+		const calculatedConditionDigest = Crypto.createHash("sha256").update(preimage).digest("base64");
+		const calculatedConditionUrlEncoded = base64url.fromBase64(calculatedConditionDigest);
+	
+		return (calculatedConditionUrlEncoded === condition);
+	};
+}

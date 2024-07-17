@@ -135,7 +135,11 @@ export const TransfersBCErrorMappings = {
     [TransferErrorCodeNames.PAYEE_PARTICIPANT_NOT_APPROVED]: {
         errorCode: Enums.ClientErrors.DESTINATION_FSP_ERROR.code,
         errorDescription: Enums.ClientErrors.DESTINATION_FSP_ERROR.name
-    }
+    },
+    // [TransferErrorCodeNames.UNABLE_TO_VALIDATE_TRANSFER_FULFILMENT]: {
+    //     errorCode: Enums.ClientErrors.DESTINATION_FSP_ERROR.code,
+    //     errorDescription: Enums.ClientErrors.DESTINATION_FSP_ERROR.name
+    // }
 };
 
 export type TransferErrorCode = keyof typeof TransfersBCErrorMappings;

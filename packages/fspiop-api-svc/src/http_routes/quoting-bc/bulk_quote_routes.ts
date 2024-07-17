@@ -45,8 +45,8 @@ import {
     Constants,
     FspiopJwsSignature,
     FspiopValidator,
-    Transformer,
-    ValidationdError
+    ValidationdError,
+    FspiopTransformer
 } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { FSPIOPErrorCodes } from "../validation";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
@@ -96,14 +96,14 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
 
             // Headers
             const clonedHeaders = { ...req.headers };
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
 
             // Date Model
             const bulkQuoteId = req.params.id;
             
             if (!bulkQuoteId || !requesterFspId) {
-                const transformError = Transformer.transformPayloadError({
+                const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
@@ -114,6 +114,8 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
             }
 
             const msgPayload: BulkQuoteQueryReceivedEvtPayload = {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
                 bulkQuoteId: bulkQuoteId,
             };
 
@@ -122,8 +124,6 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
             msg.validatePayload();
 
             msg.fspiopOpaqueState = {
-                requesterFspId: requesterFspId,
-                destinationFspId: destinationFspId,
                 headers: clonedHeaders
             };
 
@@ -136,7 +136,7 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
             this._logger.debug("bulkQuoteQueryReceived responded");
 
         } catch (error: unknown) {
-            const transformError = Transformer.transformPayloadError({
+            const transformError = FspiopTransformer.transformPayloadError({
                 errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                 errorDescription: (error as Error).message,
                 extensionList: null
@@ -164,7 +164,7 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
             //TODO: validate ilpPacket
 
             if (!requesterFspId || !bulkQuoteId || !payer || !individualQuotes) {
-                const transformError = Transformer.transformPayloadError({
+                const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
@@ -188,8 +188,7 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
                 geoCode: geoCode,
                 expiration: expiration,
                 individualQuotes: individualQuotes,
-                extensionList: extensionList,
-            } as BulkQuoteRequestedEvtPayload;
+            } as unknown as BulkQuoteRequestedEvtPayload;
 
             const msg = new BulkQuoteRequestedEvt(msgPayload);
 
@@ -200,9 +199,10 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
 
             // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
             msg.fspiopOpaqueState = {
+                headers: clonedHeaders,
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId,
-                headers: clonedHeaders
+                extensionList: extensionList,
             };
 
             await this._kafkaProducer.send(msg);
@@ -217,7 +217,7 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
             if(error instanceof ValidationdError) {
                 reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
-                const transformError = Transformer.transformPayloadError({
+                const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
@@ -243,7 +243,7 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
             const extensionList = req.body.extensionList;
 
             if (!bulkQuoteId || !requesterFspId || !individualQuoteResults) {
-                const transformError = Transformer.transformPayloadError({
+                const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
@@ -270,6 +270,8 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
             }
 
             const msgPayload: BulkQuotePendingReceivedEvtPayload = {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
                 bulkQuoteId: bulkQuoteId,
                 expiration: expiration,
                 individualQuoteResults: individualQuoteResults,
@@ -302,7 +304,7 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
             if(error instanceof ValidationdError) {
                 reply.code(400).send((error as ValidationdError).errorInformation);
             } else {
-                const transformError = Transformer.transformPayloadError({
+                const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                     errorDescription: (error as Error).message,
                     extensionList: null
@@ -318,14 +320,14 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
 
         try{
             const clonedHeaders = { ...req.headers };
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
 
             const bulkQuoteId = req.params.id;
             const errorInformation = req.body.errorInformation;
 
             if(!bulkQuoteId || !errorInformation || !requesterFspId) {
-                const transformError = Transformer.transformPayloadError({
+                const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
                     errorDescription: FSPIOPErrorCodes.MALFORMED_SYNTAX.message,
                     extensionList: null
@@ -340,6 +342,8 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
             }
 
             const msgPayload: BulkQuoteRejectedEvtPayload = {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
                 bulkQuoteId: bulkQuoteId,
                 errorInformation: errorInformation
             };
@@ -365,7 +369,7 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
             this._logger.debug("bulk quote rejected responded");
 
         } catch (error: unknown) {
-            const transformError = Transformer.transformPayloadError({
+            const transformError = FspiopTransformer.transformPayloadError({
                 errorCode: FSPIOPErrorCodes.INTERNAL_SERVER_ERROR.code,
                 errorDescription: (error as Error).message,
                 extensionList: null
