@@ -360,7 +360,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             // NOTE: Special case in getting the destination fsp id, as this is a lookup so only the payload will 
             // have the information as we don't want any bounded context to ever change the opaque state 
-            const destinationFspId = payload.destinationFspId; 
+            const destinationFspId = payload.destinationFspId;
+
             const partyType = payload.partyType;
             const partyId = payload.partyId;
             const partySubType = payload.partySubType as string;
