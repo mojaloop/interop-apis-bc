@@ -133,6 +133,7 @@ export type QuoteResponseReceivedDTO = {
             amount: string;
         };
         expiration: string;
+        note: string | null;
         ilpPacket: string;
         condition: string;
         payeeReceiveAmount: {

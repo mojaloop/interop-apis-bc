@@ -155,6 +155,7 @@ export interface PostQuote {
 		balanceOfPayments: string | null;
 	},
 	expiration: string | null;
+	note: string | null;
 	extensionList: {
 		extension: {
 			key: string,
@@ -180,6 +181,7 @@ export interface PutQuote {
 		amount: string,
 	},
 	expiration: string,
+	note: string | null,
 	ilpPacket: string,
 	condition: string,
 	payeeReceiveAmount: {

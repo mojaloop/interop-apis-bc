@@ -212,6 +212,7 @@ export class QuoteRoutes extends BaseRoutesFastify {
             const quoteId = req.params.id;
             const transferAmount = req.body.transferAmount;
             const expiration = req.body.expiration;
+            const note = req.body.note;
             const ilpPacket = req.body.ilpPacket;
             const condition = req.body.condition;
             const payeeReceiveAmount = req.body.payeeReceiveAmount;
@@ -251,6 +252,7 @@ export class QuoteRoutes extends BaseRoutesFastify {
                 destinationFspId: destinationFspId,
                 quoteId: quoteId,
                 transferAmount: transferAmount,
+                note: note,
                 expiration: expiration,
                 payeeReceiveAmount: payeeReceiveAmount,
                 payeeFspFee: payeeFspFee,
