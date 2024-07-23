@@ -208,9 +208,9 @@ export class FspiopTransformer {
             amount: payload.amount,
             transactionType: payload.transactionType,
             expiration: payload.expiration,
-
+            note: payload.note,
             // OpaqueState
-            extensionList: protocolValues.extensionList,
+            extensionList: protocolValues.extensionList
         };
 
         return FspiopTransformer.removeEmpty(info);
@@ -220,6 +220,7 @@ export class FspiopTransformer {
         const info: PutQuote = {
             transferAmount: payload.transferAmount,
             expiration: payload.expiration,
+            note: payload.note,
             payeeReceiveAmount: payload.payeeReceiveAmount,
             payeeFspFee: payload.payeeFspFee,
             payeeFspCommission: payload.payeeFspCommission,
@@ -238,6 +239,7 @@ export class FspiopTransformer {
         const info: PutQuote = {
             transferAmount: payload.transferAmount,
             expiration: payload.expiration,
+            note: payload.note,
             payeeReceiveAmount: payload.payeeReceiveAmount,
             payeeFspFee: payload.payeeFspFee,
             payeeFspCommission: payload.payeeFspCommission,

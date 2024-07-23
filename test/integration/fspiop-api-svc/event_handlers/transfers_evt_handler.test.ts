@@ -139,7 +139,9 @@ let validQuotePostPayload:PostQuote = {
         "refundInfo": null,
         "balanceOfPayments": null
     },
-    "expiration": null
+    "expiration": null,
+    "note": null,
+    "extensionList": null
 };
 
 // Transfers

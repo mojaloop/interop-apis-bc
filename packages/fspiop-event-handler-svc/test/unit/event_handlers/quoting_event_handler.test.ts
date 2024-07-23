@@ -455,6 +455,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                 amount: "10"
             },
             expiration: "2022-01-22T08:38:08.699-04:00",
+            note: null,
             payeeReceiveAmount: null,
             payeeFspFee: null,
             payeeFspCommission: null,
@@ -496,6 +497,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                 amount: "10"
             },
             expiration: "2022-01-22T08:38:08.699-04:00",
+            note: null,
             payeeReceiveAmount: null,
             payeeFspFee: null,
             payeeFspCommission: null,
@@ -538,6 +540,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                 amount: "10"
             },
             expiration: "2022-01-22T08:38:08.699-04:00",
+            note: null,
             payeeReceiveAmount: null,
             payeeFspFee: null,
             payeeFspCommission: null,
@@ -579,6 +582,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                 amount: "10"
             },
             expiration: "2022-01-22T08:38:08.699-04:00",
+            note: null,
             payeeReceiveAmount: null,
             payeeFspFee: null,
             payeeFspCommission: null,
