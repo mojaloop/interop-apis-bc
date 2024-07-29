@@ -74,7 +74,8 @@
         "@fastify/static": "^7.0.4",
         "@fastify/swagger": "^8.14.0",
         "@fastify/under-pressure": "^8.3.0",
-        "@fastify/url-data": "^5.4.0"
+        "@fastify/url-data": "^5.4.0",
+        "five-bells-condition": "^5.0.1"
     },
     "devDependencies": {
         "@types/js-yaml": "^4.0.9",

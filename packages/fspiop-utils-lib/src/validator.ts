@@ -205,7 +205,7 @@ export class FspiopValidator {
 				conditionUri = prefix + conditionUri;
 			}
 
-			const condition = `ni:///sha-256;${conditionUri}?fpt=preimage-sha-256&cost=0`;
+			const condition = `${conditionUri}?fpt=preimage-sha-256&cost=0`;
 			
 			FiveBellsCondition.validateCondition(condition);
 		} catch (err) {
