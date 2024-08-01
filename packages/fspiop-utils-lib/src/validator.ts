@@ -204,7 +204,7 @@ export class FspiopValidator {
 			if (!conditionUri.startsWith(prefix)) {
 				conditionUri = prefix + conditionUri;
 			}
-
+			//prepare condition url
 			const condition = `${conditionUri}?fpt=preimage-sha-256&cost=0`;
 			
 			FiveBellsCondition.validateCondition(condition);
