@@ -127,7 +127,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                     await this._handlePartyInfoRequestedEvt(new PartyInfoRequestedEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
                 case PartyQueryResponseEvt.name:
-                    await this._handlePartyQueryResponseEvt(new PartyQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
+                    await this._handlePartyQueryResponseEvt(new PartyQueryResponseEvt(message.payload), message.fspiopOpaqueState);
                     break;
                 case ParticipantQueryResponseEvt.name:
                     await this._handleParticipantQueryResponseEvt(new ParticipantQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
@@ -403,13 +403,14 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         }
     }
 
-    private async _handlePartyQueryResponseEvt(message: PartyQueryResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
+    private async _handlePartyQueryResponseEvt(message: PartyQueryResponseEvt, fspiopOpaqueState: any):Promise<void>{
         this._logger.debug("_handlePartyQueryResponseEvt -> start");
         const mainTimer = this._histogram.startTimer({ callName: "handlePartyQueryResponseEvt"});
 
         try {
             // Headers
-            const clonedHeaders = fspiopOpaqueState;
+            const { headers, extensionList } = fspiopOpaqueState;
+            const clonedHeaders = headers as Request.FspiopHttpHeaders;
             const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
@@ -428,6 +429,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             message.validatePayload();
 
             const transformedPayload = FspiopTransformer.transformPayloadPartyInfoReceivedPut(payload);
+            transformedPayload.party.partyIdInfo.extensionList = extensionList; 
 
             if(fspiopOpaqueState) {
                 if (!clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === "") {
