@@ -156,7 +156,16 @@ export class FspiopValidator {
 	
 	
 	validateIlpAgainstTransferRequest = (transferRequestBody:IPostTransfer, decodedTransferIlpPacket:DecodedIlpPacketTransfer) => {
-	
+
+        if(decodedTransferIlpPacket.transactionId !== transferRequestBody.transferId) {
+            throw new ValidationdError({
+                "errorInformation": {
+                    "errorCode": ClientErrors.GENERIC_VALIDATION_ERROR.code,
+                    "errorDescription": `Request body transferId ${transferRequestBody.transferId} and ilpPacket ${decodedTransferIlpPacket.transactionId} are not the same`,
+                    "extensionList": null
+                }
+            });
+        }
 		if (transferRequestBody.payerFsp !== decodedTransferIlpPacket.payer.partyIdInfo.fspId) {
 			throw new ValidationdError({
 				"errorInformation": {
