@@ -158,7 +158,7 @@ export class FspiopTransformer {
                     partySubIdOrType: payload.partySubType,
                     fspId: payload.ownerFspId,
                     // OpaqueState
-                    extensionList: protocolValues.extensionList
+                    extensionList: protocolValues?.extensionList
                 },
                 merchantClassificationCode: payload.merchantClassificationCode,
                 name: payload.name,

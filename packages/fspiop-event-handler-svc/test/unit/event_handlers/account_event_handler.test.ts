@@ -564,22 +564,11 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             partySubType: "456",
             currency: null,
             supportedCurrencies: null,
-            kycInfo: null,
+            kycInfo: null
         })
 
         const protocolValues: IPutPartyOpaqueState = {
-            "extensionList": {
-                "extension": [
-                    {
-                        "key": "NationalID",
-                        "value": "SASR700930MDFNLS04"
-                    },
-                    {
-                        "key": "AccountId",
-                        "value": "100080029"
-                    }
-                ]
-            }
+            "extensionList": null
         }
 
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTICIPANTS, {
