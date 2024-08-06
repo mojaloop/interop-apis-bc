@@ -127,7 +127,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                     await this._handlePartyInfoRequestedEvt(new PartyInfoRequestedEvt(message.payload), message.fspiopOpaqueState.headers);
                     break;
                 case PartyQueryResponseEvt.name:
-                    await this._handlePartyQueryResponseEvt(new PartyQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
+                    await this._handlePartyQueryResponseEvt(new PartyQueryResponseEvt(message.payload), message.fspiopOpaqueState);
                     break;
                 case ParticipantQueryResponseEvt.name:
                     await this._handleParticipantQueryResponseEvt(new ParticipantQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
@@ -403,18 +403,21 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         }
     }
 
-    private async _handlePartyQueryResponseEvt(message: PartyQueryResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
+    private async _handlePartyQueryResponseEvt(message: PartyQueryResponseEvt, fspiopOpaqueState: any):Promise<void>{
         this._logger.debug("_handlePartyQueryResponseEvt -> start");
         const mainTimer = this._histogram.startTimer({ callName: "handlePartyQueryResponseEvt"});
 
         try {
             // Headers
-            const clonedHeaders = fspiopOpaqueState;
+            const clonedHeaders = fspiopOpaqueState.headers;
             const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
             // Data model
             const { payload } = message;
+
+            const { extensionList } = fspiopOpaqueState;
+            const protocolValues = { extensionList };
 
             const partyType = payload.partyType ;
             const partyId = payload.partyId;
@@ -427,8 +430,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             // Always validate the payload and headers received
             message.validatePayload();
 
-            const transformedPayload = FspiopTransformer.transformPayloadPartyInfoReceivedPut(payload);
-
+            const transformedPayload = FspiopTransformer.transformPayloadPartyInfoReceivedPut(payload, protocolValues);
+            
             if(fspiopOpaqueState) {
                 if (!clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === "") {
                     clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = destinationFspId;

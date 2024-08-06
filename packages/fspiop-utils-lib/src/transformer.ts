@@ -77,7 +77,8 @@ import {
     IPostTransferOpaqueState,
     IPutTransferOpaqueState,
     IPostBulkTransferOpaqueState,
-    IPutBulkTransferOpaqueState
+    IPutBulkTransferOpaqueState,
+    IPutPartyOpaqueState
 } from "./types";
 
 export class FspiopTransformer {
@@ -148,7 +149,7 @@ export class FspiopTransformer {
         return FspiopTransformer.removeEmpty(info);
     }
 
-    static transformPayloadPartyInfoReceivedPut(payload: PartyQueryResponseEvtPayload): PutParty {
+    static transformPayloadPartyInfoReceivedPut(payload: PartyQueryResponseEvtPayload, protocolValues: IPutPartyOpaqueState): PutParty {
         const correctPayload = {
             party: {
                 partyIdInfo: {
@@ -156,6 +157,8 @@ export class FspiopTransformer {
                     partyIdentifier: payload.partyId,
                     partySubIdOrType: payload.partySubType,
                     fspId: payload.ownerFspId,
+                    // OpaqueState
+                    extensionList: protocolValues?.extensionList
                 },
                 merchantClassificationCode: payload.merchantClassificationCode,
                 name: payload.name,
