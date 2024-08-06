@@ -88,6 +88,15 @@ export interface PutParty {
 	supportedCurrencies: string[] | null,
 }
 
+export interface IPutPartyOpaqueState {
+	extensionList: {
+		extension: {
+			key: string,
+			value: string,
+		}[],
+	} | null
+}
+
 
 // Quoting
 export interface IPostQuoteOpaqueState {

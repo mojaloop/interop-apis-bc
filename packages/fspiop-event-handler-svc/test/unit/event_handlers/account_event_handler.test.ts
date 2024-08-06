@@ -56,7 +56,7 @@ import { AccountLookUpUnableToGetParticipantFromOracleErrorEvent,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import { MemoryMetric, MemoryParticipantService, MemorySpan, createMessage, getJwsConfig } from "@mojaloop/interop-apis-bc-shared-mocks-lib";
-import { Constants, Enums, FspiopJwsSignature, Request, FspiopTransformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, Enums, FspiopJwsSignature, Request, FspiopTransformer, IPutPartyOpaqueState } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import { AccountLookupEventHandler } from "../../../src/event_handlers/account_lookup_evt_handler";
 import { FSPIOP_PARTY_ACCOUNT_TYPES } from "@mojaloop/interop-apis-bc-fspiop-utils-lib/dist/constants";
 import { IParticipant, IParticipantEndpoint, ParticipantEndpointProtocols, ParticipantEndpointTypes, ParticipantTypes } from "@mojaloop/participant-bc-public-types-lib";
@@ -567,6 +567,21 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             kycInfo: null,
         })
 
+        const protocolValues: IPutPartyOpaqueState = {
+            "extensionList": {
+                "extension": [
+                    {
+                        "key": "NationalID",
+                        "value": "SASR700930MDFNLS04"
+                    },
+                    {
+                        "key": "AccountId",
+                        "value": "100080029"
+                    }
+                ]
+            }
+        }
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTICIPANTS, {
             [Constants.FSPIOP_HEADERS_SOURCE]: "test-fspiop-source",
             [Constants.FSPIOP_HEADERS_DESTINATION]: "test-fspiop-destination"
@@ -586,7 +601,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
                 source: msg.payload.requesterFspId,
                 destination: msg.payload.destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: FspiopTransformer.transformPayloadPartyInfoReceivedPut(message.payload)
+                payload: FspiopTransformer.transformPayloadPartyInfoReceivedPut(message.payload, protocolValues)
             }));
         });
 

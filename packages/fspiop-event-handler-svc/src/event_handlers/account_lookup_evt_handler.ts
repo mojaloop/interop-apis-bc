@@ -409,13 +409,15 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
         try {
             // Headers
-            const { headers, extensionList } = fspiopOpaqueState;
-            const clonedHeaders = headers as Request.FspiopHttpHeaders;
+            const clonedHeaders = fspiopOpaqueState.headers;
             const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
             // Data model
             const { payload } = message;
+
+            const { extensionList } = fspiopOpaqueState;
+            const protocolValues = { extensionList };
 
             const partyType = payload.partyType ;
             const partyId = payload.partyId;
@@ -428,9 +430,8 @@ export class AccountLookupEventHandler extends BaseEventHandler {
             // Always validate the payload and headers received
             message.validatePayload();
 
-            const transformedPayload = FspiopTransformer.transformPayloadPartyInfoReceivedPut(payload);
-            transformedPayload.party.partyIdInfo.extensionList = extensionList; 
-
+            const transformedPayload = FspiopTransformer.transformPayloadPartyInfoReceivedPut(payload, protocolValues);
+            
             if(fspiopOpaqueState) {
                 if (!clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] || clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] === "") {
                     clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = destinationFspId;

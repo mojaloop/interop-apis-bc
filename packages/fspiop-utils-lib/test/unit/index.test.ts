@@ -56,6 +56,7 @@ import { Enums,
     InvalidFSPIOPHttpSourceHeaderError,
     InvalidFSPIOPPayloadError,
     InvalidFSPIOPURIHeaderError,
+    IPutPartyOpaqueState,
     MissingFSPIOPDateHeaderInProtectedHeader,
     MissingFSPIOPDestinationHeader,
     MissingFSPIOPDestinationInProtectedHeader,
@@ -462,8 +463,23 @@ describe("FSPIOP Utils Lib", () => {
             kycInfo: null,
         };
 
+        const protocolValues: IPutPartyOpaqueState = {
+            "extensionList": {
+                "extension": [
+                    {
+                        "key": "NationalID",
+                        "value": "SASR700930MDFNLS04"
+                    },
+                    {
+                        "key": "AccountId",
+                        "value": "100080029"
+                    }
+                ]
+            }
+        }
+
         // Act
-        const result = FspiopTransformer.transformPayloadPartyInfoReceivedPut(payload);
+        const result = FspiopTransformer.transformPayloadPartyInfoReceivedPut(payload, protocolValues);
 
         // Assert
         expect(result).toEqual({
@@ -473,7 +489,19 @@ describe("FSPIOP Utils Lib", () => {
                 "partyIdInfo": {
                     "partyIdType": "MSISDN",
                     "partyIdentifier": "123456789",
-                    "fspId": "test-fspiop-owner"
+                    "fspId": "test-fspiop-owner",
+                    "extensionList": {
+                        "extension": [
+                            {
+                                "key": "NationalID",
+                                "value": "SASR700930MDFNLS04"
+                            },
+                            {
+                                "key": "AccountId",
+                                "value": "100080029"
+                            }
+                        ]
+                    }
                 },
                 "personalInfo": {
                     "complexName": {
