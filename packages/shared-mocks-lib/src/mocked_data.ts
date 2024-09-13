@@ -155,27 +155,34 @@ export const missingPropertyResponse = (field: string, type: string) => {
 };
 
 export const createMessage = (message: IMessage, entity: string, fspiopOpaqueState?: UnknownProperties): IMessage => {
-    message.fspiopOpaqueState = {
-        "requesterFspId": "bluebank",
-        "destinationFspId": null,
-        "headers": {
-            "host": "localhost:4000",
-            "accept-encoding": "gzip, deflate",
-            "accept": `application/vnd.interoperability.${entity}+json;version=1.1`,
-            "content-type": `application/vnd.interoperability.${entity}+json;version=1.1`,
-            "date": "Mon, 10 Apr 2023 04:04:04 GMT",
-            "fspiop-source": "bluebank",
-            "fspiop-destination": "bluebank",
-            "traceparent": "00-aabb8e170bb7474d09e73aebcdf0b293-0123456789abcdef0-00",
-            "connection": "close",
-            "fspiop-uri": `/${entity}`,
+    message.inboundProtocolType = "FSPIOP_v1_1";
+    message.inboundProtocolOpaqueState = {
+        fspiopOpaqueState: {
+            "requesterFspId": "bluebank",
+            "destinationFspId": null,
+            "headers": {
+                "host": "localhost:4000",
+                "accept-encoding": "gzip, deflate",
+                "accept": `application/vnd.interoperability.${entity}+json;version=1.1`,
+                "content-type": `application/vnd.interoperability.${entity}+json;version=1.1`,
+                "date": "Mon, 10 Apr 2023 04:04:04 GMT",
+                "fspiop-source": "bluebank",
+                "fspiop-destination": "bluebank",
+                "traceparent": "00-aabb8e170bb7474d09e73aebcdf0b293-0123456789abcdef0-00",
+                "connection": "close",
+                "fspiop-uri": `/${entity}`,
+            }
         }
     };
 
     if(fspiopOpaqueState) {
-        message.fspiopOpaqueState.headers = { 
-            ...message.fspiopOpaqueState.headers,
-            ...fspiopOpaqueState
+        message.inboundProtocolOpaqueState = {
+            fspiopOpaqueState: {
+                headers: { 
+                    ...message.inboundProtocolOpaqueState.fspiopOpaqueState.headers,
+                    ...fspiopOpaqueState
+                }
+            }
         };
     }
     return message;

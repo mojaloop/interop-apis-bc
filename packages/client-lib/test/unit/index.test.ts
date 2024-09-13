@@ -31,7 +31,6 @@
 import Crypto from "crypto";
 import base64url from "base64url";
 import { ConsoleLogger, ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import { ITransfer } from "@mojaloop/transfers-bc-public-types-lib";
 import { InteropValidationClient, UnableToValidateFulfilment } from "../../src/index";
 import { fulfilmentToCondition } from "../../src/utils";
 
@@ -49,11 +48,11 @@ describe("Unit tests - Interop Validation Client lib", () => {
 
     it("should validate fulfilment correctly", () => {
         // Arrange
-        const fspiopOpaqueState = { fulfilment: "FRzzxm0H2F_aIclc7pH4o18Ov-Cb4vSwOj67O-Zos_0" };
-        const transfer = { condition: "HAgz1za3d1ExOAIHuiuqOV7pJD_dEOX00kslIr0ERYY" } as ITransfer;
+        const inboundProtocolOpaqueState = { fulfilment: "FRzzxm0H2F_aIclc7pH4o18Ov-Cb4vSwOj67O-Zos_0" };
+        const transferInboundProtocol = { fspiopOpaqueState: { condition: "HAgz1za3d1ExOAIHuiuqOV7pJD_dEOX00kslIr0ERYY" } };
 
         // Act
-        const result = validationClient.validateFulfilmentOpaqueState(fspiopOpaqueState, transfer);
+        const result = validationClient.validateFulfilmentOpaqueState(inboundProtocolOpaqueState, transferInboundProtocol);
 
         // Assert
         expect(result).toBe(true);
@@ -61,11 +60,11 @@ describe("Unit tests - Interop Validation Client lib", () => {
 
     it("should return true when fspiopOpaqueState is null", () => {
         // Arrange
-        const fspiopOpaqueState = null;
-        const transfer = { condition: "dummyCondition" } as ITransfer;
+        const inboundProtocolOpaqueState = null;
+        const transferInboundProtocol = { fspiopOpaqueState: { condition: "dummyCondition" } };
 
         // Act
-        const result = validationClient.validateFulfilmentOpaqueState(fspiopOpaqueState, transfer);
+        const result = validationClient.validateFulfilmentOpaqueState(inboundProtocolOpaqueState, transferInboundProtocol);
 
         // Assert
         expect(result).toBe(true);
@@ -73,17 +72,17 @@ describe("Unit tests - Interop Validation Client lib", () => {
 
     it("should throw invalid length error", () => {
         // Arrange
-        const fspiopOpaqueState = { fulfilment: "invalidBase64String" };
-        const transfer = { condition: "dummyCondition" } as ITransfer;
+        const inboundProtocolOpaqueState = { fspiopOpaqueState: { fulfilment: "invalidBase64String" } };
+        const transferInboundProtocol = { fspiopOpaqueState: { condition: "dummyCondition" } };
 
         // Act & Assert
-        expect(() => validationClient.validateFulfilmentOpaqueState(fspiopOpaqueState, transfer)).toThrow("Interledger preimages must be exactly 32 bytes");
+        expect(() => validationClient.validateFulfilmentOpaqueState(inboundProtocolOpaqueState, transferInboundProtocol)).toThrow("Interledger preimages must be exactly 32 bytes");
     });
 
     it("should throw UnableToValidateFulfilment error when an unknown error occurs", () => {
         // Arrange
-        const fspiopOpaqueState = { fulfilment: "FRzzxm0H2F_aIclc7pH4o18Ov-Cb4vSwOj67O-Zos_0" };
-        const transfer = { condition: "HAgz1za3d1ExOAIHuiuqOV7pJD_dEOX00kslIr0ERYY" } as ITransfer;
+        const inboundProtocolOpaqueState = { fspiopOpaqueState: { fulfilment: "FRzzxm0H2F_aIclc7pH4o18Ov-Cb4vSwOj67O-Zos_0" } };
+        const transferInboundProtocol = { fspiopOpaqueState: { condition: "HAgz1za3d1ExOAIHuiuqOV7pJD_dEOX00kslIr0ERYY" } };
 
         const mockHash = {
             update: jest.fn().mockImplementation(() => {
@@ -95,7 +94,7 @@ describe("Unit tests - Interop Validation Client lib", () => {
         jest.spyOn(Crypto, "createHash").mockReturnValue(mockHash as any);
         
         // Act & Assert
-        expect(() => validationClient.validateFulfilmentOpaqueState(fspiopOpaqueState, transfer)).toThrow(UnableToValidateFulfilment);
+        expect(() => validationClient.validateFulfilmentOpaqueState(inboundProtocolOpaqueState, transferInboundProtocol)).toThrow(UnableToValidateFulfilment);
     });
 
     it("should throw error if fulfilment length is not 32 bytes", () => {

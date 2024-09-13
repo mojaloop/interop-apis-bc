@@ -344,8 +344,8 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
         await waitForExpect(() => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${participantsEntity}/${msg.payload.partyType}/${msg.payload.partyId}/${msg.payload.partySubType}`),
-                source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
-                destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
+                source: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
+                destination: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: FspiopTransformer.transformPayloadPartyAssociationPut(message.payload)
             }));
@@ -415,8 +415,8 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
         await waitForExpect(() => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${participantsEntity}/${msg.payload.partyType}/${msg.payload.partyId}/${msg.payload.partySubType}`),
-                source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
-                destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
+                source: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
+                destination: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: FspiopTransformer.transformPayloadPartyDisassociationPut(message.payload)
             }));

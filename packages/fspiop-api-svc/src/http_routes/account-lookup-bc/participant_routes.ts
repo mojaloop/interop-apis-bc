@@ -48,7 +48,7 @@ import {
     ParticipantRejectedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { FSPIOPErrorCodes } from "../validation";
-import { IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { IMessageProducer, MessageInboundProtocol } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {IMetrics, SpanStatusCode} from "@mojaloop/platform-shared-lib-observability-types-lib";
 import { BaseRoutesFastify } from "../_base_routerfastify";
 import { GetParticipantByTypeAndIdAndSubIdDTO, GetParticipantByTypeAndIdDTO, ParticipantByTypeAndIdAndSubIdRejectDTO } from "./participant_route_dto";
@@ -140,10 +140,13 @@ export class ParticipantRoutes extends BaseRoutesFastify {
             const msg = new ParticipantQueryReceivedEvt(msgPayload);
 
             // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState for the next event from the request
-            msg.fspiopOpaqueState = {
-                requesterFspId: requesterFspId,
-                destinationFspId: null,
-                headers: clonedHeaders
+            msg.inboundProtocolType = "FSPIOP_v1_1"; 
+            msg.inboundProtocolOpaqueState = {
+                fspiopOpaqueState: {
+                    requesterFspId: requesterFspId,
+                    destinationFspId: null,
+                    headers: clonedHeaders
+                }
             };
             msg.tracingInfo = {};
 
@@ -219,10 +222,13 @@ export class ParticipantRoutes extends BaseRoutesFastify {
             const msg = new ParticipantQueryReceivedEvt(msgPayload);
 
             // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState for the next event from the request
-            msg.fspiopOpaqueState = {
-                requesterFspId: requesterFspId,
-                destinationFspId: null,
-                headers: clonedHeaders
+            msg.inboundProtocolType = "FSPIOP_v1_1"; 
+            msg.inboundProtocolOpaqueState = {
+                fspiopOpaqueState: {
+                    requesterFspId: requesterFspId,
+                    destinationFspId: null,
+                    headers: clonedHeaders
+                }
             };
             msg.tracingInfo = {};
 
@@ -301,11 +307,13 @@ export class ParticipantRoutes extends BaseRoutesFastify {
             const msg = new ParticipantAssociationRequestReceivedEvt(msgPayload);
 
             // this is an entry request (1st in the sequence), so carry over the fspiopOpaqueState to the next event
-            msg.fspiopOpaqueState = {
-                requesterFspId: requesterFspId,
-                destinationFspId: null,
-                headers: clonedHeaders
-
+            msg.inboundProtocolType = "FSPIOP_v1_1"; 
+            msg.inboundProtocolOpaqueState = {
+                fspiopOpaqueState: {
+                    requesterFspId: requesterFspId,
+                    destinationFspId: null,
+                    headers: clonedHeaders
+                }
             };
             msg.tracingInfo = {};
 
@@ -385,11 +393,13 @@ export class ParticipantRoutes extends BaseRoutesFastify {
             const msg = new ParticipantAssociationRequestReceivedEvt(msgPayload);
 
             // this is an entry request (1st in the sequence), so carry over the fspiopOpaqueState to the next event
-            msg.fspiopOpaqueState = {
-                requesterFspId: requesterFspId,
-                destinationFspId: null,
-                headers: clonedHeaders
-
+            msg.inboundProtocolType = "FSPIOP_v1_1"; 
+            msg.inboundProtocolOpaqueState = {
+                fspiopOpaqueState: {
+                    requesterFspId: requesterFspId,
+                    destinationFspId: null,
+                    headers: clonedHeaders
+                }
             };
             msg.tracingInfo = {};
 
@@ -463,10 +473,13 @@ export class ParticipantRoutes extends BaseRoutesFastify {
             const msg = new ParticipantDisassociateRequestReceivedEvt(msgPayload);
 
             // this is an entry request (1st in the sequence), so carry over the fspiopOpaqueState to the next event
-            msg.fspiopOpaqueState = {
-                requesterFspId: requesterFspId,
-                destinationFspId: null,
-                headers: clonedHeaders
+            msg.inboundProtocolType = "FSPIOP_v1_1"; 
+            msg.inboundProtocolOpaqueState = {
+                fspiopOpaqueState: {
+                    requesterFspId: requesterFspId,
+                    destinationFspId: null,
+                    headers: clonedHeaders
+                }
             };
             msg.tracingInfo = {};
 
@@ -541,10 +554,13 @@ export class ParticipantRoutes extends BaseRoutesFastify {
             const msg = new ParticipantDisassociateRequestReceivedEvt(msgPayload);
 
             // this is an entry request (1st in the sequence), so carry over the fspiopOpaqueState to the next event
-            msg.fspiopOpaqueState = {
-                requesterFspId: requesterFspId,
-                destinationFspId: null,
-                headers: clonedHeaders
+            msg.inboundProtocolType = "FSPIOP_v1_1"; 
+            msg.inboundProtocolOpaqueState = {
+                fspiopOpaqueState: {
+                    requesterFspId: requesterFspId,
+                    destinationFspId: null,
+                    headers: clonedHeaders
+                }
             };
             msg.tracingInfo = {};
 
@@ -627,10 +643,13 @@ export class ParticipantRoutes extends BaseRoutesFastify {
 
             msg.validatePayload();
 
-            msg.fspiopOpaqueState = {
-                requesterFspId: requesterFspId,
-                destinationFspId: destinationFspId,
-                headers: clonedHeaders
+            msg.inboundProtocolType = "FSPIOP_v1_1"; 
+            msg.inboundProtocolOpaqueState = {
+                fspiopOpaqueState: {
+                    requesterFspId: requesterFspId,
+                    destinationFspId: destinationFspId,
+                    headers: clonedHeaders
+                }
             };
             msg.tracingInfo = {};
 
@@ -715,10 +734,13 @@ export class ParticipantRoutes extends BaseRoutesFastify {
 
             msg.validatePayload();
 
-            msg.fspiopOpaqueState = {
-                requesterFspId: requesterFspId,
-                destinationFspId: destinationFspId,
-                headers: clonedHeaders
+            msg.inboundProtocolType = "FSPIOP_v1_1"; 
+            msg.inboundProtocolOpaqueState = {
+                fspiopOpaqueState: {
+                    requesterFspId: requesterFspId,
+                    destinationFspId: destinationFspId,
+                    headers: clonedHeaders
+                }
             };
             msg.tracingInfo = {};
 

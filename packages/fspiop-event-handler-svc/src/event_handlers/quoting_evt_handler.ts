@@ -68,7 +68,7 @@ import {
     QuoteBCRequiredDestinationParticipantIdMismatchErrorEvent
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { Constants, Enums, FspiopJwsSignature, Request, FspiopTransformer } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
-import { IDomainMessage, IMessage, IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { IDomainMessage, IMessage, IMessageProducer, MessageInboundProtocol } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {
     MLKafkaJsonConsumerOptions,
 } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
@@ -117,7 +117,7 @@ export class QuotingEventHandler extends BaseEventHandler {
         try {
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
-            if(!message.fspiopOpaqueState || !message.fspiopOpaqueState.headers){
+            if(message.inboundProtocolType !== "FSPIOP_v1_1" || !message.inboundProtocolOpaqueState || !message.inboundProtocolOpaqueState.fspiopOpaqueState.headers){
                 this._logger.warn(`received message of type: ${message.msgName}, without fspiopOpaqueState or fspiopOpaqueState.headers, ignoring`);
                 processMessageTimer({success: "false"});
                 return Promise.resolve();
@@ -125,28 +125,28 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             switch(message.msgName){
                 case QuoteRequestAcceptedEvt.name:
-                    await this._handleQuoteRequestAcceptedEvt(new QuoteRequestAcceptedEvt(message.payload), message.fspiopOpaqueState);
+                    await this._handleQuoteRequestAcceptedEvt(new QuoteRequestAcceptedEvt(message.payload), message.inboundProtocolOpaqueState.fspiopOpaqueState);
                     break;
                 case QuoteResponseAccepted.name:
-                    await this._handleQuoteResponseAcceptedEvt(new QuoteResponseAccepted(message.payload), message.fspiopOpaqueState);
+                    await this._handleQuoteResponseAcceptedEvt(new QuoteResponseAccepted(message.payload), message.inboundProtocolOpaqueState.fspiopOpaqueState);
                     break;
                 case QuoteQueryResponseEvt.name:
-                    await this._handleQuoteQueryResponseEvt(new QuoteQueryResponseEvt(message.payload), message.fspiopOpaqueState);
+                    await this._handleQuoteQueryResponseEvt(new QuoteQueryResponseEvt(message.payload), message.inboundProtocolOpaqueState.fspiopOpaqueState);
                     break;
                 case QuoteRejectedResponseEvt.name:
-                    await this._handleQuoteRejectRequestEvt(new QuoteRejectedResponseEvt(message.payload), message.fspiopOpaqueState);
+                    await this._handleQuoteRejectRequestEvt(new QuoteRejectedResponseEvt(message.payload), message.inboundProtocolOpaqueState.fspiopOpaqueState);
                     break;
                 case BulkQuoteReceivedEvt.name:
-                    await this._handleBulkQuoteReceivedEvt(new BulkQuoteReceivedEvt(message.payload), message.fspiopOpaqueState);
+                    await this._handleBulkQuoteReceivedEvt(new BulkQuoteReceivedEvt(message.payload), message.inboundProtocolOpaqueState.fspiopOpaqueState);
                     break;
                 case BulkQuoteAcceptedEvt.name:
-                    await this._handleBulkQuoteAcceptedEvt(new BulkQuoteAcceptedEvt(message.payload), message.fspiopOpaqueState);
+                    await this._handleBulkQuoteAcceptedEvt(new BulkQuoteAcceptedEvt(message.payload), message.inboundProtocolOpaqueState.fspiopOpaqueState);
                     break;
                 case BulkQuoteQueryResponseEvt.name:
-                    await this._handleBulkQuoteQueryResponseEvt(new BulkQuoteQueryResponseEvt(message.payload), message.fspiopOpaqueState);
+                    await this._handleBulkQuoteQueryResponseEvt(new BulkQuoteQueryResponseEvt(message.payload), message.inboundProtocolOpaqueState.fspiopOpaqueState);
                     break;
                 case BulkQuoteRejectedResponseEvt.name:
-                    await this._handleBulkQuoteRejectRequestEvt(new BulkQuoteRejectedResponseEvt(message.payload), message.fspiopOpaqueState);
+                    await this._handleBulkQuoteRejectRequestEvt(new BulkQuoteRejectedResponseEvt(message.payload), message.inboundProtocolOpaqueState.fspiopOpaqueState);
                     break;
                 case QuoteBCDuplicateQuoteErrorEvent.name:
                 case QuoteBCQuoteNotFoundErrorEvent.name:
@@ -173,7 +173,7 @@ export class QuotingEventHandler extends BaseEventHandler {
                 case QuoteBCRequiredDestinationParticipantIdMismatchErrorEvent.name:
                 case QuoteBCRequiredDestinationParticipantIsNotApprovedErrorEvent.name:
                 case QuoteBCRequiredDestinationParticipantIsNotActiveErrorEvent.name:
-                    await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState);
+                    await this._handleErrorReceivedEvt(message, message.inboundProtocolOpaqueState.fspiopOpaqueState);
                     break;
                 default:
                     this._logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
@@ -187,7 +187,7 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
-            const clonedHeaders = { ...message.fspiopOpaqueState.headers as unknown as Request.FspiopHttpHeaders };
+            const clonedHeaders = { ...message.inboundProtocolOpaqueState.fspiopOpaqueState.headers as Request.FspiopHttpHeaders };
             const requesterFspId = clonedHeaders["fspiop-source"] as string;
             const quoteId = message.payload.quoteId as string;
             const bulkQuoteId = message.payload.bulkQuoteId as string;
@@ -196,7 +196,7 @@ export class QuotingEventHandler extends BaseEventHandler {
 
             await this._sendErrorFeedbackToFsp({
                 message: message,
-                headers: message.fspiopOpaqueState.headers,
+                headers: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers,
                 id: quoteId ? [quoteId] : [bulkQuoteId],
                 errorResponse: {
                     errorCode: Enums.ServerErrors.GENERIC_SERVER_ERROR.code,

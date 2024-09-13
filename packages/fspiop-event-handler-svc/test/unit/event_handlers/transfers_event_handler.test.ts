@@ -373,7 +373,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
                 source: msg.payload.payerFsp,
                 destination: msg.payload.payeeFsp,
                 method: Enums.FspiopRequestMethodsEnum.POST,
-                payload: FspiopTransformer.transformPayloadTransferRequestPost(message.payload, message.fspiopOpaqueState)
+                payload: FspiopTransformer.transformPayloadTransferRequestPost(message.payload, message.inboundProtocolOpaqueState.fspiopOpaqueState)
             }));
         });
 
@@ -454,7 +454,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
                 source: msg.payload.payerFspId,
                 destination: msg.payload.payeeFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: FspiopTransformer.transformPayloadTransferRequestPut(message.payload, message.fspiopOpaqueState)
+                payload: FspiopTransformer.transformPayloadTransferRequestPut(message.payload, message.inboundProtocolOpaqueState.fspiopOpaqueState)
             }));
         });
 
@@ -488,8 +488,8 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         await waitForExpect(() => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${transfersEntity}/${msg.payload.transferId}/error`),
-                source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
-                destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
+                source: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
+                destination: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: invalidParticipantEndpointError
             }));    
@@ -521,9 +521,9 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${transfersEntity}`),
                 source: Constants.FSPIOP_HEADERS_SWITCH,
-                destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
+                destination: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: FspiopTransformer.transformPayloadTransferRequestGet(message.payload, message.fspiopOpaqueState)
+                payload: FspiopTransformer.transformPayloadTransferRequestGet(message.payload, message.inboundProtocolOpaqueState.fspiopOpaqueState)
             }));
         });
 
@@ -565,8 +565,8 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         await waitForExpect(() => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${bulkTransfersEntity}/${msg.payload.bulkTransferId}/error`),
-                source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
-                destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
+                source: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
+                destination: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: invalidParticipantEndpointError
             }));    
@@ -604,10 +604,10 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         await waitForExpect(() => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${bulkTransfersEntity}`),
-                source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
-                destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
+                source: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
+                destination: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.POST,
-                payload: FspiopTransformer.transformPayloadBulkTransferRequestPost(message.payload, message.fspiopOpaqueState)
+                payload: FspiopTransformer.transformPayloadBulkTransferRequestPost(message.payload, message.inboundProtocolOpaqueState.fspiopOpaqueState)
             }));
         });
 
@@ -644,8 +644,8 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         await waitForExpect(() => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${bulkTransfersEntity}/${msg.payload.bulkTransferId}/error`),
-                source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
-                destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
+                source: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
+                destination: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: invalidParticipantEndpointError
             }));    
@@ -679,10 +679,10 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         await waitForExpect(() => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${bulkTransfersEntity}/${message.payload.bulkTransferId}`),
-                source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
-                destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
+                source: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
+                destination: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: FspiopTransformer.transformPayloadBulkTransferRequestPut(message.payload, message.fspiopOpaqueState)
+                payload: FspiopTransformer.transformPayloadBulkTransferRequestPut(message.payload, message.inboundProtocolOpaqueState.fspiopOpaqueState)
             }));
         });
 
@@ -719,8 +719,8 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         await waitForExpect(() => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${bulkTransfersEntity}/${msg.payload.bulkTransferId}/error`),
-                source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
-                destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
+                source: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
+                destination: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: invalidParticipantEndpointError
             }));    
@@ -754,10 +754,10 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         await waitForExpect(() => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${bulkTransfersEntity}/${message.payload.bulkTransferId}`),
-                source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
-                destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
+                source: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
+                destination: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: FspiopTransformer.transformPayloadBulkTransferRequestPut(message.payload, message.fspiopOpaqueState)
+                payload: FspiopTransformer.transformPayloadBulkTransferRequestPut(message.payload, message.inboundProtocolOpaqueState.fspiopOpaqueState)
             }));
         });
 
@@ -794,8 +794,8 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         await waitForExpect(() => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${bulkTransfersEntity}/${msg.payload.bulkTransferId}/error`),
-                source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
-                destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
+                source: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
+                destination: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: invalidParticipantEndpointError
             }));    
@@ -828,8 +828,8 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
         await waitForExpect(() => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${bulkTransfersEntity}/${message.payload.bulkTransferId}/error`),
-                source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
-                destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
+                source: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
+                destination: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: FspiopTransformer.transformPayloadBulkTransferRequestPutError(message.payload)
             }));

@@ -46,7 +46,7 @@
         "node": ">=20.10.0"
     },
     "dependencies": {
-        "@mojaloop/transfers-bc-public-types-lib": "^0.6.2",
+        "@mojaloop/transfers-bc-public-types-lib": "^0.6.3",
         "base64url": "^3.0.1"
     }
 }

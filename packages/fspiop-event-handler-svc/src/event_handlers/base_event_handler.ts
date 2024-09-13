@@ -388,7 +388,7 @@ export abstract class BaseEventHandler  {
     }
 
     private buildFspFeedbackUrl(endpoint: IParticipantEndpoint, id: string[], message: IDomainMessage | undefined): string {
-        const header = message?.fspiopOpaqueState.headers["content-type"];
+        const header = message?.inboundProtocolOpaqueState.fspiopOpaqueState.headers["content-type"];
         const urlBuilder = new Request.URLBuilder(endpoint.value);
 
         urlBuilder.setLocation(id);

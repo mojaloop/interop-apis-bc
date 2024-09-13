@@ -53,7 +53,7 @@ import {
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { FSPIOPErrorCodes } from "../validation";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import {IMessageProducer, MessageInboundProtocol} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {IMetrics, SpanStatusCode} from "@mojaloop/platform-shared-lib-observability-types-lib";
 import {FastifyInstance, FastifyPluginAsync, FastifyPluginOptions, FastifyReply, FastifyRequest} from "fastify";
 import { QuoteQueryReceivedDTO, QuoteRejectRequestDTO, QuoteRequestReceivedDTO, QuoteResponseReceivedDTO } from "./quotes_routes_dto";
@@ -163,9 +163,12 @@ export class QuoteRoutes extends BaseRoutesFastify {
             msg.validatePayload();
 
             // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
-            msg.fspiopOpaqueState = {
-                headers: clonedHeaders,
-                extensionList: extensionList,
+            msg.inboundProtocolType = "FSPIOP_v1_1"; 
+            msg.inboundProtocolOpaqueState = {
+                fspiopOpaqueState: {
+                    headers: clonedHeaders,
+                    extensionList: extensionList,
+                }
             };
             msg.tracingInfo = {};
 
@@ -268,11 +271,14 @@ export class QuoteRoutes extends BaseRoutesFastify {
             msg.validatePayload();
 
             // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
-            msg.fspiopOpaqueState = {
-                headers: clonedHeaders,
-                ilpPacket: ilpPacket,
-                condition: condition,
-                extensionList: extensionList,
+            msg.inboundProtocolType = "FSPIOP_v1_1"; 
+            msg.inboundProtocolOpaqueState = {
+                fspiopOpaqueState: {
+                    headers: clonedHeaders,
+                    ilpPacket: ilpPacket,
+                    condition: condition,
+                    extensionList: extensionList,
+                }
             };
             msg.tracingInfo = {};
 
@@ -339,8 +345,11 @@ export class QuoteRoutes extends BaseRoutesFastify {
             msg.validatePayload();
 
             // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
-            msg.fspiopOpaqueState = {
-                headers: clonedHeaders
+            msg.inboundProtocolType = "FSPIOP_v1_1"; 
+            msg.inboundProtocolOpaqueState = {
+                fspiopOpaqueState: {
+                    headers: clonedHeaders
+                }
             };
             msg.tracingInfo = {};
 
@@ -409,8 +418,11 @@ export class QuoteRoutes extends BaseRoutesFastify {
 
             msg.validatePayload();
 
-            msg.fspiopOpaqueState = {
-                headers: clonedHeaders
+            msg.inboundProtocolType = "FSPIOP_v1_1"; 
+            msg.inboundProtocolOpaqueState = {
+                fspiopOpaqueState: {
+                    headers: clonedHeaders
+                }
             };
             msg.tracingInfo = {};
 
