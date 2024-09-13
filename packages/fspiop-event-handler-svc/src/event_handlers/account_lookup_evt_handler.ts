@@ -110,7 +110,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         try {
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
-            if (!message.fspiopOpaqueState || !message.fspiopOpaqueState.headers) {
+            if(message.inboundProtocolType !== "FSPIOP_v1_1" || !message.inboundProtocolOpaqueState || !message.inboundProtocolOpaqueState.fspiopOpaqueState || !message.inboundProtocolOpaqueState.fspiopOpaqueState.headers){
                 this._logger.warn(`received message of type: ${message.msgName}, without fspiopOpaqueState or fspiopOpaqueState.headers, ignoring`);
                 processMessageTimer({success: "false"});
                 return Promise.resolve();
@@ -118,25 +118,25 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             switch (message.msgName) {
                 case ParticipantAssociationCreatedEvt.name:
-                    await this._handleParticipantAssociationRequestReceivedEvt(new ParticipantAssociationCreatedEvt(message.payload), message.fspiopOpaqueState.headers);
+                    await this._handleParticipantAssociationRequestReceivedEvt(new ParticipantAssociationCreatedEvt(message.payload), message.inboundProtocolOpaqueState.fspiopOpaqueState);
                     break;
                 case ParticipantAssociationRemovedEvt.name:
-                    await this._handleParticipantDisassociateRequestReceivedEvt(new ParticipantAssociationRemovedEvt(message.payload), message.fspiopOpaqueState.headers);
+                    await this._handleParticipantDisassociateRequestReceivedEvt(new ParticipantAssociationRemovedEvt(message.payload), message.inboundProtocolOpaqueState.fspiopOpaqueState);
                     break;
                 case PartyInfoRequestedEvt.name:
-                    await this._handlePartyInfoRequestedEvt(new PartyInfoRequestedEvt(message.payload), message.fspiopOpaqueState.headers);
+                    await this._handlePartyInfoRequestedEvt(new PartyInfoRequestedEvt(message.payload), message.inboundProtocolOpaqueState.fspiopOpaqueState);
                     break;
                 case PartyQueryResponseEvt.name:
-                    await this._handlePartyQueryResponseEvt(new PartyQueryResponseEvt(message.payload), message.fspiopOpaqueState);
+                    await this._handlePartyQueryResponseEvt(new PartyQueryResponseEvt(message.payload), message.inboundProtocolOpaqueState.fspiopOpaqueState);
                     break;
                 case ParticipantQueryResponseEvt.name:
-                    await this._handleParticipantQueryResponseEvt(new ParticipantQueryResponseEvt(message.payload), message.fspiopOpaqueState.headers);
+                    await this._handleParticipantQueryResponseEvt(new ParticipantQueryResponseEvt(message.payload), message.inboundProtocolOpaqueState.fspiopOpaqueState);
                     break;
                 case PartyRejectedResponseEvt.name:
-                    await this._handlePartyRejectedResponseEvt(new PartyRejectedResponseEvt(message.payload), message.fspiopOpaqueState.headers);
+                    await this._handlePartyRejectedResponseEvt(new PartyRejectedResponseEvt(message.payload), message.inboundProtocolOpaqueState.fspiopOpaqueState);
                     break;
                 case ParticipantRejectedResponseEvt.name:
-                    await this._handleParticipantRejectedResponseEvt(new ParticipantRejectedResponseEvt(message.payload), message.fspiopOpaqueState.headers);
+                    await this._handleParticipantRejectedResponseEvt(new ParticipantRejectedResponseEvt(message.payload), message.inboundProtocolOpaqueState.fspiopOpaqueState);
                     break;
                 case AccountLookUpUnknownErrorEvent.name:
                 case AccountLookupBCInvalidMessagePayloadErrorEvent.name:
@@ -155,7 +155,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
                 case AccountLookupBCRequiredDestinationParticipantIdMismatchErrorEvent.name:
                 case AccountLookupBCRequiredDestinationParticipantIsNotApprovedErrorEvent.name:
                 case AccountLookupBCRequiredDestinationParticipantIsNotActiveErrorEvent.name:
-                    await this._handleErrorReceivedEvt(message, message.fspiopOpaqueState.headers);
+                    await this._handleErrorReceivedEvt(message, message.inboundProtocolOpaqueState.fspiopOpaqueState);
                     break;
                 default:
                     this._logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
@@ -169,7 +169,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
-            const clonedHeaders = message.fspiopOpaqueState.headers;
+            const clonedHeaders = message.inboundProtocolOpaqueState.fspiopOpaqueState.headers;
             const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
             const partyType = message.payload.partyType as string;
             const partyId = message.payload.partyId as string;
@@ -181,7 +181,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             await this._sendErrorFeedbackToFsp({
                 message: message,
-                headers: message.fspiopOpaqueState.headers,
+                headers: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers,
                 id: [partyType, partyId, partySubType],
                 errorResponse: {
                     errorCode: Enums.ServerErrors.GENERIC_SERVER_ERROR.code,
@@ -197,13 +197,13 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         return;
     }
 
-    async _handleErrorReceivedEvt(message: IDomainMessage, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void> {
+    async _handleErrorReceivedEvt(message: IDomainMessage, fspiopOpaqueState: any):Promise<void> {
         this._logger.debug("_handleAccountLookupErrorReceivedEvt -> start");
 
         const { payload } = message;
 
         // Headers
-        const clonedHeaders = fspiopOpaqueState;
+        const clonedHeaders = fspiopOpaqueState.headers;
         const sourceFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
         const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
@@ -248,13 +248,13 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         return errorResponse;
     }
 
-    private async _handleParticipantAssociationRequestReceivedEvt(message: ParticipantAssociationCreatedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
+    private async _handleParticipantAssociationRequestReceivedEvt(message: ParticipantAssociationCreatedEvt, fspiopOpaqueState: any):Promise<void>{
         this._logger.debug("_handleParticipantAssociationRequestReceivedEvt -> start");
 
         try {
 
             // Headers
-            const clonedHeaders = fspiopOpaqueState;
+            const clonedHeaders = fspiopOpaqueState.headers;
 
             // NOTE: This is a query, so we have to switch headers
             clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
@@ -296,12 +296,12 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         return;
     }
 
-    private async _handleParticipantDisassociateRequestReceivedEvt(message: ParticipantAssociationRemovedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
+    private async _handleParticipantDisassociateRequestReceivedEvt(message: ParticipantAssociationRemovedEvt, fspiopOpaqueState: any):Promise<void>{
         this._logger.debug("_handleParticipantDisassociateRequestReceivedEvt -> start");
 
         try {
             // Headers
-            const clonedHeaders = fspiopOpaqueState;
+            const clonedHeaders = fspiopOpaqueState.headers;
 
             // NOTE: This is a query, so we have to switch headers
             clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
@@ -346,13 +346,13 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         return;
     }
 
-    private async _handlePartyInfoRequestedEvt(message: PartyInfoRequestedEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
+    private async _handlePartyInfoRequestedEvt(message: PartyInfoRequestedEvt, fspiopOpaqueState: any):Promise<void>{
         this._logger.debug("_handlePartyInfoRequestedEvt -> start");
         const mainTimer = this._histogram.startTimer({ callName: "handlePartyInfoRequestedEvt"});
 
         try {
             // Headers
-            const clonedHeaders = fspiopOpaqueState;
+            const clonedHeaders = fspiopOpaqueState.headers;
             const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
 
             // Data model
@@ -458,12 +458,12 @@ export class AccountLookupEventHandler extends BaseEventHandler {
     }
 
 
-    private async _handleParticipantQueryResponseEvt(message: ParticipantQueryResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
+    private async _handleParticipantQueryResponseEvt(message: ParticipantQueryResponseEvt, fspiopOpaqueState: any):Promise<void>{
         this._logger.debug("_handleParticipantQueryResponseEvt -> start");
 
         try {
             // Headers
-            const clonedHeaders = fspiopOpaqueState;
+            const clonedHeaders = fspiopOpaqueState.headers;
 
             // NOTE: This is a query, so we have to switch headers
             clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
@@ -507,12 +507,12 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         return;
     }
 
-    private async _handlePartyRejectedResponseEvt(message: PartyRejectedResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
+    private async _handlePartyRejectedResponseEvt(message: PartyRejectedResponseEvt, fspiopOpaqueState: any):Promise<void>{
         this._logger.info("_handlePartyRejectedResponseEvt -> start");
 
         try {
             // Headers
-            const clonedHeaders = fspiopOpaqueState;
+            const clonedHeaders = fspiopOpaqueState.headers;
             const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 
@@ -554,12 +554,12 @@ export class AccountLookupEventHandler extends BaseEventHandler {
         return;
     }
 
-    private async _handleParticipantRejectedResponseEvt(message: ParticipantRejectedResponseEvt, fspiopOpaqueState: Request.FspiopHttpHeaders):Promise<void>{
+    private async _handleParticipantRejectedResponseEvt(message: ParticipantRejectedResponseEvt, fspiopOpaqueState: any):Promise<void>{
         this._logger.info("_handleParticipantRejectedResponseEvt -> start");
 
         try {
             // Headers
-            const clonedHeaders = fspiopOpaqueState;
+            const clonedHeaders = fspiopOpaqueState.headers;
             const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
 

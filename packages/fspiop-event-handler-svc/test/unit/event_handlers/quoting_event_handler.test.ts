@@ -437,7 +437,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                 source: msg.payload.payer.partyIdInfo.fspId,
                 destination: msg.payload.payee.partyIdInfo.fspId,
                 method: Enums.FspiopRequestMethodsEnum.POST,
-                payload: FspiopTransformer.transformPayloadQuotingRequestPost(message.payload, message.fspiopOpaqueState)
+                payload: FspiopTransformer.transformPayloadQuotingRequestPost(message.payload, message.inboundProtocolOpaqueState.fspiopOpaqueState)
             }));
         });
 
@@ -480,8 +480,8 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         await waitForExpect(() => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${quotesEntity}/${msg.payload.quoteId}/error`),
-                source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
-                destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
+                source: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
+                destination: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: invalidParticipantEndpointError
             }));    
@@ -520,10 +520,10 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         await waitForExpect(() => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${quotesEntity}/${message.payload.quoteId}`),
-                source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
-                destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
+                source: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
+                destination: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: FspiopTransformer.transformPayloadQuotingResponsePut(message.payload, message.fspiopOpaqueState)
+                payload: FspiopTransformer.transformPayloadQuotingResponsePut(message.payload, message.inboundProtocolOpaqueState.fspiopOpaqueState)
             }));
         });
 
@@ -565,8 +565,8 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         await waitForExpect(() => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${quotesEntity}/${msg.payload.quoteId}/error`),
-                source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
-                destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
+                source: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
+                destination: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: invalidParticipantEndpointError
             }));    
@@ -605,10 +605,10 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         await waitForExpect(() => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${quotesEntity}/${message.payload.quoteId}`),
-                //source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
-                //destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
+                //source: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
+                //destination: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: FspiopTransformer.transformPayloadQuotingResponsePut(message.payload, message.fspiopOpaqueState)
+                payload: FspiopTransformer.transformPayloadQuotingResponsePut(message.payload, message.inboundProtocolOpaqueState.fspiopOpaqueState)
             }));
         });
 
@@ -655,8 +655,8 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         await waitForExpect(() => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${bulkQuotesEntity}/${msg.payload.bulkQuoteId}/error`),
-                source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
-                destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
+                source: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
+                destination: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: invalidParticipantEndpointError
             }));    
@@ -700,10 +700,10 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         await waitForExpect(() => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${bulkQuotesEntity}`),
-                source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
-                destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
+                source: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
+                destination: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.POST,
-                payload: FspiopTransformer.transformPayloadBulkQuotingResponsePost(message.payload, message.fspiopOpaqueState)
+                payload: FspiopTransformer.transformPayloadBulkQuotingResponsePost(message.payload, message.inboundProtocolOpaqueState.fspiopOpaqueState)
             }));
         });
 
@@ -776,8 +776,8 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         await waitForExpect(() => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${bulkQuotesEntity}/${msg.payload.bulkQuoteId}/error`),
-                source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
-                destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
+                source: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
+                destination: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: invalidParticipantEndpointError
             }));    
@@ -847,10 +847,10 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         await waitForExpect(() => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${bulkQuotesEntity}/${message.payload.bulkQuoteId}`),
-                source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
-                destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
+                source: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
+                destination: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: FspiopTransformer.transformPayloadBulkQuotingResponsePut(message.payload, message.fspiopOpaqueState)
+                payload: FspiopTransformer.transformPayloadBulkQuotingResponsePut(message.payload, message.inboundProtocolOpaqueState.fspiopOpaqueState)
             }));
         });
 
@@ -923,8 +923,8 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         await waitForExpect(() => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${bulkQuotesEntity}/${msg.payload.bulkQuoteId}/error`),
-                source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
-                destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
+                source: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
+                destination: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: invalidParticipantEndpointError
             }));    
@@ -994,10 +994,10 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         await waitForExpect(() => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 url: expect.stringContaining(`/${bulkQuotesEntity}/${message.payload.bulkQuoteId}`),
-                source: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
-                destination: message.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
+                source: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
+                destination: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: FspiopTransformer.transformPayloadBulkQuotingResponsePut(message.payload, message.fspiopOpaqueState)
+                payload: FspiopTransformer.transformPayloadBulkQuotingResponsePut(message.payload, message.inboundProtocolOpaqueState.fspiopOpaqueState)
             }));
         });
 

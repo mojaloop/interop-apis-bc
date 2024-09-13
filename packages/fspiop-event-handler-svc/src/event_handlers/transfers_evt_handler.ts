@@ -34,7 +34,7 @@
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {
-    DomainErrorEventMsg,
+    DomainEventMsg,
     IDomainMessage,
     IMessage,
     IMessageProducer
@@ -137,7 +137,7 @@ export class TransferEventHandler extends BaseEventHandler {
         try {
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
-            if(!message.fspiopOpaqueState || !message.fspiopOpaqueState.headers){
+            if(message.inboundProtocolType !== "FSPIOP_v1_1" || !message.inboundProtocolOpaqueState || !message.inboundProtocolOpaqueState.fspiopOpaqueState || !message.inboundProtocolOpaqueState.fspiopOpaqueState.headers){
                 this._logger.warn(`received message of type: ${message.msgName}, without fspiopOpaqueState or fspiopOpaqueState.headers, ignoring`);
                 processMessageTimer({success: "false"});
                 return Promise.resolve();
@@ -145,28 +145,28 @@ export class TransferEventHandler extends BaseEventHandler {
 
             switch(message.msgName){
                 case TransferPreparedEvt.name:
-                    await this._handleTransferPreparedEvt(new TransferPreparedEvt(message.payload), message.fspiopOpaqueState);
+                    await this._handleTransferPreparedEvt(new TransferPreparedEvt(message.payload), message.inboundProtocolOpaqueState.fspiopOpaqueState);
                     break;
                 case TransferFulfiledEvt.name:
-                    await this._handleTransferFulfiledEvt(new TransferFulfiledEvt(message.payload), message.fspiopOpaqueState);
+                    await this._handleTransferFulfiledEvt(new TransferFulfiledEvt(message.payload), message.inboundProtocolOpaqueState.fspiopOpaqueState);
                     break;
                 case TransferQueryResponseEvt.name:
-                    await this._handleTransferQueryResponseEvt(new TransferQueryResponseEvt(message.payload), message.fspiopOpaqueState);
+                    await this._handleTransferQueryResponseEvt(new TransferQueryResponseEvt(message.payload), message.inboundProtocolOpaqueState.fspiopOpaqueState);
                     break;
                 case TransferRejectRequestProcessedEvt.name:
-                    await this._handleTransferRejectRequestEvt(new TransferRejectRequestProcessedEvt(message.payload), message.fspiopOpaqueState);
+                    await this._handleTransferRejectRequestEvt(new TransferRejectRequestProcessedEvt(message.payload), message.inboundProtocolOpaqueState.fspiopOpaqueState);
                     break;
                 case BulkTransferPreparedEvt.name:
-                    await this._handleBulkTransferPreparedEvt(new BulkTransferPreparedEvt(message.payload), message.fspiopOpaqueState);
+                    await this._handleBulkTransferPreparedEvt(new BulkTransferPreparedEvt(message.payload), message.inboundProtocolOpaqueState.fspiopOpaqueState);
                     break;
                 case BulkTransferFulfiledEvt.name:
-                    await this._handleBulkTransferFulfiledEvt(new BulkTransferFulfiledEvt(message.payload), message.fspiopOpaqueState);
+                    await this._handleBulkTransferFulfiledEvt(new BulkTransferFulfiledEvt(message.payload), message.inboundProtocolOpaqueState.fspiopOpaqueState);
                     break;
                 case BulkTransferQueryResponseEvt.name:
-                    await this._handleBulkTransferQueryResponseEvt(new BulkTransferQueryResponseEvt(message.payload), message.fspiopOpaqueState);
+                    await this._handleBulkTransferQueryResponseEvt(new BulkTransferQueryResponseEvt(message.payload), message.inboundProtocolOpaqueState.fspiopOpaqueState);
                     break;
                 case BulkTransferRejectRequestProcessedEvt.name:
-                    await this._handleBulkTransferRejectRequestEvt(new BulkTransferRejectRequestProcessedEvt(message.payload), message.fspiopOpaqueState);
+                    await this._handleBulkTransferRejectRequestEvt(new BulkTransferRejectRequestProcessedEvt(message.payload), message.inboundProtocolOpaqueState.fspiopOpaqueState);
                     break;
                 case TransferNotFoundEvt.name:
                 case BulkTransferNotFoundEvt.name:
@@ -204,7 +204,7 @@ export class TransferEventHandler extends BaseEventHandler {
                 case TransferUnableToDeleteTransferReminderEvt.name:
                 case TransferFulfilmentValidationFailedEvt.name:
                 case TransfersBCUnknownErrorEvent.name:
-                    await this._handleErrorReceivedEvt(message as DomainErrorEventMsg, message.fspiopOpaqueState);
+                    await this._handleErrorReceivedEvt(message as DomainEventMsg, message.inboundProtocolOpaqueState.fspiopOpaqueState);
                     break;
                 default:
                     this._logger.warn(`Cannot handle message of type: ${message.msgName}, ignoring`);
@@ -215,7 +215,7 @@ export class TransferEventHandler extends BaseEventHandler {
         } catch (error: unknown) {
             const message: IDomainMessage = sourceMessage as IDomainMessage;
 
-            const clonedHeaders = message.fspiopOpaqueState.headers;
+            const clonedHeaders = message.inboundProtocolOpaqueState.fspiopOpaqueState.headers;
             const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
             const transferId = message.payload.transferId as string;
             const bulkTransferId = message.payload.bulkTransferId as string;
@@ -226,7 +226,7 @@ export class TransferEventHandler extends BaseEventHandler {
 
             await this._sendErrorFeedbackToFsp({
                 message: message,
-                headers: message.fspiopOpaqueState.headers,
+                headers: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers,
                 id: transferId ? [transferId] : [bulkTransferId],
                 errorResponse: {
                     errorCode: Enums.ServerErrors.GENERIC_SERVER_ERROR.code,
@@ -242,7 +242,7 @@ export class TransferEventHandler extends BaseEventHandler {
         return;
     }
 
-    async _handleErrorReceivedEvt(message: DomainErrorEventMsg, fspiopOpaqueState: any):Promise<void> {
+    async _handleErrorReceivedEvt(message: DomainEventMsg, fspiopOpaqueState: any):Promise<void> {
         this._logger.debug("_handleTransferErrorReceivedEvt -> start");
 
         const { payload } = message;
@@ -269,7 +269,7 @@ export class TransferEventHandler extends BaseEventHandler {
         return;
     }
 
-    private buildErrorResponseBasedOnErrorEvent (message: DomainErrorEventMsg, sourceFspId:string, destinationFspId:string) : { errorCode: string, errorDescription: string, sourceFspId: string, destinationFspId: string | null } {
+    private buildErrorResponseBasedOnErrorEvent (message: DomainEventMsg, sourceFspId:string, destinationFspId:string) : { errorCode: string, errorDescription: string, sourceFspId: string, destinationFspId: string | null } {
         const errorResponse: { errorCode: string, errorDescription: string, sourceFspId: string, destinationFspId: string | null } =
         {
             errorCode : Enums.CommunicationErrors.COMMUNICATION_ERROR.code,
@@ -304,7 +304,7 @@ export class TransferEventHandler extends BaseEventHandler {
             this._logger.debug("_handleTransferPreparedEvt -> start");
 
             const clonedHeaders = fspiopOpaqueState.headers;
-            const requesterFspId =  clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
     
             // Data model
             const { payload } = message;

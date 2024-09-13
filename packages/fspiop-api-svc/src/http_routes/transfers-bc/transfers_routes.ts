@@ -53,7 +53,7 @@ import {
     TransferRejectRequestedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import {FSPIOPErrorCodes} from "../validation";
-import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import {IMessageProducer, MessageInboundProtocol} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {FastifyInstance, FastifyPluginOptions, FastifyReply, FastifyRequest} from "fastify";
 import {
     TransferFulfilRequestedDTO,
@@ -188,11 +188,14 @@ export class TransfersRoutes extends BaseRoutesFastify {
             msg.validatePayload();
 
             // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
-            msg.fspiopOpaqueState = {
-                headers: clonedHeaders,
-                ilpPacket: ilpPacket,
-                condition: condition,
-                extensionList: extensionList,
+            msg.inboundProtocolType = "FSPIOP_v1_1"; 
+            msg.inboundProtocolOpaqueState = {
+                fspiopOpaqueState: {
+                    headers: clonedHeaders,
+                    ilpPacket: ilpPacket,
+                    condition: condition,
+                    extensionList: extensionList,
+                }
             };
             msg.tracingInfo = {};
 
@@ -277,10 +280,13 @@ export class TransfersRoutes extends BaseRoutesFastify {
             msg.validatePayload();
 
             // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
-            msg.fspiopOpaqueState = {
-                headers: clonedHeaders,
-                fulfilment: fulfilment,
-                extensionList: extensionList,
+            msg.inboundProtocolType = "FSPIOP_v1_1"; 
+            msg.inboundProtocolOpaqueState = {
+                fspiopOpaqueState: {
+                    headers: clonedHeaders,
+                    fulfilment: fulfilment,
+                    extensionList: extensionList,
+                }
             };
             msg.tracingInfo = {};
 
@@ -352,8 +358,11 @@ export class TransfersRoutes extends BaseRoutesFastify {
             msg.validatePayload();
 
             // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
-            msg.fspiopOpaqueState = {
-                headers: clonedHeaders
+            msg.inboundProtocolType = "FSPIOP_v1_1"; 
+            msg.inboundProtocolOpaqueState = {
+                fspiopOpaqueState: {
+                    headers: clonedHeaders
+                }
             };
             msg.tracingInfo = {};
 
@@ -413,8 +422,11 @@ export class TransfersRoutes extends BaseRoutesFastify {
             msg.validatePayload();
 
             // this is an entry request (1st in the sequence), so we create the fspiopOpaqueState to the next event from the request
-            msg.fspiopOpaqueState = {
-                headers: clonedHeaders
+            msg.inboundProtocolType = "FSPIOP_v1_1"; 
+            msg.inboundProtocolOpaqueState = {
+                fspiopOpaqueState: {
+                    headers: clonedHeaders
+                }
             };
             msg.tracingInfo = {};
 

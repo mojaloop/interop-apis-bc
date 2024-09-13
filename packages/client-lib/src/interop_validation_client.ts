@@ -43,14 +43,15 @@ export class InteropValidationClient {
         this._logger = logger.createChild(this.constructor.name);
     }
 
-    validateFulfilmentOpaqueState(fspiopOpaqueState: any, transfer: ITransfer): boolean {
+    validateFulfilmentOpaqueState(inboundProtocolOpaqueState: any, transfer: ITransfer): boolean {
 
         try {
-            if(fspiopOpaqueState) {
-                const { fulfilment } = fspiopOpaqueState;
+            // TODO: use transfer's inboundProtocolType when we have access to the the updated published transfer public types
+            if(inboundProtocolOpaqueState && inboundProtocolOpaqueState.fspiopOpaqueState) {
+                const { fulfilment } = inboundProtocolOpaqueState.fspiopOpaqueState;
 
                 if(fulfilment) {
-                    const calculatedCondition = fulfilmentToCondition(fspiopOpaqueState.fulfilment);
+                    const calculatedCondition = fulfilmentToCondition(fulfilment);
                     return calculatedCondition === transfer.condition;
                 }
             }
