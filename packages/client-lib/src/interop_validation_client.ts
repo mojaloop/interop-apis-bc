@@ -31,8 +31,6 @@
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { UnableToValidateFulfilment,} from "./errors";
 import { fulfilmentToCondition } from "./utils";
-import { ITransfer } from "@mojaloop/transfers-bc-public-types-lib";
-
 
 export class InteropValidationClient {
     private readonly _logger: ILogger;
@@ -43,16 +41,17 @@ export class InteropValidationClient {
         this._logger = logger.createChild(this.constructor.name);
     }
 
-    validateFulfilmentOpaqueState(inboundProtocolOpaqueState: any, transfer: ITransfer): boolean {
+    validateFulfilmentOpaqueState(inboundProtocolOpaqueState: any, transferOpaqueState: any): boolean {
 
         try {
             // TODO: use transfer's inboundProtocolType when we have access to the the updated published transfer public types
             if(inboundProtocolOpaqueState && inboundProtocolOpaqueState.fspiopOpaqueState) {
                 const { fulfilment } = inboundProtocolOpaqueState.fspiopOpaqueState;
+                const { condition } = transferOpaqueState.fspiopOpaqueState;
 
                 if(fulfilment) {
                     const calculatedCondition = fulfilmentToCondition(fulfilment);
-                    return calculatedCondition === transfer.condition;
+                    return calculatedCondition === condition;
                 }
             }
             return true;
