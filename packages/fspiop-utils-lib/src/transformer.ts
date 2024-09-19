@@ -41,6 +41,7 @@ import {
     PartyQueryResponseEvtPayload,
     QuoteRequestAcceptedEvtPayload,
     QuoteResponseAcceptedEvtPayload,
+    QuoteQueryResponseEvtPayload,
     TransferPreparedEvtPayload,
     TransferFulfiledEvtPayload,
     TransferQueryResponseEvtPayload,
@@ -69,37 +70,39 @@ import {
     PutParty,
     PutQuote,
     PutTransfer, 
-    IInputExtensionList,
     IPutQuoteOpaqueState,
     IPostQuoteOpaqueState,
     IPostBulkQuoteOpaqueState,
     IPutBulkQuoteOpaqueState,
     IPostTransferOpaqueState,
     IPutTransferOpaqueState,
-    IPostBulkTransferOpaqueState,
     IPutBulkTransferOpaqueState,
     IPutPartyOpaqueState
 } from "./types";
 
 export class FspiopTransformer {
-    static transformExtensionList(input: IInputExtensionList | null): ExtensionList[] {
-        if (input && input.extensionList && input.extensionList.extension) {
-            return input.extensionList.extension;
-        }
-
-        return [];
-    }
 
     /* eslint-disable @typescript-eslint/no-explicit-any */
     static removeEmpty(obj: any) {
-        Object.entries(obj).forEach(([key, val]) =>
-            (val && typeof val === "object") && FspiopTransformer.removeEmpty(val) ||
-            (val === null || val === "" || val === undefined) && delete obj[key]
-        );
+        Object.entries(obj).forEach(([key, val]) => {
+            if (val instanceof Date) {
+                return;
+            }
+            
+            if (val && typeof val === "object") {
+                FspiopTransformer.removeEmpty(val);
+
+                if (Object.keys(val).length === 0) {
+                    delete obj[key];
+                }
+            } else if (val === null || val === "" || val === undefined) {
+                delete obj[key];
+            }
+        });
         return obj;
     }
 
-    static transformPayloadParticipantPut(payload: ParticipantQueryResponseEvtPayload): PutParticipant {
+    static transformPayloadParticipantPut(payload: ParticipantAssociationCreatedEvtPayload | ParticipantQueryResponseEvtPayload): PutParticipant {
         return {
             fspId: payload.ownerFspId
         };
@@ -149,7 +152,7 @@ export class FspiopTransformer {
         return FspiopTransformer.removeEmpty(info);
     }
 
-    static transformPayloadPartyInfoReceivedPut(payload: PartyQueryResponseEvtPayload, protocolValues: IPutPartyOpaqueState): PutParty {
+    static transformPayloadPartyInfoReceivedPut(payload: PartyQueryResponseEvtPayload, protocolValues?: IPutPartyOpaqueState): PutParty {
         const correctPayload = {
             party: {
                 partyIdInfo: {
@@ -157,8 +160,7 @@ export class FspiopTransformer {
                     partyIdentifier: payload.partyId,
                     partySubIdOrType: payload.partySubType,
                     fspId: payload.ownerFspId,
-                    // OpaqueState
-                    extensionList: protocolValues?.extensionList
+                    extensionList: this.revertToExtensionList(payload.extensions),
                 },
                 merchantClassificationCode: payload.merchantClassificationCode,
                 name: payload.name,
@@ -212,8 +214,7 @@ export class FspiopTransformer {
             transactionType: payload.transactionType,
             expiration: payload.expiration,
             note: payload.note,
-            // OpaqueState
-            extensionList: protocolValues.extensionList
+            extensionList: this.revertToExtensionList(payload.extensions)
         };
 
         return FspiopTransformer.removeEmpty(info);
@@ -228,17 +229,17 @@ export class FspiopTransformer {
             payeeFspFee: payload.payeeFspFee,
             payeeFspCommission: payload.payeeFspCommission,
             geoCode: payload.geoCode,
+            extensionList: this.revertToExtensionList(payload.extensions),
             
             // OpaqueState
             ilpPacket: protocolValues.ilpPacket,
             condition: protocolValues.condition,
-            extensionList: protocolValues.extensionList,
         };
 
         return FspiopTransformer.removeEmpty(info);
     }
 
-    static transformPayloadQuotingResponseGet(payload: QuoteResponseAcceptedEvtPayload, protocolValues: IPutQuoteOpaqueState): PutQuote {
+    static transformPayloadQuotingResponseGet(payload: QuoteQueryResponseEvtPayload, protocolValues: IPutQuoteOpaqueState): PutQuote {
         const info: PutQuote = {
             transferAmount: payload.transferAmount,
             expiration: payload.expiration,
@@ -247,11 +248,11 @@ export class FspiopTransformer {
             payeeFspFee: payload.payeeFspFee,
             payeeFspCommission: payload.payeeFspCommission,
             geoCode: payload.geoCode,
+            extensionList: this.revertToExtensionList(payload.extensions),
 
             // OpaqueState
             ilpPacket: protocolValues.ilpPacket,
             condition: protocolValues.condition,
-            extensionList: protocolValues.extensionList,
         };
 
         return FspiopTransformer.removeEmpty(info);
@@ -267,12 +268,10 @@ export class FspiopTransformer {
                 return {
                     ...quote,
                     fees: quote.feesPayer,
-                    extensionList: protocolValues.extensionList
+                    extensionList: this.revertToExtensionList(quote.extensions)
                 };
             }),
-
-            // OpaqueState
-            extensionList: protocolValues.extensionList,
+            extensionList: this.revertToExtensionList(payload.extensions)
         };
 
         return FspiopTransformer.removeEmpty(info);
@@ -287,17 +286,15 @@ export class FspiopTransformer {
                     errorInformation: quote.errorInformation ? { 
                         errorCode: quote.errorInformation.errorCode,
                         errorDescription: quote.errorInformation.errorDescription,
-                        extensionList: protocolValues.extensionList,
+                        extensionList: this.revertToExtensionList(quote.errorInformation.extensions),
                     } : null,
                     ilpPacket: protocolValues.ilpPacket,
                     condition: protocolValues.condition,
-                    extensionList: protocolValues.extensionList,
+                    extensionList: this.revertToExtensionList(quote.extensions)
                 };
             }),
             expiration: payload.expiration,
-
-            // OpaqueState
-            extensionList: protocolValues.extensionList,
+            extensionList: this.revertToExtensionList(payload.extensions)
         };
 
         return FspiopTransformer.removeEmpty(info);
@@ -329,11 +326,11 @@ export class FspiopTransformer {
                 currency: payload.currencyCode
             },
             expiration: new Date(payload.expiration).toISOString(),
-            
+            extensionList: this.revertToExtensionList(payload.extensions),
+
             // OpaqueState
             ilpPacket: protocolValues.ilpPacket,
             condition: protocolValues.condition,
-            extensionList: protocolValues.extensionList,
         };
 
         return FspiopTransformer.removeEmpty(info);
@@ -343,10 +340,10 @@ export class FspiopTransformer {
         const info: PutTransfer = {
             transferState: "COMMITTED",
             completedTimestamp: new Date(payload.completedTimestamp).toISOString(),
+            extensionList: this.revertToExtensionList(payload.extensions),
 
             // OpaqueState
             fulfilment: protocolValues.fulfilment,
-            extensionList: protocolValues.extensionList,
         };
 
         return FspiopTransformer.removeEmpty(info);
@@ -356,10 +353,10 @@ export class FspiopTransformer {
         const info: GetTransfer = {
             transferState: "COMMITTED",
             completedTimestamp: payload.completedTimestamp ? new Date(payload.completedTimestamp).toJSON() : null,
+            extensionList: this.revertToExtensionList(payload.extensions),
 
             // OpaqueState
             fulfilment: protocolValues.fulfilment,
-            extensionList: protocolValues.extensionList,
         };
 
         return FspiopTransformer.removeEmpty(info);
@@ -389,9 +386,7 @@ export class FspiopTransformer {
                     }
                 };
             }),
-
-            // OpaqueState
-            extensionList: protocolValues.extensionList,
+            extensionList: this.revertToExtensionList(payload.extensions),
         };
 
         return FspiopTransformer.removeEmpty(info);
@@ -404,18 +399,16 @@ export class FspiopTransformer {
             individualTransferResults: payload.individualTransferResults.map((transfer:typeof payload.individualTransferResults[number]) => {
                 return {
                     ...transfer,
-                    errorInformation: transfer.errorInformation ? { 
+                    errorInformation: transfer.errorInformation && { 
                         errorCode: transfer.errorInformation.errorCode,
                         errorDescription: transfer.errorInformation.errorDescription,
-                        extensionList: protocolValues.extensionList,
-                    } : null as any,
+                        extensionList: this.revertToExtensionList(transfer.errorInformation.extensions),
+                    },
                     fulfilment: protocolValues.fulfilment,
-                    extensionList: protocolValues.extensionList,
+                    extensionList: this.revertToExtensionList(transfer.extensions),
                 };
             }),
-
-            // OpaqueState
-            extensionList: protocolValues.extensionList,
+            extensionList: this.revertToExtensionList(payload.extensions),
         };
 
         return FspiopTransformer.removeEmpty(info);
@@ -450,9 +443,32 @@ export class FspiopTransformer {
 
     static transformPayloadParticipantRejectedPut(payload: ParticipantRejectedResponseEvtPayload): FspiopError {
         const info: FspiopError = {
-            errorInformation: payload.errorInformation
+            errorInformation: {
+                errorCode: payload.errorInformation.errorCode,
+                errorDescription: payload.errorInformation.errorDescription,
+                extensionList: this.revertToExtensionList(payload.errorInformation.extensions),
+            }
         };
 
         return FspiopTransformer.removeEmpty(info);
+    }
+
+    static convertToFlatExtensions(extensionList: {
+        extension: {
+            key: string;
+            value: string;
+        }[];
+    } | null) {
+        return extensionList?.extension ? extensionList.extension : [];
+    }
+
+    static revertToExtensionList(extension: any): ExtensionList | null {
+        if (!extension || extension.length === 0) {
+            return null;
+        }
+
+        return {
+            extension: extension
+        };
     }
 }

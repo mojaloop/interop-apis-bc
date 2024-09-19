@@ -495,10 +495,10 @@ describe("FSPIOP Routes - Unit Tests Bulk Transfer", () => {
         // Arrange
         const payload = {
             "bulkTransferState": "COMPLETED",
-            "individualTransferResults": {
+            "individualTransferResults": [{
                 "transferId": "1fbee2f3-c58e-5afe-8cdd-6e65eea2fca9",
                 "fulfilment": "on1meDEOvLmjYTvujP438_lhaMCi8V0wx0uUvjp8vT0"            
-            }
+            }]
         };
         
         // Act

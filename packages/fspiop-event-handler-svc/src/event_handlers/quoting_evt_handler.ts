@@ -63,7 +63,7 @@ import {
     QuoteBCUnknownErrorEvent,
     QuoteQueryResponseEvt,
     QuoteRequestAcceptedEvt,
-    QuoteResponseAccepted,
+    QuoteResponseAcceptedEvt,
     QuoteBCRequiredRequesterParticipantIdMismatchErrorEvent,
     QuoteBCRequiredDestinationParticipantIdMismatchErrorEvent
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
@@ -127,8 +127,8 @@ export class QuotingEventHandler extends BaseEventHandler {
                 case QuoteRequestAcceptedEvt.name:
                     await this._handleQuoteRequestAcceptedEvt(new QuoteRequestAcceptedEvt(message.payload), message.inboundProtocolOpaqueState.fspiopOpaqueState);
                     break;
-                case QuoteResponseAccepted.name:
-                    await this._handleQuoteResponseAcceptedEvt(new QuoteResponseAccepted(message.payload), message.inboundProtocolOpaqueState.fspiopOpaqueState);
+                case QuoteResponseAcceptedEvt.name:
+                    await this._handleQuoteResponseAcceptedEvt(new QuoteResponseAcceptedEvt(message.payload), message.inboundProtocolOpaqueState.fspiopOpaqueState);
                     break;
                 case QuoteQueryResponseEvt.name:
                     await this._handleQuoteQueryResponseEvt(new QuoteQueryResponseEvt(message.payload), message.inboundProtocolOpaqueState.fspiopOpaqueState);
@@ -304,7 +304,7 @@ export class QuotingEventHandler extends BaseEventHandler {
         }
     }
 
-    private async _handleQuoteResponseAcceptedEvt(message: QuoteResponseAccepted, fspiopOpaqueState: any):Promise<void>{
+    private async _handleQuoteResponseAcceptedEvt(message: QuoteResponseAcceptedEvt, fspiopOpaqueState: any):Promise<void>{
         const mainTimer = this._histogram.startTimer({ callName: "handleQuoteResponseAcceptedEvt"});
         try {
             // Headers

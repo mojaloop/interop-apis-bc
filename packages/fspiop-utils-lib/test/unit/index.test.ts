@@ -56,7 +56,6 @@ import { Enums,
     InvalidFSPIOPHttpSourceHeaderError,
     InvalidFSPIOPPayloadError,
     InvalidFSPIOPURIHeaderError,
-    IPutPartyOpaqueState,
     MissingFSPIOPDateHeaderInProtectedHeader,
     MissingFSPIOPDestinationHeader,
     MissingFSPIOPDestinationInProtectedHeader,
@@ -64,7 +63,6 @@ import { Enums,
     MissingFSPIOPHttpMethodHeaderInDecodedHeader,
     MissingFSPIOPSourceHeaderInDecodedHeader,
     MissingFSPIOPURIHeaderInDecodedHeader,
-    MissingFSPIOPURIHeaderInProtectedHeader,
     MissingRequiredJWSFSPIOPHeaders,
     NonMatchingFSPIOPDateJWSHeader,
     NonMatchingFSPIOPDestinationJWSHeader,
@@ -147,7 +145,7 @@ describe("FSPIOP Utils Lib", () => {
     });
 
     //#region Request
-    test("should be able to send a request", async()=>{
+    test("should be able to send a request", async () => {
         // Arrange
         const response = [
             { test: "random response" },
@@ -205,7 +203,7 @@ describe("FSPIOP Utils Lib", () => {
     //#endregion
 
     //#region Header builder
-    test("should successfully build a valid header structure", async()=>{
+    test("should successfully build a valid header structure", async () => {
         // Arrange
         const headers = {
             "accept":"application/vnd.interoperability.parties+json;version=1.0",
@@ -262,7 +260,7 @@ describe("FSPIOP Utils Lib", () => {
         });
     });
 
-    test("should default http method to null if null is passed", async()=>{
+    test("should default http method to null if null is passed", async () => {
         // Arrange
         const config =  {
             httpMethod: "PUT",
@@ -288,7 +286,7 @@ describe("FSPIOP Utils Lib", () => {
         }));
     });
 
-    test("should formate date to UTC string if date header is instance of date", async()=>{
+    test("should formate date to UTC string if date header is instance of date", async () => {
         // Arrange
         const headerDate = new Date();
 
@@ -305,7 +303,7 @@ describe("FSPIOP Utils Lib", () => {
         }));
     });
 
-    test("should default to sent header date value if unable to convert invalid date", async()=>{
+    test("should default to sent header date value if unable to convert invalid date", async () => {
         // Arrange
         const headerDate = "invalid-date";
 
@@ -324,7 +322,7 @@ describe("FSPIOP Utils Lib", () => {
     //#endregion
 
     //#region Transformer
-    test("should be able to remove empty properties from an object", async()=>{
+    test("should be able to remove empty properties from an object", async () => {
         // Arrange
         const sampleObject = {
             "name": "random",
@@ -349,7 +347,7 @@ describe("FSPIOP Utils Lib", () => {
         });
     });
 
-    test("should be able to get correct result from transformPayloadParticipantPut", async()=>{
+    test("should be able to get correct result from transformPayloadParticipantPut", async () => {
         // Arrange
         const payload: ParticipantQueryResponseEvtPayload = {
             requesterFspId: "non-existing-requester-id",
@@ -369,13 +367,14 @@ describe("FSPIOP Utils Lib", () => {
         });
     });
 
-    test("should be able to get correct result from transformPayloadPartyAssociationPut", async()=>{
+    test("should be able to get correct result from transformPayloadPartyAssociationPut", async () => {
         // Arrange
         const payload: ParticipantAssociationCreatedEvtPayload = {
             ownerFspId: "test-fspiop-source",
             partyId: "123456789",
             partyType: "MSISDN",
-            partySubType: null
+            partySubType: null,
+            extensions: [],
         };
 
         // Act
@@ -393,7 +392,7 @@ describe("FSPIOP Utils Lib", () => {
         });
     });
 
-    test("should be able to get correct result from transformPayloadPartyDisassociationPut", async()=>{
+    test("should be able to get correct result from transformPayloadPartyDisassociationPut", async () => {
         // Arrange
         const payload: ParticipantAssociationRemovedEvtPayload = {
             ownerFspId: "test-fspiop-source",
@@ -417,7 +416,7 @@ describe("FSPIOP Utils Lib", () => {
         });
     });
 
-    test("should be able to get correct result from transformPayloadPartyInfoRequestedPut", async()=>{
+    test("should be able to get correct result from transformPayloadPartyInfoRequestedPut", async () => {
         // Arrange
         const payload: PartyInfoRequestedEvtPayload = {
             requesterFspId: "test-fspiop-source",
@@ -443,7 +442,7 @@ describe("FSPIOP Utils Lib", () => {
         });
     });
 
-    test("should be able to get correct result from transformPayloadPartyInfoReceivedPut", async()=>{
+    test("should be able to get correct result from transformPayloadPartyInfoReceivedPut", async () => {
         // Arrange
         const payload: PartyQueryResponseEvtPayload = {
             requesterFspId: "test-fspiop-source",
@@ -461,25 +460,20 @@ describe("FSPIOP Utils Lib", () => {
             currency: null,
             supportedCurrencies: null,
             kycInfo: null,
+            extensions: [
+                {
+                    "key": "NationalID",
+                    "value": "SASR700930MDFNLS04"
+                },
+                {
+                    "key": "AccountId",
+                    "value": "100080029"
+                }
+            ],
         };
 
-        const protocolValues: IPutPartyOpaqueState = {
-            "extensionList": {
-                "extension": [
-                    {
-                        "key": "NationalID",
-                        "value": "SASR700930MDFNLS04"
-                    },
-                    {
-                        "key": "AccountId",
-                        "value": "100080029"
-                    }
-                ]
-            }
-        }
-
         // Act
-        const result = FspiopTransformer.transformPayloadPartyInfoReceivedPut(payload, protocolValues);
+        const result = FspiopTransformer.transformPayloadPartyInfoReceivedPut(payload);
 
         // Assert
         expect(result).toEqual({
@@ -515,7 +509,7 @@ describe("FSPIOP Utils Lib", () => {
         });
     });
 
-    test("should be able to get correct result from transformPayloadError", async()=>{
+    test("should be able to get correct result from transformPayloadError", async () => {
         // Arrange
         const payload = {
             errorCode: Enums.ErrorCode.BAD_REQUEST,

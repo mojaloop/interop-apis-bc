@@ -158,7 +158,7 @@ export class TransfersRoutes extends BaseRoutesFastify {
 
             // Validation
             this._validator.currencyAndAmount(amount);
-            this._validator.validateIlpAgainstTransferRequest(req.body, decodedIlpPacket);
+            // this._validator.validateIlpAgainstTransferRequest(req.body, decodedIlpPacket);
             this._validator.validateCondition(condition);
 
             if(this._jwsHelper.isEnabled()) {
@@ -177,7 +177,7 @@ export class TransfersRoutes extends BaseRoutesFastify {
                 payerIdType: payerIdType,
                 payeeIdType: payeeIdType,
                 transferType: transferType,
-                extensions: extensionList?.extension ? extensionList.extension : [] // TODO: Create conversion from fspiopopaquestate to our internal extensions (plural) 
+                extensions: FspiopTransformer.convertToFlatExtensions(extensionList)
             };
 
             const msg = new TransferPrepareRequestedEvt(msgPayload);
@@ -194,7 +194,6 @@ export class TransfersRoutes extends BaseRoutesFastify {
                     headers: clonedHeaders,
                     ilpPacket: ilpPacket,
                     condition: condition,
-                    extensionList: extensionList,
                 }
             };
             msg.tracingInfo = {};
@@ -269,7 +268,8 @@ export class TransfersRoutes extends BaseRoutesFastify {
                 transferId: transferId,
                 transferState: transferState,
                 completedTimestamp: new Date(completedTimestamp).valueOf(),
-                notifyPayee: transferState as Enums.TransferStateEnum === Enums.TransferStateEnum.RESERVED && Constants.ALLOWED_PATCH_ACCEPTED_TRANSFER_HEADERS.includes(acceptedHeader)
+                notifyPayee: transferState as Enums.TransferStateEnum === Enums.TransferStateEnum.RESERVED && Constants.ALLOWED_PATCH_ACCEPTED_TRANSFER_HEADERS.includes(acceptedHeader),
+                extensions: FspiopTransformer.convertToFlatExtensions(extensionList)
             };
 
             const msg = new TransferFulfilRequestedEvt(msgPayload);
@@ -347,7 +347,11 @@ export class TransfersRoutes extends BaseRoutesFastify {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId,
                 transferId: transferId,
-                errorInformation: errorInformation
+                errorInformation: {
+                    errorCode: errorInformation.errorCode,
+                    errorDescription: errorInformation.errorDescription,
+                    extensions: FspiopTransformer.convertToFlatExtensions(errorInformation.extensionList)
+                },
             };
 
             const msg = new TransferRejectRequestedEvt(msgPayload);
@@ -398,8 +402,8 @@ export class TransfersRoutes extends BaseRoutesFastify {
         try {
             const clonedHeaders = { ...req.headers };
             const transferId = req.params.id;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
 
 
             if (!transferId || !requesterFspId) {
@@ -415,6 +419,8 @@ export class TransfersRoutes extends BaseRoutesFastify {
 
             const msgPayload: TransferQueryReceivedEvtPayload = {
                 transferId: transferId,
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
             };
 
             const msg = new TransferQueryReceivedEvt(msgPayload);

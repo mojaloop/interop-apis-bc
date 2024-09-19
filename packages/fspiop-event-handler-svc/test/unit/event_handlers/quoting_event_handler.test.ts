@@ -58,7 +58,7 @@ import {
     QuoteBCUnknownErrorEvent,
     QuoteQueryResponseEvt,
     QuoteRequestAcceptedEvt,
-    QuoteResponseAccepted,
+    QuoteResponseAcceptedEvt,
     QuotingBCTopics
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
@@ -72,6 +72,7 @@ import { QuotingErrorCodeNames } from "@mojaloop/quoting-bc-public-types-lib";
 import { IMetrics } from "@mojaloop/platform-shared-lib-observability-types-lib";
 import { IParticipantServiceAdapter } from "../../../../fspiop-api-svc/src/interfaces/infrastructure";
 import { IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
+
 const BC_NAME = "interop-apis-bc";
 const APP_NAME = "fspiop-api-svc";
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
@@ -339,6 +340,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             expiration: null,
             converter: null,
             currencyConversion: null,
+            extensions: [],
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES, {
@@ -416,6 +418,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             expiration: null,
             converter: null,
             currencyConversion: null,
+            extensions: [],
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTICIPANTS, {
@@ -445,10 +448,10 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
     // #endregion
 
 
-    //#region QuoteResponseAccepted
-    it("should throw when processing QuoteResponseAccepted", async () => {
+    //#region QuoteResponseAcceptedEvt
+    it("should throw when processing QuoteResponseAcceptedEvt", async () => {
         // Arrange
-        const msg = new QuoteResponseAccepted({
+        const msg = new QuoteResponseAcceptedEvt({
             quoteId: "cf0fd8e6-383e-4499-b913-9032cdcb0bee",
             transferAmount: {
                 currency: "USD",
@@ -460,6 +463,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             payeeFspFee: null,
             payeeFspCommission: null,
             geoCode: null,
+            extensions: [],
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES, {
@@ -488,9 +492,9 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
         });
     });
 
-    it("should successfully call QuoteResponseAccepted", async () => {
+    it("should successfully call QuoteResponseAcceptedEvt", async () => {
         // Arrange
-        const msg = new QuoteResponseAccepted({
+        const msg = new QuoteResponseAcceptedEvt({
             quoteId: "cf0fd8e6-383e-4499-b913-9032cdcb0bee",
             transferAmount: {
                 currency: "USD",
@@ -502,6 +506,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             payeeFspFee: null,
             payeeFspCommission: null,
             geoCode: null,
+            extensions: [],
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTICIPANTS, {
@@ -545,6 +550,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             payeeFspFee: null,
             payeeFspCommission: null,
             geoCode: null,
+            extensions: [],
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES, {
@@ -587,6 +593,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             payeeFspFee: null,
             payeeFspCommission: null,
             geoCode: null,
+            extensions: [],
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTICIPANTS, {
@@ -635,6 +642,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             geoCode: null,
             expiration: null,
             individualQuotes: [],
+            extensions: [],
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES, {
@@ -682,6 +690,7 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
             geoCode: null,
             expiration: null,
             individualQuotes: [],
+            extensions: [],
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES, {
@@ -753,9 +762,11 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                     currency: "USD",
                     amount: "33"
                 },
+                extensions: [],
                 errorInformation: null,
             }],
             expiration: "2099-01-04T22:49:25.375Z",
+            extensions: [],
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES, {
@@ -826,9 +837,11 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                     currency: "USD",
                     amount: "33"
                 },
+                extensions: [],
                 errorInformation: null,
             }],
             expiration: "2099-01-04T22:49:25.375Z",
+            extensions: [],
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES, {
@@ -900,9 +913,11 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                     currency: "USD",
                     amount: "33"
                 },
+                extensions: [],
                 errorInformation: null,
             }],
             expiration: "2099-01-04T22:49:25.375Z",
+            extensions: [],
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES, {
@@ -973,9 +988,11 @@ describe("FSPIOP Routes - Unit Tests Quoting Event Handler", () => {
                     currency: "USD",
                     amount: "33"
                 },
+                extensions: [],
                 errorInformation: null,
             }],
             expiration: "2099-01-04T22:49:25.375Z",
+            extensions: [],
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES, {
