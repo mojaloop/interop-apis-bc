@@ -38,7 +38,7 @@ import {
     QuoteRequestAcceptedEvt,
     QuoteRequestReceivedEvt,
     QuoteResponseReceivedEvt,
-    QuoteResponseAccepted,
+    QuoteResponseAcceptedEvt,
     QuotingBCTopics,
     TransfersBCTopics,
     TransferPrepareRequestedEvt,
@@ -342,7 +342,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         expect(quoteMessages[0].msgName).toBe(QuoteRequestReceivedEvt.name);
         expect(quoteMessages[1].msgName).toBe(QuoteRequestAcceptedEvt.name);
         expect(quoteMessages[2].msgName).toBe(QuoteResponseReceivedEvt.name);
-        expect(quoteMessages[3].msgName).toBe(QuoteResponseAccepted.name);
+        expect(quoteMessages[3].msgName).toBe(QuoteResponseAcceptedEvt.name);
 
         validTransferPostPayload.ilpPacket = quoteMessages[quoteMessages.length-1].payload.ilpPacket;
         validTransferPostPayload.condition = quoteMessages[quoteMessages.length-1].payload.condition;
@@ -567,7 +567,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         // expect(quoteMessages[0].msgName).toBe(QuoteRequestReceivedEvt.name);
         // expect(quoteMessages[1].msgName).toBe(QuoteRequestAcceptedEvt.name);
         // expect(quoteMessages[2].msgName).toBe(QuoteResponseReceivedEvt.name);
-        // expect(quoteMessages[3].msgName).toBe(QuoteResponseAccepted.name);
+        // expect(quoteMessages[3].msgName).toBe(QuoteResponseAcceptedEvt.name);
 
         // validTransferPostPayload.ilpPacket = quoteMessages[quoteMessages.length-1].payload.ilpPacket;
         // validTransferPostPayload.condition = quoteMessages[quoteMessages.length-1].payload.condition;

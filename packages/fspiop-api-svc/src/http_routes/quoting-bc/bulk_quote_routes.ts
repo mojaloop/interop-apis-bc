@@ -153,8 +153,8 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
         try {
             // Headers
             const clonedHeaders = { ...req.headers };
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
 
             // Date Model
             const bulkQuoteId = req.body.bulkQuoteId;
@@ -186,12 +186,29 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
             }
 
             const msgPayload: BulkQuoteRequestedEvtPayload = {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
                 bulkQuoteId: bulkQuoteId,
                 payer: payer,
                 geoCode: geoCode,
                 expiration: expiration,
-                individualQuotes: individualQuotes,
-            } as unknown as BulkQuoteRequestedEvtPayload;
+                individualQuotes: individualQuotes.map(individualQuote => {
+
+                    return {
+                        quoteId: individualQuote.quoteId,
+                        transactionId: individualQuote.transactionId,
+                        transactionRequestId: individualQuote.transactionRequestId,
+                        payee: individualQuote.payee,
+                        amountType: individualQuote.amountType,
+                        amount: individualQuote.amount,
+                        fees: individualQuote.fees,
+                        transactionType: individualQuote.transactionType,
+                        note: individualQuote.note,
+                        extensions: FspiopTransformer.convertToFlatExtensions(individualQuote.extensionList),
+                    };
+                }),
+                extensions: FspiopTransformer.convertToFlatExtensions(extensionList),
+            };
 
             const msg = new BulkQuoteRequestedEvt(msgPayload);
 
@@ -240,8 +257,8 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
             // Headers
             const clonedHeaders = { ...req.headers };
             const bulkQuoteId = req.params.id;
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION];
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_DESTINATION] as string;
 
             // Date Model
             const expiration = req.body.expiration;
@@ -280,9 +297,25 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
                 destinationFspId: destinationFspId,
                 bulkQuoteId: bulkQuoteId,
                 expiration: expiration,
-                individualQuoteResults: individualQuoteResults,
-                extensionList: extensionList,
-            } as BulkQuotePendingReceivedEvtPayload;
+                individualQuoteResults: individualQuoteResults.map(individualQuoteResult => {
+
+                    return {
+                        quoteId: individualQuoteResult.quoteId,
+                        payee: individualQuoteResult.payee,
+                        transferAmount: individualQuoteResult.transferAmount,
+                        payeeReceiveAmount: individualQuoteResult.payeeReceiveAmount,
+                        payeeFspFee: individualQuoteResult.payeeFspFee,
+                        payeeFspCommission: individualQuoteResult.payeeFspCommission,
+                        extensions: FspiopTransformer.convertToFlatExtensions(extensionList),
+                        errorInformation: individualQuoteResult.errorInformation && {
+                            errorCode: individualQuoteResult.errorInformation.errorCode,
+                            errorDescription: individualQuoteResult.errorInformation.errorDescription,
+                            extensions:FspiopTransformer.convertToFlatExtensions(individualQuoteResult.errorInformation.extensionList)
+                        },
+                    };
+                }),
+                extensions: FspiopTransformer.convertToFlatExtensions(extensionList),
+            };
 
             const msg = new BulkQuotePendingReceivedEvt(msgPayload);
 
@@ -354,7 +387,11 @@ export class QuoteBulkRoutes extends BaseRoutesFastify {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId,
                 bulkQuoteId: bulkQuoteId,
-                errorInformation: errorInformation
+                errorInformation: {
+                    errorCode: errorInformation.errorCode,
+                    errorDescription: errorInformation.errorDescription,
+                    extensions: FspiopTransformer.convertToFlatExtensions(errorInformation.extensionList)
+                },
             };
 
             const msg =  new BulkQuoteRejectedEvt(msgPayload);

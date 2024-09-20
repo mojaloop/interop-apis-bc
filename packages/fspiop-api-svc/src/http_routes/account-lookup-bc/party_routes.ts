@@ -353,6 +353,7 @@ export class PartyRoutes extends BaseRoutesFastify {
                 partyDoB: partyDoB,
                 kycInfo: kycInfo,
                 supportedCurrencies: supportedCurrencies,
+                extensions: FspiopTransformer.convertToFlatExtensions(extensionList)
             };
 
 
@@ -363,7 +364,6 @@ export class PartyRoutes extends BaseRoutesFastify {
             msg.inboundProtocolOpaqueState = {
                 fspiopOpaqueState: {
                     headers: clonedHeaders,
-                    extensionList: extensionList,
                 }
             };
             msg.tracingInfo = {};
@@ -463,6 +463,7 @@ export class PartyRoutes extends BaseRoutesFastify {
                 partyDoB: partyDoB,
                 kycInfo: kycInfo,
                 supportedCurrencies: supportedCurrencies,
+                extensions: FspiopTransformer.convertToFlatExtensions(extensionList)
             };
 
             const msg = new PartyInfoAvailableEvt(msgPayload);
@@ -472,7 +473,6 @@ export class PartyRoutes extends BaseRoutesFastify {
             msg.inboundProtocolOpaqueState = {
                 fspiopOpaqueState: {
                     headers: clonedHeaders,
-                    extensionList: extensionList,
                 }
             };
             msg.tracingInfo = {};
@@ -552,7 +552,11 @@ export class PartyRoutes extends BaseRoutesFastify {
                 partyId: id,
                 partySubType: null,
                 currency: currency,
-                errorInformation: errorInformation
+                errorInformation: {
+                    errorCode: errorInformation.errorCode,
+                    errorDescription: errorInformation.errorDescription,
+                    extensions: FspiopTransformer.convertToFlatExtensions(errorInformation.extensionList)
+                },
             };
 
             const msg = new PartyRejectedEvt(msgPayload);
@@ -646,7 +650,11 @@ export class PartyRoutes extends BaseRoutesFastify {
                 partyId: id,
                 partySubType: partySubIdOrType,
                 currency: currency,
-                errorInformation: errorInformation
+                errorInformation: {
+                    errorCode: errorInformation.errorCode,
+                    errorDescription: errorInformation.errorDescription,
+                    extensions: FspiopTransformer.convertToFlatExtensions(errorInformation.extensionList)
+                },
             };
 
             const msg = new PartyRejectedEvt(msgPayload);

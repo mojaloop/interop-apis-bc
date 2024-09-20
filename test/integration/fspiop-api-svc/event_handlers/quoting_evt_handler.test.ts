@@ -39,7 +39,7 @@ import {
     QuoteRequestAcceptedEvt,
     QuoteRequestReceivedEvt,
     QuoteResponseReceivedEvt,
-    QuoteResponseAccepted,
+    QuoteResponseAcceptedEvt,
     BulkQuoteRequestedEvt,
     BulkQuotePendingReceivedEvt,
     BulkQuoteQueryReceivedEvt,
@@ -437,7 +437,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
             expect(messages[0].msgName).toBe(QuoteRequestReceivedEvt.name);
             expect(messages[1].msgName).toBe(QuoteRequestAcceptedEvt.name);
             expect(messages[2].msgName).toBe(QuoteResponseReceivedEvt.name);
-            expect(messages[3].msgName).toBe(QuoteResponseAccepted.name);
+            expect(messages[3].msgName).toBe(QuoteResponseAcceptedEvt.name);
 
             // save this quoteId to be used afterwards
         });
@@ -570,7 +570,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
     
     it("should fail due to request failing", async () => {
         // Arrange
-        const msg = new QuoteResponseAccepted({
+        const msg = new QuoteResponseAcceptedEvt({
             ownerFspId: "nonexistingfsp",
             bulkQuoteId: "123",
         } as any)

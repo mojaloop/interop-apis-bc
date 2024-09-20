@@ -512,7 +512,7 @@ export interface PutBulkTransfer {
                     value: string;
                 }[];
             } | null;
-        };
+        } | null;
         extensionList: {
             extension: {
                 key: string;

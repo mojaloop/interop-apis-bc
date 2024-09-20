@@ -56,7 +56,9 @@ export type BulkQuoteRequestDTO = {
                     lastName: string | null;
                 } | null;
                 dateOfBirth: string | null;
+                kycInformation: string | null;
             } | null;
+            supportedCurrencies: string[] | null;
         };
         geoCode: {
             latitude: string;
@@ -83,7 +85,9 @@ export type BulkQuoteRequestDTO = {
                         lastName: string | null;
                     } | null;
                     dateOfBirth: string | null;
+                    kycInformation: string | null;
                 } | null;
+                supportedCurrencies: string[] | null;
             };
             amountType: "SEND" | "RECEIVE";
             amount: {
@@ -146,7 +150,9 @@ export type BulkQuotePendingDTO = {
                         lastName: string | null;
                     } | null;
                     dateOfBirth: string | null;
+                    kycInformation: string | null;
                 } | null;
+                supportedCurrencies: string[] | null;
             } | null;
             transferAmount: {
                 currency: string;

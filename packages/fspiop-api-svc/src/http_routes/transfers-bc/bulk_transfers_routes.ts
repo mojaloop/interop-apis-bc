@@ -102,8 +102,8 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
         try {
             // Headers
             const clonedHeaders = {...req.headers};
-            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE];
-            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE]; // NOTE: We do this because the destination is coming as null
+            const requesterFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string;
+            const destinationFspId = clonedHeaders[Constants.FSPIOP_HEADERS_SOURCE] as string; // NOTE: We do this because the destination is coming as null
 
             // Date Model
             const bulkTransfersId = req.params.id;
@@ -125,6 +125,8 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
 
             const msgPayload: BulkTransferQueryReceivedEvtPayload = {
                 bulkTransferId: bulkTransfersId,
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId,
             };
 
             const msg = new BulkTransferQueryReceivedEvt(msgPayload);
@@ -227,10 +229,11 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
                     individualTransfer.payerIdType = decodedIlpPacket.payer.partyIdInfo.partyIdType;
                     individualTransfer.payeeIdType = decodedIlpPacket.payee.partyIdInfo.partyIdType;
                     individualTransfer.transferType = decodedIlpPacket.transactionType.scenario;
-                    individualTransfer.extensions = FspiopTransformer.transformExtensionList(individualTransfer.extensionList);
+                    individualTransfer.extensions = FspiopTransformer.convertToFlatExtensions(individualTransfer.extensionList);
                     
                     return individualTransfer;
                 }),
+                extensions: FspiopTransformer.convertToFlatExtensions(extensionList),
             };
 
             const msg = new BulkTransferPrepareRequestedEvt(msgPayload);
@@ -306,7 +309,20 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
                 bulkTransferId: bulkTransferId,
                 completedTimestamp: completedTimestamp,
                 bulkTransferState: bulkTransferState,
-                individualTransferResults: individualTransferResults,
+                individualTransferResults: individualTransferResults.map(individualTransferResult => {
+
+                    return {
+                        transferId: individualTransferResult.transferId,
+                        fulfilment: individualTransferResult.fulfilment,
+                        extensions: FspiopTransformer.convertToFlatExtensions(individualTransferResult.extensionList),
+                        errorInformation: individualTransferResult.errorInformation && {
+                            errorCode: individualTransferResult.errorInformation.errorCode,
+                            errorDescription: individualTransferResult.errorInformation.errorDescription,
+                            extensions: FspiopTransformer.convertToFlatExtensions(individualTransferResult.errorInformation.extensionList)
+                        },
+                    };
+                }),
+                extensions: FspiopTransformer.convertToFlatExtensions(extensionList),
             };
 
             const msg = new BulkTransferFulfilRequestedEvt(msgPayload);
@@ -368,7 +384,11 @@ export class TransfersBulkRoutes extends BaseRoutesFastify {
 
             const msgPayload: BulkTransferRejectRequestedEvtPayload = {
                 bulkTransferId: bulkTransferId,
-                errorInformation: errorInformation
+                errorInformation: {
+                    errorCode: errorInformation.errorCode,
+                    errorDescription: errorInformation.errorDescription,
+                    extensions: FspiopTransformer.convertToFlatExtensions(errorInformation.extensionList)
+                },
             };
 
             const msg =  new BulkTransferRejectRequestedEvt(msgPayload);

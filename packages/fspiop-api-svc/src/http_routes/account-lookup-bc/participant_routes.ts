@@ -36,7 +36,7 @@
 
 import {FastifyInstance, FastifyPluginOptions, FastifyReply, FastifyRequest} from "fastify";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import { Constants, FspiopJwsSignature, FspiopValidator, FspiopTransformer, ValidationdError } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
+import { Constants, FspiopJwsSignature, FspiopValidator, FspiopTransformer, ValidationdError, ExtensionList } from "@mojaloop/interop-apis-bc-fspiop-utils-lib";
 import {
     ParticipantQueryReceivedEvtPayload,
     ParticipantQueryReceivedEvt,
@@ -260,7 +260,7 @@ export class ParticipantRoutes extends BaseRoutesFastify {
         }
     }
 
-    private async associatePartyByTypeAndId(req: FastifyRequest<{ Params: { type: string; id: string }, Querystring: { currency: string }, Body: { fspId: string, currency: string } }>, reply: FastifyReply): Promise<void> {
+    private async associatePartyByTypeAndId(req: FastifyRequest<{ Params: { type: string; id: string }, Querystring: { currency: string }, Body: { fspId: string, currency: string, extensionList: ExtensionList } }>, reply: FastifyReply): Promise<void> {
         const parentSpan = this._getActiveSpan();
         this._logger.debug("Got associatePartyByTypeAndId request");
         try {
@@ -273,7 +273,8 @@ export class ParticipantRoutes extends BaseRoutesFastify {
             const id = req.params.id;
             const ownerFspId = req.body.fspId;
             const currency = req.body.currency;
-
+            const extensionList = req.body.extensionList;
+            
             if (!type || !id || !ownerFspId || !requesterFspId) {
                 const transformError = FspiopTransformer.transformPayloadError({
                     errorCode: FSPIOPErrorCodes.MALFORMED_SYNTAX.code,
@@ -302,6 +303,7 @@ export class ParticipantRoutes extends BaseRoutesFastify {
                 partyType: type,
                 partySubType: null,
                 currency: currency,
+                extensions: FspiopTransformer.convertToFlatExtensions(extensionList)
             };
 
             const msg = new ParticipantAssociationRequestReceivedEvt(msgPayload);
@@ -345,7 +347,7 @@ export class ParticipantRoutes extends BaseRoutesFastify {
         }
     }
 
-    private async associatePartyByTypeAndIdAndSubId(req: FastifyRequest<{ Params: { type: string; id: string, subid: string }, Querystring: { currency: string }, Body: { fspId: string, currency: string } }>, reply: FastifyReply): Promise<void> {
+    private async associatePartyByTypeAndIdAndSubId(req: FastifyRequest<{ Params: { type: string; id: string, subid: string }, Querystring: { currency: string }, Body: { fspId: string, currency: string, extensionList: ExtensionList } }>, reply: FastifyReply): Promise<void> {
         const parentSpan = this._getActiveSpan();
         this._logger.debug("Got associatePartyByTypeAndId request");
         try {
@@ -359,6 +361,7 @@ export class ParticipantRoutes extends BaseRoutesFastify {
             const partySubIdOrType = req.params.subid;
             const ownerFspId = req.body.fspId;
             const currency = req.body.currency;
+            const extensionList = req.body.extensionList;
 
             if (!type || !id || !ownerFspId || !requesterFspId) {
                 const transformError = FspiopTransformer.transformPayloadError({
@@ -387,7 +390,8 @@ export class ParticipantRoutes extends BaseRoutesFastify {
                 partyId: id,
                 partyType: type,
                 partySubType: partySubIdOrType,
-                currency: currency
+                currency: currency,
+                extensions: FspiopTransformer.convertToFlatExtensions(extensionList)
             };
 
             const msg = new ParticipantAssociationRequestReceivedEvt(msgPayload);
@@ -636,7 +640,11 @@ export class ParticipantRoutes extends BaseRoutesFastify {
                 partyId: id,
                 partySubType: null,
                 currency: currency,
-                errorInformation: errorInformation
+                errorInformation: {
+                    errorCode: errorInformation.errorCode,
+                    errorDescription: errorInformation.errorDescription,
+                    extensions: FspiopTransformer.convertToFlatExtensions(errorInformation.extensionList)
+                },
             };
 
             const msg = new ParticipantRejectedEvt(msgPayload);
@@ -727,7 +735,11 @@ export class ParticipantRoutes extends BaseRoutesFastify {
                 partyId: id,
                 partySubType: partySubIdOrType,
                 currency: currency,
-                errorInformation: errorInformation
+                errorInformation: {
+                    errorCode: errorInformation.errorCode,
+                    errorDescription: errorInformation.errorDescription,
+                    extensions: FspiopTransformer.convertToFlatExtensions(errorInformation.extensionList)
+                },
             };
 
             const msg = new ParticipantRejectedEvt(msgPayload);

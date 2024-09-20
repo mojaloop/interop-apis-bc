@@ -275,7 +275,7 @@ export class AccountLookupEventHandler extends BaseEventHandler {
 
             const requestedEndpoint = await this._validateParticipantAndGetEndpoint(destinationFspId);
 
-            const transformedPayload = FspiopTransformer.transformPayloadPartyAssociationPut(payload);
+            const transformedPayload = FspiopTransformer.transformPayloadParticipantPut(payload);
 
             const urlBuilder = new Request.URLBuilder(requestedEndpoint.value);
             urlBuilder.setEntity(Enums.EntityTypeEnum.PARTICIPANTS);

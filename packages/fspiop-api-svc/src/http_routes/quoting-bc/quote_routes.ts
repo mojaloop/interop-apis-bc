@@ -152,7 +152,8 @@ export class QuoteRoutes extends BaseRoutesFastify {
                 note: note,
                 expiration: expiration,
                 converter: converter,
-                currencyConversion: currencyConversion
+                currencyConversion: currencyConversion,
+                extensions: FspiopTransformer.convertToFlatExtensions(extensionList)
             };
 
             const msg = new QuoteRequestReceivedEvt(msgPayload);
@@ -167,7 +168,6 @@ export class QuoteRoutes extends BaseRoutesFastify {
             msg.inboundProtocolOpaqueState = {
                 fspiopOpaqueState: {
                     headers: clonedHeaders,
-                    extensionList: extensionList,
                 }
             };
             msg.tracingInfo = {};
@@ -261,6 +261,7 @@ export class QuoteRoutes extends BaseRoutesFastify {
                 payeeFspFee: payeeFspFee,
                 payeeFspCommission: payeeFspCommission,
                 geoCode: geoCode,
+                extensions: FspiopTransformer.convertToFlatExtensions(extensionList)
             };
 
             const msg = new QuoteResponseReceivedEvt(msgPayload);
@@ -411,7 +412,11 @@ export class QuoteRoutes extends BaseRoutesFastify {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId,
                 quoteId: quoteId,
-                errorInformation: errorInformation
+                errorInformation: {
+                    errorCode: errorInformation.errorCode,
+                    errorDescription: errorInformation.errorDescription,
+                    extensions: FspiopTransformer.convertToFlatExtensions(errorInformation.extensionList)
+                },
             };
 
             const msg =  new QuoteRejectedEvt(msgPayload);

@@ -290,7 +290,8 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             ownerFspId: "nonexistingfsp",
             partyId: "123",
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
-            partySubType: "456"
+            partySubType: "456",
+            extensions: [],
         })
 
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTICIPANTS, {
@@ -325,7 +326,8 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             ownerFspId: "test-fspiop-source",
             partyId: "123",
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
-            partySubType: "456"
+            partySubType: "456",
+            extensions: [],
         })
 
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTICIPANTS, {
@@ -347,7 +349,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
                 source: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_SOURCE],
                 destination: message.inboundProtocolOpaqueState.fspiopOpaqueState.headers[Constants.FSPIOP_HEADERS_DESTINATION],
                 method: Enums.FspiopRequestMethodsEnum.PUT,
-                payload: FspiopTransformer.transformPayloadPartyAssociationPut(message.payload)
+                payload: FspiopTransformer.transformPayloadParticipantPut(message.payload)
             }));
         });
 
@@ -519,6 +521,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             currency: null,
             supportedCurrencies: null,
             kycInfo: null,
+            extensions: [],
         })
 
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES, {
@@ -564,7 +567,8 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             partySubType: "456",
             currency: null,
             supportedCurrencies: null,
-            kycInfo: null
+            kycInfo: null,
+            extensions: [],
         })
 
         const protocolValues: IPutPartyOpaqueState = {
@@ -844,8 +848,9 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             partySubType: "456",
             currency: "USD",
             errorInformation: { 
-                "errorCode": ClientErrors.PARTY_NOT_FOUND.code,
-                "errorDescription": ClientErrors.PARTY_NOT_FOUND.name
+                errorCode: ClientErrors.PARTY_NOT_FOUND.code,
+                errorDescription: ClientErrors.PARTY_NOT_FOUND.name,
+                extensions: [],
             }
         })
     });
@@ -881,8 +886,9 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             partySubType: "456",
             currency: "USD",
             errorInformation: { 
-                "errorCode": ClientErrors.PAYER_FSP_ID_NOT_FOUND.code,
-                "errorDescription": ClientErrors.PAYER_FSP_ID_NOT_FOUND.name
+                errorCode: ClientErrors.PAYER_FSP_ID_NOT_FOUND.code,
+                errorDescription: ClientErrors.PAYER_FSP_ID_NOT_FOUND.name,
+                extensions: [],
             }
         })
         
