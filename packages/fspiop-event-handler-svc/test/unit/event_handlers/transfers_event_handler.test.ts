@@ -311,6 +311,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             expiration: 0,
             settlementModel: "DEFAULT",
             preparedAt: 0,
+            extensions: [],
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS, {
@@ -350,6 +351,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             expiration: 0,
             settlementModel: "DEFAULT",
             preparedAt: 0,
+            extensions: [],
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS, {
@@ -393,6 +395,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             settlementModel: "DEFAULT",
             notifyPayee: false,
             fulfiledAt: 0,
+            extensions: [],
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS, {
@@ -433,6 +436,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             settlementModel: "DEFAULT",
             notifyPayee: false,
             fulfiledAt: 0,
+            extensions: [],
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS, {
@@ -468,6 +472,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             transferId: "1fbee0f3-c58e-5afe-8cdd-7e65eea2fca9",
             transferState: "COMPLETED",
             completedTimestamp: null,
+            extensions: [],
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS, {
@@ -502,6 +507,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             transferId: "1fbee0f3-c58e-5afe-8cdd-7e65eea2fca9",
             transferState: "COMMITTED",
             completedTimestamp: null,
+            extensions: [],
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS, {
@@ -545,6 +551,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
                 currencyCode: "USD",
                 amount: "10",
             }],
+            extensions: [],
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_TRANSFERS, {
@@ -586,6 +593,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
                 currencyCode: "USD",
                 amount: "10",
             }],
+            extensions: [],
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_TRANSFERS, {
@@ -624,6 +632,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             individualTransferResults: [{
                 transferId: "1fbee2f3-c58e-5afe-8cdd-6e65eea2fca9",
             } as any],
+            extensions: [],
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_TRANSFERS, {
@@ -661,6 +670,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             individualTransferResults: [{
                 transferId: "1fbee2f3-c58e-5afe-8cdd-6e65eea2fca9",
             } as any],
+            extensions: [],
         });
 
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_TRANSFERS, {
@@ -772,6 +782,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             errorInformation: { 
                 errorCode: "transfer id error code",
                 errorDescription: "error transfer description",
+                extensions: [],
             }
         });
 
@@ -809,6 +820,7 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             errorInformation: { 
                 errorCode: "transfer id error code",
                 errorDescription: "error transfer description",
+                extensions: [],
             }
         });
 
@@ -1620,7 +1632,8 @@ describe("FSPIOP Routes - Unit Tests Transfers Event Handler", () => {
             transferId: "123",
             "errorInformation": { 
                 "errorCode": "transfer id error code",
-                "errorDescription": "error transfer description"
+                "errorDescription": "error transfer description",
+                "extensions": [],
             }
         })
         
