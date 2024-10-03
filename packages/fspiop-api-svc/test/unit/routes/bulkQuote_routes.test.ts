@@ -403,9 +403,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
                         },
                         {
                             "key": "allowedValues",
-                            "value": [
-                                "USD"
-                            ],
+                            "value": "[\"USD\"]",
                         }
                     ]
                 }
@@ -662,9 +660,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Quote", () => {
                         },
                         {
                             "key": "allowedValues",
-                            "value": [
-                                "USD"
-                            ],
+                            "value": "[\"USD\"]",
                         }
                     ]
                 }

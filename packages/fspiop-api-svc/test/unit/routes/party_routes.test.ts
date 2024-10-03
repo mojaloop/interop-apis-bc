@@ -291,9 +291,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
                         },
                         {
                             "key": "allowedValues",
-                            "value": [
-                                "USD"
-                            ],
+                            "value": "[\"USD\"]",
                         }
                     ]
                 }
@@ -360,9 +358,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
                         },
                         {
                             "key": "allowedValues",
-                            "value": [
-                                "USD"
-                            ],
+                            "value": "[\"USD\"]",
                         }
                     ]
                 }
@@ -471,9 +467,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
                         },
                         {
                             "key": "allowedValues",
-                            "value": [
-                                "USD"
-                            ],
+                            "value": "[\"USD\"]",
                         }
                     ]
                 }
@@ -605,9 +599,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
                         },
                         {
                             "key": "allowedValues",
-                            "value": [
-                                "USD"
-                            ],
+                            "value": "[\"USD\"]",
                         }
                     ]
                 }
@@ -714,9 +706,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
                         },
                         {
                             "key": "allowedValues",
-                            "value": [
-                                "USD"
-                            ],
+                            "value": "[\"USD\"]",
                         }
                     ]
                 }
@@ -810,9 +800,7 @@ describe("FSPIOP Routes - Unit Tests Party", () => {
                         },
                         {
                             "key": "allowedValues",
-                            "value": [
-                                "USD"
-                            ],
+                            "value": "[\"USD\"]",
                         }
                     ]
                 }

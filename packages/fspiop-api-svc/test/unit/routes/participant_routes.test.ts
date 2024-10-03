@@ -293,9 +293,7 @@ describe("FSPIOP Routes - Participant", () => {
                         },
                         {
                             "key": "allowedValues",
-                            "value": [
-                                "USD"
-                            ],
+                            "value": "[\"USD\"]",
                         }
                     ]
                 }
@@ -368,9 +366,7 @@ describe("FSPIOP Routes - Participant", () => {
                         },
                         {
                             "key": "allowedValues",
-                            "value": [
-                                "USD"
-                            ],
+                            "value": "[\"USD\"]",
                         }
                     ]
                 }
@@ -453,9 +449,7 @@ describe("FSPIOP Routes - Participant", () => {
                         },
                         {
                             "key": "allowedValues",
-                            "value": [
-                                "USD"
-                            ],
+                            "value": "[\"USD\"]",
                         }
                     ]
                 }
@@ -543,9 +537,7 @@ describe("FSPIOP Routes - Participant", () => {
                         },
                         {
                             "key": "allowedValues",
-                            "value": [
-                                "USD"
-                            ],
+                            "value": "[\"USD\"]",
                         }
                     ]
                 }
@@ -656,9 +648,7 @@ describe("FSPIOP Routes - Participant", () => {
                         },
                         {
                             "key": "allowedValues",
-                            "value": [
-                                "USD"
-                            ],
+                            "value": "[\"USD\"]",
                         }
                     ]
                 }

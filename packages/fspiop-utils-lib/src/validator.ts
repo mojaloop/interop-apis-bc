@@ -79,7 +79,7 @@ export class FspiopValidator {
 	currencyAndAmount(amount:Amount) {
 		const currency = this._currencyList.find((currency) => currency.code === amount.currency);
 
-		if(!currency) {
+		if (!currency) {
 			throw new ValidationdError({
 				"errorInformation": {
 					"errorCode": ClientErrors.GENERIC_VALIDATION_ERROR.code,
@@ -96,13 +96,15 @@ export class FspiopValidator {
 							},
 							{
 								"key": "allowedValues",
-								"value": this._currencyList.map(currency => currency.code)
+								// Convert the array of currencies to a string with brackets
+								"value": JSON.stringify(this._currencyList.map(currency => currency.code))
 							}
 						]
 					}
 				}
 			});
 		}
+		
 
 
 		if(amount.amount) {
