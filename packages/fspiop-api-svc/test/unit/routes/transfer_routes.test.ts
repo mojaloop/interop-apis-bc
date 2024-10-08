@@ -349,9 +349,7 @@ describe("FSPIOP Routes - Unit Tests Transfer", () => {
                         },
                         {
                             "key": "allowedValues",
-                            "value": [
-                                "USD"
-                            ],
+                            "value": "[\"USD\"]",
                         }
                     ]
                 }

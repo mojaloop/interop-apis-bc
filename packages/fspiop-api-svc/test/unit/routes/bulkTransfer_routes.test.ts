@@ -366,9 +366,7 @@ describe("FSPIOP Routes - Unit Tests Bulk Transfer", () => {
                         },
                         {
                             "key": "allowedValues",
-                            "value": [
-                                "USD"
-                            ],
+                            "value": "[\"USD\"]",
                         }
                     ]
                 }
