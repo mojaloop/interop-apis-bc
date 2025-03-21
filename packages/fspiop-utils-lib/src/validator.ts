@@ -1,22 +1,26 @@
 /*****
-License
---------------
-Copyright © 2020-2025 Mojaloop Foundation
-The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License")
+ License
+ --------------
+ Copyright © 2020-2025 Mojaloop Foundation
+ The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License. You may obtain a copy of the License at
 
-Contributors
---------------
-This is the official list (alphabetical ordering) of the Mojaloop project contributors for this file.
-Names of the original copyright holders (individuals or organizations)
-should be listed with a '*' in the first column. People who have
-contributed from an organization can be listed under the organization
-that actually holds the copyright for their contributions (see the
-Gates Foundation organization for an example). Those individuals should have
-their names indented and be marked with a '-'. Email address can be added
-optionally within square brackets <email>.
+ http://www.apache.org/licenses/LICENSE-2.0
 
-* Gates Foundation
-- Name Surname <name.surname@gatesfoundation.com>
+ Unless required by applicable law or agreed to in writing, the Mojaloop files are distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+ Contributors
+ --------------
+ This is the official list of the Mojaloop project contributors for this file.
+ Names of the original copyright holders (individuals or organizations)
+ should be listed with a '*' in the first column. People who have
+ contributed from an organization can be listed under the organization
+ that actually holds the copyright for their contributions (see the
+ Mojaloop Foundation for an example). Those individuals should have
+ their names indented and be marked with a '-'. Email address can be added
+ optionally within square brackets <email>.
+
+ * Mojaloop Foundation
+ - Name Surname <name.surname@mojaloop.io>
 
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
@@ -47,7 +51,7 @@ export class FspiopValidator {
 
 	// eslint-disable-next-line @typescript-eslint/no-empty-function
 	private constructor() {}
-  
+
 	static getInstance() {
 		if (FspiopValidator.instance) {
 			return this.instance;
@@ -98,7 +102,7 @@ export class FspiopValidator {
 				}
 			});
 		}
-		
+
 
 
 		if(amount.amount) {
@@ -112,7 +116,7 @@ export class FspiopValidator {
 				});
 			}
 			const decimalValue = amount.amount.toString().split(".");
-			
+
 			if(decimalValue.length === 2 && currency.decimals < decimalValue[1].length) {
 				throw new ValidationdError({
 					"errorInformation": {
@@ -123,7 +127,7 @@ export class FspiopValidator {
 				});
 			}
 		}
-	
+
 		return this;
 	}
 
@@ -149,8 +153,8 @@ export class FspiopValidator {
 		}
 		return true;
 	};
-	
-	
+
+
 	validateIlpAgainstTransferRequest = (transferRequestBody:IPostTransfer, decodedTransferIlpPacket:DecodedIlpPacketTransfer) => {
 
         if(decodedTransferIlpPacket.transactionId !== transferRequestBody.transferId) {
@@ -204,14 +208,14 @@ export class FspiopValidator {
 	validateCondition = (conditionUri:string) => {
 
 		try {
-			// NOTE: we add this prefix because it's a Named Information (NI) 
+			// NOTE: we add this prefix because it's a Named Information (NI)
 			const prefix = "ni:///sha-256;";
 			if (!conditionUri.startsWith(prefix)) {
 				conditionUri = prefix + conditionUri;
 			}
 			//prepare condition url
 			const condition = `${conditionUri}?fpt=preimage-sha-256&cost=0`;
-			
+
 			FiveBellsCondition.validateCondition(condition);
 		} catch (err) {
 			throw new ValidationdError({
@@ -223,17 +227,17 @@ export class FspiopValidator {
 			});
 		}
 	};
-		
+
 	validateFulfil = (fulfilment:string, condition:string) => {
 		const preimage = base64url.toBuffer(fulfilment);
-	
+
 		if (preimage.length !== 32) {
 			return false;
 		}
-	
+
 		const calculatedConditionDigest = Crypto.createHash("sha256").update(preimage).digest("base64");
 		const calculatedConditionUrlEncoded = base64url.fromBase64(calculatedConditionDigest);
-	
+
 		return (calculatedConditionUrlEncoded === condition);
 	};
 }

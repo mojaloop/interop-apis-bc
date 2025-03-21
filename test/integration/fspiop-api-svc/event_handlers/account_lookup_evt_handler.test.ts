@@ -1,22 +1,26 @@
 /*****
-License
---------------
-Copyright © 2020-2025 Mojaloop Foundation
-The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License")
+ License
+ --------------
+ Copyright © 2020-2025 Mojaloop Foundation
+ The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License. You may obtain a copy of the License at
 
-Contributors
---------------
-This is the official list (alphabetical ordering) of the Mojaloop project contributors for this file.
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, the Mojaloop files are distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+ Contributors
+ --------------
+ This is the official list of the Mojaloop project contributors for this file.
  Names of the original copyright holders (individuals or organizations)
  should be listed with a '*' in the first column. People who have
  contributed from an organization can be listed under the organization
  that actually holds the copyright for their contributions (see the
- Gates Foundation organization for an example). Those individuals should have
+ Mojaloop Foundation for an example). Those individuals should have
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
 
- * Gates Foundation
- - Name Surname <name.surname@gatesfoundation.com>
+ * Mojaloop Foundation
+ - Name Surname <name.surname@mojaloop.io>
 
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
@@ -137,12 +141,12 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
         // partyRepo.deleteMany({})
     });
 
-    
+
     // #region POST Participant By Type and Id
     it("should return error event due to non existing payer fsp", async () => {
-        // Arrange 
+        // Arrange
         validParticipantPostPayload.fspId = "nonexistingfsp";
-        
+
         const headers = getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST);
         headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validParticipantPostPayload);
 
@@ -163,10 +167,10 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
     });
 
     it("should return error event due to non existing oracle", async () => {
-        // Arrange 
+        // Arrange
         const headers = getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST);
         headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validParticipantPostPayload);
-        
+
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "nonexistingpartytype" + "/" + "nonexistingpartyid")
@@ -184,10 +188,10 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
     });
 
     it("should successfully associate a participant", async () => {
-        // Arrange 
+        // Arrange
         const headers = getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST);
         headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validParticipantPostPayload);
-        
+
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "MSISDN" + "/" + "37713803068")
@@ -205,10 +209,10 @@ describe("FSPIOP API Service Account Lookup Handler", () => {
     });
 
 it("should return error from trying to create an already existing association", async () => {
-        // Arrange 
+        // Arrange
         const headers = getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST);
         headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validParticipantPostPayload);
-        
+
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "MSISDN" + "/" + "37713803068")
@@ -228,7 +232,7 @@ it("should return error from trying to create an already existing association", 
 
     // #region POST Participant By Type and Id and SubId
     it("should return error event due to non existing payer fsp", async () => {
-        // Arrange 
+        // Arrange
         validParticipantPostPayload.fspId = "nonexistingfsp";
 
         const headers = getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST);
@@ -251,10 +255,10 @@ it("should return error from trying to create an already existing association", 
     });
 
     it("should return error event due to non existing oracle", async () => {
-        // Arrange 
+        // Arrange
         const headers = getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST);
         headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validParticipantPostPayload);
-                
+
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "nonexistingpartytype" + "/" + "nonexistingpartyid" + "nonexistingpartysubid")
@@ -272,10 +276,10 @@ it("should return error from trying to create an already existing association", 
     });
 
     it("should successfully associate a participant", async () => {
-        // Arrange 
+        // Arrange
         const headers = getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST);
         headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validParticipantPostPayload);
-        
+
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "MSISDN" + "/" + "37713803068" + "/" + "111222333")
@@ -293,10 +297,10 @@ it("should return error from trying to create an already existing association", 
     });
 
     it("should return error from trying to create an already existing association", async () => {
-        // Arrange 
+        // Arrange
         const headers = getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST);
         headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validParticipantPostPayload);
-        
+
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "MSISDN" + "/" + "37713803068" + "111222333")
@@ -321,7 +325,7 @@ it("should return error from trying to create an already existing association", 
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             partySubType: "456",
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTICIPANTS);
 
         // Act
@@ -336,8 +340,8 @@ it("should return error from trying to create an already existing association", 
 
     // #region GET Participant
     it("should return error event due to non existing payer fsp", async () => {
-        // Arrange 
-        const headerOverride = { 
+        // Arrange
+        const headerOverride = {
             "fspiop-source": "nonexistingfsp"
         };
 
@@ -398,7 +402,7 @@ it("should return error from trying to create an already existing association", 
             partySubType: "456",
             currency: null
         })
-        
+
 
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTICIPANTS, {
             [Constants.FSPIOP_HEADERS_SOURCE]: "nonexistingfsp",
@@ -417,8 +421,8 @@ it("should return error from trying to create an already existing association", 
 
     // #region GET Party
     it("should return error event due to non existing payer fsp", async () => {
-        // Arrange 
-        const headerOverride = { 
+        // Arrange
+        const headerOverride = {
             "fspiop-source": "nonexistingfsp"
         };
 
@@ -465,7 +469,7 @@ it("should return error from trying to create an already existing association", 
             partySubType: "456",
             currency: null
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
 
         // Act
@@ -497,7 +501,7 @@ it("should return error from trying to create an already existing association", 
             kycInfo: null,
             supportedCurrencies: null
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
 
         // Act
@@ -512,8 +516,8 @@ it("should return error from trying to create an already existing association", 
 
     // #region DEL Participant By Type and Id
     // it("should return error event due to non existing payer fsp", async () => {
-    //     // Arrange 
-    //     const headerOverride = { 
+    //     // Arrange
+    //     const headerOverride = {
     //         "fspiop-source": "nonexistingfsp"
     //     };
 
@@ -535,7 +539,7 @@ it("should return error from trying to create an already existing association", 
     // });
 
     it("should return error event due to non existing oracle", async () => {
-        // Arrange 
+        // Arrange
         const headers = getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST);
         headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validParticipantPostPayload);
 
@@ -556,10 +560,10 @@ it("should return error from trying to create an already existing association", 
     });
 
     it("should successfully disassociate a participant", async () => {
-        // Arrange 
+        // Arrange
         const headers = getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST);
         headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validParticipantPostPayload);
-        
+
         // Act
         await request(server)
         .del(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "MSISDN" + "/" + "37713803068")
@@ -583,7 +587,7 @@ it("should return error from trying to create an already existing association", 
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             partySubType: "456"
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTICIPANTS);
 
         // Act
@@ -598,8 +602,8 @@ it("should return error from trying to create an already existing association", 
 
     // #region DEL Participant by Type and Id and SubId
     it("should return error event due to non existing payer fsp", async () => {
-        // Arrange 
-        const headerOverride = { 
+        // Arrange
+        const headerOverride = {
             "fspiop-source": "nonexistingfsp"
         };
 
@@ -619,10 +623,10 @@ it("should return error from trying to create an already existing association", 
     });
 
     it("should return error event due to non existing oracle", async () => {
-        // Arrange 
+        // Arrange
         const headers = getHeaders(Enums.EntityTypeEnum.PARTICIPANTS, Enums.FspiopRequestMethodsEnum.POST);
         headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, FspiopTransformer.removeEmpty(validParticipantPostPayload));
-        
+
         // Act
         await request(server)
         .post(Enums.EntityTypeEnum.PARTICIPANTS + "/" + "nonexistingpartytype" + "/" + "nonexistingpartyid" + "nonexistingpartysubid")
@@ -666,7 +670,7 @@ it("should return error from trying to create an already existing association", 
             currency: "USD",
             errorCode: AccountLookupErrorCodeNames.COMMAND_TYPE_UNKNOWN
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTICIPANTS);
 
         // Act
@@ -676,7 +680,7 @@ it("should return error from trying to create an already existing association", 
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ServerErrors.INTERNAL_SERVER_ERROR.code,
                         "errorDescription": Enums.ServerErrors.INTERNAL_SERVER_ERROR.name
                     }
@@ -696,7 +700,7 @@ it("should return error from trying to create an already existing association", 
             currency: "USD",
             errorCode: AccountLookupErrorCodeNames.COMMAND_TYPE_UNKNOWN
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
 
         // Act
@@ -706,7 +710,7 @@ it("should return error from trying to create an already existing association", 
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ServerErrors.INTERNAL_SERVER_ERROR.code,
                         "errorDescription": Enums.ServerErrors.INTERNAL_SERVER_ERROR.name
                     }
@@ -726,7 +730,7 @@ it("should return error from trying to create an already existing association", 
             requesterFspId: "bluebank",
             errorCode: AccountLookupErrorCodeNames.INVALID_MESSAGE_PAYLOAD
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
 
         // Act
@@ -736,7 +740,7 @@ it("should return error from trying to create an already existing association", 
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code,
                         "errorDescription": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.name
                     }
@@ -756,7 +760,7 @@ it("should return error from trying to create an already existing association", 
             requesterFspId: "bluebank",
             errorCode: AccountLookupErrorCodeNames.INVALID_MESSAGE_TYPE
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
 
         // Act
@@ -766,7 +770,7 @@ it("should return error from trying to create an already existing association", 
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code,
                         "errorDescription": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.name
                     }
@@ -785,7 +789,7 @@ it("should return error from trying to create an already existing association", 
             currency: "USD",
             errorCode: AccountLookupErrorCodeNames.UNABLE_TO_GET_ORACLE_ADAPTER
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
 
         // Act
@@ -795,7 +799,7 @@ it("should return error from trying to create an already existing association", 
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code,
                         "errorDescription": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.name
                     }
@@ -813,12 +817,12 @@ it("should return error from trying to create an already existing association", 
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             partySubType: "456",
             currency: "USD",
-            errorInformation: { 
+            errorInformation: {
                 "errorCode": ClientErrors.PARTY_NOT_FOUND.code,
                 "errorDescription": ClientErrors.PARTY_NOT_FOUND.name
             }
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
 
         // Act
@@ -828,7 +832,7 @@ it("should return error from trying to create an already existing association", 
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": ClientErrors.PARTY_NOT_FOUND.code,
                         "errorDescription": ClientErrors.PARTY_NOT_FOUND.name
                     }
@@ -846,12 +850,12 @@ it("should return error from trying to create an already existing association", 
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             partySubType: "456",
             currency: "USD",
-            errorInformation: { 
+            errorInformation: {
                 "errorCode": ClientErrors.PARTY_NOT_FOUND.code,
                 "errorDescription": ClientErrors.PARTY_NOT_FOUND.name
             }
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
 
         // Act
@@ -861,7 +865,7 @@ it("should return error from trying to create an already existing association", 
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": ClientErrors.PARTY_NOT_FOUND.code,
                         "errorDescription": ClientErrors.PARTY_NOT_FOUND.name
                     }
@@ -881,7 +885,7 @@ it("should return error from trying to create an already existing association", 
             currency: "USD",
             errorCode: AccountLookupErrorCodeNames.UNABLE_TO_GET_PARTICIPANT_FROM_ORACLE
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
 
         // Act
@@ -891,7 +895,7 @@ it("should return error from trying to create an already existing association", 
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": ClientErrors.PARTY_NOT_FOUND.code,
                         "errorDescription": ClientErrors.PARTY_NOT_FOUND.name
                     }
@@ -911,7 +915,7 @@ it("should return error from trying to create an already existing association", 
             fspIdToAssociate: "randomFspId",
             errorCode: AccountLookupErrorCodeNames.UNABLE_TO_ASSOCIATE_PARTICIPANT
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
 
         // Act
@@ -921,7 +925,7 @@ it("should return error from trying to create an already existing association", 
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ServerErrors.GENERIC_SERVER_ERROR.code,
                         "errorDescription": Enums.ServerErrors.GENERIC_SERVER_ERROR.name
                     }
@@ -941,7 +945,7 @@ it("should return error from trying to create an already existing association", 
             fspIdToDisassociate: "randomFspId",
             errorCode: AccountLookupErrorCodeNames.UNABLE_TO_DISASSOCIATE_PARTICIPANT
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
 
         // Act
@@ -951,7 +955,7 @@ it("should return error from trying to create an already existing association", 
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ServerErrors.GENERIC_SERVER_ERROR.code,
                         "errorDescription": Enums.ServerErrors.GENERIC_SERVER_ERROR.name
                     }
@@ -971,7 +975,7 @@ it("should return error from trying to create an already existing association", 
             destinationFspId: "randomFspId",
             errorCode: AccountLookupErrorCodeNames.DESTINATION_PARTICIPANT_NOT_FOUND
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
 
         // Act
@@ -981,7 +985,7 @@ it("should return error from trying to create an already existing association", 
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code,
                         "errorDescription": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.name
                     }
@@ -1001,7 +1005,7 @@ it("should return error from trying to create an already existing association", 
             requesterFspId: "randomFspId",
             errorCode: AccountLookupErrorCodeNames.SOURCE_PARTICIPANT_NOT_FOUND
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
 
         // Act
@@ -1011,7 +1015,7 @@ it("should return error from trying to create an already existing association", 
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code,
                         "errorDescription": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.name
                     }
@@ -1031,7 +1035,7 @@ it("should return error from trying to create an already existing association", 
             destinationFspId: "randomFspId",
             errorCode: AccountLookupErrorCodeNames.INVALID_DESTINATION_PARTICIPANT
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
 
         // Act
@@ -1041,7 +1045,7 @@ it("should return error from trying to create an already existing association", 
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.GENERIC_CLIENT_ERROR.code,
                         "errorDescription": Enums.ClientErrors.GENERIC_CLIENT_ERROR.name
                     }
@@ -1061,7 +1065,7 @@ it("should return error from trying to create an already existing association", 
             requesterFspId: "randomFspId",
             errorCode: AccountLookupErrorCodeNames.INVALID_SOURCE_PARTICIPANT
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
 
         // Act
@@ -1071,7 +1075,7 @@ it("should return error from trying to create an already existing association", 
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.DESTINATION_FSP_ERROR.code,
                         "errorDescription": Enums.ClientErrors.DESTINATION_FSP_ERROR.name
                     }
@@ -1091,7 +1095,7 @@ it("should return error from trying to create an already existing association", 
             currency: "USD",
             errorCode: AccountLookupErrorCodeNames.COMMAND_TYPE_UNKNOWN
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTICIPANTS);
 
         msg.msgName = "non-existing-message-name";

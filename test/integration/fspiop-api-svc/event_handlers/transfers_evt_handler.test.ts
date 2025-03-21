@@ -1,22 +1,26 @@
 /*****
-License
---------------
-Copyright © 2020-2025 Mojaloop Foundation
-The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License")
+ License
+ --------------
+ Copyright © 2020-2025 Mojaloop Foundation
+ The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License. You may obtain a copy of the License at
 
-Contributors
---------------
-This is the official list (alphabetical ordering) of the Mojaloop project contributors for this file.
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, the Mojaloop files are distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+ Contributors
+ --------------
+ This is the official list of the Mojaloop project contributors for this file.
  Names of the original copyright holders (individuals or organizations)
  should be listed with a '*' in the first column. People who have
  contributed from an organization can be listed under the organization
  that actually holds the copyright for their contributions (see the
- Gates Foundation organization for an example). Those individuals should have
+ Mojaloop Foundation for an example). Those individuals should have
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
 
- * Gates Foundation
- - Name Surname <name.surname@gatesfoundation.com>
+ * Mojaloop Foundation
+ - Name Surname <name.surname@mojaloop.io>
 
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
@@ -45,7 +49,7 @@ import {
     TransferInvalidMessageTypeEvt,
     TransfersBCUnknownErrorEvent,
     TransferUnableToAddEvt,
-    TransferUnableToUpdateEvt, 
+    TransferUnableToUpdateEvt,
     TransferUnableToDeleteTransferReminderEvt,
     TransferHubNotFoundFailedEvt,
     TransferHubAccountNotFoundFailedEvt,
@@ -264,7 +268,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         bulkTransferRepo.deleteMany({})
     });
 
-    
+
     // #region POST Transfer
     it("should return error event due to non existing payer fsp", async () => {
         // Arrange
@@ -313,9 +317,9 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(messages[2].msgName).toBe(TransferPayeeNotFoundFailedEvt.name);
         });
     });
-    
+
     it("should successfully create a transfer", async () => {
-        // Arrange 
+        // Arrange
         const headersQuotes = getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.POST);
         headersQuotes[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headersQuotes, validQuotePostPayload);
 
@@ -341,7 +345,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         validTransferPostPayload.ilpPacket = quoteMessages[quoteMessages.length-1].payload.ilpPacket;
         validTransferPostPayload.condition = quoteMessages[quoteMessages.length-1].payload.condition;
         validTransferPostPayload.expiration = quoteMessages[quoteMessages.length-1].payload.expiration;
-        
+
         await consumer.clearEvents();
 
         await request(server)
@@ -362,14 +366,14 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(messages[5].msgName).toBe(TransferFulfiledEvt.name);
         });
     });
-   
+
     it("POST Transfer - should fail due to request failing", async () => {
         // Arrange
         const msg = new TransferPreparedEvt({
             ownerFspId: "nonexistingfsp",
             bulkTransferId: "123",
         } as any)
-        
+
 
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS, {
             [Constants.FSPIOP_HEADERS_SOURCE]: "nonexistingfsp",
@@ -393,7 +397,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             ownerFspId: "nonexistingfsp",
             bulkTransferId: "123",
         } as any)
-        
+
 
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS, {
             [Constants.FSPIOP_HEADERS_SOURCE]: "nonexistingfsp",
@@ -413,9 +417,9 @@ describe("FSPIOP API Service Transfers Handler", () => {
     // #region GET Transfer
     it("should return error event due to non existing payer fsp", async () => {
         // Arrange
-        const headerOverride = { 
+        const headerOverride = {
             "fspiop-source": "nonexistingfsp",
-            "fspiop-destination": "bluebank" 
+            "fspiop-destination": "bluebank"
         };
 
         // Act
@@ -429,8 +433,8 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(() => {
             expect(messages.length).toBe(3);
             expect(messages[0].msgName).toBe(TransferQueryReceivedEvt.name);
-            expect(messages[1].msgName).toBe("QueryTransferCmd"); 
-            expect(messages[2].msgName).toBe(TransferPayerNotFoundFailedEvt.name); 
+            expect(messages[1].msgName).toBe("QueryTransferCmd");
+            expect(messages[2].msgName).toBe(TransferPayerNotFoundFailedEvt.name);
         });
     });
 
@@ -445,8 +449,8 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(() => {
             expect(messages.length).toBe(3);
             expect(messages[0].msgName).toBe(TransferQueryReceivedEvt.name);
-            expect(messages[1].msgName).toBe("QueryTransferCmd"); 
-            expect(messages[2].msgName).toBe(TransferNotFoundEvt.name); 
+            expect(messages[1].msgName).toBe("QueryTransferCmd");
+            expect(messages[2].msgName).toBe(TransferNotFoundEvt.name);
         });
     });
 
@@ -461,18 +465,18 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(() => {
             expect(messages.length).toBe(3);
             expect(messages[0].msgName).toBe(TransferQueryReceivedEvt.name);
-            expect(messages[1].msgName).toBe("QueryTransferCmd"); 
-            expect(messages[2].msgName).toBe(TransferQueryResponseEvt.name); 
+            expect(messages[1].msgName).toBe("QueryTransferCmd");
+            expect(messages[2].msgName).toBe(TransferQueryResponseEvt.name);
         });
     });
-    
+
     it("GET Transfer - should fail due to request failing", async () => {
         // Arrange
         const msg = new TransferQueryResponseEvt({
             ownerFspId: "nonexistingfsp",
             bulkTransferId: "123",
         } as any)
-        
+
 
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS, {
             [Constants.FSPIOP_HEADERS_SOURCE]: "nonexistingfsp",
@@ -545,7 +549,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(messages[5].msgName).toBe(TransferPayeeNotFoundFailedEvt.name);
         });
     });
-    
+
     it("POST BulkTransfer - should successfully create a bulk transfer", async () => {
         // Act & Arrange
         // await request(server)
@@ -566,7 +570,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         // validTransferPostPayload.ilpPacket = quoteMessages[quoteMessages.length-1].payload.ilpPacket;
         // validTransferPostPayload.condition = quoteMessages[quoteMessages.length-1].payload.condition;
         // validTransferPostPayload.expiration = quoteMessages[quoteMessages.length-1].payload.expiration;
-        
+
         // await consumer.clearEvents();
 
         // Arrange
@@ -599,7 +603,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             ownerFspId: "nonexistingfsp",
             bulkTransferId: "123",
         } as any)
-        
+
 
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_TRANSFERS, {
             [Constants.FSPIOP_HEADERS_SOURCE]: "nonexistingfsp",
@@ -623,7 +627,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             ownerFspId: "nonexistingfsp",
             bulkTransferId: "123",
         } as any)
-        
+
 
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_TRANSFERS, {
             [Constants.FSPIOP_HEADERS_SOURCE]: "nonexistingfsp",
@@ -643,9 +647,9 @@ describe("FSPIOP API Service Transfers Handler", () => {
     // #region GET BulkTransfer
     it("GET BulkTransfer - should successfully return the previously created bulk transfer", async () => {
         // Arrange
-        const headerOverride = { 
+        const headerOverride = {
             "fspiop-source": "greenbank",
-            "fspiop-destination": "bluebank" 
+            "fspiop-destination": "bluebank"
         };
 
         // Act
@@ -670,7 +674,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             ownerFspId: "nonexistingfsp",
             bulkTransferId: "123",
         } as any)
-        
+
 
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_TRANSFERS, {
             [Constants.FSPIOP_HEADERS_SOURCE]: "nonexistingfsp",
@@ -686,17 +690,17 @@ describe("FSPIOP API Service Transfers Handler", () => {
         });
     });
     // #endregion
-    
+
     // #region Error events
     // Act
     it("should return TransfersBCUnknownErrorEvent http call for participant type", async () => {
         // Arrange
         const msg = new TransfersBCUnknownErrorEvent({
-            transferId: "123", 
+            transferId: "123",
             payerFspId: "bluebank",
             errorCode: TransferErrorCodeNames.COMMAND_TYPE_UNKNOWN
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
         // Act
@@ -706,7 +710,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ServerErrors.GENERIC_SERVER_ERROR.code,
                         "errorDescription": Enums.ServerErrors.GENERIC_SERVER_ERROR.name
                     }
@@ -720,11 +724,11 @@ describe("FSPIOP API Service Transfers Handler", () => {
     it("should return TransferInvalidMessagePayloadEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferInvalidMessagePayloadEvt({
-            transferId: "123", 
+            transferId: "123",
             payerFspId: "bluebank",
             errorCode: TransferErrorCodeNames.COMMAND_TYPE_UNKNOWN
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
         // Act
@@ -734,7 +738,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ServerErrors.GENERIC_SERVER_ERROR.code,
                         "errorDescription": Enums.ServerErrors.GENERIC_SERVER_ERROR.name
                     }
@@ -748,11 +752,11 @@ describe("FSPIOP API Service Transfers Handler", () => {
     it("should return TransferInvalidMessageTypeEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferInvalidMessageTypeEvt({
-            transferId: "123", 
+            transferId: "123",
             payerFspId: "bluebank",
             errorCode: TransferErrorCodeNames.COMMAND_TYPE_UNKNOWN
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
         // Act
@@ -762,7 +766,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ServerErrors.GENERIC_SERVER_ERROR.code,
                         "errorDescription": Enums.ServerErrors.GENERIC_SERVER_ERROR.name
                     }
@@ -772,15 +776,15 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-    
+
     it("should return TransferUnableToAddEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferUnableToAddEvt({
-            transferId: "123", 
+            transferId: "123",
             payerFspId: "bluebank",
             errorCode: TransferErrorCodeNames.UNABLE_TO_ADD_TRANSFER
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
         // Act
@@ -790,7 +794,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ServerErrors.INTERNAL_SERVER_ERROR.code,
                         "errorDescription": Enums.ServerErrors.INTERNAL_SERVER_ERROR.name
                     }
@@ -800,15 +804,15 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-    
+
     it("should return TransferUnableToUpdateEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferUnableToUpdateEvt({
-            transferId: "123", 
+            transferId: "123",
             payerFspId: "bluebank",
             errorCode: TransferErrorCodeNames.UNABLE_TO_UPDATE_TRANSFER
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
         // Act
@@ -818,7 +822,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ServerErrors.INTERNAL_SERVER_ERROR.code,
                         "errorDescription": Enums.ServerErrors.INTERNAL_SERVER_ERROR.name
                     }
@@ -828,14 +832,14 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-    
+
     it("should return TransferUnableToDeleteTransferReminderEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferUnableToDeleteTransferReminderEvt({
-            transferId: "123", 
+            transferId: "123",
             errorCode: TransferErrorCodeNames.UNABLE_TO_DELETE_TRANSFER_REMINDER
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
         // Act
@@ -845,7 +849,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ServerErrors.INTERNAL_SERVER_ERROR.code,
                         "errorDescription": Enums.ServerErrors.INTERNAL_SERVER_ERROR.name
                     }
@@ -855,14 +859,14 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-        
+
     it("should return TransferHubNotFoundFailedEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferHubNotFoundFailedEvt({
-            transferId: "123", 
+            transferId: "123",
             errorCode: TransferErrorCodeNames.HUB_NOT_FOUND
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
         // Act
@@ -872,7 +876,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code,
                         "errorDescription": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.name
                     }
@@ -882,14 +886,14 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-        
+
     it("should return TransferHubAccountNotFoundFailedEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferHubAccountNotFoundFailedEvt({
-            transferId: "123", 
+            transferId: "123",
             errorCode: TransferErrorCodeNames.HUB_ACCOUNT_NOT_FOUND
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
         // Act
@@ -899,7 +903,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code,
                         "errorDescription": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.name
                     }
@@ -909,7 +913,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-            
+
     it("should return TransferPayerNotFoundFailedEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferPayerNotFoundFailedEvt({
@@ -917,7 +921,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             payerFspId: "bluebank",
             errorCode: TransferErrorCodeNames.PAYER_PARTICIPANT_NOT_FOUND
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
         // Act
@@ -927,7 +931,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.code,
                         "errorDescription": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.name
                     }
@@ -937,7 +941,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-            
+
     it("should return TransferPayeePositionAccountNotFoundFailedEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferPayeePositionAccountNotFoundFailedEvt({
@@ -945,7 +949,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             payeeFspId: "greenbank",
             errorCode: TransferErrorCodeNames.PAYEE_POSITION_ACCOUNT_NOT_FOUND
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
         // Act
@@ -955,7 +959,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.code,
                         "errorDescription": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.name
                     }
@@ -965,7 +969,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-            
+
     it("should return TransferPayeeLiquidityAccountNotFoundFailedEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferPayeeLiquidityAccountNotFoundFailedEvt({
@@ -973,7 +977,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             payeeFspId: "greenbank",
             errorCode: TransferErrorCodeNames.PAYEE_LIQUIDITY_ACCOUNT_NOT_FOUND
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
         // Act
@@ -983,7 +987,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.code,
                         "errorDescription": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.name
                     }
@@ -993,7 +997,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-            
+
     it("should return TransferQueryPayerNotFoundFailedEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferQueryPayerNotFoundFailedEvt({
@@ -1001,7 +1005,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             payerFspId: "bluebank",
             errorCode: TransferErrorCodeNames.PAYER_PARTICIPANT_NOT_FOUND
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
         // Act
@@ -1011,7 +1015,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.code,
                         "errorDescription": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.name
                     }
@@ -1021,7 +1025,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-                
+
     it("should return TransferPayerPositionAccountNotFoundFailedEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferPayerPositionAccountNotFoundFailedEvt({
@@ -1029,7 +1033,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             payerFspId: "bluebank",
             errorCode: TransferErrorCodeNames.PAYER_POSITION_ACCOUNT_NOT_FOUND
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
         // Act
@@ -1039,7 +1043,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.code,
                         "errorDescription": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.name
                     }
@@ -1049,7 +1053,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-                    
+
     it("should return TransferPayerLiquidityAccountNotFoundFailedEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferPayerLiquidityAccountNotFoundFailedEvt({
@@ -1057,7 +1061,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             payerFspId: "bluebank",
             errorCode: TransferErrorCodeNames.PAYER_LIQUIDITY_ACCOUNT_NOT_FOUND
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
         // Act
@@ -1067,7 +1071,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.code,
                         "errorDescription": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.name
                     }
@@ -1077,7 +1081,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-                    
+
     it("should return TransferPayeeNotFoundFailedEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferPayeeNotFoundFailedEvt({
@@ -1085,7 +1089,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             payeeFspId: "greenbank",
             errorCode: TransferErrorCodeNames.PAYEE_PARTICIPANT_NOT_FOUND
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
         // Act
@@ -1095,7 +1099,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.code,
                         "errorDescription": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.name
                     }
@@ -1105,8 +1109,8 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-                
-                    
+
+
     it("should return TransferQueryPayeeNotFoundFailedEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferQueryPayeeNotFoundFailedEvt({
@@ -1114,7 +1118,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             payeeFspId: "greenbank",
             errorCode: TransferErrorCodeNames.PAYEE_PARTICIPANT_NOT_FOUND
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
         // Act
@@ -1124,7 +1128,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.code,
                         "errorDescription": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.name
                     }
@@ -1134,14 +1138,14 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-                        
+
     it("should return TransferNotFoundEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferNotFoundEvt({
             transferId: "123",
             errorCode: TransferErrorCodeNames.TRANSFER_NOT_FOUND
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
         // Act
@@ -1151,7 +1155,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.TRANSFER_ID_NOT_FOUND.code,
                         "errorDescription": Enums.ClientErrors.TRANSFER_ID_NOT_FOUND.name
                     }
@@ -1161,14 +1165,14 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-                        
+
     it("should return TransferUnableToGetTransferByIdEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferUnableToGetTransferByIdEvt({
             transferId: "123",
             errorCode: TransferErrorCodeNames.UNABLE_TO_GET_TRANSFER
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
         // Act
@@ -1178,7 +1182,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.TRANSFER_ID_NOT_FOUND.code,
                         "errorDescription": Enums.ClientErrors.TRANSFER_ID_NOT_FOUND.name
                     }
@@ -1188,7 +1192,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-                            
+
     // // TODO: Uncomment once we have hash repository on transfers-bc
     // it("should return TransferDuplicateCheckFailedEvt http call for participant type", async () => {
     //     // Arrange
@@ -1197,7 +1201,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
     //         payerFspId: "bluebank",
     //         errorDescription: "TransferDuplicateCheckFailedEvt"
     //     })
-        
+
     //     const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
     //     // Act
@@ -1207,7 +1211,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
     //     await waitForExpect(async () => {
     //         expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
     //             "payload": {
-    //                 "errorInformation": { 
+    //                 "errorInformation": {
     //                     "errorCode": Enums.ClientErrors.INVALID_SIGNATURE.code,
     //                     "errorDescription": Enums.ClientErrors.INVALID_SIGNATURE.name
     //                 }
@@ -1217,7 +1221,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
     //         expect(await res()).toSatisfyApiSpec();
     //     });
     // });
-                                
+
     it("should return TransferPrepareRequestTimedoutEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferPrepareRequestTimedoutEvt({
@@ -1225,7 +1229,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             payerFspId: "bluebank",
             errorCode: TransferErrorCodeNames.TRANSFER_EXPIRED
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
         // Act
@@ -1235,7 +1239,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.TRANSFER_EXPIRED.code,
                         "errorDescription": Enums.ClientErrors.TRANSFER_EXPIRED.name
                     }
@@ -1245,7 +1249,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-                                
+
     it("should return TransferFulfilCommittedRequestedTimedoutEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferFulfilCommittedRequestedTimedoutEvt({
@@ -1254,7 +1258,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             payeeFspId: "greenbankbank",
             errorCode: TransferErrorCodeNames.TRANSFER_EXPIRED
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
         // Act
@@ -1264,7 +1268,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.TRANSFER_EXPIRED.code,
                         "errorDescription": Enums.ClientErrors.TRANSFER_EXPIRED.name
                     }
@@ -1274,7 +1278,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-                                
+
     it("should return TransferFulfilPostCommittedRequestedTimedoutEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferFulfilPostCommittedRequestedTimedoutEvt({
@@ -1283,7 +1287,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             payeeFspId: "greenbankbank",
             errorCode: TransferErrorCodeNames.TRANSFER_EXPIRED
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
         // Act
@@ -1293,7 +1297,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.TRANSFER_EXPIRED.code,
                         "errorDescription": Enums.ClientErrors.TRANSFER_EXPIRED.name
                     }
@@ -1303,14 +1307,14 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-                                    
+
     it("should return TransferCancelReservationFailedEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferCancelReservationFailedEvt({
             transferId: "123",
             errorCode: TransferErrorCodeNames.UNABLE_TO_CANCEL_TRANSFER_RESERVATION
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
         // Act
@@ -1320,7 +1324,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ServerErrors.GENERIC_SERVER_ERROR.code,
                         "errorDescription": Enums.ServerErrors.GENERIC_SERVER_ERROR.name
                     }
@@ -1330,14 +1334,14 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-                                    
+
     it("should return TransferCancelReservationAndCommitFailedEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferCancelReservationAndCommitFailedEvt({
             transferId: "123",
             errorCode: TransferErrorCodeNames.UNABLE_TO_CANCEL_TRANSFER_RESERVATION_AND_COMMIT
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
         // Act
@@ -1347,7 +1351,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ServerErrors.GENERIC_SERVER_ERROR.code,
                         "errorDescription": Enums.ServerErrors.GENERIC_SERVER_ERROR.name
                     }
@@ -1357,17 +1361,17 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-                                        
+
     it("should return TransferPrepareLiquidityCheckFailedEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferPrepareLiquidityCheckFailedEvt({
             transferId: "123",
-            payerFspId: "bluebank", 
-            amount: "10", 
+            payerFspId: "bluebank",
+            amount: "10",
             currency: "USD",
             errorCode: TransferErrorCodeNames.TRANSFER_LIQUIDITY_CHECK_FAILED
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
         // Act
@@ -1377,7 +1381,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.PayerErrors.PAYER_FSP_INSUFFICIENT_LIQUIDITY.code,
                         "errorDescription": Enums.PayerErrors.PAYER_FSP_INSUFFICIENT_LIQUIDITY.name
                     }
@@ -1387,17 +1391,17 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-                                            
+
     it("should return TransferRejectRequestProcessedEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferRejectRequestProcessedEvt({
             transferId: "123",
-            "errorInformation": { 
+            "errorInformation": {
                 "errorCode": "transfer id error code",
                 "errorDescription": "error transfer description"
             }
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
         // Act
@@ -1407,7 +1411,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.PayeeErrors.PAYEE_FSP_REJECTED_TRANSACTION.code,
                         "errorDescription": Enums.PayeeErrors.PAYEE_FSP_REJECTED_TRANSACTION.name
                     }
@@ -1417,7 +1421,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-                                                
+
     it("should return TransferPayerNotActiveEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferPayerNotActiveEvt({
@@ -1425,7 +1429,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             payerFspId: "bluebank",
             errorCode: TransferErrorCodeNames.PAYER_PARTICIPANT_NOT_ACTIVE
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
         // Act
@@ -1435,7 +1439,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.PayerErrors.GENERIC_PAYER_ERROR.code,
                         "errorDescription": Enums.PayerErrors.GENERIC_PAYER_ERROR.name
                     }
@@ -1445,7 +1449,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-                                                    
+
     it("should return TransferPayerNotApprovedEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferPayerNotApprovedEvt({
@@ -1453,7 +1457,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             payerFspId: "bluebank",
             errorCode: TransferErrorCodeNames.PAYER_PARTICIPANT_NOT_APPROVED
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
         // Act
@@ -1463,7 +1467,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.PayerErrors.GENERIC_PAYER_ERROR.code,
                         "errorDescription": Enums.PayerErrors.GENERIC_PAYER_ERROR.name
                     }
@@ -1473,8 +1477,8 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-                                                    
-                                                        
+
+
     it("should return TransferPayeeNotActiveEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferPayeeNotActiveEvt({
@@ -1482,7 +1486,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             payeeFspId: "greenbank",
             errorCode: TransferErrorCodeNames.PAYEE_PARTICIPANT_NOT_ACTIVE
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
         // Act
@@ -1492,7 +1496,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.PayeeErrors.GENERIC_PAYEE_ERROR.code,
                         "errorDescription": Enums.PayeeErrors.GENERIC_PAYEE_ERROR.name
                     }
@@ -1502,7 +1506,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-                                                        
+
     it("should return TransferPayeeNotApprovedEvt http call for participant type", async () => {
         // Arrange
         const msg = new TransferPayeeNotApprovedEvt({
@@ -1510,7 +1514,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
             payeeFspId: "greenbank",
             errorCode: TransferErrorCodeNames.PAYEE_PARTICIPANT_NOT_APPROVED
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.TRANSFERS);
 
         // Act
@@ -1520,7 +1524,7 @@ describe("FSPIOP API Service Transfers Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.PayeeErrors.GENERIC_PAYEE_ERROR.code,
                         "errorDescription": Enums.PayeeErrors.GENERIC_PAYEE_ERROR.name
                     }
@@ -1529,6 +1533,6 @@ describe("FSPIOP API Service Transfers Handler", () => {
             }));
             expect(await res()).toSatisfyApiSpec();
         });
-    });                                                                           
+    });
     // #region
 });
