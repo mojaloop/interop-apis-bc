@@ -1,22 +1,26 @@
 /*****
-License
---------------
-Copyright © 2020-2025 Mojaloop Foundation
-The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License")
+ License
+ --------------
+ Copyright © 2020-2025 Mojaloop Foundation
+ The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License. You may obtain a copy of the License at
 
-Contributors
---------------
-This is the official list (alphabetical ordering) of the Mojaloop project contributors for this file.
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, the Mojaloop files are distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+ Contributors
+ --------------
+ This is the official list of the Mojaloop project contributors for this file.
  Names of the original copyright holders (individuals or organizations)
  should be listed with a '*' in the first column. People who have
  contributed from an organization can be listed under the organization
  that actually holds the copyright for their contributions (see the
- Gates Foundation organization for an example). Those individuals should have
+ Mojaloop Foundation for an example). Those individuals should have
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
 
- * Gates Foundation
- - Name Surname <name.surname@gatesfoundation.com>
+ * Mojaloop Foundation
+ - Name Surname <name.surname@mojaloop.io>
 
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
@@ -291,7 +295,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
                     "errorInformation": null,
                     "extensionList": null
                 },
-            ], 
+            ],
             "extensionList": null
         }
     });
@@ -318,7 +322,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         bulkQuoteRepo.deleteMany({})
     });
 
-    
+
     // #region POST Quotes
     it("should return error event QuoteBCRequesterParticipantNotFoundErrorEvent due to non existing payer fsp", async () => {
         // Arrange
@@ -436,14 +440,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
             // save this quoteId to be used afterwards
         });
     });
-    
+
     it("should fail due to request failing", async () => {
         // Arrange
         const msg = new QuoteRequestAcceptedEvt({
             ownerFspId: "nonexistingfsp",
             bulkQuoteId: "123",
         } as any)
-        
+
 
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES, {
             [Constants.FSPIOP_HEADERS_SOURCE]: "nonexistingfsp",
@@ -486,9 +490,9 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
     it("should return error event due to quote response having a non existing payer fsp", async () => {
         // Arrange
-        const headerOverride = { 
+        const headerOverride = {
             "fspiop-source": "nonexistingfsp",
-            "fspiop-destination": "bluebank" 
+            "fspiop-destination": "bluebank"
         };
 
         const headers = getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.PUT, null, [], headerOverride);
@@ -512,14 +516,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
     it("should return error event due to quote response having a non existing payee fsp", async () => {
         // Arrange
-        const headerOverride = { 
+        const headerOverride = {
             "fspiop-source": "greenbank",
-            "fspiop-destination": "nonexistingfsp" 
+            "fspiop-destination": "nonexistingfsp"
         };
 
         const headers = getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.PUT, null, [], headerOverride);
         headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validPutPayload);
-        
+
         // Act
         await request(server)
         .put(Enums.EntityTypeEnum.QUOTES + "/" + validPostPayload.quoteId)
@@ -538,9 +542,9 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
     it("should return error event due to quote response not being previously created", async () => {
         // Arrange
-        const headerOverride = { 
+        const headerOverride = {
             "fspiop-source": "greenbank",
-            "fspiop-destination": "bluebank" 
+            "fspiop-destination": "bluebank"
         };
 
         const headers = getHeaders(Enums.EntityTypeEnum.QUOTES, Enums.FspiopRequestMethodsEnum.PUT, null, [], headerOverride);
@@ -561,14 +565,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
             expect(messages[1].msgName).toBe(QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent.name);
         });
     });
-    
+
     it("should fail due to request failing", async () => {
         // Arrange
         const msg = new QuoteResponseAcceptedEvt({
             ownerFspId: "nonexistingfsp",
             bulkQuoteId: "123",
         } as any)
-        
+
 
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES, {
             [Constants.FSPIOP_HEADERS_SOURCE]: "nonexistingfsp",
@@ -588,9 +592,9 @@ describe("FSPIOP API Service Quoting Handler", () => {
     // #region GET Quote
     it("should return error event due to quote query having a non existing payer fsp", async () => {
         // Arrange
-        const headerOverride = { 
+        const headerOverride = {
             "fspiop-source": "nonexistingfsp",
-            "fspiop-destination": "greenbank" 
+            "fspiop-destination": "greenbank"
         };
 
         // Act
@@ -610,9 +614,9 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
     it("should return error event due to quote not being previously created", async () => {
         // Arrange
-        const headerOverride = { 
+        const headerOverride = {
             "fspiop-source": "greenbank",
-            "fspiop-destination": "bluebank" 
+            "fspiop-destination": "bluebank"
         };
 
         // Act
@@ -632,9 +636,9 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
     it("should successfully return the previously created quote", async () => {
         // Arrange
-        const headerOverride = { 
+        const headerOverride = {
             "fspiop-source": "greenbank",
-            "fspiop-destination": "bluebank" 
+            "fspiop-destination": "bluebank"
         };
 
         // Act
@@ -658,7 +662,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
             ownerFspId: "nonexistingfsp",
             bulkQuoteId: "123",
         } as any)
-        
+
 
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES, {
             [Constants.FSPIOP_HEADERS_SOURCE]: "nonexistingfsp",
@@ -674,14 +678,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
         });
     });
     // #endregion
-    
+
 
     // #region POST BulkQuotes
     it("should return error event QuoteBCRequesterParticipantNotFoundErrorEvent due to non existing bulkQuote payer fsp", async () => {
         // Arrange
-        const headerOverride = { 
+        const headerOverride = {
             "fspiop-source": "nonexistingfsp",
-            "fspiop-destination": "greenbank" 
+            "fspiop-destination": "greenbank"
         };
 
         const headers = getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.POST, null, [], headerOverride);
@@ -705,9 +709,9 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
     it("should return error event QuoteBCRequesterParticipantNotFoundErrorEvent due to non existing bulkQuote payee fsp", async () => {
         // Arrange
-        const headerOverride = { 
+        const headerOverride = {
             "fspiop-source": "bluebank",
-            "fspiop-destination": "nonexistingfsp" 
+            "fspiop-destination": "nonexistingfsp"
         };
 
         const headers = getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.POST, null, [], headerOverride);
@@ -756,7 +760,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         // Arrange
         const headers = getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.POST);
         headers[Constants.FSPIOP_HEADERS_SIGNATURE] = jwsHelper.sign(headers, validBulkPostPayload);
-        
+
         //Act
         await request(server)
         .post(Enums.EntityTypeEnum.BULK_QUOTES)
@@ -783,7 +787,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
             ownerFspId: "nonexistingfsp",
             bulkQuoteId: "123",
         } as any)
-        
+
 
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES, {
             [Constants.FSPIOP_HEADERS_SOURCE]: "nonexistingfsp",
@@ -803,9 +807,9 @@ describe("FSPIOP API Service Quoting Handler", () => {
     // #region PUT BulkQuotes
     it("should return error event due to non existing bulkQuote response payer fsp", async () => {
         // Arrange
-        const headerOverride = { 
+        const headerOverride = {
             "fspiop-source": "nonexistingfsp",
-            "fspiop-destination": "bluebank" 
+            "fspiop-destination": "bluebank"
         };
 
         const headers = getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.PUT, null, [], headerOverride);
@@ -829,9 +833,9 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
     it("should return error event due to non existing bulkQuote response payee fsp", async () => {
         // Arrange
-        const headerOverride = { 
+        const headerOverride = {
             "fspiop-source": "greenbank",
-            "fspiop-destination": "nonexistingfsp" 
+            "fspiop-destination": "nonexistingfsp"
         };
 
         const headers = getHeaders(Enums.EntityTypeEnum.BULK_QUOTES, Enums.FspiopRequestMethodsEnum.PUT, null, [], headerOverride);
@@ -878,9 +882,9 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
     it("should return error event due to bulkQuote response not being previously created", async () => {
         // Arrange
-        const headerOverride = { 
+        const headerOverride = {
             "fspiop-source": "greenbank",
-            "fspiop-destination": "bluebank" 
+            "fspiop-destination": "bluebank"
         };
 
         validBulkPutPayload.bulkQuoteId = "nonexistingid";
@@ -910,7 +914,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
             ownerFspId: "nonexistingfsp",
             bulkQuoteId: "123",
         } as any)
-        
+
 
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES, {
             [Constants.FSPIOP_HEADERS_SOURCE]: "nonexistingfsp",
@@ -930,9 +934,9 @@ describe("FSPIOP API Service Quoting Handler", () => {
     // #region GET BulkQuote
     it("should return error event due to bulk quote query having a non existing payer fsp", async () => {
         // Arrange
-        const headerOverride = { 
+        const headerOverride = {
             "fspiop-source": "nonexistingfsp",
-            "fspiop-destination": "greenbank" 
+            "fspiop-destination": "greenbank"
         };
 
         // Act
@@ -952,9 +956,9 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
     it("should return error event due to bulk quote query having a non existing payee fsp", async () => {
         // Arrange
-        const headerOverride = { 
+        const headerOverride = {
             "fspiop-source": "bluebank",
-            "fspiop-destination": "nonexistingfsp" 
+            "fspiop-destination": "nonexistingfsp"
         };
 
         // Act
@@ -974,9 +978,9 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
     it("should return error event due to bulk quote not being previously created", async () => {
         // Arrange
-        const headerOverride = { 
+        const headerOverride = {
             "fspiop-source": "greenbank",
-            "fspiop-destination": "bluebank" 
+            "fspiop-destination": "bluebank"
         };
 
         // Act
@@ -996,9 +1000,9 @@ describe("FSPIOP API Service Quoting Handler", () => {
 
     it("should successfully return the previously created bulk quote", async () => {
         // Arrange
-        const headerOverride = { 
+        const headerOverride = {
             "fspiop-source": "greenbank",
-            "fspiop-destination": "bluebank" 
+            "fspiop-destination": "bluebank"
         };
 
         // Act
@@ -1022,7 +1026,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
             ownerFspId: "nonexistingfsp",
             bulkQuoteId: "123",
         } as any)
-        
+
 
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES, {
             [Constants.FSPIOP_HEADERS_SOURCE]: "nonexistingfsp",
@@ -1044,12 +1048,12 @@ describe("FSPIOP API Service Quoting Handler", () => {
     it("should return QuoteBCUnknownErrorEvent http call for participant type", async () => {
         // Arrange
         const msg = new QuoteBCUnknownErrorEvent({
-            quoteId: "123", 
+            quoteId: "123",
             bulkQuoteId: null,
             requesterFspId: "bluebank",
             errorCode: QuotingErrorCodeNames.COMMAND_TYPE_UNKNOWN
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
 
         // Act
@@ -1059,7 +1063,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ServerErrors.INTERNAL_SERVER_ERROR.code,
                         "errorDescription": Enums.ServerErrors.INTERNAL_SERVER_ERROR.name
                     }
@@ -1069,13 +1073,13 @@ describe("FSPIOP API Service Quoting Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-    
+
     it("should return QuoteBCInvalidMessagePayloadErrorEvent http call for participant type", async () => {
         // Arrange
         const msg = new QuoteBCInvalidMessagePayloadErrorEvent({
             errorCode: QuotingErrorCodeNames.INVALID_MESSAGE_PAYLOAD
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
 
         // Act
@@ -1085,7 +1089,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.GENERIC_VALIDATION_ERROR.code,
                         "errorDescription": Enums.ClientErrors.GENERIC_VALIDATION_ERROR.name
                     }
@@ -1094,13 +1098,13 @@ describe("FSPIOP API Service Quoting Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-    
+
     it("should return QuoteBCInvalidMessageTypeErrorEvent http call for participant type", async () => {
         // Arrange
         const msg = new QuoteBCInvalidMessageTypeErrorEvent({
             errorCode: QuotingErrorCodeNames.INVALID_MESSAGE_TYPE
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
 
         // Act
@@ -1110,7 +1114,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.GENERIC_VALIDATION_ERROR.code,
                         "errorDescription": Enums.ClientErrors.GENERIC_VALIDATION_ERROR.name
                     }
@@ -1119,14 +1123,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-    
+
     it("should return QuoteBCInvalidBulkQuoteLengthErrorEvent http call for participant type", async () => {
         // Arrange
         const msg = new QuoteBCInvalidBulkQuoteLengthErrorEvent({
-            bulkQuoteId: "123", 
+            bulkQuoteId: "123",
             errorCode: QuotingErrorCodeNames.INVALID_BULK_QUOTE_LENGTH
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES);
 
         // Act
@@ -1136,7 +1140,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.GENERIC_VALIDATION_ERROR.code,
                         "errorDescription": Enums.ClientErrors.GENERIC_VALIDATION_ERROR.name
                     }
@@ -1146,14 +1150,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-    
+
     it("should return QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent http call for participant type", async () => {
         // Arrange
         const msg = new QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent({
-            quoteId: "123", 
+            quoteId: "123",
             errorCode: QuotingErrorCodeNames.RULE_SCHEME_VIOLATED_RESPONSE
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
 
         // Act
@@ -1163,7 +1167,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.GENERIC_VALIDATION_ERROR.code,
                         "errorDescription": Enums.ClientErrors.GENERIC_VALIDATION_ERROR.name
                     }
@@ -1173,14 +1177,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-    
+
     it("should return QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent http call for participant type", async () => {
         // Arrange
         const msg = new QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent({
-            quoteId: "123", 
+            quoteId: "123",
             errorCode: QuotingErrorCodeNames.RULE_SCHEME_VIOLATED_REQUEST
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
 
         // Act
@@ -1190,7 +1194,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.GENERIC_VALIDATION_ERROR.code,
                         "errorDescription": Enums.ClientErrors.GENERIC_VALIDATION_ERROR.name
                     }
@@ -1200,14 +1204,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-        
+
     it("should return QuoteBCQuoteNotFoundErrorEvent http call for participant type", async () => {
         // Arrange
         const msg = new QuoteBCQuoteNotFoundErrorEvent({
-            quoteId: "123", 
+            quoteId: "123",
             errorCode: QuotingErrorCodeNames.QUOTE_NOT_FOUND
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
 
         // Act
@@ -1217,7 +1221,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.QUOTE_ID_NOT_FOUND.code,
                         "errorDescription": Enums.ClientErrors.QUOTE_ID_NOT_FOUND.name
                     }
@@ -1227,14 +1231,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-        
+
     it("should return QuoteBCBulkQuoteNotFoundErrorEvent http call for participant type", async () => {
         // Arrange
         const msg = new QuoteBCBulkQuoteNotFoundErrorEvent({
-            bulkQuoteId: "123", 
+            bulkQuoteId: "123",
             errorCode: QuotingErrorCodeNames.BULK_QUOTE_NOT_FOUND
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES);
 
         // Act
@@ -1244,7 +1248,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.BULK_QUOTE_ID_NOT_FOUND.code,
                         "errorDescription": Enums.ClientErrors.BULK_QUOTE_ID_NOT_FOUND.name
                     }
@@ -1254,16 +1258,16 @@ describe("FSPIOP API Service Quoting Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-            
+
     it("should return QuoteBCInvalidDestinationFspIdErrorEvent http call for participant type", async () => {
         // Arrange
         const msg = new QuoteBCInvalidDestinationFspIdErrorEvent({
-            quoteId: "123", 
+            quoteId: "123",
             bulkQuoteId: null,
             destinationFspId: "greenbank",
             errorCode: QuotingErrorCodeNames.INVALID_DESTINATION_PARTICIPANT
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
 
         // Act
@@ -1273,7 +1277,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.DESTINATION_FSP_ERROR.code,
                         "errorDescription": Enums.ClientErrors.DESTINATION_FSP_ERROR.name
                     }
@@ -1283,14 +1287,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-  
+
     it("should return QuoteBCDuplicateQuoteErrorEvent http call for participant type", async () => {
         // Arrange
         const msg = new QuoteBCDuplicateQuoteErrorEvent({
-            quoteId: "123", 
+            quoteId: "123",
             errorCode: QuotingErrorCodeNames.DUPLICATE_QUOTE
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
 
         // Act
@@ -1300,7 +1304,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.GENERIC_CLIENT_ERROR.code,
                         "errorDescription": Enums.ClientErrors.GENERIC_CLIENT_ERROR.name
                     }
@@ -1310,14 +1314,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-                
+
     it("should return QuoteBCUnableToAddQuoteToDatabaseErrorEvent http call for participant type", async () => {
         // Arrange
         const msg = new QuoteBCUnableToAddQuoteToDatabaseErrorEvent({
-            quoteId: "123", 
+            quoteId: "123",
             errorCode: QuotingErrorCodeNames.UNABLE_TO_ADD_QUOTE
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
 
         // Act
@@ -1327,7 +1331,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.GENERIC_CLIENT_ERROR.code,
                         "errorDescription": Enums.ClientErrors.GENERIC_CLIENT_ERROR.name
                     }
@@ -1337,14 +1341,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-                
+
     it("should return QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent http call for participant type", async () => {
         // Arrange
         const msg = new QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent({
             bulkQuoteId: "456",
             errorCode: QuotingErrorCodeNames.UNABLE_TO_ADD_BULK_QUOTE
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES);
 
         // Act
@@ -1354,7 +1358,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.GENERIC_CLIENT_ERROR.code,
                         "errorDescription": Enums.ClientErrors.GENERIC_CLIENT_ERROR.name
                     }
@@ -1364,14 +1368,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-                
+
     it("should return QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent http call for participant type", async () => {
         // Arrange
         const msg = new QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent({
-            quoteId: "123", 
+            quoteId: "123",
             errorCode: QuotingErrorCodeNames.UNABLE_TO_UPDATE_QUOTE
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
 
         // Act
@@ -1381,7 +1385,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.GENERIC_CLIENT_ERROR.code,
                         "errorDescription": Enums.ClientErrors.GENERIC_CLIENT_ERROR.name
                     }
@@ -1391,14 +1395,14 @@ describe("FSPIOP API Service Quoting Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-                
+
     it("should return QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent http call for participant type", async () => {
         // Arrange
         const msg = new QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent({
             bulkQuoteId: "456",
             errorCode: QuotingErrorCodeNames.UNABLE_TO_UPDATE_BULK_QUOTE
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES);
 
         // Act
@@ -1408,7 +1412,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.GENERIC_CLIENT_ERROR.code,
                         "errorDescription": Enums.ClientErrors.GENERIC_CLIENT_ERROR.name
                     }
@@ -1418,17 +1422,17 @@ describe("FSPIOP API Service Quoting Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-               
-                
+
+
     it("should return QuoteBCInvalidRequesterFspIdErrorEvent http call for participant type", async () => {
         // Arrange
         const msg = new QuoteBCInvalidRequesterFspIdErrorEvent({
-            quoteId: "123", 
+            quoteId: "123",
             bulkQuoteId: null,
             requesterFspId: "bluebank",
             errorCode: QuotingErrorCodeNames.INVALID_SOURCE_PARTICIPANT
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
 
         // Act
@@ -1438,7 +1442,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.GENERIC_CLIENT_ERROR.code,
                         "errorDescription": Enums.ClientErrors.GENERIC_CLIENT_ERROR.name
                     }
@@ -1452,12 +1456,12 @@ describe("FSPIOP API Service Quoting Handler", () => {
     it("should return QuoteBCRequesterParticipantNotFoundErrorEvent http call for participant type", async () => {
         // Arrange
         const msg = new QuoteBCRequesterParticipantNotFoundErrorEvent({
-            quoteId: "123", 
+            quoteId: "123",
             bulkQuoteId: null,
             requesterFspId: "bluebank",
             errorCode: QuotingErrorCodeNames.SOURCE_PARTICIPANT_NOT_FOUND
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
 
         // Act
@@ -1467,7 +1471,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.code,
                         "errorDescription": Enums.ClientErrors.PAYER_FSP_ID_NOT_FOUND.name
                     }
@@ -1481,12 +1485,12 @@ describe("FSPIOP API Service Quoting Handler", () => {
     it("should return QuoteBCDestinationParticipantNotFoundErrorEvent http call for participant type", async () => {
         // Arrange
         const msg = new QuoteBCDestinationParticipantNotFoundErrorEvent({
-            quoteId: "123", 
+            quoteId: "123",
             bulkQuoteId: null,
             destinationFspId: "greenbank",
             errorCode: QuotingErrorCodeNames.DESTINATION_PARTICIPANT_NOT_FOUND
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
 
         // Act
@@ -1496,7 +1500,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.code,
                         "errorDescription": Enums.ClientErrors.PAYEE_FSP_ID_NOT_FOUND.name
                     }
@@ -1506,7 +1510,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-    
+
     it("should return QuoteBCQuoteExpiredErrorEvent http call for participant type", async () => {
         // Arrange
         const msg = new QuoteBCQuoteExpiredErrorEvent({
@@ -1514,7 +1518,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
             expirationDate: "2022-01-22T08:38:08.699-04:00",
             errorCode: QuotingErrorCodeNames.QUOTE_EXPIRED
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.QUOTES);
 
         // Act
@@ -1524,7 +1528,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.QUOTE_EXPIRED.code,
                         "errorDescription": Enums.ClientErrors.QUOTE_EXPIRED.name
                     }
@@ -1534,7 +1538,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
             expect(await res()).toSatisfyApiSpec();
         });
     });
-        
+
     it("should return QuoteBCBulkQuoteExpiredErrorEvent http call for participant type", async () => {
         // Arrange
         const msg = new QuoteBCBulkQuoteExpiredErrorEvent({
@@ -1542,7 +1546,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
             expirationDate: "2022-01-22T08:38:08.699-04:00",
             errorCode: QuotingErrorCodeNames.BULK_QUOTE_EXPIRED
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.BULK_QUOTES);
 
         // Act
@@ -1552,7 +1556,7 @@ describe("FSPIOP API Service Quoting Handler", () => {
         await waitForExpect(async () => {
             expect(Request.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.QUOTE_EXPIRED.code,
                         "errorDescription": Enums.ClientErrors.QUOTE_EXPIRED.name
                     }

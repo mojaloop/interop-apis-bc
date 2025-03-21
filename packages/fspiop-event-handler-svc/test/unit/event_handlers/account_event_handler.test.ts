@@ -1,27 +1,26 @@
 /**
  License
  --------------
- Copyright © 2021 Mojaloop Foundation
+ Copyright © 2020-2025 Mojaloop Foundation
+ The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License. You may obtain a copy of the License at
 
- The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License.
-
- You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+ http://www.apache.org/licenses/LICENSE-2.0
 
  Unless required by applicable law or agreed to in writing, the Mojaloop files are distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
  Contributors
  --------------
- This is the official list (alphabetical ordering) of the Mojaloop project contributors for this file.
+ This is the official list of the Mojaloop project contributors for this file.
  Names of the original copyright holders (individuals or organizations)
- should be listed with a '' in the first column. People who have
+ should be listed with a '*' in the first column. People who have
  contributed from an organization can be listed under the organization
  that actually holds the copyright for their contributions (see the
- Gates Foundation organization for an example). Those individuals should have
+ Mojaloop Foundation for an example). Those individuals should have
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
 
- * Gates Foundation
- - Name Surname <name.surname@gatesfoundation.com>
+ * Mojaloop Foundation
+ - Name Surname <name.surname@mojaloop.io>
 
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
@@ -158,7 +157,7 @@ jest.mock("@mojaloop/platform-shared-lib-observability-client-lib", () => {
         },
         PrometheusMetrics: {
             Setup: jest.fn(() => ({
-             
+
             })),
         },
     };
@@ -169,7 +168,7 @@ jest.mock("@opentelemetry/api", () => {
     const getTracerMock = jest.fn();
     const getSpanMock = jest.fn(() => {
         const span = new MemorySpan();
-        
+
         return span;
     })
 
@@ -258,7 +257,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
         }
     }
 
-    
+
     beforeAll(async () => {
         accountEvtHandler = new AccountLookupEventHandler(
             logger,
@@ -276,7 +275,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
     afterEach(() => {
         jest.restoreAllMocks();
     });
-    
+
     afterAll(async () => {
         jest.clearAllMocks();
 
@@ -316,7 +315,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
                 destination: msg.payload.ownerFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: invalidParticipantEndpointError
-            }));    
+            }));
         });
     });
 
@@ -388,7 +387,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
                 destination: msg.payload.ownerFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: invalidParticipantEndpointError
-            }));    
+            }));
         });
     });
 
@@ -461,10 +460,10 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
                 destination: msg.payload.destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: invalidParticipantEndpointError
-            }));    
+            }));
         });
     });
-    
+
     it("should successfully call PartyInfoRequestedEvt", async () => {
         // Arrange
         const msg = new PartyInfoRequestedEvt({
@@ -546,10 +545,10 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
                 destination: msg.payload.destinationFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: invalidParticipantEndpointError
-            }));    
+            }));
         });
     });
-    
+
     it("should successfully call PartyQueryResponseEvt", async () => {
         // Arrange
         const msg = new PartyQueryResponseEvt({
@@ -634,10 +633,10 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
                 destination: msg.payload.requesterFspId,
                 method: Enums.FspiopRequestMethodsEnum.PUT,
                 payload: invalidParticipantEndpointError
-            }));    
+            }));
         });
     });
-    
+
     it("should successfully call ParticipantQueryResponseEvt", async () => {
         // Arrange
         const msg = new ParticipantQueryResponseEvt({
@@ -685,7 +684,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             currency: "USD",
             errorCode: AccountLookupErrorCodeNames.COMMAND_TYPE_UNKNOWN
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTICIPANTS);
 
         jest.spyOn(mockedParticipantService, "getParticipantInfo").mockResolvedValue(mockedParticipant);
@@ -699,7 +698,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
         await waitForExpect(async () => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ServerErrors.INTERNAL_SERVER_ERROR.code,
                         "errorDescription": Enums.ServerErrors.INTERNAL_SERVER_ERROR.name
                     }
@@ -718,7 +717,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             currency: "USD",
             errorCode: AccountLookupErrorCodeNames.COMMAND_TYPE_UNKNOWN
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
 
         jest.spyOn(mockedParticipantService, "getParticipantInfo").mockResolvedValue(mockedParticipant);
@@ -732,7 +731,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
         await waitForExpect(async () => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ServerErrors.INTERNAL_SERVER_ERROR.code,
                         "errorDescription": Enums.ServerErrors.INTERNAL_SERVER_ERROR.name
                     }
@@ -751,7 +750,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             requesterFspId: "bluebank",
             errorCode: AccountLookupErrorCodeNames.INVALID_MESSAGE_PAYLOAD
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
 
         jest.spyOn(mockedParticipantService, "getParticipantInfo").mockResolvedValue(mockedParticipant);
@@ -765,7 +764,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
         await waitForExpect(async () => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code,
                         "errorDescription": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.name
                     }
@@ -784,7 +783,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             requesterFspId: "bluebank",
             errorCode: AccountLookupErrorCodeNames.INVALID_MESSAGE_TYPE
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
 
         jest.spyOn(mockedParticipantService, "getParticipantInfo").mockResolvedValue(mockedParticipant);
@@ -798,7 +797,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
         await waitForExpect(async () => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code,
                         "errorDescription": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.name
                     }
@@ -816,7 +815,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             currency: "USD",
             errorCode: AccountLookupErrorCodeNames.UNABLE_TO_GET_ORACLE_ADAPTER
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
 
         jest.spyOn(mockedParticipantService, "getParticipantInfo").mockResolvedValue(mockedParticipant);
@@ -830,7 +829,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
         await waitForExpect(async () => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code,
                         "errorDescription": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.name
                     }
@@ -847,14 +846,14 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             partySubType: "456",
             currency: "USD",
-            errorInformation: { 
+            errorInformation: {
                 errorCode: ClientErrors.PARTY_NOT_FOUND.code,
                 errorDescription: ClientErrors.PARTY_NOT_FOUND.name,
                 extensions: [],
             }
         })
     });
-        
+
     //     const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
 
     //     jest.spyOn(mockedParticipantService, "getParticipantInfo").mockResolvedValue(mockedParticipant);
@@ -868,7 +867,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
     //     await waitForExpect(async () => {
     //         expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
     //             "payload": {
-    //                 "errorInformation": { 
+    //                 "errorInformation": {
     //                     "errorCode": ClientErrors.PARTY_NOT_FOUND.code,
     //                     "errorDescription": ClientErrors.PARTY_NOT_FOUND.name
     //                 }
@@ -885,13 +884,13 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             partyType: FSPIOP_PARTY_ACCOUNT_TYPES.MSISDN,
             partySubType: "456",
             currency: "USD",
-            errorInformation: { 
+            errorInformation: {
                 errorCode: ClientErrors.PAYER_FSP_ID_NOT_FOUND.code,
                 errorDescription: ClientErrors.PAYER_FSP_ID_NOT_FOUND.name,
                 extensions: [],
             }
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTICIPANTS);
 
         jest.spyOn(mockedParticipantService, "getParticipantInfo").mockResolvedValue(mockedParticipant);
@@ -905,7 +904,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
         await waitForExpect(async () => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": ClientErrors.PAYER_FSP_ID_NOT_FOUND.code,
                         "errorDescription": ClientErrors.PAYER_FSP_ID_NOT_FOUND.name
                     }
@@ -924,7 +923,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             currency: "USD",
             errorCode: AccountLookupErrorCodeNames.UNABLE_TO_GET_PARTICIPANT_FROM_ORACLE
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
 
         jest.spyOn(mockedParticipantService, "getParticipantInfo").mockResolvedValue(mockedParticipant);
@@ -938,7 +937,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
         await waitForExpect(async () => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": ClientErrors.PARTY_NOT_FOUND.code,
                         "errorDescription": ClientErrors.PARTY_NOT_FOUND.name
                     }
@@ -957,7 +956,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             fspIdToAssociate: "randomFspId",
             errorCode: AccountLookupErrorCodeNames.UNABLE_TO_ASSOCIATE_PARTICIPANT
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
 
         jest.spyOn(mockedParticipantService, "getParticipantInfo").mockResolvedValue(mockedParticipant);
@@ -971,7 +970,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
         await waitForExpect(async () => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ServerErrors.GENERIC_SERVER_ERROR.code,
                         "errorDescription": Enums.ServerErrors.GENERIC_SERVER_ERROR.name
                     }
@@ -990,7 +989,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             fspIdToDisassociate: "randomFspId",
             errorCode: AccountLookupErrorCodeNames.UNABLE_TO_DISASSOCIATE_PARTICIPANT
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
 
         jest.spyOn(mockedParticipantService, "getParticipantInfo").mockResolvedValue(mockedParticipant);
@@ -1004,7 +1003,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
         await waitForExpect(async () => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ServerErrors.GENERIC_SERVER_ERROR.code,
                         "errorDescription": Enums.ServerErrors.GENERIC_SERVER_ERROR.name
                     }
@@ -1023,7 +1022,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             destinationFspId: "randomFspId",
             errorCode: AccountLookupErrorCodeNames.DESTINATION_PARTICIPANT_NOT_FOUND
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
 
         jest.spyOn(mockedParticipantService, "getParticipantInfo").mockResolvedValue(mockedParticipant);
@@ -1037,7 +1036,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
         await waitForExpect(async () => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code,
                         "errorDescription": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.name
                     }
@@ -1056,7 +1055,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             requesterFspId: "randomFspId",
             errorCode: AccountLookupErrorCodeNames.SOURCE_PARTICIPANT_NOT_FOUND
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
 
         jest.spyOn(mockedParticipantService, "getParticipantInfo").mockResolvedValue(mockedParticipant);
@@ -1070,7 +1069,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
         await waitForExpect(async () => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.code,
                         "errorDescription": Enums.ClientErrors.GENERIC_ID_NOT_FOUND.name
                     }
@@ -1089,7 +1088,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             destinationFspId: "randomFspId",
             errorCode: AccountLookupErrorCodeNames.INVALID_DESTINATION_PARTICIPANT
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
 
         jest.spyOn(mockedParticipantService, "getParticipantInfo").mockResolvedValue(mockedParticipant);
@@ -1103,7 +1102,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
         await waitForExpect(async () => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.GENERIC_CLIENT_ERROR.code,
                         "errorDescription": Enums.ClientErrors.GENERIC_CLIENT_ERROR.name
                     }
@@ -1122,7 +1121,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             requesterFspId: "randomFspId",
             errorCode: AccountLookupErrorCodeNames.INVALID_SOURCE_PARTICIPANT
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTIES);
 
         jest.spyOn(mockedParticipantService, "getParticipantInfo").mockResolvedValue(mockedParticipant);
@@ -1136,7 +1135,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
         await waitForExpect(async () => {
             expect(sendRequestSpy).toHaveBeenCalledWith(expect.objectContaining({
                 "payload": {
-                    "errorInformation": { 
+                    "errorInformation": {
                         "errorCode": Enums.ClientErrors.DESTINATION_FSP_ERROR.code,
                         "errorDescription": Enums.ClientErrors.DESTINATION_FSP_ERROR.name
                     }
@@ -1155,7 +1154,7 @@ describe("FSPIOP Routes - Unit Tests Account Lookup Event Handler", () => {
             currency: "USD",
             errorCode: AccountLookupErrorCodeNames.COMMAND_TYPE_UNKNOWN
         })
-        
+
         const message = createMessage(msg, Enums.EntityTypeEnum.PARTICIPANTS);
 
         msg.msgName = "non-existing-message-name";

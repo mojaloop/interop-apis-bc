@@ -1,32 +1,31 @@
 /**
  License
  --------------
- Copyright © 2021 Mojaloop Foundation
+ Copyright © 2020-2025 Mojaloop Foundation
+ The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License. You may obtain a copy of the License at
 
- The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License.
-
- You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+ http://www.apache.org/licenses/LICENSE-2.0
 
  Unless required by applicable law or agreed to in writing, the Mojaloop files are distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
  Contributors
  --------------
- This is the official list (alphabetical ordering) of the Mojaloop project contributors for this file.
+ This is the official list of the Mojaloop project contributors for this file.
  Names of the original copyright holders (individuals or organizations)
- should be listed with a "" in the first column. People who have
+ should be listed with a '*' in the first column. People who have
  contributed from an organization can be listed under the organization
  that actually holds the copyright for their contributions (see the
- Gates Foundation organization for an example). Those individuals should have
- their names indented and be marked with a "-". Email address can be added
+ Mojaloop Foundation for an example). Those individuals should have
+ their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
 
- * Gates Foundation
- - Name Surname <name.surname@gatesfoundation.com>
+ * Mojaloop Foundation
+ - Name Surname <name.surname@mojaloop.io>
 
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
- 
+
  --------------
  **/
 
@@ -75,8 +74,8 @@ import { Enums,
 import axios from "axios";
 import HeaderBuilder from "../../src/headers/header_builder";
 import { FspiopTransformer } from "../../src/transformer";
-import { 
-    ParticipantAssociationCreatedEvtPayload, 
+import {
+    ParticipantAssociationCreatedEvtPayload,
     ParticipantAssociationRemovedEvtPayload,
     ParticipantQueryResponseEvtPayload,
     PartyInfoRequestedEvtPayload,
@@ -111,7 +110,7 @@ jwsHelper.addPrivateKey(jwsConfig.privateKey);
 const validSignature = '{"signature":"AtIc2YhY2iDHET8QKncbcaG0f4ABI_gaLim4nc0naGdpXtE9bF-f4FIRNaqbBAp3capp45GY_IMompxvkS3I6CbX8m-PjklOdUWYutDS2eg-W-w_y1XFvl9Qd0-2J7Vus4EhwfjYWuOFNq1XL33Jf67f4VAGWGPFg09QVTysE26fX21E5KKwJbSIztwVLWQ4862OmNhf6_kWqCX93PMT9pL9Hb0ZVFxV7vNlCemIaE9MlYpLep5orzFzU58TtJQf_wOrcS1aXZjlBP6KB6fC1K3P-5FWneCMIu4Kp51-tcQFho0eyrmcdUwnH_rzfh69gd8NwXhIyBOaTBXLew9_-Q","protectedHeader":"eyJhbGciOiJSUzI1NiIsIkZTUElPUC1VUkkiOiIvdHJhbnNmZXJzIiwiRlNQSU9QLUhUVFAtTWV0aG9kIjoiUE9TVCIsIkZTUElPUC1Tb3VyY2UiOiJibHVlYmFuayJ9"}'
 
 const signWithoutValidation = (headers:any, payload:any) => {
-    const token = JsonWebSignatureHelper.sign(Buffer.from(privKeyCont).toString(), 
+    const token = JsonWebSignatureHelper.sign(Buffer.from(privKeyCont).toString(),
         {
             "alg": "RS256",
             "FSPIOP-URI": headers[FSPIOP_HEADERS_URI],
@@ -120,7 +119,7 @@ const signWithoutValidation = (headers:any, payload:any) => {
             "FSPIOP-Destination": headers[FSPIOP_HEADERS_DESTINATION],
             "Date": headers[FSPIOP_HEADERS_DATE]
         },
-        JSON.stringify(payload), 
+        JSON.stringify(payload),
         AllowedSigningAlgorithms.RS256
     );
     const [ protectedHeaderBase64, , signature ] = token.split('.');
@@ -598,7 +597,7 @@ describe("FSPIOP Utils Lib", () => {
         expect(urlBuilder.getQueryString().toString()).toEqual("randomquerystring=");
         expect(urlBuilder.getQueryParam("randomquerystring=")).toEqual(undefined);
     });
-    
+
     it("should build url with specified parameters", () => {
         // Arrange & Act
         urlBuilder.setEntity("randomentity");
@@ -645,7 +644,7 @@ describe("FSPIOP Utils Lib", () => {
         // Act & Assert
         expect(() => jwsHelper.validate(headers, payload)).toThrow(PublicKeyNotAvailableForDFSPError);
     });
-    
+
     it("should throw MissingRequiredJWSFSPIOPHeaders when validating a JWS signature without URI header", () => {
         // Arrange
         const headers = {
@@ -684,7 +683,7 @@ describe("FSPIOP Utils Lib", () => {
         // Act & Assert
         expect(() => jwsHelper.validate(headers, payload)).toThrow(MissingRequiredJWSFSPIOPHeaders);
     });
-    
+
     it("should throw unable to verify token error when validating a JWS signature due to invalid signature token", () => {
         // Arrange
         const headers = {
@@ -710,7 +709,7 @@ describe("FSPIOP Utils Lib", () => {
         }
 
         const payload = {}
-        
+
         const missingHeaders = {}
 
         headers[FSPIOP_HEADERS_SIGNATURE] = signWithoutValidation(missingHeaders, payload);
@@ -718,7 +717,7 @@ describe("FSPIOP Utils Lib", () => {
         // Act & Assert
         expect(() => jwsHelper.validate(headers, payload)).toThrow(MissingFSPIOPURIHeaderInDecodedHeader);
     });
-    
+
     it("should throw MissingFSPIOPURIHeaderInDecodedHeader when validating a JWS with a signature with missing URI decoded header", () => {
         // Arrange
         let headers = {
@@ -729,7 +728,7 @@ describe("FSPIOP Utils Lib", () => {
         }
 
         const payload = {}
-        
+
         const missingHeaders = {}
 
         headers[FSPIOP_HEADERS_SIGNATURE] = signWithoutValidation(missingHeaders, payload);
@@ -748,7 +747,7 @@ describe("FSPIOP Utils Lib", () => {
         }
 
         const payload = {}
-        
+
         const missingHeaders = {
             [FSPIOP_HEADERS_URI]: "/quotes"
         }
@@ -769,7 +768,7 @@ describe("FSPIOP Utils Lib", () => {
         }
 
         const payload = {}
-        
+
         const missingHeaders = {
             [FSPIOP_HEADERS_URI]: "/transfers"
         }
@@ -779,7 +778,7 @@ describe("FSPIOP Utils Lib", () => {
         // Act & Assert
         expect(() => jwsHelper.validate(headers, payload)).toThrow(MissingFSPIOPHttpMethodHeaderInDecodedHeader);
     });
-    
+
     it("should throw NonMatchingFSPIOPHttpMethodJWSHeader when validating a JWS with a signature with non matching http method protected header", () => {
         // Arrange
         let headers = {
@@ -790,7 +789,7 @@ describe("FSPIOP Utils Lib", () => {
         }
 
         const payload = {}
-        
+
         const missingHeaders = {
             [FSPIOP_HEADERS_URI]: "/transfers",
             [FSPIOP_HEADERS_HTTP_METHOD]: "PUT"
@@ -801,7 +800,7 @@ describe("FSPIOP Utils Lib", () => {
         // Act & Assert
         expect(() => jwsHelper.validate(headers, payload)).toThrow(NonMatchingFSPIOPHttpMethodJWSHeader);
     });
-    
+
     it("should throw MissingFSPIOPSourceHeaderInProtectedHeader when validating a JWS with a signature with missing fspiop source protected header", () => {
         // Arrange
         let headers = {
@@ -812,7 +811,7 @@ describe("FSPIOP Utils Lib", () => {
         }
 
         const payload = {}
-        
+
         const missingHeaders = {
             [FSPIOP_HEADERS_URI]: "/transfers",
             [FSPIOP_HEADERS_HTTP_METHOD]: "POST"
@@ -834,7 +833,7 @@ describe("FSPIOP Utils Lib", () => {
         }
 
         const payload = {}
-        
+
         const missingHeaders = {
             [FSPIOP_HEADERS_SOURCE]: "randomsource",
             [FSPIOP_HEADERS_URI]: "/transfers",
@@ -846,7 +845,7 @@ describe("FSPIOP Utils Lib", () => {
         // Act & Assert
         expect(() => jwsHelper.validate(headers, payload)).toThrow(NonMatchingFSPIOPSourceJWSHeader);
     });
-    
+
     it("should throw MissingFSPIOPDateHeaderInProtectedHeader when validating a JWS with a signature with missing protected date", () => {
         // Arrange
         let headers = {
@@ -857,7 +856,7 @@ describe("FSPIOP Utils Lib", () => {
         }
 
         const payload = {}
-        
+
         const missingHeaders = {
             [FSPIOP_HEADERS_SOURCE]: "bluebank",
             [FSPIOP_HEADERS_URI]: "/transfers",
@@ -870,7 +869,7 @@ describe("FSPIOP Utils Lib", () => {
         // Act & Assert
         expect(() => jwsHelper.validate(headers, payload)).toThrow(MissingFSPIOPDateHeaderInProtectedHeader);
     });
-        
+
     it("should throw NonMatchingFSPIOPDateJWSHeader when validating a JWS with a signature with non matching fspiop source protected date", () => {
         // Arrange
         let headers = {
@@ -882,7 +881,7 @@ describe("FSPIOP Utils Lib", () => {
         }
 
         const payload = {}
-        
+
         const missingHeaders = {
             [FSPIOP_HEADERS_SOURCE]: "bluebank",
             [FSPIOP_HEADERS_URI]: "/transfers",
@@ -907,7 +906,7 @@ describe("FSPIOP Utils Lib", () => {
         }
 
         const payload = {}
-        
+
         const missingHeaders = {
             [FSPIOP_HEADERS_SOURCE]: "bluebank",
             [FSPIOP_HEADERS_URI]: "/transfers",
@@ -930,7 +929,7 @@ describe("FSPIOP Utils Lib", () => {
         }
 
         const payload = {}
-        
+
         const missingHeaders = {
             [FSPIOP_HEADERS_SOURCE]: "bluebank",
             [FSPIOP_HEADERS_DESTINATION]: "greenbank",
@@ -943,7 +942,7 @@ describe("FSPIOP Utils Lib", () => {
         // Act & Assert
         expect(() => jwsHelper.validate(headers, payload)).toThrow(MissingFSPIOPDestinationHeader);
     });
-    
+
     it("should throw NonMatchingFSPIOPDestinationJWSHeader when validating a JWS with a signature with non matching fspiop destination", () => {
         // Arrange
         let headers = {
@@ -955,7 +954,7 @@ describe("FSPIOP Utils Lib", () => {
         }
 
         const payload = {}
-        
+
         const missingHeaders = {
             [FSPIOP_HEADERS_SOURCE]: "bluebank",
             [FSPIOP_HEADERS_DESTINATION]: "randomdestination",
@@ -1007,7 +1006,7 @@ describe("FSPIOP Utils Lib", () => {
         expect(() => jwsHelper.sign(headers, payload)).toThrow(MissingFSPIOPHttpMethodHeader);
     });
 
-    
+
     it("should successfully return a signature", () => {
         // Arrange
         let headers = {

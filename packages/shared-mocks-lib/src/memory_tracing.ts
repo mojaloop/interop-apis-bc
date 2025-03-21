@@ -1,8 +1,8 @@
 /**
  License
  --------------
- Copyright © 2017 Bill & Melinda Gates Foundation
- The Mojaloop files are made available by the Bill & Melinda Gates Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License. You may obtain a copy of the License at
+ Copyright © 2020-2025 Mojaloop Foundation
+ The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License. You may obtain a copy of the License at
 
  http://www.apache.org/licenses/LICENSE-2.0
 
@@ -10,18 +10,18 @@
 
  Contributors
  --------------
- This is the official list (alphabetical ordering) of the Mojaloop project contributors for this file.
+ This is the official list of the Mojaloop project contributors for this file.
  Names of the original copyright holders (individuals or organizations)
- should be listed with a '' in the first column. People who have
+ should be listed with a '*' in the first column. People who have
  contributed from an organization can be listed under the organization
  that actually holds the copyright for their contributions (see the
- Gates Foundation organization for an example). Those individuals should have
+ Mojaloop Foundation for an example). Those individuals should have
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
 
- * Gates Foundation
- - Name Surname <name.surname@gatesfoundation.com>
- 
+ * Mojaloop Foundation
+ - Name Surname <name.surname@mojaloop.io>
+
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
@@ -93,7 +93,7 @@ export class MemoryTracer implements Tracer {
 		// Return an instance of MemorySpan
 		return new MemorySpan();
 	}
-  
+
 	startActiveSpan<F extends (span: Span) => unknown>(name: string, fn: F): ReturnType<F>;
 	startActiveSpan<F extends (span: Span) => unknown>(name: string, options: SpanOptions, fn: F): ReturnType<F>;
 	startActiveSpan<F extends (span: Span) => unknown>(name: string, options: SpanOptions, context: Context, fn: F): ReturnType<F>;
@@ -123,7 +123,7 @@ export class MemoryTracerProvider implements TracerProvider {
 }
 
 export class MemoryTraceAPI {
-	private _proxyTracerProvider:any = { 
+	private _proxyTracerProvider:any = {
 		getTracer: () => {
 			return {
 				startSpan: () => {
@@ -135,24 +135,24 @@ export class MemoryTraceAPI {
 						},
 						end: jest.fn(),
 					};
-				} 
+				}
 			};
 		}
 	};
-  
+
 	setGlobalTracerProvider(provider: TracerProvider): boolean {
 		this._proxyTracerProvider = provider;
 		return true;
 	}
-  
+
 	getTracerProvider(): TracerProvider {
 		return this._proxyTracerProvider;
 	}
-  
+
 	getTracer(name: string, version?: string): Tracer {
 		return this._proxyTracerProvider.getTracer(name, version);
 	}
-  
+
 	disable(): void {
 		this._proxyTracerProvider = undefined;
 	}
