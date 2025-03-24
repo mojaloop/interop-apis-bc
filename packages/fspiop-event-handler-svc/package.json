@@ -1,6 +1,6 @@
 {
     "name": "@mojaloop/interop-apis-bc-fspiop-event-handler-svc",
-    "version": "0.6.10",
+    "version": "0.6.11",
     "description": "Mojaloop vNext FSPIOP Event Handler Service",
     "license": "Apache-2.0",
     "homepage": "https://github.com/mojaloop/interop-apis-bc/tree/main/packages/fspiop-event-handler-svc",
