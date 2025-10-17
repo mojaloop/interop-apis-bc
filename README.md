@@ -1,4 +1,9 @@
-# interop-apis-bc
+# [DEPRECATED] interop-apis-bc
+
+Deprecation Notice: This repo was deprecated as of October 2025. It is no longer maintained, and is no longer referenced by any releases of Mojaloop.
+
+For a list of active Mojaloop repos, please refer to Mojaloop documentation or [Mojaloop GitHub Org](https://github.com/mojaloop).
+
 **EXPERIMENTAL** vNext FSP Interoperability APIs Bounded Context Mono Repository
 
 The FSP Interoperability API Bounded Context provides access to the internal operations and resources that the Mojaloop Ecosystem provides to a given Participant. This Bounded Context is responsible for providing a Participant with interfaces whit which the Participant can perform and execute tasks on Mojaloop. It is also responsible for providing communication back to the Participant regarding different notifications and system messages that a participant should expect to receive.
